@@ -3,93 +3,129 @@ import Employee from "../models/Employee.js";
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import multer from "multer";
-import Department from "../models/Department.js"
+import Department from "../models/Department.js";
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "public/uploads");
+const storage = multer.memoryStorage(); // Use memory storage to read the file as buffer
+
+const upload = multer({
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const extname = filetypes.test(file.originalname.toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb("Error: Images Only!");
+    }
   },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
+  limits: { fileSize: 1024 * 1024 * 5 } // Set file size limit to 5MB
 });
 
-const upload = multer({ storage: storage });
+export const uploadFields = upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'signature', maxCount: 1 }
+]);
 
 const addEmployee = async (req, res) => {
   try {
     const {
       name,
+      address,
       email,
-      employeeId,
+      mobileNo,
       dob,
       gender,
+      employeeId,
       maritalStatus,
       designation,
       department,
-      salary,
-      password,
-      role,
+      sss,
+      tin,
+      pagibig,
+      nameOfContact,
+      addressOfContact,
+      numberOfContact
     } = req.body;
 
-    // Ensure the email is used correctly in the query
-    const user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ success: false, error: "User already registered in emp" });
-    }
-
-    const hashPassword = await bcrypt.hash(password, 10);
-
-    const newUser = new User({
-      name,
-      email,
-      password: hashPassword,
-      role,
-      profileImage: req.file ? req.file.filename : ""
-    });
-
-    const savedUser = await newUser.save();
+    const profileImage = req.files['image'] ? req.files['image'][0].buffer : null;    
+    const signature = req.files['signature'] ? req.files['signature'][0].buffer : null;    
 
     const newEmployee = new Employee({
-      userId: savedUser._id,
-      employeeId,
+      name,
+      address,
+      email,
+      mobileNo,
       dob,
       gender,
+      employeeId,
       maritalStatus,
       designation,
       department,
-      salary
+      sss,
+      tin,
+      pagibig,
+      nameOfContact,
+      addressOfContact,
+      numberOfContact,
+      profileImage, 
+      signature
+      
     });
 
     await newEmployee.save();
+ 
     return res.status(200).json({ success: true, message: "Employee created" });
   } catch (error) {
-    console.error("Server error in adding employee:", error); // Log the error for debugging
+    console.error("Server error in adding employee:", error);
     return res.status(500).json({ success: false, error: "Server error in adding employee" });
   }
 };
 
+const getEmployee = ()=> {
+
+}
+
 const getEmployees = async (req, res) => {
   try {  
-    const employees = await Employee.find().populate('userId', {password:0}).populate("department"); // Correctly retrieve department
-    return res.status(200).json({ success: true, employees }); // Correctly send department
+    const employees = await Employee.find().populate("department", "dep_name"); // Only return dep_name
+    return res.status(200).json({ success: true, employees }); 
   } catch (error) {
     return res.status(500).json({ success: false, error: "get employees server error" });
   }
-}
+};
 
-const getEmployee = async (req, res) => {
+const getEmployeeImage = async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.params.id);
+
+    if (!employee || !employee.profileImage) {
+      return res.status(404).json({ success: false, error: 'Image not found' });
+    }
+
+    // Send the image binary data as a response
+    res.set('Content-Type', 'image/png'); // or 'image/jpeg' depending on your image type
+    return res.send(Buffer.from(employee.profileImage.data));
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, error: 'Error fetching image' });
+  }
+};
+
+
+
+
+
+
+const fetchEmployeesByDepId = async (req, res) => {
   const { id } = req.params;
   try {
-    const employee = await Employee.findById({_id:id})
-      .populate('userId', { password: 0 })
-      .populate("department");
-
-    return res.status(200).json({ success: true, employee });
+    const employees = await Employee.find({ department: id }).populate('userId', { password: 0 });
+    return res.status(200).json({ success: true, employees });
   } catch (error) {
-    console.error("Server error fetching employee:", error); // Log the error
-    console.log("Employee ID from URL:", id); // Debugging line
-    return res.status(500).json({ success: false, error: "Server error fetching employee" });
+    console.error("Server error in fetching employees by department ID:", error); // Added detailed error message
+    return res.status(500).json({ success: false, error: "Server error in fetching employees by department ID" });
   }
 };
 
@@ -132,14 +168,4 @@ const updateEmployee = async (req, res) =>{
   }
 }
 
-const fetchEmployeesByDepId = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const employees = await Employee.find({department:id})
-    return res.status(200).json({ success: true, employees });
-  } catch (error) {
-    return res.status(500).json({ success: false, error: "getEmployeesById server error" });
-  }
-}
-
-export { addEmployee, upload, getEmployees, getEmployee, updateEmployee, fetchEmployeesByDepId };
+export { addEmployee, upload, getEmployees, getEmployee, updateEmployee, fetchEmployeesByDepId, getEmployeeImage };
