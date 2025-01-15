@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { columns, EmployeeButtons } from '../../../utils/EmployeeHelper';
+import { EmployeeButtons } from '../../../utils/EmployeeHelper';
 import DataTable from 'react-data-table-component';
 import axios from 'axios';
 
 const List = () => {
   const [employees, setEmployees] = useState([]);
-  const [empLoading, setEmpLoading] = useState([]);
-  const [filteredEmployee, setFilteredEmployees] = useState([])
+  const [empLoading, setEmpLoading] = useState(false);
+  const [filteredEmployee, setFilteredEmployees] = useState([]);
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -18,23 +18,32 @@ const List = () => {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        console.log(response.data);
+        console.log('API Response:', response.data);
+
         if (response.data.success) {
-          let sno = 1;
           const data = response.data.employees.map((emp) => ({
-            id: emp._id, // This must match the backend's field
-            sno: sno++,
-            dep_name: emp.department.dep_name,
-            name: emp.userId.name,
-            dob: new Date(emp.dob).toLocaleDateString(),
-            profileImage: <img width={40} className="rounded-full" src={`http://localhost:5000/${emp.userId.profileImage}`}/>,
-            action: (<EmployeeButtons Id={emp._id} />),
+            id: emp.employeeId || emp._id,
+            name: emp.name,
+            email: emp.email,
+            department: emp.department?.dep_name || 'N/A',
+            profileImage: (
+              <img
+                width={40}
+                className="rounded-full"
+                src={`http://localhost:5000/api/employee/image/${emp._id}`} // Dynamic image URL
+                alt="Profile"
+              />
+            ),
+            action: <EmployeeButtons Id={emp._id} />,
           }));
           
+          
+
           setEmployees(data);
           setFilteredEmployees(data);
         }
       } catch (error) {
+        console.error('Error fetching employees:', error);
         if (error.response && !error.response.data.success) {
           alert(error.response.data.error);
         }
@@ -47,12 +56,12 @@ const List = () => {
   }, []);
 
   const handleFilter = (e) => {
-    const records = employees.filter((emp) => (
+    const records = employees.filter((emp) =>
       emp.name.toLowerCase().includes(e.target.value.toLowerCase())
-    ))
+    );
 
-    setFilteredEmployees(records)
-  }
+    setFilteredEmployees(records);
+  };
 
   return (
     <div className="p-6">
@@ -73,8 +82,45 @@ const List = () => {
           Add New Employee
         </Link>
       </div>
-      <div className='mt-6'>
-        <DataTable columns={columns} data={filteredEmployee} pagination/>
+      <div className="mt-6">
+        <DataTable
+          columns={[
+            {
+              name: 'Profile Image',
+              selector: (row) => row.profileImage,
+              sortable: false,
+            },
+            {
+              name: 'Name',
+              selector: (row) => row.name,
+              sortable: true,
+            },
+            {
+              name: 'ID',
+              selector: (row) => row.id,
+              sortable: false,
+            },
+            {
+              name: 'Email',
+              selector: (row) => row.email,
+              sortable: true,
+            },
+            {
+              name: 'Department',
+              selector: (row) => row.department,
+              sortable: true,
+            },
+            {
+              name: 'Action',
+              selector: (row) => row.action,
+              sortable: true,
+            }
+          
+          ]}
+          data={filteredEmployee}
+          pagination
+          progressPending={empLoading}
+        />
       </div>
     </div>
   );
