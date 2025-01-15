@@ -3,43 +3,36 @@ import { useNavigate } from 'react-router-dom';
 
 export const columns = [
   {
-    name: "S no", 
-    selector: (row) => row.sno,
-    width:"70px"
-  },
-  {
-    name: "Name", 
-    selector: (row) => row.name,
-    sortable: true,
-    width:"100px"
-  },
-  {
     name: "Image", 
     selector: (row) => row.profileImage,
     width: "90px"
   },
   {
+    name: "Name", 
+    selector: (row) => row.name,
+    width: "70px"
+  },
+  {
+    name: "ID", 
+    selector: (row) => row.id,
+    width: "70px"
+  },
+  {
+    name: "Email", 
+    selector: (row) => row.email,
+    sortable: true,
+    width: "100px"
+  },
+  {
     name: "Department", 
     selector: (row) => row.dep_name,
     width: "120px"
-
-  },
-  {
-    name: "DOB", 
-    selector: (row) => row.dob,
-    sortable: true,
-    width: "130px"
-
-  },
-  {
-    name: "Action", 
-    selector: (row) => row.action,
-    style: { textAlign: 'center' },
-  },
+  }
 ];
 
+
+
 export const fetchDepartments = async () => {
-  let departments;
   try {
     const response = await axios.get('http://localhost:5000/api/department', {
       headers: {
@@ -48,18 +41,16 @@ export const fetchDepartments = async () => {
     });
 
     if (response.data.success) {
-      return response.data.departments || []
+      return response.data.departments;
     }
   } catch (error) {
-    if (error.response && !error.response.data.success) {
-      console.error("Error Fetching Departments:", error);
-      return [];
-    }
+    console.error("Error fetching departments:", error);
+    return [];
   }
 };
 
 
-//employees salary form 
+
 export const getEmployees = async (id) => {
   let employees;
   try {
@@ -85,33 +76,30 @@ export const EmployeeButtons = ({ Id }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex space-x-3">
+    <div className="flex gap-2 justify-center items-center flex-nowrap">
       <button
-        className="px-3 py-1 bg-teal-600 text-white"
+        className="px-4 py-1 bg-teal-600 text-white text-sm rounded hover:bg-teal-700"
         onClick={() => navigate(`/admin-dashboard/employees/${Id}`)}
       >
         View ID
       </button>
 
       <button
-        className="px-3 py-1 bg-blue-600 text-white"
+        className="px-4 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
         onClick={() => navigate(`/admin-dashboard/employees/edit/${Id}`)}
       >
         Edit
       </button>
 
       <button
-        className="px-3 py-1 bg-yellow-600 text-white"
+        className="px-4 py-1 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700"
       >
         Salary
-      </button>
-
-      <button
-        className="px-3 py-1 bg-red-600 text-white"
-      >
-        Leave
       </button>
     </div>
   );
 };
+
+
+
 
