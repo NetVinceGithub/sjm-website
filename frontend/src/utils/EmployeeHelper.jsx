@@ -79,7 +79,8 @@ export const EmployeeButtons = ({ Id }) => {
     <div className="flex gap-2 justify-center items-center flex-nowrap">
       <button
         className="px-4 py-1 bg-teal-600 text-white text-sm rounded hover:bg-teal-700"
-        onClick={() => navigate(`/admin-dashboard/employees/${Id}`)}
+        onClick={() => navigate(`/admin-dashboard/employees/employee_id/${Id}`)}
+
       >
         View ID
       </button>
@@ -93,6 +94,7 @@ export const EmployeeButtons = ({ Id }) => {
 
       <button
         className="px-4 py-1 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700"
+
       >
         Salary
       </button>
