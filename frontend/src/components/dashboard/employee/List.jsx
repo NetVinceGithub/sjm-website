@@ -9,6 +9,12 @@ const List = () => {
   const [empLoading, setEmpLoading] = useState(false);
   const [filteredEmployee, setFilteredEmployees] = useState([]);
 
+  // Function to convert Buffer to Base64
+  const bufferToBase64 = (buffer) => {
+    const binary = new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '');
+    return window.btoa(binary); // Convert to Base64 string
+  };
+
   useEffect(() => {
     const fetchEmployees = async () => {
       setEmpLoading(true);
@@ -21,23 +27,20 @@ const List = () => {
         console.log('API Response:', response.data);
 
         if (response.data.success) {
-          const data = response.data.employees.map((emp) => ({
-            id: emp.employeeId || emp._id,
-            name: emp.name,
-            email: emp.email,
-            department: emp.department?.dep_name || 'N/A',
-            profileImage: (
-              <img
-                width={40}
-                className="rounded-full"
-                src={`http://localhost:5000/api/employee/image/${emp._id}`} // Dynamic image URL
-                alt="Profile"
-              />
-            ),
-            action: <EmployeeButtons Id={emp._id} />,
-          }));
-          
-          
+          const data = response.data.employees.map((emp) => {
+            const profileImage = emp.profileImage?.data
+              ? `data:image/jpeg;base64,${bufferToBase64(emp.profileImage.data)}`
+              : null;
+
+            return {
+              id: emp.employeeId || emp._id,
+              name: emp.name,
+              email: emp.email,
+              department: emp.department?.dep_name || 'N/A',
+              profileImage: profileImage,
+              action: <EmployeeButtons Id={emp._id} />,
+            };
+          });
 
           setEmployees(data);
           setFilteredEmployees(data);
@@ -87,7 +90,16 @@ const List = () => {
           columns={[
             {
               name: 'Profile Image',
-              selector: (row) => row.profileImage,
+              cell: (row) =>
+                row.profileImage ? (
+                  <img
+                    src={row.profileImage}
+                    alt="Profile"
+                    className="w-12 h-12 rounded-full border"
+                  />
+                ) : (
+                  'No Image'
+                ),
               sortable: false,
             },
             {
@@ -114,8 +126,7 @@ const List = () => {
               name: 'Action',
               selector: (row) => row.action,
               sortable: true,
-            }
-          
+            },
           ]}
           data={filteredEmployee}
           pagination

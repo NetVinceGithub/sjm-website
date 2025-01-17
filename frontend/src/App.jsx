@@ -12,7 +12,7 @@ import List from "./components/dashboard/employee/List";
 import Add from "./components/dashboard/employee/Add";
 import View from "./components/dashboard/employee/View";
 import Edit from "./components/dashboard/employee/Edit";
-import ViewSalary from "./components/dashboard/salary/ViewSalary";
+import EmployeeIDCard from "./components/dashboard/EmployeeIDCard";
 
 
 
@@ -47,7 +47,9 @@ function App() {
           <Route path="employees/:id" element={<View />} />
           <Route path="employees/edit/:id" element={<Edit />} />
 
-          <Route path="employees/salary/view" element={<ViewSalary />} />
+          <Route path="employees/employee_id/:id" element={<EmployeeIDCard />} />
+
+
  
 
         </Route>
