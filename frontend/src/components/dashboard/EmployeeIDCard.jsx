@@ -6,6 +6,7 @@ import { jsPDF } from "jspdf";
 import logo from "../../assets/logo.png";
 import defaultProfile from "../../assets/default-profile.png"; // Fallback image if no profile exists
 import dayjs from "dayjs";
+import '../../styles/IDCard.css';
 
 const EmployeeIDCard = () => {
   const [employee, setEmployee] = useState(null);
@@ -92,33 +93,13 @@ const EmployeeIDCard = () => {
             justifyContent: "space-between",
           }}
         >
-          <div style={{ textAlign: "center" }}>
-            <img src={logo} alt="logo" style={{ width: "80px", height: "80px" }} />
-            
-          </div>
-
-          <div style={{
-            position: "absolute", // Position the container absolutely
-            top: "10px",          // Distance from the top
-            right: "10px",        // Distance from the right
-            textAlign: "right",   // Align the text to the right
-          }}>
-          <h1
-               style={{
-                fontSize: "20px",
-                fontWeight: "bold",
-                color: "#974364",
-                margin: "0",
-              }}
-            >
-              St.JohnMajore
-            </h1>
-            <p style={{
-              fontSize: "10px",
-              margin: "0", // Remove margin for alignment
-            }}>
-              #8 De Villa St., Poblacion, San Juan, Batangas
-            </p>
+          <div> 
+            <img src={logo} alt="logo" style={{ width: "80px", height: "80px", padding:'0' }} /> 
+          </div> 
+          
+          <div className="id-header-rigth" style={{marginBottom:"10px"}}> 
+            <h1 className="id-title"> St.JohnMajore </h1> 
+            <p className="id-subtitle"> #8 De Villa St., Poblacion, San Juan, Batangas </p> 
           </div>
           <div style={{ textAlign: "center" }}>
             <img

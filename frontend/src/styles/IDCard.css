@@ -15,6 +15,7 @@
   width: 80px;
   height: 80px;
   margin: 0 auto;
+  
 }
 
 .id-title {
@@ -252,4 +253,13 @@
   background-image: url("./assets/img-bg.png");
   background-size: cover;
   background-position: center;
+}
+
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0;
+  color:#974364;
+   /* Adjust to your desired color */
 }
