@@ -98,13 +98,27 @@ const Edit = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Prevent the default form submission behavior
+  
+    // Initialize FormData
+    const formData = new FormData();
+  
+    // Append all employee fields to the FormData object
+    Object.keys(employee).forEach((key) => {
+      // Handle file fields (profileImage and signature)
+      if (employee[key] instanceof File) {
+        formData.append(key, employee[key]);
+      } else {
+        formData.append(key, employee[key]); // For regular text fields
+      }
+    });
   
     try {
-      const response = await axios.put(`http://localhost:5000/api/employee/${id}`, employee, {
+      // Send the FormData object to the backend
+      const response = await axios.put(`http://localhost:5000/api/employee/${id}`, formData, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'multipart/form-data',
         },
       });
   
@@ -119,6 +133,7 @@ const Edit = () => {
       alert(error.response?.data?.error || 'Failed to update employee.');
     }
   };
+  
   
 
   return (
@@ -351,6 +366,30 @@ const Edit = () => {
               placeholder='Contact Number'
               className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
               required
+            />
+          </div>
+
+           {/* Profile Image */}
+           <div>
+            <label className='block text-sm font-medium text-grey-700'>Profile Image</label>
+            <input
+              type="file"
+              name="profileImage"
+              accept="image/*"
+              onChange={handleChange}
+              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+            />
+          </div>
+
+          {/* Signature */}
+          <div>
+            <label className='block text-sm font-medium text-grey-700'>Signature</label>
+            <input
+              type="file"
+              name="signature"
+              accept="image/*"
+              onChange={handleChange}
+              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
             />
           </div>
 
