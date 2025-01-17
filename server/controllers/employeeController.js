@@ -24,7 +24,7 @@ const upload = multer({
 });
 
 export const uploadFields = upload.fields([
-  { name: 'image', maxCount: 1 },
+  { name: 'profileImage', maxCount: 1 },
   { name: 'signature', maxCount: 1 }
 ]);
 
@@ -86,14 +86,20 @@ const addEmployee = async (req, res) => {
 };
 
 const getEmployee = async (req, res) => {
-  try {  
+  try {
     const employee = await Employee.findById(req.params.id).populate("department", "dep_name");
 
-    return res.status(200).json({ success: true, employee }); 
+    if (!employee) {
+      return res.status(404).json({ success: false, error: "Employee not found" });
+    }
+
+    return res.status(200).json({ success: true, employee });
   } catch (error) {
+    console.error("Error in getEmployee:", error.message);
     return res.status(500).json({ success: false, error: "get employees server error" });
   }
-}
+};
+
 
 const getEmployees = async (req, res) => {
   try {  
@@ -137,9 +143,10 @@ const fetchEmployeesByDepId = async (req, res) => {
   }
 };
 
-const updateEmployee = async (req, res) =>{
-  try{
+const updateEmployee = async (req, res) => {
+  try {
     const { id } = req.params;
+
     const {
       name,
       address,
@@ -157,43 +164,54 @@ const updateEmployee = async (req, res) =>{
       pagibig,
       nameOfContact,
       addressOfContact,
-      numberOfContact,
+      numberOfContact
     } = req.body;
 
-    const updateEmp = await Employee.findByIdAndUpdate(
-      id, // Provide the ID directly
-      {
-        name,
-        address,
-        email,
-        mobileNo,
-        dob,
-        gender,
-        employeeId,
-        maritalStatus,
-        designation,
-        department,
-        sss,
-        tin,
-        philHealth,
-        pagibig,
-        nameOfContact,
-        addressOfContact,
-        numberOfContact,
-      },
-      { new: true } // Option to return the updated document
+    const updateFields = {
+      name,
+      address,
+      email,
+      mobileNo,
+      dob,
+      gender,
+      employeeId,
+      maritalStatus,
+      designation,
+      department,
+      sss,
+      tin,
+      philHealth,
+      pagibig,
+      nameOfContact,
+      addressOfContact,
+      numberOfContact,
+    };
+
+    if (req.files && req.files['profileImage']) {
+      updateFields.profileImage = req.files['profileImage'][0].buffer;
+    }
+    if (req.files && req.files['signature']) {
+      updateFields.signature = req.files['signature'][0].buffer;
+    }
+
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      id,
+      updateFields,
+      { new: true }
     );
-    
-    if (!updateEmp) {
+
+    if (!updatedEmployee) {
       return res.status(404).json({ success: false, message: "Employee not found" });
     }
 
-    return res.status(200).json({ success: true, updateEmp });
+    return res.status(200).json({ success: true, updatedEmployee });
   } catch (error) {
-    console.error("Error updating employee:", error); // Log the error for debugging
+    console.error("Error updating employee:", error.message, error.stack);
     return res.status(500).json({ success: false, error: "Server error in updating employee" });
   }
 };
+
+
 
    
 export { addEmployee, upload, getEmployees, getEmployee, updateEmployee, fetchEmployeesByDepId, getEmployeeImage };
