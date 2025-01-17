@@ -11,9 +11,9 @@ router.post('/add', authMiddleware, uploadFields, addEmployee);
 router.get('/:id', authMiddleware, getEmployee);
 router.put('/:id', authMiddleware, updateEmployee);
 router.get('/department/:id', authMiddleware, fetchEmployeesByDepId);
-import fs from 'fs'; 
 
 router.get('/image/:id', authMiddleware, getEmployeeImage);
+
 
 
 

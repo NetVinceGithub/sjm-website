@@ -1,0 +1,265 @@
+.id-container {
+  display: inline-flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.id-front {
+  border: 2px solid #000;
+  width: 300px;
+  height: 450px;
+}
+
+.id-logo {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto;
+  
+}
+
+.id-title {
+  font-size: 30px;
+  font-weight: bold;
+  font-family: 'AR JULIAN', sans-serif;
+  color: #974364;
+  padding-right: 20px;
+}
+
+.id-subtitle {
+  font-size: 9px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #000;
+  padding-right: 20px;
+  text-align: right;
+  margin-top: -15px;
+}
+
+.id-header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.id-content {
+  background-image: url('../assets/img-bg.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  width: 350px;
+  height: 350px;
+  z-index: -2;
+  position: absolute;
+  margin-top: 80px;
+  margin-left: -30px;
+}
+
+.id-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.4);
+  z-index: 0;
+}
+
+.id-content > * {
+  position: relative;
+  z-index: 1;
+}
+
+.user-img {
+  width: 140px;
+  height: 140px;
+  margin: 0 auto;
+  margin-top: 40px;
+  margin-left: 60px;
+}
+
+.user-info  {
+  text-align: center;
+  margin-top: 50px;
+  font-size: 12px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #000;
+  margin-left: 30px;
+  font-weight: bold;
+  line-height: 5px;
+}
+
+.user-name {
+  font-size: 18px;
+}
+
+.user-id {
+  font-size: 13px;
+}
+
+.user-signature {
+  font-size: 12px;
+  margin-top: 55px;
+  text-align: center;
+  font-weight: normal;
+  margin-left: 30px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #000;
+  font-weight: bold;
+}
+
+.id-back {
+  border: 2px solid #000;
+  width: 300px;
+  height: 450px;
+}
+
+.id-content-back {
+  background-image: url('./assets/img-bg.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  width: 350px;
+  height: 350px;
+  z-index: -2;
+  position: absolute;
+  margin-top: 10px;
+  margin-left: -30px;
+}
+
+.id-content-back::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.4);
+  z-index: 0;
+}
+
+.id-content-back > * {
+  position: relative;
+  z-index: 1;
+}
+
+.address {
+  line-height: normal;
+  margin-left: 10px;
+}
+
+.sss {
+  margin-left: 10px;
+}
+
+.tin {
+  margin-left: 10px;
+}
+
+.philhealth {
+  margin-left: 10px;
+}
+
+.pagibig {
+  margin-left: 10px;
+}
+
+.bday {    
+  margin-left: 10px;
+}
+
+.user-info-back {
+  text-align: left;
+  margin-top: 10px;
+  font-size: 12px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #000;
+  margin-left: 30px;
+  font-weight: bold;
+  line-height: 8px;
+  border: 2px solid #000;
+  margin-left: 40px;
+  width: 275px;
+}
+
+.emergency {
+  text-align: left;
+  margin-top: 10px;
+  font-size: 12px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #000;
+  margin-left: 30px;
+  font-weight: bold;
+  line-height: 5px;
+  border: 2px solid #000;
+  margin-left: 40px;
+  width: 275px;
+}
+
+.emergency-title {
+  margin-left: 10px;
+}
+
+.emergency-name {
+  margin-left: 10px;
+}
+
+.emergency-contact {
+  margin-left: 10px;
+}
+
+.emergency-address {
+  margin-left: 10px;
+  line-height: normal;
+}
+
+.hr {
+  text-align: center;
+  margin-top: 60px;
+  font-size: 12px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #000;
+  line-height: 5px;
+}
+
+.hr-name {
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.footer-logo {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto;
+  margin-top: 390px;
+}
+
+.id-footer-right {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 8px;
+  text-align: right;
+  margin-top: -68px;
+  line-height: 5px;
+  margin-right: 10px;
+}
+
+.footer-title {
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.background-image {
+  width: 300px;
+  height: 300px;
+  background-image: url("./assets/img-bg.png");
+  background-size: cover;
+  background-position: center;
+}
+
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0;
+  color:#974364;
+   /* Adjust to your desired color */
+}
