@@ -9,7 +9,6 @@ const EditDepartment = () => {
   const [depLoading, setDepLoading] = useState(false);
   const navigate = useNavigate();
   
-  console.log('Fetched ID:', id); // Debug to ensure the ID is received
   
   useEffect(() => {
     const fetchDepartments = async () => {
