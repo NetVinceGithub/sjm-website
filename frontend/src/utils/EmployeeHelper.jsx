@@ -94,6 +94,7 @@ export const EmployeeButtons = ({ Id }) => {
 
       <button
         className="px-4 py-1 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700"
+        onClick={() => navigate(`/admin-dashboard/employees/payslip/${Id}`)}
 
       >
         Salary
