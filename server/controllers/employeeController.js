@@ -43,6 +43,7 @@ const addEmployee = async (req, res) => {
       department,
       sss,
       tin,
+      philHealth,
       pagibig,
       nameOfContact,
       addressOfContact,
@@ -65,6 +66,7 @@ const addEmployee = async (req, res) => {
       department,
       sss,
       tin,
+      philHealth,
       pagibig,
       nameOfContact,
       addressOfContact,
@@ -83,8 +85,14 @@ const addEmployee = async (req, res) => {
   }
 };
 
-const getEmployee = ()=> {
+const getEmployee = async (req, res) => {
+  try {  
+    const employee = await Employee.findById(req.params.id).populate("department", "dep_name");
 
+    return res.status(200).json({ success: true, employee }); 
+  } catch (error) {
+    return res.status(500).json({ success: false, error: "get employees server error" });
+  }
 }
 
 const getEmployees = async (req, res) => {
@@ -131,41 +139,61 @@ const fetchEmployeesByDepId = async (req, res) => {
 
 const updateEmployee = async (req, res) =>{
   try{
-    const {id} = req.params;
+    const { id } = req.params;
     const {
       name,
+      address,
+      email,
+      mobileNo,
+      dob,
+      gender,
+      employeeId,
       maritalStatus,
       designation,
       department,
-      salary,
+      sss,
+      tin,
+      philHealth,
+      pagibig,
+      nameOfContact,
+      addressOfContact,
+      numberOfContact,
     } = req.body;
 
-    const employee = await Employee.findById({_id:id})
-    if(!employee){
-      return res.status(500).json({ success: false, error: "employee not found" });
+    const updateEmp = await Employee.findByIdAndUpdate(
+      id, // Provide the ID directly
+      {
+        name,
+        address,
+        email,
+        mobileNo,
+        dob,
+        gender,
+        employeeId,
+        maritalStatus,
+        designation,
+        department,
+        sss,
+        tin,
+        philHealth,
+        pagibig,
+        nameOfContact,
+        addressOfContact,
+        numberOfContact,
+      },
+      { new: true } // Option to return the updated document
+    );
+    
+    if (!updateEmp) {
+      return res.status(404).json({ success: false, message: "Employee not found" });
     }
 
-    const user = await User.findById({_id: employee.userId})
-    if(!user){
-      return res.status(500).json({ success: false, error: "user not found" });
-    }
-
-    const updateUser = await User.findByIdAndUpdate({_id: employee.userId}, {name})
-    const updateEmployee = await Employee.findByIdAndUpdate({_id: id}, {
-      maritalStatus, 
-      designation,
-      salary, 
-      department
-    })
-
-    if(!updateUser || !updateEmployee){
-      return res.status(500).json({ success: false, error: "user not found" });
-    }
-    return res.status(200).json({success:true, message:"employee updated"})
- 
-  } catch(error){
-    return res.status(500).json({ success: false, error: "document not found" });
+    return res.status(200).json({ success: true, updateEmp });
+  } catch (error) {
+    console.error("Error updating employee:", error); // Log the error for debugging
+    return res.status(500).json({ success: false, error: "Server error in updating employee" });
   }
-}
+};
 
+   
 export { addEmployee, upload, getEmployees, getEmployee, updateEmployee, fetchEmployeesByDepId, getEmployeeImage };
