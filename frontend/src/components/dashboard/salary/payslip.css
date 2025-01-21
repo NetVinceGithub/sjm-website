@@ -4,21 +4,59 @@
 
 .payslip {
   border: 3px solid #000;
-  width: 50%;
+  width: 55%;
   align-items: center;
   margin: 0 auto;
   margin-top: 40px;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
+.payslip-header {
+  background-color: #0093DD;
+  width: 340px;
+  height: 200px;
+  border: 2px solid #0093DD;
+  border-radius: 0 0 30px 30px;
+  margin-left: 50px;
 }
+
+.header-img {
+  margin-top: -150px;
+  margin-left: 375px;
+  width: 320px;
+  height: auto;
+}
+
+.header-title {
+  color: #fff;
+  font-weight: bold;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 45px;
+  text-align: center;
+  margin-top: 30px;
+}
+
+.header-two {
+  font-weight: bold;
+  font-family: Arial, Helvetica, sans-serif;
+  margin-top: 30px;
+  margin-left: 40px;
+}
+
+table {
+  margin-top: 10px;
+  width: 90%;
+  border-collapse: collapse;
+  margin-left: 40px;
+  margin-bottom: 30px;
+  align-items: center;
+}
+
 th, td {
-  border: 1px solid black;
+  border: 3px solid #AA396F;
   padding: 8px;
   text-align: left;
 }
+
 th {
   background-color: #f2f2f2;
 }
@@ -27,45 +65,39 @@ th {
   text-align: center;
 }
 
-.none {
-  border: none;
-  background-color: #fff;
-}
-
-.cell {
-  border-left: 0;
-  border-top: 0;
-}
-
-.cell1 {
-  border-top: 0;
-  border-right: 0;
-}
-
 .cell2 {
-  border-top: 0;
-}
-
-.cell3 {
-  border-right: 0;
-}
-
-.cell4 {
-  border-left: 0;
+  border-bottom: 0;
 }
 
 .cell5 {
-  border-left: 0;
+  border: 5px solid #AA396F;
+}
+
+.GovCon {
+  font-weight:  bold;
+  width: 185px;
+  font-size: 11px;
+  background-color: #AA396F;
+  border-radius: 10px;
+  padding: 2px;
+  text-align: center;
+}
+
+.cell3 {
   border-bottom: 0;
 }
 
-.cell6 {
+.cell4 {
+  border-top: 0;
   border-bottom: 0;
 }
 
-.cell7 {
-  border-right: 0;
-  border-bottom: 0;
+.none {
+  border: none;
+}
+
+.cell1 {
+  height: 45px;
 }
 
 .cell-w {
