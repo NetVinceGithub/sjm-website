@@ -50,9 +50,8 @@ export const fetchDepartments = async () => {
 };
 
 
-
 export const getEmployees = async (id) => {
-  let employees;
+  let employees = [];
   try {
     const response = await axios.get(`http://localhost:5000/api/employee/department/${id}`, {
       headers: {
@@ -61,26 +60,29 @@ export const getEmployees = async (id) => {
     });
 
     if (response.data.success) {
-      employees = response.data.employees
+      employees = response.data.employees;
     }
   } catch (error) {
-    if (error.response && !error.response.data.success) {
-      console.error("Error Fetching Employees:", error);
-      return employees;
-    }
+    console.error("Error Fetching Employees:", error);
   }
+  return employees;
 };
+
 
 
 export const EmployeeButtons = ({ Id }) => {
   const navigate = useNavigate();
+
+  if (!Id) {
+    console.error("Invalid Employee ID");
+    return null;
+  }
 
   return (
     <div className="flex gap-2 justify-center items-center flex-nowrap">
       <button
         className="px-4 py-1 bg-teal-600 text-white text-sm rounded hover:bg-teal-700"
         onClick={() => navigate(`/admin-dashboard/employees/employee_id/${Id}`)}
-
       >
         View ID
       </button>
@@ -91,17 +93,10 @@ export const EmployeeButtons = ({ Id }) => {
       >
         Edit
       </button>
-
-      <button
-        className="px-4 py-1 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700"
-        onClick={() => navigate(`/admin-dashboard/employees/payslip/${Id}`)}
-
-      >
-        Salary
-      </button>
     </div>
   );
 };
+
 
 
 
