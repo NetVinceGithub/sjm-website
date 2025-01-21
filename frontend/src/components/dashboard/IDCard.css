@@ -58,7 +58,7 @@
 
 /* Content Styling */
 .id-content {
-  background-image: url('/public/blurred-bg.png');
+  background-image: url('/public/img-bg.png');
   background-size: 95% 95%;
   background-repeat: no-repeat;
   background-position: top;
@@ -99,6 +99,10 @@
   font-size: 13px;
 }
 
+.user-signature-label {
+  margin-top: 20px;
+}
+
 .user-signature {
   width: 90px;
   height: 90px;
@@ -107,12 +111,12 @@
   transform: translate(-50%, -50%); /* Perfectly centers the signature over the HR name */
   z-index: 1; /* Ensures the signature stays on top */
   pointer-events: none; /* Prevents interaction with the image */
-  margin-top:150px;
+  margin-top:180px;
 }
 
 /* Back Content Styling */
 .id-content-back {
-  background-image: url('/public/blurred-bg.png');
+  background-image: url('/public/img-bg.png');
   background-size: 94% 92%;
   background-repeat: no-repeat;
   background-position: top;
@@ -134,8 +138,7 @@
   margin: 5px 0;
 }
 
-.user-info-back,
-.emergency {
+.user-info-back {
   text-align: left;
   font-size: 12px;
   font-family: Arial, Helvetica, sans-serif;
@@ -145,6 +148,18 @@
   width: 275px;
   margin: 10px auto;
   padding: 10px;
+}
+
+.emergency {
+  text-align: left;
+  font-size: 12px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #000;
+  font-weight: bold;
+  border: 2px solid #000;
+  width: 275px;
+  padding: 10px;
+  margin-top: -25px;
 }
 
 .hr {
