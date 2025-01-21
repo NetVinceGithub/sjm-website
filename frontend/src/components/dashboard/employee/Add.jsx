@@ -1,90 +1,112 @@
-import React, { useEffect, useState } from 'react'
-import { fetchDepartments } from '../../../utils/EmployeeHelper';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { fetchDepartments } from "../../../utils/EmployeeHelper";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const Add = () => {
   const [departments, setDepartments] = useState([]);
   const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    name: "",
+    address: "",
+    email: "",
+    mobileNo: "",
+    dob: "",
+    gender: "",
+    employeeId: "",
+    maritalStatus: "",
+    designation: "",
+    department: "",
+    sss: "",
+    tin: "",
+    philHealth: "",
+    pagibig: "",
+    nameOfContact: "",
+    addressOfContact: "",
+    numberOfContact: "",
+  });
 
-  const [formData, setFormData] = useState({ 
-    name: '', 
-    address: '', 
-    email: '', 
-    mobileNo: '', 
-    dob: '', 
-    gender: '', 
-    employeeId: '', 
-    maritalStatus: '', 
-    designation: '', 
-    department: '', 
-    sss: '', 
-    tin: '', 
-    philHealth: '', 
-    pagibig: '', 
-    nameOfContact: '', 
-    addressOfContact: '', 
-    numberOfContact: '', });
+  const [profileImage, setProfileImage] = useState(null);
+  const [signature, setSignature] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-    const [imageFile, setImageFile] = useState(null); 
-    const [signatureFile, setSignatureFile] = useState(null);
-
-  useEffect(()=>{
-    const getDepartments = async () => {
-      const departments = await fetchDepartments();
-      setDepartments(departments);
+  // Fetch departments
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await fetchDepartments();
+        setDepartments(data);
+      } catch (err) {
+        console.error("Error fetching departments:", err);
+        alert("Failed to load departments.");
+      }
     };
-    getDepartments();
+    fetchData();
   }, []);
 
-  const handleChange = (e) => { 
-    const { name, value } = e.target; 
-    setFormData({ ...formData, [name]: value }); 
+  // Handle input changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
 
-
-  const handleFileChange = (e) => { const { name, files } = e.target; 
-  if (name === "image") { 
-    setImageFile(files[0]); 
-  } else if (name === "signature") { 
-    setSignatureFile(files[0]); 
-  } 
-};
-
-
-
-  const handleSubmit = async (e) => { 
-    e.preventDefault(); 
-    const formDataObj = new FormData(); 
-    Object.keys(formData).forEach((key) => { 
-      formDataObj.append(key, formData[key]); 
-    }); 
-    if (imageFile) { 
-      formDataObj.append('image', imageFile); 
-    }  
-    if (signatureFile) { 
-      formDataObj.append('signature', signatureFile); 
-    } try { 
-      console.log('Submitting form data:', formDataObj); // Debugging 
-      const response = await axios.post('http://localhost:5000/api/employee/add', formDataObj, { 
-        headers: { 
-          "Authorization": `Bearer ${localStorage.getItem('token')}`, 
-          "Content-Type": "multipart/form-data", 
-        }, 
-      }); 
-      
-      console.log('Response:', response.data); // Debugging 
-      if (response.data.success) { 
-        navigate('/admin-dashboard/employees'); 
-      } 
-    } catch (error) { console.error('Error:', error.response ? error.response.data : error.message); 
-      if (error.response && !error.response.data.success) { 
-        alert(error.response.data.error); 
-      } 
-    } 
+  // Handle file input
+  const handleFileChange = (e) => {
+    const { name, files } = e.target;
+    if (files.length > 0) {
+      const file = files[0];
+      const validTypes = ["image/jpeg", "image/png"];
+      if (!validTypes.includes(file.type)) {
+        alert("Invalid file type. Please upload a JPEG or PNG image.");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File size exceeds 5MB.");
+        return;
+      }
+      name === "profileImage" ? setProfileImage(file) : setSignature(file);
+    }
   };
 
-  return(
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const formDataObj = new FormData();
+    Object.keys(formData).forEach((key) => {
+      formDataObj.append(key, formData[key]);
+    });
+    if (profileImage) formDataObj.append("profileImage", profileImage);
+    if (signature) formDataObj.append("signature", signature);
+
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/employee/add",
+        formDataObj,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        navigate("/admin-dashboard/employees");
+      } else {
+        alert(response.data.error || "Failed to add employee.");
+      }
+    } catch (error) {
+      console.error("Error adding employee:", error.response?.data || error);
+      alert("An error occurred while adding the employee.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+
+  return (
     <div className='max-w-4x1 mx-auto mt-10 bg-white p-8 rounded-md shadow-md'>
       <h2 className='text-2x1 font-bold mb-6'>Add New Employee</h2>
       <form onSubmit={handleSubmit}>
@@ -92,7 +114,6 @@ const Add = () => {
 
           {/* Name */}
           <div>
-
             <label className='block text-sm font-medium text-grey-700'>
               Name
             </label>
@@ -136,8 +157,8 @@ const Add = () => {
             />
           </div>
 
-            {/* Mobile Number */}
-            <div>
+          {/* Mobile Number */}
+          <div>
             <label className='block text-sm font-medium text-grey-700'>
               Mobile Number
             </label>
@@ -151,8 +172,8 @@ const Add = () => {
             />
           </div>
 
-           {/* Date of Birth */}
-           <div>
+          {/* Date of Birth */}
+          <div>
             <label className='block text-sm font-medium text-grey-700'>
               Date of Birth
             </label>
@@ -171,19 +192,17 @@ const Add = () => {
             <label className='block text-sm font-medium text-grey-700'>
               Gender
             </label>
-
             <select
-            name='gender'
-            onChange={handleChange}
-            className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
-            required
+              name='gender'
+              onChange={handleChange}
+              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              required
             >
               <option value="">Select Gender</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
             </select>
           </div>
-
 
           {/* Employee ID */}
           <div>
@@ -205,13 +224,12 @@ const Add = () => {
             <label className='block text-sm font-medium text-grey-700'>
               Marital Status
             </label>
-
             <select
-            name='maritalStatus'
-            onChange={handleChange}
-            placeholder='Marital Status'
-            className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
-            required
+              name='maritalStatus'
+              onChange={handleChange}
+              placeholder='Marital Status'
+              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              required
             >
               <option value="">Select Status</option>
               <option value="single">Single</option>
@@ -234,7 +252,26 @@ const Add = () => {
             />
           </div>
 
-         {/* Department */} <div> <label className='block text-sm font-medium text-grey-700'> Department </label> <select name='department' onChange={handleChange} className='mt-1 p-2 block w-full border border-gray-300 rounded-md' required > <option value="">Select Department</option> {Array.isArray(departments) && departments.map((dep) => ( <option key={dep._id} value={dep._id}>{dep.dep_name}</option> ))} </select> </div>
+          {/* Department */}
+          <div>
+            <label className='block text-sm font-medium text-grey-700'>
+              Department
+            </label>
+            <select
+              name='department'
+              onChange={handleChange}
+              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              required
+            >
+              <option value="">Select Department</option>
+              {Array.isArray(departments) &&
+                departments.map((dep) => (
+                  <option key={dep._id} value={dep._id}>
+                    {dep.dep_name}
+                  </option>
+                ))}
+            </select>
+          </div>
 
           {/* SSS */}
           <div>
@@ -251,38 +288,38 @@ const Add = () => {
             />
           </div>
 
-          {/* tin */}
+          {/* TIN */}
           <div>
             <label className='block text-sm font-medium text-grey-700'>
-              tin
+              TIN
             </label>
             <input
               type="text"
               name="tin"
-              placeholder='tin'
+              placeholder='TIN'
               onChange={handleChange}
               className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
               required
             />
           </div>
 
-             {/* Phil Health */}
-             <div>
+          {/* Phil Health */}
+          <div>
             <label className='block text-sm font-medium text-grey-700'>
               Phil Health
             </label>
             <input
               type="text"
               name="philHealth"
-              placeholder='Phil health'
+              placeholder='Phil Health'
               onChange={handleChange}
               className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
               required
             />
           </div>
 
-           {/* Pag ibig */}
-           <div>
+          {/* Pag ibig */}
+          <div>
             <label className='block text-sm font-medium text-grey-700'>
               Pag ibig
             </label>
@@ -301,7 +338,15 @@ const Add = () => {
             <label className='block text-sm font-medium text-grey-700'>
               Upload Image
             </label>
-            <input type="file" name="image" onChange={handleFileChange} placeholder='Upload Image' accept="image/*" className='mt-1 p-2 block w-full border border-gray-300 rounded-md' required />
+            <input
+              type="file"
+              name="profileImage"
+              onChange={handleFileChange}
+              placeholder='Upload Image'
+              accept="image/*"
+              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              required
+            />
           </div>
 
           {/* Signature Upload */}
@@ -309,65 +354,72 @@ const Add = () => {
             <label className='block text-sm font-medium text-grey-700'>
               Upload Signature
             </label>
-            <input type="file" name="signature" onChange={handleFileChange} placeholder='Upload Signature' accept="image/*" className='mt-1 p-2 block w-full border border-gray-300 rounded-md' required />
+            <input
+              type="file"
+              name="signature"
+              onChange={handleFileChange}
+              placeholder='Upload Signature'
+              accept="image/*"
+              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              required
+            />
           </div>
 
           <div>
-            Incase of Emergency
+            In case of Emergency
           </div>
 
-          {/* name of contact */}
+          {/* Name of Contact */}
           <div>
             <label className='block text-sm font-medium text-grey-700'>
-              name of contact
+              Name of Contact
             </label>
             <input
               type="text"
               name="nameOfContact"
-              placeholder='Name of contact '
+              placeholder='Name of Contact'
               onChange={handleChange}
               className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
               required
             />
           </div>
 
-          {/* address of contact */}
+          {/* Address of Contact */}
           <div>
             <label className='block text-sm font-medium text-grey-700'>
-              address of contact
+              Address of Contact
             </label>
             <input
               type="text"
               name="addressOfContact"
-              placeholder='Name of contact'
+              placeholder='Address of Contact'
               onChange={handleChange}
               className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
               required
             />
           </div>
 
-            {/* number of contact */}
-            <div>
+          {/* Number of Contact */}
+          <div>
             <label className='block text-sm font-medium text-grey-700'>
-              number of contact
+              Number of Contact
             </label>
             <input
               type="text"
               name="numberOfContact"
-              placeholder='Number of contact'
+              placeholder='Number of Contact'
               onChange={handleChange}
               className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
               required
             />
           </div>
 
-
         </div>
 
         <button
-        type="submit"
-        className='w-full mt-6 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4'
-        > 
+          type="submit"
+          className='w-full mt-6 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4'
+        >
           Add Employee
         </button>
       </form>
@@ -375,4 +427,4 @@ const Add = () => {
   );
 };
 
-export default Add
+export default Add;
