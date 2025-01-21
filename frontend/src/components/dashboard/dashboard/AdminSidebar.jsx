@@ -1,30 +1,32 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
 import { FaBuilding, FaTachometerAlt, FaUsers, FaCogs, FaMoneyBillWave, FaCalendarAlt } from 'react-icons/fa'
+import Logo from '/public/logo-rembg.png'
 
 const AdminSidebar = () => {
   return(
-    <div className="bg-gray-800 text-white h-screen fixed left-0 top-0 bottom-0 space-y-2 w-64">
-      <div className='bg-teal-600 h-12 flex items-center justify-center'> 
-        <h3>Employee MS</h3>
+    <div className="bg-[#793B4F] text-white h-screen fixed mt-30 text-left bottom-0 space-y-2 w-64">
+      <div className="bg-[#793B4F] h-20 flex items-center justify-center gap-1">
+        <img src={Logo} alt="Company Logo" className="w-12 h-12" />
+        <h3 className="text-white text-poppins font-bold">St. John Majore Services<br />Company Inc.</h3>
       </div>
       <div>
         <NavLink to="/admin-dashboard"
-            className={({isActive}) => `${isActive ? "bg-teal-500" : ""} flex items-center space-x-4 block py-2.5 px-4 rounded`}
+            className={({isActive}) => `${isActive ? "bg-[#5f2e3d]" : ""} flex items-center space-x-4 block py-2.5 px-4`}
             end>
               <FaTachometerAlt />
               <span>Payroll Dashboard</span>
         </NavLink>
 
         <NavLink to="/admin-dashboard/employees"
-             className={({isActive}) => `${isActive ? "bg-teal-500" : ""} flex items-center space-x-4 block py-2.5 px-4 rounded`}
+             className={({isActive}) => `${isActive ? "bg-[#5f2e3d]" : ""} flex items-center space-x-4 block py-2.5 px-4`}
              end>
               <FaUsers />
               <span>Employee</span>
         </NavLink>
 
         <NavLink to="/admin-dashboard/departments"
-            className={({isActive}) => `${isActive ? "bg-teal-500" : ""} flex items-center space-x-4 block py-2.5 px-4 rounded`}
+            className={({isActive}) => `${isActive ? "bg-[#5f2e3d]  " : ""} flex items-center space-x-4 block py-2.5 px-4`}
             end>
               <FaCalendarAlt />
               <span>Department</span>
