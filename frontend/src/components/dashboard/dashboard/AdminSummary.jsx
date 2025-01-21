@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import SummaryCard from './SummaryCard';
-import { FaUsers, FaBuilding, FaMoneyBillWave } from 'react-icons/fa';
+import { FaUsers, FaBuilding, FaMoneyBillWave, FaCashRegister, FaHandHoldingUsd, FaChartPie  } from 'react-icons/fa';
 import { SalaryButtons } from '../../../utils/SalaryHelper';
 import DataTable from 'react-data-table-component';
 import axios from 'axios';
@@ -75,10 +75,10 @@ const AdminSummary = () => {
     <div className="p-6">
       <h3 className="text-2xl font-bold">Dashboard Overview</h3>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-        <SummaryCard icon={<FaUsers />} text="Total Payroll" number={13} color="bg-teal-600" />
-        <SummaryCard icon={<FaBuilding />} text="Gross Salary" number={5} color="bg-yellow-600" />
-        <SummaryCard icon={<FaMoneyBillWave />} text="Total Employee Benefits" number="$654" color="bg-yellow-600" />
-        <SummaryCard icon={<FaUsers />} text="Total Headcount" number={getTotalHeadcount()} color="bg-yellow-600" />
+        <SummaryCard icon={<FaCashRegister />} text="Total Payroll" number={13} color="bg-[#88B9D3]" />
+        <SummaryCard icon={<FaHandHoldingUsd  />} text="Gross Salary" number={5} color="bg-[#B9DD8B]" />
+        <SummaryCard icon={<FaChartPie />} text="Total Employee Benefits" number="$654" color="bg-[#D18AA6]" />
+        <SummaryCard icon={<FaUsers />} text="Total Headcount" number={getTotalHeadcount()} color="bg-[#95B375]" />
       </div>
 
       <div className="p-6">
