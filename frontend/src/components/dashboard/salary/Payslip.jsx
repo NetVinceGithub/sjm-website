@@ -1,75 +1,108 @@
 import React from 'react';
 import './payslip.css';
+import LongLogo from '/public/long-logo.png';
 
 const Payslip = () => {
     return (
         <>
             <div className="payslip">
+                <div className="payslip-header">
+                    <h1 className="header-title">e-PAYROLL<br />SLIP</h1>
+                    <img src={LongLogo} alt="Company Logo" className="header-img" />
+                </div>
+                <h2 className="header-two">
+                    Payslip No.:
+                </h2>
                 <table>
                     <tr>
-                        <th className="cell">CUT OFF PERIOD</th>
-                        <td className="cell2 cell-w">DEC 16 - 31, 2024</td>
-                        <th className="cell1 align" colspan="2">CONTRIBUTIONS</th>
+                        <th className="cell align">ECODE</th>
+                        <th className="cell-w align">EMPLOYEE NAME</th>
+                        <th className="cell-w align">PROJECT SITE</th>
+                        <th className="cell-w align">RATE</th>
+                    </tr>
+                    <tr className="cell1">
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
                     </tr>
                     <tr>
-                        <th className="cell">EMPLOYEE</th>
-                        <td className="cell-w"></td>
-                        <th>PHIC</th>
-                        <td className="cell3 cell-w">0.00</td>
+                        <th className="cell align" colSpan={2}>POSITION</th>
+                        <th className="cell align" colSpan={2}>CUT-OFF DATE</th>
                     </tr>
                     <tr>
-                        <th className="cell">EMPLOYEE NUMBER</th>
-                        <td className="cell-w"></td>
-                        <th>SSS</th>
-                        <td className="cell3 cell-w">338.00</td>
+                        <td className="cell1" colSpan={2}></td>
+                        <td className="cell1" colSpan={2}></td>
                     </tr>
                     <tr>
-                        <th className="cell">DEPARTMENT</th>
-                        <td className="cell-w"></td>
-                        <th>HDMF</th>
-                        <td className="cell3 cell-w">200.00</td>
+                        <th className="cell-w align">EARNINGS</th>
+                        <th className="cell-w align">FIGURES</th>
+                        <th className="cell-w align">DEDUCTIONS</th>
+                        <th className="cell-w align">FIGURES</th>
                     </tr>
                     <tr>
-                        <th className="none"></th>
-                        <td className="none"></td>
-                        <th className="none"></th>
-                        <td className="none"></td>
+                        <td className="cell3">Basic Pay</td>
+                        <td className="cell3"></td>
+                        <td className="cell3">
+                            <div className="GovCon">GOVERNMENT CONTRIBUTIONS</div>
+                        </td>
+                        <td className="cell3"></td>
                     </tr>
                     <tr>
-                        <th className="cell4">BASIC PAY</th>
-                        <td className="cell-w">5,200.00</td>
-                        <th>CASH ADVANCE | LOAN</th>
-                        <td className="cell7 cell-w"></td>
+                        <td className="cell4">No. of Days</td>
+                        <td className="cell4"></td>
+                        <td className="cell4">SSS</td>
+                        <td className="cell4"></td>
                     </tr>
                     <tr>
-                        <th className="cell">NO. OF DAYS</th>
-                        <td className="cell-w">10.00</td>
-                        <th>TARDINESS</th>
-                        <td className="cell7 cell-w">0.00</td>
+                        <td className="cell4">Overtime Pay</td>
+                        <td className="cell4"></td>
+                        <td className="cell4">PHIC</td>
+                        <td className="cell4"></td>
                     </tr>
                     <tr>
-                        <th className="cell">OVERTIME PAY</th>
-                        <td className="cell-w">0.00</td>
-                        <th>OTHER DEDUCTIONS</th>
-                        <td className="cell7 cell-w"></td>
+                        <td className="cell4">Overtime Hours</td>
+                        <td className="cell4"></td>
+                        <td className="cell4">HDMF</td>
+                        <td className="cell4"></td>
                     </tr>
                     <tr>
-                        <th className="cell">OT HOURS</th>
-                        <td className="cell-w"></td>
-                        <th>TOTAL DEDUCTIONS</th>
-                        <td className="cell7 cell-w">538.00</td>
+                        <td className="cell4">Holiday Pay</td>
+                        <td className="cell4"></td>
+                        <td className="cell3">Cash Advance/Loan</td>
+                        <td className="cell4"></td>
                     </tr>
                     <tr>
-                        <th className="cell">HOLIDAY PAY</th>
-                        <td className="cell-w">1,040.00</td>
-                        <th>ADJUSTMENTS</th>
-                        <td className="cell7 cell-w">0.00</td>
+                        <td className="cell4">Night Differential</td>
+                        <td className="cell4"></td>
+                        <td className="cell4">Tardiness</td>
+                        <td className="cell4"></td>
                     </tr>
                     <tr>
-                        <th className="cell5 cell-w">ND PAY</th>
-                        <td className="cell6">0.00</td>
-                        <th className="cell6 cell-w">NET PAY</th>
-                        <td className="cell7">5,702</td>
+                        <td className="cell4">Allowance</td>
+                        <td className="cell4"></td>
+                        <td className="cell4">Other Deductions</td>
+                        <td className="cell4"></td>
+                    </tr>
+                    <tr>
+                        <td className="cell4"></td>
+                        <td className="cell4"></td>
+                        <td className="cell4">Total Deductions</td>
+                        <td className="cell4"></td>
+                    </tr>
+                    <tr>
+                        <td className="cell4"></td>
+                        <td className="cell4"></td>
+                        <td className="cell4">Adjustment</td>
+                        <td className="cell4"></td>
+                    </tr>
+                    <tr>
+                        <th className="cell align" colSpan={2}>NET PAY</th>
+                        <th className="cell align" colSpan={2}>AMOUNT</th>
+                    </tr>
+                    <tr className='cell5'>
+                        <td className="cell5" colSpan={2}>NETPAY: </td>
+                        <td className="cell5" colSpan={2}></td>
                     </tr>
                 </table>
             </div>
