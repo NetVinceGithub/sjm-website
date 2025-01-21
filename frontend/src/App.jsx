@@ -14,6 +14,11 @@ import View from "./components/dashboard/employee/View";
 import Edit from "./components/dashboard/employee/Edit";
 import EmployeeIDCard from "./components/dashboard/EmployeeIDCard";
 import Payslip from "./components/dashboard/salary/Payslip";
+import AdminLounge from "./components/admin/AdminLounge";
+import PayrollSystemData from "./components/dashboard/salary/PayrollSystemData";
+import PayrollDashboard from "./components/dashboard/salary/PayrollDashboard";
+import Projects from "./components/dashboard/projects/Projects";
+import AddProject from "./components/dashboard/projects/AddProject";
 
 
 
@@ -53,16 +58,22 @@ function App() {
           <Route path="employees/:id" element={<View />} />
           <Route path="employees/edit/:id" element={<Edit />} />
           <Route path="employees/payslip/:id" element={<Payslip />} />
-
           <Route path="employees/employee_id/:id" element={<EmployeeIDCard />} />
-
-
-
- 
-
+          <Route path="lounge" element={<AdminLounge />} />
+          <Route path="employees/rates" element={<PayrollSystemData />} />
+          <Route path="payroll-dashboard" element={<PayrollDashboard />} />
+          <Route path="projects" element={<Projects />} />
+          <Route path="add-project" element={<AddProject />} />
+          
         </Route>
 
         <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
+
+
+
+
+
+
       </Routes>
     </BrowserRouter>
     </>
