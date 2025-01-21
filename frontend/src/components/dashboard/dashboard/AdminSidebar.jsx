@@ -13,7 +13,7 @@ const AdminSidebar = () => {
             className={({isActive}) => `${isActive ? "bg-teal-500" : ""} flex items-center space-x-4 block py-2.5 px-4 rounded`}
             end>
               <FaTachometerAlt />
-              <span>Dashboard</span>
+              <span>Payroll Dashboard</span>
         </NavLink>
 
         <NavLink to="/admin-dashboard/employees"
@@ -24,7 +24,8 @@ const AdminSidebar = () => {
         </NavLink>
 
         <NavLink to="/admin-dashboard/departments"
-            className={({isActive}) => `${isActive ? "bg-teal-500" : ""} flex items-center space-x-4 block py-2.5 px-4 rounded`}>
+            className={({isActive}) => `${isActive ? "bg-teal-500" : ""} flex items-center space-x-4 block py-2.5 px-4 rounded`}
+            end>
               <FaCalendarAlt />
               <span>Department</span>
         </NavLink>
@@ -35,16 +36,28 @@ const AdminSidebar = () => {
               <span>Leave</span>
         </NavLink>
 
-        <NavLink to="/admin-dashboard"
-            className={({isActive}) => `${isActive ? "bg-teal-500" : ""} flex items-center space-x-4 block py-2.5 px-4 rounded`}>
-              <FaMoneyBillWave />
-              <span>Salary</span>
+        
+        <NavLink to="/admin-dashboard/payroll-dashboard"
+            className="flex items-center space-x-4 block py-2.5 px-4 rounded">
+              <FaBuilding />
+              <span>Payroll Dashboard</span>
         </NavLink>
 
-        <NavLink to="/admin-dashboard"
-            className="flex items-center space-x-4 block py-2.5 px-4 rounded">
+   
+
+        <NavLink to="/admin-dashboard/projects"
+            className={({isActive}) => `${isActive ? "bg-teal-500" : ""} flex items-center space-x-4 block py-2.5 px-4 rounded`}
+            end>
               <FaCogs />
-              <span>Settings</span>
+              <span>Projects</span>
+        </NavLink>
+
+        <NavLink to="/admin-dashboard/lounge"
+            className={({isActive}) => `${isActive ? "bg-teal-500" : ""} flex items-center space-x-4 block py-2.5 px-4 rounded`}
+              end>
+
+              <FaCogs />
+              <span>Admin</span>
         </NavLink>
       </div>
     </div>

@@ -5,7 +5,8 @@ import bcrypt from "bcrypt";
 import multer from "multer";
 import Department from "../models/Department.js";
 
-const storage = multer.memoryStorage(); // Use memory storage to read the file as buffer
+
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
@@ -20,12 +21,12 @@ const upload = multer({
       cb("Error: Images Only!");
     }
   },
-  limits: { fileSize: 1024 * 1024 * 5 } // Set file size limit to 5MB
+  limits: { fileSize: 1024 * 1024 * 5 }, // 5MB limit
 });
 
 export const uploadFields = upload.fields([
-  { name: 'profileImage', maxCount: 1 },
-  { name: 'signature', maxCount: 1 }
+  { name: 'profileImage', maxCount: 1 }, // Match the frontend name
+  { name: 'signature', maxCount: 1 }, // Match the frontend name
 ]);
 
 const addEmployee = async (req, res) => {
@@ -47,11 +48,17 @@ const addEmployee = async (req, res) => {
       pagibig,
       nameOfContact,
       addressOfContact,
-      numberOfContact
+      numberOfContact,
     } = req.body;
 
-    const profileImage = req.files['image'] ? req.files['image'][0].buffer : null;    
-    const signature = req.files['signature'] ? req.files['signature'][0].buffer : null;    
+    const profileImage = req.files?.profileImage?.[0]?.buffer || null;
+    const signature = req.files?.signature?.[0]?.buffer || null;
+
+    if (!name || !email || !mobileNo || !dob) {
+      return res
+        .status(400)
+        .json({ success: false, error: "All required fields must be filled." });
+    }
 
     const newEmployee = new Employee({
       name,
@@ -71,23 +78,36 @@ const addEmployee = async (req, res) => {
       nameOfContact,
       addressOfContact,
       numberOfContact,
-      profileImage, 
-      signature
-      
+      profileImage,
+      signature,
     });
 
     await newEmployee.save();
- 
-    return res.status(200).json({ success: true, message: "Employee created" });
+    res.status(201).json({ success: true, message: "Employee added successfully." });
   } catch (error) {
-    console.error("Server error in adding employee:", error);
-    return res.status(500).json({ success: false, error: "Server error in adding employee" });
+    console.error("Error adding employee:", error);
+    res.status(500).json({ success: false, error: "Server error." });
   }
 };
 
+
+
+
 const getEmployee = async (req, res) => {
   try {
-    const employee = await Employee.findById(req.params.id).populate("department", "dep_name");
+    const { id } = req.params;
+
+    // Validate if `id` is provided
+    if (!id) {
+      return res.status(400).json({ success: false, error: "Employee ID is required" });
+    }
+
+    // Check if `id` is a valid ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ success: false, error: "Invalid Employee ID format" });
+    }
+
+    const employee = await Employee.findById(id).populate("department", "dep_name");
 
     if (!employee) {
       return res.status(404).json({ success: false, error: "Employee not found" });
@@ -96,9 +116,10 @@ const getEmployee = async (req, res) => {
     return res.status(200).json({ success: true, employee });
   } catch (error) {
     console.error("Error in getEmployee:", error.message);
-    return res.status(500).json({ success: false, error: "get employees server error" });
+    return res.status(500).json({ success: false, error: "Server error" });
   }
 };
+
 
 
 const getEmployees = async (req, res) => {
