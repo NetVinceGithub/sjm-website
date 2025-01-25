@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { fetchDepartments } from "../../../utils/EmployeeHelper";
+import { fetchDepartments, fetchProjects } from "../../../utils/EmployeeHelper";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 const Add = () => {
-  const [departments, setDepartments] = useState([]);
+  const [projects, setProjects] = useState([])
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
@@ -16,41 +16,40 @@ const Add = () => {
     employeeId: "",
     maritalStatus: "",
     designation: "",
-    department: "",
+    project:"",
     sss: "",
     tin: "",
     philHealth: "",
     pagibig: "",
+    bankAccount:"",
     nameOfContact: "",
     addressOfContact: "",
     numberOfContact: "",
   });
-
   const [profileImage, setProfileImage] = useState(null);
   const [signature, setSignature] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Fetch departments
-  useEffect(() => {
+
+
+  useEffect(()=>{
     const fetchData = async () => {
-      try {
-        const data = await fetchDepartments();
-        setDepartments(data);
-      } catch (err) {
-        console.error("Error fetching departments:", err);
-        alert("Failed to load departments.");
-      }
+      try{
+        const projectsData = await fetchProjects();
+        setProjects(projectsData);
+      } catch (error){
+        console.error("Error fetching projects:", error);
+        alert("Failed to load projects")
+      };
     };
     fetchData();
-  }, []);
+  })
 
-  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  // Handle file input
   const handleFileChange = (e) => {
     const { name, files } = e.target;
     if (files.length > 0) {
@@ -64,26 +63,46 @@ const Add = () => {
         alert("File size exceeds 5MB.");
         return;
       }
-      name === "profileImage" ? setProfileImage(file) : setSignature(file);
+  
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (name === "profileImage") {
+          setProfileImage(file);  // Store the raw file object (not the Base64)
+        } else if (name === "signature") {
+          setSignature(file);  // Store the raw file object (not the Base64)
+        }
+      };
+      reader.readAsDataURL(file);  // You can also use reader.readAsArrayBuffer(file) if you prefer to get the raw buffer
     }
   };
-
-  // Handle form submission
+  
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    const formDataObj = new FormData();
+  
+    // Ensure both files are selected
+    if (!profileImage || !signature) {
+      alert("Both profile image and signature are required.");
+      setLoading(false);
+      return;
+    }
+  
+    const formDataToSend = new FormData();
+  
+    // Append form fields
     Object.keys(formData).forEach((key) => {
-      formDataObj.append(key, formData[key]);
+      formDataToSend.append(key, formData[key]);
     });
-    if (profileImage) formDataObj.append("profileImage", profileImage);
-    if (signature) formDataObj.append("signature", signature);
-
+  
+    // Append files
+    formDataToSend.append("profileImage", profileImage);
+    formDataToSend.append("signature", signature);
+  
     try {
       const response = await axios.post(
         "http://localhost:5000/api/employee/add",
-        formDataObj,
+        formDataToSend,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -91,7 +110,7 @@ const Add = () => {
           },
         }
       );
-
+  
       if (response.data.success) {
         navigate("/admin-dashboard/employees");
       } else {
@@ -105,97 +124,105 @@ const Add = () => {
     }
   };
   
+  
+  
+  const renderProfileImage = (row) => {
+    if (!row.profileImage) return "No Image";
+  
+    const imageUrl = `http://localhost:5000/uploads/${row.profileImage}`;
+  
+    return (
+      <img
+        src={imageUrl}
+        alt="Profile"
+        className="w-12 h-12 rounded-full border object-cover"
+        onError={(e) => {
+          e.target.src = "/default-profile.png"; // Fallback image
+        }}
+      />
+    );
+  };
+  
+  
+  
+  
 
   return (
-    <div className='max-w-4x1 mx-auto mt-10 bg-white p-8 rounded-md shadow-md'>
-      <h2 className='text-2x1 font-bold mb-6'>Add New Employee</h2>
+    <div className="max-w-4xl mx-auto mt-10 bg-white p-8 rounded-md shadow-md">
+      <h2 className="text-2xl font-bold mb-6">Add New Employee</h2>
       <form onSubmit={handleSubmit}>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Name */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Name
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Name</label>
             <input
               type="text"
               name="name"
               onChange={handleChange}
-              placeholder='Insert Name'
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              placeholder="Insert Name"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             />
           </div>
 
           {/* Address */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Address
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Address</label>
             <input
               type="text"
               name="address"
               onChange={handleChange}
-              placeholder='Insert Address'
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              placeholder="Insert Address"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             />
           </div>
 
           {/* Email */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Email
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Email</label>
             <input
-              type="text"
+              type="email"
               name="email"
               onChange={handleChange}
-              placeholder='Insert Email'
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              placeholder="Insert Email"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             />
           </div>
 
           {/* Mobile Number */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Mobile Number
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Mobile Number</label>
             <input
               type="text"
               name="mobileNo"
               onChange={handleChange}
-              placeholder='Insert Mobile Number'
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              placeholder="Insert Mobile Number"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             />
           </div>
 
           {/* Date of Birth */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Date of Birth
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
             <input
               type="date"
               name="dob"
               onChange={handleChange}
-              placeholder='Date of Birth'
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             />
           </div>
 
           {/* Gender */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Gender
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Gender</label>
             <select
-              name='gender'
+              name="gender"
               onChange={handleChange}
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             >
               <option value="">Select Gender</option>
@@ -206,29 +233,24 @@ const Add = () => {
 
           {/* Employee ID */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Employee ID
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Employee ID</label>
             <input
               type="text"
               name="employeeId"
               onChange={handleChange}
-              placeholder='Employee ID'
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              placeholder="Insert Employee ID"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             />
           </div>
 
           {/* Marital Status */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Marital Status
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Marital Status</label>
             <select
-              name='maritalStatus'
+              name="maritalStatus"
               onChange={handleChange}
-              placeholder='Marital Status'
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             >
               <option value="">Select Status</option>
@@ -239,188 +261,170 @@ const Add = () => {
 
           {/* Designation */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Designation
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Designation</label>
             <input
               type="text"
               name="designation"
               onChange={handleChange}
-              placeholder='Designation'
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              placeholder="Insert Designation"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             />
           </div>
 
-          {/* Department */}
+
+          
+          {/* Projects */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Department
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Assign Project</label>
             <select
-              name='department'
+              name="project"
               onChange={handleChange}
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             >
-              <option value="">Select Department</option>
-              {Array.isArray(departments) &&
-                departments.map((dep) => (
-                  <option key={dep._id} value={dep._id}>
-                    {dep.dep_name}
-                  </option>
-                ))}
+              <option value="">Select Project</option>
+              {projects.map((proj) => (
+                <option key={proj._id} value={proj._id}>
+                  {proj.projectName}
+                </option>
+              ))}
             </select>
           </div>
 
           {/* SSS */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              SSS
-            </label>
+            <label className="block text-sm font-medium text-gray-700">SSS</label>
             <input
               type="text"
               name="sss"
               onChange={handleChange}
-              placeholder='SSS'
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              placeholder="Insert SSS"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             />
           </div>
 
           {/* TIN */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              TIN
-            </label>
+            <label className="block text-sm font-medium text-gray-700">TIN</label>
             <input
               type="text"
               name="tin"
-              placeholder='TIN'
               onChange={handleChange}
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              placeholder="Insert TIN"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             />
           </div>
 
-          {/* Phil Health */}
+          {/* PhilHealth */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Phil Health
-            </label>
+            <label className="block text-sm font-medium text-gray-700">PhilHealth</label>
             <input
               type="text"
               name="philHealth"
-              placeholder='Phil Health'
               onChange={handleChange}
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              placeholder="Insert PhilHealth"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             />
           </div>
 
-          {/* Pag ibig */}
+          {/* Pagibig */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Pag ibig
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Pagibig</label>
             <input
               type="text"
               name="pagibig"
-              placeholder='Pag ibig'
               onChange={handleChange}
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              placeholder="Insert Pagibig"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             />
           </div>
 
-          {/* Image Upload */}
+          {/* Bank account */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Upload Image
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Bank Account</label>
             <input
-              type="file"
-              name="profileImage"
-              onChange={handleFileChange}
-              placeholder='Upload Image'
-              accept="image/*"
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              type="text"
+              name="bankAccount"
+              onChange={handleChange}
+              placeholder="Insert Bank Account"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             />
-          </div>
-
-          {/* Signature Upload */}
-          <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Upload Signature
-            </label>
-            <input
-              type="file"
-              name="signature"
-              onChange={handleFileChange}
-              placeholder='Upload Signature'
-              accept="image/*"
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
-              required
-            />
-          </div>
-
-          <div>
-            In case of Emergency
           </div>
 
           {/* Name of Contact */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Name of Contact
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Name of Contact</label>
             <input
               type="text"
               name="nameOfContact"
-              placeholder='Name of Contact'
               onChange={handleChange}
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              placeholder="Insert Name of Contact"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             />
           </div>
 
           {/* Address of Contact */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Address of Contact
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Address of Contact</label>
             <input
               type="text"
               name="addressOfContact"
-              placeholder='Address of Contact'
               onChange={handleChange}
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              placeholder="Insert Address of Contact"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             />
           </div>
 
           {/* Number of Contact */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>
-              Number of Contact
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Number of Contact</label>
             <input
               type="text"
               name="numberOfContact"
-              placeholder='Number of Contact'
               onChange={handleChange}
-              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              placeholder="Insert Number of Contact"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
               required
             />
           </div>
 
-        </div>
+          {/* Profile Image Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Upload Profile Image</label>
+            <input
+              type="file"
+              name="profileImage"
+              onChange={handleFileChange}
+              accept="image/*"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
+            />
+          </div>
 
+          {/* Signature Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Upload Signature</label>
+            <input
+              type="file"
+              name="signature"
+              onChange={handleFileChange}
+              accept="image/*"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
+            />
+          </div>
+        </div>
         <button
           type="submit"
-          className='w-full mt-6 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4'
+          className="w-full mt-6 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-md"
         >
-          Add Employee
+          {loading ? "Saving..." : "Add Employee"}
         </button>
       </form>
     </div>

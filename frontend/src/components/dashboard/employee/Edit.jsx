@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { fetchDepartments } from '../../../utils/EmployeeHelper';
+import { fetchDepartments, fetchProjects } from '../../../utils/EmployeeHelper';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs'; // Install dayjs with: npm install dayjs
@@ -15,17 +15,18 @@ const Edit = () => {
     employeeId: '',
     maritalStatus: '',
     designation: '',
-    department: '',
+    project: '',
     sss: '',
     tin: '',
     philHealth: '',
     pagibig: '',
+    bankAccount: '',
     nameOfContact: '',
     addressOfContact: '',
     numberOfContact: '',
   });
 
-  const [departments, setDepartments] = useState([]);
+  const [projects, setProjects] = useState([]);
   const navigate = useNavigate();
   const { id } = useParams();
 
@@ -56,11 +57,12 @@ const Edit = () => {
             employeeId: employee?.employeeId || '',
             maritalStatus: employee?.maritalStatus || '',
             designation: employee?.designation || '',
-            department: employee?.department?._id || '',
+            project: employee?.project || '',
             sss: employee?.sss || '',
             tin: employee?.tin || '',
             philHealth: employee?.philHealth || '',
             pagibig: employee?.pagibig || '',
+            bankAccount: employee?.bankAccount || '',
             nameOfContact: employee?.nameOfContact || '',
             addressOfContact: employee?.addressOfContact || '',
             numberOfContact: employee?.numberOfContact || '',
@@ -76,61 +78,65 @@ const Edit = () => {
   }, [id]);
 
   // Fetch Departments
+
+
   useEffect(() => {
-    const getDepartments = async () => {
+    const getProjects = async () => {
       try {
-        const departments = await fetchDepartments();
-        setDepartments(departments || []);
+        const projects = await fetchProjects();
+        setProjects(projects || []);
       } catch (error) {
-        console.error('Error fetching departments:', error.message);
-        alert('Unable to fetch departments.');
+        console.error('Error fetching projects:', error.message);
+        alert('Unable to fetch projects');
       }
     };
-    getDepartments();
+    getProjects();
   }, []);
+  
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
+
     setEmployee((prevData) => ({
       ...prevData,
-      [name]: files && files.length > 0 ? files[0] : value,
+      [name]: files && files.length > 0 ? files[0] : value, // Handle file inputs
     }));
   };
-
+  
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevent the default form submission behavior
+    e.preventDefault();
   
-    // Initialize FormData
     const formData = new FormData();
-  
-    // Append all employee fields to the FormData object
     Object.keys(employee).forEach((key) => {
-      // Handle file fields (profileImage and signature)
       if (employee[key] instanceof File) {
         formData.append(key, employee[key]);
       } else {
-        formData.append(key, employee[key]); // For regular text fields
+        formData.append(key, employee[key]);
       }
     });
   
+    // Debugging: Check FormData contents
+    for (let pair of formData.entries()) {
+      console.log(pair[0], pair[1]);
+    }
+  
     try {
-      // Send the FormData object to the backend
       const response = await axios.put(`http://localhost:5000/api/employee/${id}`, formData, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "multipart/form-data",
         },
       });
   
       if (response.data.success) {
-        navigate('/admin-dashboard/employees');
+        navigate("/admin-dashboard/employees");
       } else {
-        console.error('Error updating employee:', response.data.error);
-        alert(response.data.error || 'Failed to update employee.');
+        console.error("Error updating employee:", response.data.error);
+        alert(response.data.error || "Failed to update employee.");
       }
     } catch (error) {
-      console.error('Error:', error.response ? error.response.data : error.message);
-      alert(error.response?.data?.error || 'Failed to update employee.');
+      console.error("Error:", error.response ? error.response.data : error.message);
+      alert(error.response?.data?.error || "Failed to update employee.");
     }
   };
   
@@ -256,19 +262,19 @@ const Edit = () => {
             </select>
           </div>
 
-          {/* Department */}
+          {/* Project */}
           <div>
-            <label className='block text-sm font-medium text-grey-700'>Department</label>
+            <label className='block text-sm font-medium text-grey-700'>Project</label>
             <select
-              name='department'
+              name='project'
               onChange={handleChange}
-              value={employee.department}
+              value={employee.project}
               className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
               required
             >
-              <option value="">Select Department</option>
-              {departments.map((dep) => (
-                <option key={dep._id} value={dep._id}>{dep.dep_name}</option>
+              <option value="">Select Project</option>
+              {projects.map((proj) => (
+                <option key={proj._id} value={proj._id}>{proj.projectName}</option>
               ))}
             </select>
           </div>
@@ -324,6 +330,20 @@ const Edit = () => {
               onChange={handleChange}
               value={employee.pagibig}
               placeholder='Pag-IBIG'
+              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              required
+            />
+          </div>
+
+          {/* Bank Account */}
+          <div>
+            <label className='block text-sm font-medium text-grey-700'>Bank Account</label>
+            <input
+              type="text"
+              name="bankAccount"
+              onChange={handleChange}
+              value={employee.bankAccount}
+              placeholder='Bank Account'
               className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
               required
             />

@@ -5,22 +5,14 @@ import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import logo from "../../assets/logo.png";
 import hr_signature from "../../assets/hr-signature.png";
-
 import defaultProfile from "../../assets/default-profile.png";
 import dayjs from "dayjs"; // Import dayjs for date formatting
-import './IDCard.css';
+import "./IDCard.css";
 
 const EmployeeIDCard = () => {
   const [employee, setEmployee] = useState(null);
   const { id } = useParams();
   const idCardRef = useRef(null);
-
-  // Helper function to convert ArrayBuffer to Base64
-  const bufferToBase64 = (buffer) => {
-    if (!buffer) return null;
-    const binary = new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), "");
-    return `data:image/jpeg;base64,${window.btoa(binary)}`;
-  };
 
   // Fetch employee data
   useEffect(() => {
@@ -32,17 +24,13 @@ const EmployeeIDCard = () => {
           },
         });
 
-        console.log("Fetching employee with ID:", id);
-
         if (response.data.success && response.data.employee) {
-          const employeeData = response.data.employee;
-          setEmployee(employeeData);
+          setEmployee(response.data.employee);
         } else {
           console.error("Failed to fetch employee data.");
         }
       } catch (error) {
-        console.log("Id of employee: error");
-       
+        console.error("Error fetching employee:", error.message);
       }
     };
 
@@ -66,7 +54,6 @@ const EmployeeIDCard = () => {
         const pdfWidth = pdf.internal.pageSize.getWidth();
         let pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-        // Ensure the pdfHeight is within the page height limit
         if (pdfHeight > pdf.internal.pageSize.getHeight()) {
           pdfHeight = pdf.internal.pageSize.getHeight();
         }
@@ -84,18 +71,28 @@ const EmployeeIDCard = () => {
     return <div>Loading...</div>;
   }
 
-  // Format DOB using dayjs to display as Month Day, Year (e.g., "December 08, 2003")
+  // Format DOB using dayjs
   const formattedDOB = dayjs(employee.dob).format("MMMM DD, YYYY");
 
-  // Determine the profile image URL
-  const profileImage = employee?.profileImage?.data
-    ? bufferToBase64(employee.profileImage.data)
-    : defaultProfile;
+  // Profile image and signature URLs with fallback to default images
+// Correct URL construction without repeating the base URL
+const profileImage = employee?.profileImage
+  ? `http://localhost:5000/uploads/${employee.profileImage.replace(/^.*[\\\/]/, '')}` // Ensure only the filename is used
+  : defaultProfile;
 
-  const signature = employee?.signature?.data
-    ? bufferToBase64(employee.signature.data)
-    : defaultProfile;
+const signature = employee?.signature
+  ? `http://localhost:5000/uploads/${employee.signature.replace(/^.*[\\\/]/, '')}` // Ensure only the filename is used
+  : defaultProfile;
 
+
+
+
+
+
+  // Test image URLs for accessibility
+  const handleImageError = (event) => {
+    event.target.src = defaultProfile;
+  };
 
   return (
     <div className="id-container" ref={idCardRef}>
@@ -111,7 +108,12 @@ const EmployeeIDCard = () => {
         </div>
         <div className="id-content">
           <div className="user-img">
-            <img src={profileImage} alt="user" className="user-img" />
+            <img
+              src={profileImage}
+              alt="Profile"
+              className="user-img"
+              onError={handleImageError}
+            />
           </div>
           <div className="user-info">
             <p className="user-id">ID NO. {employee.employeeId}</p>
@@ -119,7 +121,12 @@ const EmployeeIDCard = () => {
             <p className="user-position">{employee.designation}</p>
           </div>
           <div className="user-signature">
-            <img src={signature} alt="user" className="user-signature" />
+            <img
+              src={signature}
+              alt="Signature"
+              className="user-signature"
+              onError={handleImageError}
+            />
           </div>
           <div className="user-signature-label">Signature</div>
         </div>
@@ -144,7 +151,7 @@ const EmployeeIDCard = () => {
           </div>
           <div className="hr">
             <div className="id-hr-signature">
-              <img src={hr_signature} alt="hr-signature" className="hr-signature" />
+              <img src={hr_signature} alt="HR Signature" className="hr-signature" />
             </div>
             <p className="hr-name">MIA MARY SORA</p>
             <p className="hr-title">Human Resources Department Head</p>
@@ -163,7 +170,9 @@ const EmployeeIDCard = () => {
         </div>
       </div>
 
-      <button id="download-pdf" onClick={handleDownload}>Download as PDF</button>
+      <button id="download-pdf" onClick={handleDownload}>
+        Download as PDF
+      </button>
     </div>
   );
 };

@@ -19,6 +19,7 @@ import PayrollSystemData from "./components/dashboard/salary/PayrollSystemData";
 import PayrollDashboard from "./components/dashboard/salary/PayrollDashboard";
 import Projects from "./components/dashboard/projects/Projects";
 import AddProject from "./components/dashboard/projects/AddProject";
+import EditProject from "./components/dashboard/projects/EditProject";
 
 
 
@@ -64,6 +65,7 @@ function App() {
           <Route path="payroll-dashboard" element={<PayrollDashboard />} />
           <Route path="projects" element={<Projects />} />
           <Route path="add-project" element={<AddProject />} />
+          <Route path="edit-project/:id" element={<EditProject />} />
           
         </Route>
 

@@ -1,55 +1,38 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { EmployeeButtons } from '../../../utils/EmployeeHelper';
-import DataTable from 'react-data-table-component';
-import axios from 'axios';
+import React, { useEffect, useState } from "react";
+import { EmployeeButtons } from "../../../utils/EmployeeHelper";
+import DataTable from "react-data-table-component";
+import axios from "axios";
+import { Link } from "react-router-dom";
 
 const List = () => {
   const [employees, setEmployees] = useState([]);
   const [empLoading, setEmpLoading] = useState(false);
   const [filteredEmployee, setFilteredEmployees] = useState([]);
 
-  // Function to convert Buffer to Base64
-  const bufferToBase64 = (buffer) => {
-    const binary = new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '');
-    return window.btoa(binary); // Convert to Base64 string
-  };
-
   useEffect(() => {
     const fetchEmployees = async () => {
       setEmpLoading(true);
       try {
-        const response = await axios.get('http://localhost:5000/api/employee', {
+        const response = await axios.get("http://localhost:5000/api/employee", {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-        console.log('API Response:', response.data);
 
         if (response.data.success) {
-          const data = response.data.employees.map((emp) => {
-            const profileImage = emp.profileImage?.data
-              ? `data:image/jpeg;base64,${bufferToBase64(emp.profileImage.data)}`
-              : null;
-
-            return {
-              id: emp.employeeId || emp._id,
-              name: emp.name,
-              email: emp.email,
-              department: emp.department?.dep_name || 'N/A',
-              profileImage: profileImage,
-              action: <EmployeeButtons Id={emp._id} />,
-            };
-          });
+          const data = response.data.employees.map((emp) => ({
+            ...emp,
+            profileImage: emp.profileImage
+              ? `${emp.profileImage}` // Use the full URL provided by the backend
+              : "http://localhost:5000/uploads/default-profile.png", // Default profile image
+            action: <EmployeeButtons Id={emp._id} />, // Add action buttons
+          }));
 
           setEmployees(data);
           setFilteredEmployees(data);
         }
       } catch (error) {
-        console.error('Error fetching employees:', error);
-        if (error.response && !error.response.data.success) {
-          alert(error.response.data.error);
-        }
+        console.error("Error fetching employees:", error);
       } finally {
         setEmpLoading(false);
       }
@@ -66,10 +49,25 @@ const List = () => {
     setFilteredEmployees(records);
   };
 
+  const renderProfileImage = (row) => {
+    return (
+      <div className="flex justify-center items-center">
+        <img
+          src={row.profileImage}
+          alt="Profile"
+          className="w-12 h-12 rounded-full border object-cover"
+          onError={(e) => {
+            e.target.src = "http://localhost:5000/uploads/default-profile.png"; // Fallback image
+          }}
+        />
+      </div>
+    );
+  };
+
   return (
     <div className="p-6">
       <div className="text-center">
-        <h3 className="text-2xl font-bold">Manage Employee</h3>
+        <h3 className="text-2xl font-bold">Manage Employees</h3>
       </div>
       <div className="flex justify-between items-center">
         <input
@@ -89,41 +87,32 @@ const List = () => {
         <DataTable
           columns={[
             {
-              name: 'Profile Image',
-              cell: (row) =>
-                row.profileImage ? (
-                  <img
-                    src={row.profileImage}
-                    alt="Profile"
-                    className="w-12 h-12 rounded-full border"
-                  />
-                ) : (
-                  'No Image'
-                ),
+              name: "Profile Image",
+              cell: renderProfileImage,
               sortable: false,
             },
             {
-              name: 'Name',
+              name: "Name",
               selector: (row) => row.name,
               sortable: true,
             },
             {
-              name: 'ID',
-              selector: (row) => row.id,
+              name: "ID",
+              selector: (row) => row.employeeId || row._id,
               sortable: false,
             },
             {
-              name: 'Email',
+              name: "Email",
               selector: (row) => row.email,
               sortable: true,
             },
             {
-              name: 'Department',
-              selector: (row) => row.department,
+              name: "Project",
+              selector: (row) => row.project?.projectName || "No Project",
               sortable: true,
             },
             {
-              name: 'Action',
+              name: "Action",
               selector: (row) => row.action,
               sortable: true,
             },
