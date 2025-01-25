@@ -24,8 +24,8 @@ export const columns = [
     width: "100px"
   },
   {
-    name: "Department", 
-    selector: (row) => row.dep_name,
+    name: "Project", 
+    selector: (row) => row.project,
     width: "120px"
   }
 ];
@@ -49,25 +49,21 @@ export const fetchDepartments = async () => {
   }
 };
 
-
-export const getEmployees = async (id) => {
-  let employees = [];
-  try {
-    const response = await axios.get(`http://localhost:5000/api/employee/department/${id}`, {
+export const fetchProjects = async () => {
+  try{
+    const response = await axios.get('http://localhost:5000/api/projects', {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        Authorization:`Bearer ${localStorage.getItem('token')}`,
       },
     });
-
-    if (response.data.success) {
-      employees = response.data.employees;
+    if(response.data.success) {
+      return response.data.projects;
     }
   } catch (error) {
-    console.error("Error Fetching Employees:", error);
+    console.error("Error fetching projects:", error);
+    return [];
   }
-  return employees;
-};
-
+}
 
 
 export const EmployeeButtons = ({ Id }) => {

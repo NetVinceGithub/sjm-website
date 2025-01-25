@@ -1,33 +1,29 @@
-import express from 'express';
-import authMiddleware from '../middleware/authMiddleware.js';
-import { 
-  addEmployee, 
-  uploadFields, 
-  getEmployees, 
-  getEmployee, 
-  updateEmployee, 
-  fetchEmployeesByDepId, 
-  getEmployeeImage 
-} from '../controllers/employeeController.js';
+import express from "express";
+import path from "path";
+import authMiddleware from "../middleware/authMiddleware.js";
+import {
+  addEmployee,
+  uploadFields,
+  getEmployee,
+  getEmployees,
+  updateEmployee,
+} from "../controllers/employeeController.js";
 
 const router = express.Router();
 
-// Fetch all employees
-router.get('/', authMiddleware, getEmployees);
+// Serve static files from the 'uploads' folder
+router.use("/uploads", express.static(path.resolve("uploads")));
 
-// Add a new employee with file upload
-router.post('/add', authMiddleware, uploadFields, addEmployee);
+// Fetch all employees
+router.get("/", authMiddleware, getEmployees);
 
 // Fetch a single employee by ID
-router.get('/:id', authMiddleware, getEmployee);
+router.get("/:id", authMiddleware, getEmployee);
 
-// Update an employee (includes file upload)
-router.put('/:id', authMiddleware, uploadFields, updateEmployee);
+// Add a new employee with file upload
+router.post("/add", authMiddleware, uploadFields, addEmployee);
 
-// Fetch employees by department ID
-router.get('/department/:id', authMiddleware, fetchEmployeesByDepId);
-
-// Get employee profile image
-router.get('/image/:id', authMiddleware, getEmployeeImage);
+// Update an employee with file upload
+router.put("/:id", authMiddleware, uploadFields, updateEmployee);
 
 export default router;
