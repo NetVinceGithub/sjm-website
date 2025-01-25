@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { Schema } from 'mongoose';
 
+
 const employeeSchema = new Schema({
 
   name:{type:String, required:true},
@@ -11,14 +12,15 @@ const employeeSchema = new Schema({
   gender:{type:String},
   employeeId:{type: String, required: true, unique: true}, 
   maritalStatus:{type:String}, 
-  designation:{type:String}, 
-  department:{type: Schema.Types.ObjectId, ref:"Department", required:true }, 
+  designation:{type:String},  
+  project:{type: Schema.Types.ObjectId, ref:"Project", required:true }, 
   sss:{type:String},
   tin:{type:String},
   philHealth:{type:String},
   pagibig:{type:String},
-  profileImage: { type: Buffer }, // Field to store the image data 
-  signature: { type: Buffer }, // Field to store the signature data 
+  bankAccount:{type:String},
+  profileImage: { type: String }, // Field to store the image data 
+  signature: { type: String }, // Field to store the signature data 
   nameOfContact:{type: String}, 
   addressOfContact:{type: String}, 
   numberOfContact:{type: String}, 

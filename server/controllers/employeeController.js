@@ -1,35 +1,43 @@
-import path from 'path';
-import Employee from "../models/Employee.js";
-import User from "../models/User.js";
-import bcrypt from "bcrypt";
 import multer from "multer";
-import Department from "../models/Department.js";
+import Employee from "../models/Employee.js";
+import path from "path";
+import fs from "fs";
 
-
-const storage = multer.memoryStorage();
+// Configure multer for file storage in 'uploads' folder
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = "uploads/";
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true }); // Ensure the directory exists
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
 
 const upload = multer({
   storage: storage,
   fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|gif/;
-    const extname = filetypes.test(file.originalname.toLowerCase());
-    const mimetype = filetypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
+    const validTypes = ['image/jpeg', 'image/png'];
+    if (validTypes.includes(file.mimetype)) {
+      cb(null, true);
     } else {
-      cb("Error: Images Only!");
+      cb(new Error('Invalid file type. Only JPEG and PNG are allowed.'), false);
     }
   },
-  limits: { fileSize: 1024 * 1024 * 5 }, // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
 
+
 export const uploadFields = upload.fields([
-  { name: 'profileImage', maxCount: 1 }, // Match the frontend name
-  { name: 'signature', maxCount: 1 }, // Match the frontend name
+  { name: "profileImage", maxCount: 1 },
+  { name: "signature", maxCount: 1 },
 ]);
 
-const addEmployee = async (req, res) => {
+// Add Employee API
+export const addEmployee = async (req, res) => {
   try {
     const {
       name,
@@ -41,44 +49,45 @@ const addEmployee = async (req, res) => {
       employeeId,
       maritalStatus,
       designation,
-      department,
+      project,
       sss,
       tin,
       philHealth,
       pagibig,
+      bankAccount,
       nameOfContact,
       addressOfContact,
       numberOfContact,
     } = req.body;
 
-    const profileImage = req.files?.profileImage?.[0]?.buffer || null;
-    const signature = req.files?.signature?.[0]?.buffer || null;
+    const profileImage = req.files?.profileImage?.[0]?.filename || null;
+    const signature = req.files?.signature?.[0]?.filename || null;
 
-    if (!name || !email || !mobileNo || !dob) {
-      return res
-        .status(400)
-        .json({ success: false, error: "All required fields must be filled." });
+    if (!profileImage || !signature) {
+      return res.status(400).json({ success: false, error: "Both profile image and signature are required." });
     }
 
+    // Create a new employee record
     const newEmployee = new Employee({
       name,
       address,
       email,
       mobileNo,
-      dob,
+      dob: new Date(dob),
       gender,
       employeeId,
       maritalStatus,
       designation,
-      department,
+      project,
       sss,
       tin,
       philHealth,
       pagibig,
+      bankAccount,
       nameOfContact,
       addressOfContact,
       numberOfContact,
-      profileImage,
+      profileImage, // Store the file name (path for later retrieval)
       signature,
     });
 
@@ -86,88 +95,68 @@ const addEmployee = async (req, res) => {
     res.status(201).json({ success: true, message: "Employee added successfully." });
   } catch (error) {
     console.error("Error adding employee:", error);
-    res.status(500).json({ success: false, error: "Server error." });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-
-
-
-const getEmployee = async (req, res) => {
+// Fetch Employee API (with file URLs)
+export const getEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-
-    // Validate if `id` is provided
-    if (!id) {
-      return res.status(400).json({ success: false, error: "Employee ID is required" });
-    }
-
-    // Check if `id` is a valid ObjectId
-    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({ success: false, error: "Invalid Employee ID format" });
-    }
-
-    const employee = await Employee.findById(id).populate("department", "dep_name");
+    const employee = await Employee.findById(id);
 
     if (!employee) {
       return res.status(404).json({ success: false, error: "Employee not found" });
     }
 
-    return res.status(200).json({ success: true, employee });
+    // Construct full URLs for the profile image and signature
+    const profileImageUrl = employee.profileImage
+      ? `${req.protocol}://${req.get("host")}/uploads/${employee.profileImage}`
+      : null;
+
+    const signatureUrl = employee.signature
+      ? `${req.protocol}://${req.get("host")}/uploads/${employee.signature}`
+      : null;
+
+    const employeeData = {
+      ...employee.toObject(), // Convert MongoDB document to a plain object
+      profileImage: profileImageUrl, // Include the full URL
+      signature: signatureUrl, // Include the full URL
+    };
+
+    res.status(200).json({ success: true, employee: employeeData });
   } catch (error) {
-    console.error("Error in getEmployee:", error.message);
-    return res.status(500).json({ success: false, error: "Server error" });
+    console.error("Error fetching employee:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
 
-
-const getEmployees = async (req, res) => {
-  try {  
-    const employees = await Employee.find().populate("department", "dep_name"); // Only return dep_name
-    return res.status(200).json({ success: true, employees }); 
-  } catch (error) {
-    return res.status(500).json({ success: false, error: "get employees server error" });
-  }
-};
-
-const getEmployeeImage = async (req, res) => {
+// Fetch all employees (with image URLs)
+export const getEmployees = async (req, res) => {
   try {
-    const employee = await Employee.findById(req.params.id);
+    const employees = await Employee.find().populate("project").exec();
 
-    if (!employee || !employee.profileImage) {
-      return res.status(404).json({ success: false, error: 'Image not found' });
-    }
+    const employeesWithUrls = employees.map((emp) => ({
+      ...emp.toObject(),
+      profileImage: emp.profileImage
+        ? `${req.protocol}://${req.get("host")}/uploads/${emp.profileImage}`
+        : null, // Default to null if no image
+    }));
+    
+    
 
-    // Send the image binary data as a response
-    res.set('Content-Type', 'image/png'); // or 'image/jpeg' depending on your image type
-    return res.send(Buffer.from(employee.profileImage.data));
+    res.status(200).json({ success: true, employees: employeesWithUrls });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false, error: 'Error fetching image' });
+    console.error("Error fetching employees:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
 
-
-
-
-
-const fetchEmployeesByDepId = async (req, res) => {
-  const { id } = req.params;
+export const updateEmployee = async (req, res) => {
   try {
-    const employees = await Employee.find({ department: id }).populate('userId', { password: 0 });
-    return res.status(200).json({ success: true, employees });
-  } catch (error) {
-    console.error("Server error in fetching employees by department ID:", error); // Added detailed error message
-    return res.status(500).json({ success: false, error: "Server error in fetching employees by department ID" });
-  }
-};
-
-const updateEmployee = async (req, res) => {
-  try {
-    const { id } = req.params;
-
+    console.log("Uploaded files:", req.files);
     const {
       name,
       address,
@@ -178,61 +167,67 @@ const updateEmployee = async (req, res) => {
       employeeId,
       maritalStatus,
       designation,
-      department,
+      project,
       sss,
       tin,
       philHealth,
       pagibig,
-      nameOfContact,
-      addressOfContact,
-      numberOfContact
-    } = req.body;
-
-    const updateFields = {
-      name,
-      address,
-      email,
-      mobileNo,
-      dob,
-      gender,
-      employeeId,
-      maritalStatus,
-      designation,
-      department,
-      sss,
-      tin,
-      philHealth,
-      pagibig,
+      bankAccount,
       nameOfContact,
       addressOfContact,
       numberOfContact,
-    };
+    } = req.body;
 
-    if (req.files && req.files['profileImage']) {
-      updateFields.profileImage = req.files['profileImage'][0].buffer;
-    }
-    if (req.files && req.files['signature']) {
-      updateFields.signature = req.files['signature'][0].buffer;
-    }
+    // Extract files from `req.files`
+    const profileImage = req.files?.profileImage?.[0]?.filename || null;
+    const signature = req.files?.signature?.[0]?.filename || null;
 
-    const updatedEmployee = await Employee.findByIdAndUpdate(
-      id,
-      updateFields,
-      { new: true }
-    );
+    // Find the employee by ID
+    const { id } = req.params;
+    const employee = await Employee.findById(id);
 
-    if (!updatedEmployee) {
-      return res.status(404).json({ success: false, message: "Employee not found" });
+    if (!employee) {
+      return res.status(404).json({ success: false, error: "Employee not found." });
     }
 
-    return res.status(200).json({ success: true, updatedEmployee });
+    // Remove old files if new files are uploaded
+    if (profileImage && employee.profileImage) {
+      fs.unlinkSync(path.join("uploads", employee.profileImage));
+    }
+
+    if (signature && employee.signature) {
+      fs.unlinkSync(path.join("uploads", employee.signature));
+    }
+
+    // Update the employee fields
+    employee.name = name || employee.name;
+    employee.address = address || employee.address;
+    employee.email = email || employee.email;
+    employee.mobileNo = mobileNo || employee.mobileNo;
+    employee.dob = dob ? new Date(dob) : employee.dob;
+    employee.gender = gender || employee.gender;
+    employee.employeeId = employeeId || employee.employeeId;
+    employee.maritalStatus = maritalStatus || employee.maritalStatus;
+    employee.designation = designation || employee.designation;
+    employee.project = project || employee.project;
+    employee.sss = sss || employee.sss;
+    employee.tin = tin || employee.tin;
+    employee.philHealth = philHealth || employee.philHealth;
+    employee.pagibig = pagibig || employee.pagibig;
+    employee.bankAccount = bankAccount || employee.bankAccount;
+    employee.nameOfContact = nameOfContact || employee.nameOfContact;
+    employee.addressOfContact = addressOfContact || employee.addressOfContact;
+    employee.numberOfContact = numberOfContact || employee.numberOfContact;
+
+    // Update files only if they are provided
+    if (profileImage) employee.profileImage = profileImage;
+    if (signature) employee.signature = signature;
+
+    await employee.save();
+
+    res.status(200).json({ success: true, message: "Employee updated successfully." });
   } catch (error) {
-    console.error("Error updating employee:", error.message, error.stack);
-    return res.status(500).json({ success: false, error: "Server error in updating employee" });
+    console.error("Error updating employee:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
-
-
-
-   
-export { addEmployee, upload, getEmployees, getEmployee, updateEmployee, fetchEmployeesByDepId, getEmployeeImage };

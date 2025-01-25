@@ -38,7 +38,7 @@ const AdminSummary = () => {
               id: emp.employeeId || emp._id,
               name: emp.name,
               email: emp.email,
-              department: emp.department?.dep_name || 'N/A',
+              project: emp.project?.projectName || 'N/A',
               profileImage: profileImage,
               action: <SalaryButtons Id={emp._id} />,
             };
@@ -126,8 +126,8 @@ const AdminSummary = () => {
                 sortable: true,
               },
               {
-                name: 'Department',
-                selector: (row) => row.department,
+                name: 'Project',
+                selector: (row) => row.project,
                 sortable: true,
               },
               {
