@@ -22,7 +22,7 @@ const AdminSidebar = () => {
              className={({isActive}) => `${isActive ? "bg-[#5f2e3d]" : ""} flex items-center space-x-4 block py-2.5 px-4`}
              end>
               <FaUsers />
-              <span>Employee</span>
+              <span>Employees</span>
         </NavLink>
 
         <NavLink to="/admin-dashboard/departments"
@@ -50,7 +50,7 @@ const AdminSidebar = () => {
         <NavLink to="/admin-dashboard/projects"
             className={({isActive}) => `${isActive ? "bg-teal-500" : ""} flex items-center space-x-4 block py-2.5 px-4 rounded`}
             end>
-              <FaCogs />
+              <FaUsers />
               <span>Projects</span>
         </NavLink>
 
