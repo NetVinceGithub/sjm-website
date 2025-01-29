@@ -4,7 +4,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import EmployeeDashboard from "./pages/EmloyeeDashboard";
 import PrivateRoutes from "./utils/PrivateRoutes";
 import RoleBaseRoutes from "./utils/RoleBaseRoutes";
-import AdminSummary from "./components/dashboard/dashboard/AdminSummary";
+import AdminSummary from "./components/dashboard/dashboard/PayrollSummary";
 import DepartmentList from "./components/dashboard/department/DepartmentList";
 import AddDepartment from "./components/dashboard/department/AddDepartment";
 import EditDepartment from "./components/dashboard/department/EditDepartment";
@@ -13,13 +13,16 @@ import Add from "./components/dashboard/employee/Add";
 import View from "./components/dashboard/employee/View";
 import Edit from "./components/dashboard/employee/Edit";
 import EmployeeIDCard from "./components/dashboard/EmployeeIDCard";
-import Payslip from "./components/dashboard/salary/Payslip";
+import Payslip from "./components/dashboard/payroll/Payslip";
 import AdminLounge from "./components/admin/AdminLounge";
 import PayrollSystemData from "./components/dashboard/salary/PayrollSystemData";
-import PayrollDashboard from "./components/dashboard/salary/PayrollDashboard";
 import Projects from "./components/dashboard/projects/Projects";
 import AddProject from "./components/dashboard/projects/AddProject";
 import EditProject from "./components/dashboard/projects/EditProject";
+import CreatePayroll from "./components/dashboard/payroll/CreatePayroll";
+import RatesDashboard from "./components/dashboard/salary/RatesDashboard";
+import AddRatesAndDeductions from "./components/dashboard/salary/AddRatesAndDeductions";
+import EditRatesAndDeductions from "./components/dashboard/salary/EditRatesAndDeductions";
 
 
 
@@ -58,14 +61,21 @@ function App() {
           <Route path="add-employee" element={<Add />} />
           <Route path="employees/:id" element={<View />} />
           <Route path="employees/edit/:id" element={<Edit />} />
-          <Route path="employees/payslip/:id" element={<Payslip />} />
           <Route path="employees/employee_id/:id" element={<EmployeeIDCard />} />
           <Route path="lounge" element={<AdminLounge />} />
+          
           <Route path="employees/rates" element={<PayrollSystemData />} />
-          <Route path="payroll-dashboard" element={<PayrollDashboard />} />
+          <Route path="rates-data-dashboard" element={<RatesDashboard />} />
+          <Route path="create-payroll" element={<CreatePayroll />} />
+          <Route path="employees/payslip/:id" element={<Payslip />} />
+
+
           <Route path="projects" element={<Projects />} />
           <Route path="add-project" element={<AddProject />} />
           <Route path="edit-project/:id" element={<EditProject />} />
+
+          <Route path="add-rates" element={<AddRatesAndDeductions />} />
+          <Route path="edit-rates/:id" element={<EditRatesAndDeductions />} />
           
         </Route>
 
