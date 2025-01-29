@@ -25,17 +25,22 @@ export const getProjects = async (req, res) => {
   }
 };
 
-
-
 export const getProject = async (req, res) => {
   try {
     const { id } = req.params;
-    const project = await Project.findById({ _id: id });
+    const project = await Project.findById(id);
+
+    if (!project) {
+      return res.status(404).json({ success: false, error: 'Project not found' });
+    }
+
     return res.status(200).json({ success: true, project });
   } catch (error) {
-    return res.status(500).json({ success: false, error: 'Error getting project |from project controller|' });
+    console.error('Error in getProject:', error);
+    return res.status(500).json({ success: false, error: 'Error getting project' });
   }
 };
+
 
 export const updateProject = async (req, res) => {
   try {

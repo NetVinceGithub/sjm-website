@@ -39,10 +39,10 @@ const AdminSidebar = () => {
         </NavLink>
 
         
-        <NavLink to="/admin-dashboard/payroll-dashboard"
+        <NavLink to="/admin-dashboard/rates-data-dashboard"
             className="flex items-center space-x-4 block py-2.5 px-4 rounded">
               <FaBuilding />
-              <span>Payroll Dashboard</span>
+              <span>Manage Payroll Data</span>
         </NavLink>
 
    

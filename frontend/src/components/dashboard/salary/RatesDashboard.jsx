@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import DataTable from "react-data-table-component";
 import axios from "axios";
 
-const PayrollDashboard = () => {
+const RatesDashboard = () => {
   const [rates, setRates] = useState([]);
 
   useEffect(() => {
@@ -14,23 +14,26 @@ const PayrollDashboard = () => {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-
+  
         if (response.data.success) {
           const data = response.data.rates.map((rate) => ({
-            dailyRate: rate.dailyRate,
-            basicPay: rate.basicPay,
-            hourlyRate: rate.hourlyRate,
-            otRateRegular: rate.otRateRegular,
-            otRateSpecialHoliday: rate.otRateSpecialHoliday,
-            otRateRegularHoliday: rate.otRateRegularHoliday,
-            specialHolidayRate: rate.specialHolidayRate,
-            regularHolidayRate: rate.regularHolidayRate,
-            specialHolidayOtRate: rate.specialHolidayOtRate,
-            regularHolidayOtRate: rate.regularHolidayOtRate,
-            ndRate: rate.ndRate,
-            tardiness: rate.tardiness,
+            dailyRate: parseFloat(rate.dailyRate.$numberDecimal) || 0,
+            basicPay: parseFloat(rate.basicPay.$numberDecimal) || 0,
+            hourlyRate: parseFloat(rate.hourlyRate.$numberDecimal) || 0,
+            otRateRegular: parseFloat(rate.otRateRegular.$numberDecimal) || 0,
+            otRateSpecialHoliday: parseFloat(rate.otRateSpecialHoliday.$numberDecimal) || 0,
+            otRateRegularHoliday: parseFloat(rate.otRateRegularHoliday.$numberDecimal) || 0,
+            specialHolidayRate: parseFloat(rate.specialHolidayRate.$numberDecimal) || 0,
+            regularHolidayRate: parseFloat(rate.regularHolidayRate.$numberDecimal) || 0,
+            specialHolidayOtRate: parseFloat(rate.specialHolidayOtRate.$numberDecimal) || 0,
+            regularHolidayOtRate: parseFloat(rate.regularHolidayOtRate.$numberDecimal) || 0,
+            ndRate: parseFloat(rate.ndRate.$numberDecimal) || 0,
+            sss: parseFloat(rate.sss.$numberDecimal) || 0,
+            phic: parseFloat(rate.phic.$numberDecimal) || 0,
+            hdmf: parseFloat(rate.hdmf.$numberDecimal) || 0,
+            hmo: parseFloat(rate.hmo.$numberDecimal) || 0,
+            tardiness: parseFloat(rate.tardiness.$numberDecimal) || 0,
           }));
-
           setRates(data);
         }
       } catch (error) {
@@ -40,9 +43,10 @@ const PayrollDashboard = () => {
         }
       }
     };
-
+  
     fetchRates();
   }, []);
+  
 
   // Split the columns into two parts
   const leftColumns = [
@@ -111,10 +115,10 @@ const PayrollDashboard = () => {
           className="px-4 py-0.5 border"
         />
         <Link
-          to="/admin-dashboard/add-employee"
+          to="/admin-dashboard/edit-rates/:id"
           className="px-4 py-1 bg-teal-600 rounded text-white"
         >
-          Add New Employee
+          Edit Data
         </Link>
       </div>
       <div className="mt-6 flex justify-between">
@@ -144,4 +148,4 @@ const PayrollDashboard = () => {
   );
 };
 
-export default PayrollDashboard;
+export default RatesDashboard;
