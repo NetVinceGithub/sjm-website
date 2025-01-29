@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const PayrollSystemData = ({ employeeId }) => {
+const AddRatesAndDeductions = ({ employeeId }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     dailyRate: 0,
@@ -21,7 +21,6 @@ const PayrollSystemData = ({ employeeId }) => {
     hdmf: 0,
     hmo: 0,
     tardiness: 0,
-
   });
 
   const [loading, setLoading] = useState(false);
@@ -33,27 +32,26 @@ const PayrollSystemData = ({ employeeId }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault(); // Prevent page reload
-  
+
     const rateData = {
-      dailyRate: formData.dailyRate,
-      basicPay: formData.basicPay,
-      hourlyRate: formData.hourlyRate,
-      otRateRegular: formData.otRateRegular,
-      otRateSpecialHoliday: formData.otRateSpecialHoliday,
-      otRateRegularHoliday: formData.otRateRegularHoliday,
-      specialHolidayRate: formData.specialHolidayRate,
-      regularHolidayRate: formData.regularHolidayRate,
-      specialHolidayOtRate: formData.specialHolidayOtRate,
-      regularHolidayOtRate: formData.regularHolidayOtRate,
-      ndRate: formData.ndRate,
-      sss: formData.sss,
-      phic: formData.phic, 
-      hdmf: formData.hdmf,
-      hmo: formData.hmo,
-      tardiness: formData.tardiness,
-      
+      dailyRate: parseFloat(formData.dailyRate),
+      basicPay: parseFloat(formData.basicPay),
+      hourlyRate: parseFloat(formData.hourlyRate),
+      otRateRegular: parseFloat(formData.otRateRegular),
+      otRateSpecialHoliday: parseFloat(formData.otRateSpecialHoliday),
+      otRateRegularHoliday: parseFloat(formData.otRateRegularHoliday),
+      specialHolidayRate: parseFloat(formData.specialHolidayRate),
+      regularHolidayRate: parseFloat(formData.regularHolidayRate),
+      specialHolidayOtRate: parseFloat(formData.specialHolidayOtRate),
+      regularHolidayOtRate: parseFloat(formData.regularHolidayOtRate),
+      ndRate: parseFloat(formData.ndRate),
+      sss: parseFloat(formData.sss),
+      phic: parseFloat(formData.phic),
+      hdmf: parseFloat(formData.hdmf),
+      hmo: parseFloat(formData.hmo),
+      tardiness: parseFloat(formData.tardiness),
     };
-  
+
     try {
       const response = await axios.post('http://localhost:5000/api/rates/add', rateData);
       console.log('Rate added successfully:', response.data);
@@ -61,37 +59,37 @@ const PayrollSystemData = ({ employeeId }) => {
       console.error('Error adding rate:', error.response?.data || error.message);
     }
   };
-  
-  
+
   return (
     <div className='max-w-4x1 mx-auto mt-10 bg-white p-8 rounded-md shadow-md'>
       <h2 className='text-2x1 font-bold mb-6'>Add Rate</h2>
       <form onSubmit={handleSubmit}>
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
 
-        
           {/* Daily Rate */}
           <div>
             <label className='block text-sm font-medium text-grey-700'>
               Daily Rate
             </label>
             <input
-              type="number"
+              type="text"
+              step="0.01"
               name="dailyRate"
               onChange={handleChange}
-              placeholder='Name'
+              placeholder='Daily Rate'
               className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
               required
             />
           </div>
 
-          {/* Basic Pay*/}
+          {/* Basic Pay */}
           <div>
             <label className='block text-sm font-medium text-grey-700'>
               Basic Pay
             </label>
             <input
-              type="number"
+              type="text"
+              step="0.01"
               name="basicPay"
               onChange={handleChange}
               placeholder='Basic Pay'
@@ -106,7 +104,8 @@ const PayrollSystemData = ({ employeeId }) => {
               Hourly Rate
             </label>
             <input
-              type="number"
+              type="text"
+              step="0.01"
               name="hourlyRate"
               onChange={handleChange}
               placeholder='Hourly Rate'
@@ -115,58 +114,62 @@ const PayrollSystemData = ({ employeeId }) => {
             />
           </div>
 
-          {/* Ot Rate Regular */}
+          {/* OT Rate Regular */}
           <div>
             <label className='block text-sm font-medium text-grey-700'>
-              Input
+              OT Rate Regular
             </label>
             <input
-              type="number"
+              type="text"
+              step="0.01"
               name="otRateRegular"
               onChange={handleChange}
-              placeholder='Ot Rate Regular'
+              placeholder='OT Rate Regular'
               className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
               required
             />
           </div>
 
-          {/* Ot Rate Special Holiday */}
+          {/* OT Rate Special Holiday */}
           <div>
             <label className='block text-sm font-medium text-grey-700'>
-              Ot Rate Special Holiday
+              OT Rate Special Holiday
             </label>
             <input
-              type="number"
+              type="text"
+              step="0.01"
               name="otRateSpecialHoliday"
               onChange={handleChange}
-              placeholder='Ot Rate Special Holiday'
+              placeholder='OT Rate Special Holiday'
               className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
               required
             />
           </div>
 
-          {/* Ot Rate Regular Holiday */}
+          {/* OT Rate Regular Holiday */}
           <div>
             <label className='block text-sm font-medium text-grey-700'>
-            Ot Rate Regular Holiday
+              OT Rate Regular Holiday
             </label>
             <input
-              type="number"
+              type="text"
+              step="0.01"
               name="otRateRegularHoliday"
               onChange={handleChange} 
-              placeholder='Ot Rate Regular Holiday'
+              placeholder='OT Rate Regular Holiday'
               className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
               required
             />
           </div>
 
-          {/* Special Holiday Ot Rate */}
+          {/* Special Holiday Rate */}
           <div>
             <label className='block text-sm font-medium text-grey-700'>
-            Special Holiday Rate
+              Special Holiday Rate
             </label>
             <input
-              type="number"
+              type="text"
+              step="0.01"
               name="specialHolidayRate"
               onChange={handleChange}
               placeholder='Special Holiday Rate'
@@ -175,58 +178,62 @@ const PayrollSystemData = ({ employeeId }) => {
             />
           </div>
 
-          {/* Regualr Holiday Rate*/}
+          {/* Regular Holiday Rate */}
           <div>
             <label className='block text-sm font-medium text-grey-700'>
-            Regualr Holiday Rate
+              Regular Holiday Rate
             </label>
             <input
-              type="number"
+              type="text"
+              step="0.01"
               name="regularHolidayRate"
               onChange={handleChange}
-              placeholder='Regualr Holiday Rate'
+              placeholder='Regular Holiday Rate'
               className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
               required
             />
           </div>
 
-          {/* Special Holiday Ot Rate */}
+          {/* Special Holiday OT Rate */}
           <div>
             <label className='block text-sm font-medium text-grey-700'>
-            Special Holiday Ot Rate
+              Special Holiday OT Rate
             </label>
             <input
-              type="number"
+              type="text"
+              step="0.01"
               name="specialHolidayOtRate"
               onChange={handleChange}
-              placeholder='Special Holiday Ot Rate'
+              placeholder='Special Holiday OT Rate'
               className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
               required
             />
           </div>
 
-          {/* Regular Holiday Ot Rate*/}
+          {/* Regular Holiday OT Rate */}
           <div>
             <label className='block text-sm font-medium text-grey-700'>
-            Regular Holiday Ot Rate
+              Regular Holiday OT Rate
             </label>
             <input
-              type="number"
+              type="text"
+              step="0.01"
               name="regularHolidayOtRate"
               onChange={handleChange}
-              placeholder='Regular Holiday Ot Rate'
+              placeholder='Regular Holiday OT Rate'
               className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
               required
             />
           </div>
 
-          {/* ndRate */}
+          {/* ND Rate */}
           <div>
             <label className='block text-sm font-medium text-grey-700'>
               ND Rate
             </label>
             <input
-              type="number"
+              type="text"
+              step="0.01"
               name="ndRate"
               onChange={handleChange}
               placeholder='ND Rate'
@@ -235,13 +242,78 @@ const PayrollSystemData = ({ employeeId }) => {
             />
           </div>
 
-          {/* Tardiness*/}
+          {/* SSS */}
           <div>
             <label className='block text-sm font-medium text-grey-700'>
-            Tardiness
+              SSS
             </label>
             <input
-              type="number"
+              type="text"
+              step="0.01"
+              name="sss"
+              onChange={handleChange}
+              placeholder='SSS'
+              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              required
+            />
+          </div>
+
+          {/* PHIC */}
+          <div>
+            <label className='block text-sm font-medium text-grey-700'>
+              PHIC
+            </label>
+            <input
+              type="text"
+              step="0.01"
+              name="phic"
+              onChange={handleChange}
+              placeholder='PHIC'
+              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              required
+            />
+          </div>
+
+          {/* HDMF */}
+          <div>
+            <label className='block text-sm font-medium text-grey-700'>
+              HDMF
+            </label>
+            <input
+              type="text"
+              step="0.01"
+              name="hdmf"
+              onChange={handleChange}
+              placeholder='HDMF'
+              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              required
+            />
+          </div>
+
+          {/* HMO */}
+          <div>
+            <label className='block text-sm font-medium text-grey-700'>
+              HMO
+            </label>
+            <input
+              type="text"
+              step="0.01"
+              name="hmo"
+              onChange={handleChange}
+              placeholder='HMO'
+              className='mt-1 p-2 block w-full border border-gray-300 rounded-md'
+              required
+            />
+          </div>
+
+          {/* Tardiness */}
+          <div>
+            <label className='block text-sm font-medium text-grey-700'>
+              Tardiness
+            </label>
+            <input
+              type="text"
+              step="0.01"
               name="tardiness"
               onChange={handleChange}
               placeholder='Tardiness'
@@ -249,8 +321,8 @@ const PayrollSystemData = ({ employeeId }) => {
               required
             />
           </div>
-          
         </div>
+
         <button
           type="submit"
           className='w-full mt-6 bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4'
@@ -262,4 +334,4 @@ const PayrollSystemData = ({ employeeId }) => {
   );
 };
 
-export default PayrollSystemData;
+export default AddRatesAndDeductions;
