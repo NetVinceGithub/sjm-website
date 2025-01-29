@@ -67,3 +67,26 @@ export const columns = [
     width: "120px"
   }
 ];
+
+
+export const RatesAndDeductionsButtons = ({ Id }) => {
+  const navigate = useNavigate();
+
+  if(!Id){
+    console.log('Error in RatesAndDeductionsHelper Buttons');
+    return null;
+  }
+
+  return(
+    <div className="flex gap-2 justify-center items-center flex-nowrap">
+  
+      <button
+        className="px-4 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+        onClick={() => navigate(`/admin-dashboard/rates/edit-rates/${Id}`)}
+      >
+        Edit
+      </button>
+    </div>
+  )
+}
+

@@ -4,7 +4,7 @@ import authRouter from './routes/auth.js';
 import departmentRouter from './routes/department.js';
 import employeeRouter from './routes/employee.js';
 import connectToDatabase from './db/db.js';
-import ratesRouter from './routes/rates.js';
+import ratesRouter from './routes/ratesAndDeductions.js';
 import projectRouter from './routes/project.js';
 
 connectToDatabase();
