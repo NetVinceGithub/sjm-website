@@ -78,7 +78,10 @@ export const EmployeeButtons = ({ Id }) => {
     <div className="flex gap-2 justify-center items-center flex-nowrap">
       <button
         className="px-4 py-1 bg-teal-600 text-white text-sm rounded hover:bg-teal-700"
-        onClick={() => navigate(`/admin-dashboard/employees/employee_id/${Id}`)}
+        onClick={() => {
+          console.log(`Navigating to: /admin-dashboard/employees/employee-id/${Id}`); 
+          navigate(`/admin-dashboard/employees/employee-id/${Id}`);
+        }}
       >
         View ID
       </button>
@@ -88,6 +91,20 @@ export const EmployeeButtons = ({ Id }) => {
         onClick={() => navigate(`/admin-dashboard/employees/edit/${Id}`)}
       >
         Edit
+      </button>
+
+      <button
+        className="px-4 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+        onClick={() => navigate(`/admin-dashboard/employees/allowance/${Id}`)}
+      >
+        Allowance
+      </button>
+
+      <button
+        className="px-4 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+        onClick={() => navigate(`/admin-dashboard/employees/edit/${Id}`)}
+      >
+        Benefits
       </button>
     </div>
   );
