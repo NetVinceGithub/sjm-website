@@ -101,60 +101,44 @@ const getRate = async (req, res) => {
 
 const updateRates = async (req, res) => {
   try {
-    console.log("Request body:", req.files);
-
-    const {
-
-      dailyRate,
-      basicPay,
-      hourlyRate,
-      otRateRegular,
-      otRateSpecialHoliday,
-      otRateRegularHoliday,
-      specialHolidayRate,
-      regularHolidayRate,
-      specialHolidayOtRate,
-      regularHolidayOtRate,
-      ndRate,
-      sss,
-      phic,
-      hdmf,
-      hmo,
-      tardiness,
-    } = req.body;
+    console.log("Request body:", req.body); // ✅ Log the actual request body
 
     const { id } = req.params;
+
     const rates = await RatesAndDeductions.findById(id);
-   
-    rates.dailyRate = dailyRate || rates.dailyRate;
-    rates.basicPay = basicPay || rates.basicPay;
-    rates.hourlyRate = hourlyRate || rates.hourlyRate;
-    rates.otRateRegular = otRateRegular || rates.otRateRegular;
-    rates.otRateSpecialHoliday = otRateSpecialHoliday || rates.otRateSpecialHoliday;
-    rates.otRateRegularHoliday =  otRateRegularHoliday || rates.otRateRegularHoliday;
-    rates.specialHolidayRate = specialHolidayRate || rates.specialHolidayRate;
-    rates.regularHolidayRate = regularHolidayRate || rates.regularHolidayRate;
-    rates.specialHolidayOtRate = specialHolidayOtRate || rates.specialHolidayOtRate;
-    rates.regularHolidayOtRate = regularHolidayOtRate || rates.regularHolidayOtRate;
-    rates.ndRate = ndRate || rates.ndRate;
-    rates.sss = sss || rates.sss;
-    rates.phic = phic || rates.phic;
-    rates.hdmf = hdmf || rates.hdmf;
-    rates.hmo = hmo || rates.hmo;
-    rates.tardiness = tardiness || rates.tardiness;
+    
+    // ✅ Check if the rate exists before updating
+    if (!rates) {
+      return res.status(404).json({ success: false, error: "Rate not found" });
+    }
+
+    // ✅ Convert numeric values to numbers before updating
+    const updateFields = [
+      "dailyRate", "basicPay", "hourlyRate", "otRateRegular",
+      "otRateSpecialHoliday", "otRateRegularHoliday", "specialHolidayRate",
+      "regularHolidayRate", "specialHolidayOtRate", "regularHolidayOtRate",
+      "ndRate", "sss", "phic", "hdmf", "hmo", "tardiness"
+    ];
+
+    updateFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        rates[field] = parseFloat(req.body[field]) || 0; // Convert to number
+      }
+    });
 
     await rates.save();
 
-   res.status(200).json({
+    res.status(200).json({
       success: true,
-      message: "Rate Updated successfully.",
-      rate: newRate,
+      message: "Rate updated successfully.",
+      rate: rates, // ✅ Fix: Return the updated rate
     });
+
   } catch (error) {
-    console.error("Error Updating rate:", error.message, error.stack); // Log error details
-   res.status(500).json({
+    console.error("Error updating rate:", error.message, error.stack);
+    res.status(500).json({
       success: false,
-      error: "Failed to add rate. Server error.",
+      error: "Failed to update rate. Server error.",
     });
   }
 };

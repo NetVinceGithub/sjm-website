@@ -7,41 +7,48 @@ const EditRatesAndDeductions = () => {
   const navigate = useNavigate();
 
   const [rates, setRates] = useState({
-    dailyRate: "",
-    basicPay: "",
-    hourlyRate: "",
-    otRateRegular: "",
-    otRateRestday: "",
-    otRateSpecialHoliday: "",
-    otRateSpecialHolidayRestday: "",
-    otRateRegularHoliday: "",
-    otRateRegularHolidayRestday: "",
-    specialHolidayRate: "",
-    regularHolidayRate: "",
-    specialHolidayOtRate: "",
-    regularHolidayOtRate: "",
-    ndRate: "",
-    sss: "",
-    phic: "",
-    hdmf: "",
-    hmo: "",
-    tardiness: "",
+    dailyRate: 0,
+    basicPay: 0,
+    hourlyRate: 0,
+    otRateRegular: 0,
+    otRateSpecialHoliday: 0,
+    otRateRegularHoliday: 0,
+    specialHolidayRate: 0,
+    regularHolidayRate: 0,
+    specialHolidayOtRate: 0,
+    regularHolidayOtRate: 0,
+    ndRate: 0,
+    sss: 0,
+    phic: 0,
+    hdmf: 0,
+    hmo: 0,
+    tardiness: 0,
   });
 
   // Fetch the rate data by ID
   useEffect(() => {
-    console.log("Fetching rate for ID:", id); // Debugging
-  
+    console.log("Fetching rate for ID:", id);
+
     const fetchRate = async () => {
       try {
         const response = await axios.get(`http://localhost:5000/api/rates/${id}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-  
-        console.log("API Response:", response.data); // Log response
-  
+
+        console.log("API Response:", response.data);
+
         if (response.data.success) {
-          setRates(response.data.rate);
+          const rateData = response.data.rate;
+
+          const formattedRates = Object.keys(rates).reduce((acc, key) => {
+            const value = rateData[key]?.$numberDecimal
+              ? parseFloat(rateData[key].$numberDecimal)
+              : rateData[key] || 0; // ✅ Ensures zero is accepted
+            acc[key] = isNaN(value) ? 0 : value;
+            return acc;
+          }, {});
+
+          setRates(formattedRates);
         } else {
           console.error("Failed to fetch rates. Response:", response.data);
         }
@@ -49,25 +56,26 @@ const EditRatesAndDeductions = () => {
         console.error("Error fetching rates:", error.response?.data || error.message);
       }
     };
-  
+
     fetchRate();
   }, [id]);
-  
-  
-  
 
-  // Handle input changes
+  // Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
+    const numValue = value === "" ? 0 : parseFloat(value) || 0; // ✅ Keeps zero if user inputs 0
+
     setRates((prevRates) => ({
       ...prevRates,
-      [name]: value,
+      [name]: numValue,
     }));
   };
 
   // Submit updated rates
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Submitting data:", rates);
+
     try {
       const response = await axios.put(
         `http://localhost:5000/api/rates/${id}`,
@@ -81,12 +89,12 @@ const EditRatesAndDeductions = () => {
 
       if (response.data.success) {
         alert("Rates updated successfully.");
-        navigate("/rates"); // Redirect after successful update
+        navigate("/admin-dashboard/rates-data-dashboard");
       } else {
         alert("Failed to update rates.");
       }
     } catch (error) {
-      console.error("Error updating rates:", error);
+      console.error("Error updating rates:", error.response?.data || error.message);
       alert("An error occurred while updating rates.");
     }
   };
@@ -96,24 +104,22 @@ const EditRatesAndDeductions = () => {
       <h2 className="text-2xl font-bold mb-6">Edit Rate</h2>
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
           {Object.keys(rates).map((key) => (
             <div key={key}>
               <label className="block text-sm font-medium text-gray-700 capitalize">
                 {key.replace(/([A-Z])/g, " $1")}
               </label>
               <input
-                type="text"
+                type="number"
                 step="0.01"
                 name={key}
-                value={rates[key] || ""}
+                value={rates[key]}
                 onChange={handleChange}
                 className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
                 required
               />
             </div>
           ))}
-
         </div>
 
         <button

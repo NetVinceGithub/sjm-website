@@ -9,7 +9,6 @@ router.get('/', getRates);
 router.post('/add', addRate);
 router.get('/:id', getRate);
 router.put('/:id',updateRates)
-//router.get('/department/:id', authMiddleware, fetchEmployeesByDepId)
 
 
 export default router
