@@ -3,9 +3,10 @@ import cors from 'cors';
 import authRouter from './routes/auth.js';
 import departmentRouter from './routes/department.js';
 import employeeRouter from './routes/employee.js';
-import connectToDatabase from './db/db.js';
 import ratesRouter from './routes/ratesAndDeductions.js';
 import projectRouter from './routes/project.js';
+import allowanceRouter from './routes/allowance.js'; // Import the missing allowance route
+import connectToDatabase from './db/db.js';
 
 connectToDatabase();
 
@@ -23,6 +24,7 @@ app.use('/api/department', departmentRouter);
 app.use('/api/employee', employeeRouter);
 app.use('/api/rates', ratesRouter);
 app.use('/api/projects', projectRouter);
+app.use('/api/allowance', allowanceRouter); // ✅ Register allowance route
 
 // Start server
 app.listen(PORT, () => {

@@ -12,6 +12,7 @@ import List from "./components/dashboard/employee/List";
 import Add from "./components/dashboard/employee/Add";
 import View from "./components/dashboard/employee/View";
 import Edit from "./components/dashboard/employee/Edit";
+import Allowance from "./components/dashboard/employee/Allowance";
 import EmployeeIDCard from "./components/dashboard/EmployeeIDCard";
 import Payslip from "./components/dashboard/payroll/Payslip";
 import AdminLounge from "./components/admin/AdminLounge";
@@ -23,6 +24,7 @@ import CreatePayroll from "./components/dashboard/payroll/CreatePayroll";
 import RatesDashboard from "./components/dashboard/salary/RatesDashboard";
 import AddRatesAndDeductions from "./components/dashboard/salary/AddRatesAndDeductions";
 import EditRatesAndDeductions from "./components/dashboard/salary/EditRatesAndDeductions";
+import EmployeePayrollData from "./components/dashboard/payroll/EmployeePayrollData";
 
 
 
@@ -30,9 +32,6 @@ function App() {
   return (
     
     <>
-    <div>
-      <EmployeeIDCard />
-    </div>
       <BrowserRouter>
       <Routes>
         {/* Redirect "/" to the admin dashboard */}
@@ -61,13 +60,15 @@ function App() {
           <Route path="add-employee" element={<Add />} />
           <Route path="employees/:id" element={<View />} />
           <Route path="employees/edit/:id" element={<Edit />} />
-          <Route path="employees/employee_id/:id" element={<EmployeeIDCard />} />
+          <Route path="employees/employee-id/:id" element={<EmployeeIDCard />} />
           <Route path="lounge" element={<AdminLounge />} />
           
           <Route path="employees/rates" element={<PayrollSystemData />} />
           <Route path="rates-data-dashboard" element={<RatesDashboard />} />
           <Route path="create-payroll" element={<CreatePayroll />} />
+          <Route path="employees/payroll-data/:id" element={<EmployeePayrollData />} />
           <Route path="employees/payslip/:id" element={<Payslip />} />
+          <Route path="employees/allowance/:id" element={<Allowance />} />
 
 
           <Route path="projects" element={<Projects />} />
@@ -75,7 +76,7 @@ function App() {
           <Route path="edit-project/:id" element={<EditProject />} />
 
           <Route path="add-rates" element={<AddRatesAndDeductions />} />
-          <Route path="edit-rates/:id" element={<EditRatesAndDeductions />} />
+          <Route path="rates/edit/:id" element={<EditRatesAndDeductions />} />
           
         </Route>
 

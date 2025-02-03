@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import DataTable from "react-data-table-component";
 import axios from "axios";
+import { RatesAndDeductionsButtons } from "../../../utils/RatesAndDeductionsHelper";
 
 const RatesDashboard = () => {
   const [rates, setRates] = useState([]);
@@ -14,9 +15,10 @@ const RatesDashboard = () => {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-  
+
         if (response.data.success) {
           const data = response.data.rates.map((rate) => ({
+            _id: rate._id, 
             dailyRate: parseFloat(rate.dailyRate.$numberDecimal) || 0,
             basicPay: parseFloat(rate.basicPay.$numberDecimal) || 0,
             hourlyRate: parseFloat(rate.hourlyRate.$numberDecimal) || 0,
@@ -34,6 +36,7 @@ const RatesDashboard = () => {
             hmo: parseFloat(rate.hmo.$numberDecimal) || 0,
             tardiness: parseFloat(rate.tardiness.$numberDecimal) || 0,
           }));
+          
           setRates(data);
         }
       } catch (error) {
@@ -43,12 +46,10 @@ const RatesDashboard = () => {
         }
       }
     };
-  
+
     fetchRates();
   }, []);
-  
 
-  // Split the columns into two parts
   const leftColumns = [
     { name: "Daily Rate", selector: (row) => row.dailyRate, width: "90px" },
     { name: "Basic Pay", selector: (row) => row.basicPay, width: "70px" },
@@ -99,7 +100,12 @@ const RatesDashboard = () => {
       sortable: true,
       width: "100px",
     },
-    { name: "Tardiness", selector: (row) => row.tardiness, width: "120px" },
+    {
+      name: "Action",
+      cell: (row) => <RatesAndDeductionsButtons Id={row._id} />,
+      ignoreRowClick: true,
+      Overflow: true,
+    }
   ];
 
   return (
@@ -108,42 +114,48 @@ const RatesDashboard = () => {
       <div className="text-center">
         <h3 className="text-2xl font-bold">Manage Payroll Data</h3>
       </div>
-      <div className="flex justify-between items-center">
-        <input
-          type="text"
-          placeholder="Search by Name"
-          className="px-4 py-0.5 border"
-        />
-        <Link
-          to="/admin-dashboard/edit-rates/:id"
-          className="px-4 py-1 bg-teal-600 rounded text-white"
-        >
-          Edit Data
-        </Link>
-      </div>
+      
       <div className="mt-6 flex justify-between">
-        {/* Left Table */}
         <div className="w-1/2 pr-4">
-          <DataTable
-            columns={leftColumns} // Left side columns
-            data={rates} // Pass rates data
-            pagination
-          />
+          <DataTable columns={leftColumns} data={rates} pagination />
         </div>
-
-        {/* Right Table */}
         <div className="w-1/2 pl-4">
-          <DataTable
-            columns={rightColumns} // Right side columns
-            data={rates} // Pass rates data
-            pagination
-          />
+          <DataTable columns={rightColumns} data={rates} pagination />
         </div>
       </div>
 
-      <div>Gov't Mandatory Benefits</div>
-      <div>Allowance</div>
-      <div>Loan</div>
+      {/* Government Mandatory Benefits Section */}
+      <div className="mt-6">
+        <h3 className="text-lg font-bold">Gov't Mandatory Benefits</h3>
+        <table className="border-collapse border w-full mt-2">
+          <thead>
+            <tr className="bg-gray-200">
+              <th className="border px-4 py-2">SSS</th>
+              <th className="border px-4 py-2">PHIC</th>
+              <th className="border px-4 py-2">HDMF</th>
+              <th className="border px-4 py-2">HMO</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rates.map((rate) => (
+              <tr key={rate._id}>
+                <td className="border px-4 py-2">{rate.sss.toFixed(2)}</td>
+                <td className="border px-4 py-2">{rate.phic.toFixed(2)}</td>
+                <td className="border px-4 py-2">{rate.hdmf.toFixed(2)}</td>
+                <td className="border px-4 py-2">{rate.hmo.toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-4">
+        <h3 className="text-lg font-bold">Allowance</h3>
+      </div>
+
+      <div className="mt-4">
+        <h3 className="text-lg font-bold">Loan</h3>
+      </div>
     </div>
   );
 };
