@@ -12,30 +12,40 @@ import "./IDCard.css";
 const EmployeeIDCard = () => {
   const [employee, setEmployee] = useState(null);
   const { id } = useParams();
+ 
+  console.log("Employee ID from useParams:", id);
+
   const idCardRef = useRef(null);
 
   // Fetch employee data
   useEffect(() => {
+    console.log("Employee ID from useParams:", id); // Debugging
+  
+    if (!id) {
+      console.error("Employee ID is undefined. Check route and navigation.");
+      return;
+    }
+  
     const fetchEmployee = async () => {
       try {
         const response = await axios.get(`http://localhost:5000/api/employee/${id}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-
-        if (response.data.success && response.data.employee) {
+  
+        if (response.data.success) {
           setEmployee(response.data.employee);
         } else {
           console.error("Failed to fetch employee data.");
         }
       } catch (error) {
-        console.error("Error fetching employee:", error.message);
+        console.error("Error fetching employee:", error.response?.data || error.message);
       }
     };
-
+  
     fetchEmployee();
   }, [id]);
+  
+  
 
   // Handle downloading the ID card as a PDF
   const handleDownload = async () => {
