@@ -49,8 +49,10 @@ const Login = () => {
               className="w-full px-3 py-2 border"
               placeholder="Enter Email"
               onChange={(e) => setEmail(e.target.value)}
-              required  // Add required attribute for better validation
+              required
+              autoComplete="email"  // Added autocomplete attribute
             />
+
           </div>
           <div className="mb-4">
             <label htmlFor="password" className="block text-gray-700">Password</label>
@@ -59,8 +61,10 @@ const Login = () => {
               className="w-full px-3 py-2 border"
               placeholder="*********"
               onChange={(e) => setPassword(e.target.value)}
-              required  // Add required attribute for better validation
+              required
+              autoComplete="current-password"  // Added autocomplete attribute
             />
+
           </div>
           <div className="mb-4 flex items-center justify-between">
             <label className="inline-flex items-center">

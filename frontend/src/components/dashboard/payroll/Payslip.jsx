@@ -7,6 +7,7 @@ import axios from 'axios';
 const Payslip = () => {
     const [employee, setEmployee] = useState(null);
     const [projectName, setProjectName] = useState('');
+    const [ratesAndDeductions, setRatesAndDeductions] = useState([]);
     const { id } = useParams();
 
     useEffect(() => {
@@ -51,6 +52,36 @@ const Payslip = () => {
     
         fetchEmployee();
     }, [id]);
+
+    useEffect(() => {
+        const fetchRatesAndDeductions = async () => {
+            try {
+                const response = await axios.get(`http://localhost:5000/api/rates`, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    },
+                });
+    
+                console.log("Full API Response:", response);
+                console.log("Rates and Deductions Data:", response.data.rates);
+    
+                if (response.data.success) {
+                    setRatesAndDeductions(response.data.rates);
+                } else {
+                    console.log("Failed to fetch rates and deductions");
+                }
+            } catch (error) {
+                console.error("Error fetching rates and deductions:", error);
+            }
+        };
+    
+        fetchRatesAndDeductions();
+    }, [id]);
+    
+    
+    
+    
+    
     
 
     if (!employee) {
@@ -76,10 +107,16 @@ const Payslip = () => {
                 </thead>
                 <tbody>
                     <tr className="cell1">
-                        <td></td>
+                        <td>{employee.employeeId}</td>
                         <td>{employee.name || '-'}</td>
                         <td>{projectName || '-'}</td>
-                        <td></td>
+                        <td>
+                            {ratesAndDeductions[0]?.dailyRate?.$numberDecimal 
+                                ? parseFloat(ratesAndDeductions[0].dailyRate.$numberDecimal).toFixed(2) 
+                                : "0.00"}
+                        </td>
+
+
                     </tr>
                     <tr>
                         <th className="cell align" colSpan={2}>POSITION</th>
@@ -97,7 +134,9 @@ const Payslip = () => {
                     </tr>
                     <tr>
                         <td className="cell3">Basic Pay</td>
-                        <td className="cell3"></td>
+                        <td className="cell3">{ratesAndDeductions[0]?.basicPay?.$numberDecimal 
+                                ? parseFloat(ratesAndDeductions[0].basicPay.$numberDecimal).toFixed(2) 
+                                : "0.00"}</td>
                         <td className="cell3">
                             <div className="GovCon">GOVERNMENT CONTRIBUTIONS</div>
                         </td>
@@ -107,23 +146,33 @@ const Payslip = () => {
                         <td className="cell4">No. of Days</td>
                         <td className="cell4"></td>
                         <td className="cell4">SSS</td>
-                        <td className="cell4"></td>
+                        <td className="cell4">{ratesAndDeductions[0]?.sss?.$numberDecimal 
+                                ? parseFloat(ratesAndDeductions[0].sss.$numberDecimal).toFixed(2) 
+                                : "0.00"}</td>
                     </tr>
                     <tr>
                         <td className="cell4">Overtime Pay</td>
-                        <td className="cell4"></td>
+                        <td className="cell4">{ratesAndDeductions[0]?.otRateRegular?.$numberDecimal 
+                                ? parseFloat(ratesAndDeductions[0].otRateRegular.$numberDecimal).toFixed(2) 
+                                : "0.00"}</td>
                         <td className="cell4">PHIC</td>
-                        <td className="cell4"></td>
+                        <td className="cell4">{ratesAndDeductions[0]?.phic?.$numberDecimal 
+                                ? parseFloat(ratesAndDeductions[0].phic.$numberDecimal).toFixed(2) 
+                                : "0.00"}</td>
                     </tr>
                     <tr>
                         <td className="cell4">Overtime Hours</td>
                         <td className="cell4"></td>
                         <td className="cell4">HDMF</td>
-                        <td className="cell4"></td>
+                        <td className="cell4">{ratesAndDeductions[0]?.hdmf?.$numberDecimal 
+                                ? parseFloat(ratesAndDeductions[0].hdmf.$numberDecimal).toFixed(2) 
+                                : "0.00"}</td>
                     </tr>
                     <tr>
                         <td className="cell4">Holiday Pay</td>
-                        <td className="cell4"></td>
+                        <td className="cell4">{ratesAndDeductions[0]?.specialHolidayRate?.$numberDecimal 
+                                ? parseFloat(ratesAndDeductions[0].specialHolidayRate.$numberDecimal).toFixed(2) 
+                                : "0.00"}</td>
                         <td className="cell3">Cash Advance/Loan</td>
                         <td className="cell4"></td>
                     </tr>
