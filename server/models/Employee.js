@@ -1,34 +1,20 @@
-import mongoose from 'mongoose';
-import { Schema } from 'mongoose';
+import mongoose from "mongoose";
+import { v4 as uuidv4 } from "uuid";
 
-
-const employeeSchema = new Schema({
-
-  name:{type:String, required:true},
-  address:{type:String, required:true},
-  email:{type:String, required:true},
-  mobileNo:{type:String, required:true},
-  dob:{type: Date},
-  gender:{type:String},
-  employeeId:{type: String, required: true, unique: true}, 
-  maritalStatus:{type:String}, 
-  designation:{type:String},  
-  project:{type: Schema.Types.ObjectId, ref:"Project", required:true },
-  department:{type: Schema.Types.ObjectId, ref:"Department", required:true },
-  sss:{type:String},
-  tin:{type:String},
-  philHealth:{type:String},
-  pagibig:{type:String},
-  bankAccount:{type:String},
-  profileImage: { type: String }, // Field to store the image data 
-  signature: { type: String }, // Field to store the signature data 
-  nameOfContact:{type: String}, 
-  addressOfContact:{type: String}, 
-  numberOfContact:{type: String}, 
-  createdAt: {type: Date, default: Date.now}, 
-  updatedAt: {type: Date, default: Date.now}, 
-   
+const EmployeeSchema = new mongoose.Schema({
+  employeeId: { type: String, unique: true, default: () => `EMP-${uuidv4()}` },
+  name: { type: String, required: true },
+  department: { type: String },
+  ecode: { type: String, unique: true } // ✅ Add this if "ecode" is required
 });
 
-const Employee = mongoose.model("Employee", employeeSchema);
+// Ensure `employeeId` is set before saving
+EmployeeSchema.pre("save", function (next) {
+  if (!this.employeeId) {
+    this.employeeId = `EMP-${uuidv4()}`;
+  }
+  next();
+});
+
+const Employee = mongoose.model("Employee", EmployeeSchema);
 export default Employee;

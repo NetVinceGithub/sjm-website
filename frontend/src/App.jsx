@@ -25,6 +25,7 @@ import RatesDashboard from "./components/dashboard/salary/RatesDashboard";
 import AddRatesAndDeductions from "./components/dashboard/salary/AddRatesAndDeductions";
 import EditRatesAndDeductions from "./components/dashboard/salary/EditRatesAndDeductions";
 import EmployeePayrollData from "./components/dashboard/payroll/EmployeePayrollData";
+import AddMasterlist from "./components/dashboard/employee/AddMasterlist";
 
 
 
@@ -58,6 +59,7 @@ function App() {
 
           <Route path="employees" element={<List />} />
           <Route path="add-employee" element={<Add />} />
+          <Route path="add-masterlist" element={<AddMasterlist />} />
           <Route path="employees/:id" element={<View />} />
           <Route path="employees/edit/:id" element={<Edit />} />
           <Route path="employees/employee-id/:id" element={<EmployeeIDCard />} />
