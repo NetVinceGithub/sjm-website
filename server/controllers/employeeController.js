@@ -1,233 +1,84 @@
-import multer from "multer";
+import axios from "axios";
+import dotenv from "dotenv";
 import Employee from "../models/Employee.js";
-import path from "path";
-import fs from "fs";
+import cron from "node-cron";
+import { v4 as uuidv4 } from "uuid";
 
-// Configure multer for file storage in 'uploads' folder
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = "uploads/";
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true }); // Ensure the directory exists
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
-});
+dotenv.config();
 
-const upload = multer({
-  storage: storage,
-  fileFilter: (req, file, cb) => {
-    const validTypes = ['image/jpeg', 'image/png'];
-    if (validTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only JPEG and PNG are allowed.'), false);
-    }
-  },
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-});
+const SHEET_URL = "https://sheets.googleapis.com/v4/spreadsheets/1zy38CYQmMYxQOSjw_0O0kvrNZmVmK72xfUUisf18l8I/values/Sheet1?key=AIzaSyBYADFdllhMAiSh6T5hQTiNWdy1eGEkIhA";
 
-
-export const uploadFields = upload.fields([
-  { name: "profileImage", maxCount: 1 },
-  { name: "signature", maxCount: 1 },
-]);
-
-// Add Employee API
-export const addEmployee = async (req, res) => {
+const fetchAndSaveEmployees = async () => {
   try {
-    const {
-      name,
-      address,
-      email,
-      mobileNo,
-      dob,
-      gender,
-      employeeId,
-      maritalStatus,
-      designation,
-      project,
-      sss,
-      tin,
-      philHealth,
-      pagibig,
-      bankAccount,
-      nameOfContact,
-      addressOfContact,
-      numberOfContact,
-    } = req.body;
+    const response = await axios.get(SHEET_URL);
+    const rows = response.data.values;
 
-    const profileImage = req.files?.profileImage?.[0]?.filename || null;
-    const signature = req.files?.signature?.[0]?.filename || null;
-
-    if (!profileImage || !signature) {
-      return res.status(400).json({ success: false, error: "Both profile image and signature are required." });
+    if (!rows || rows.length < 2) {
+      console.log("No employee data found");
+      return;
     }
 
-    // Create a new employee record
-    const newEmployee = new Employee({
-      name,
-      address,
-      email,
-      mobileNo,
-      dob: new Date(dob),
-      gender,
-      employeeId,
-      maritalStatus,
-      designation,
-      project,
-      sss,
-      tin,
-      philHealth,
-      pagibig,
-      bankAccount,
-      nameOfContact,
-      addressOfContact,
-      numberOfContact,
-      profileImage, // Store the file name (path for later retrieval)
-      signature,
+    const headers = rows[0].map(header => header.toLowerCase().replace(/\s+/g, ""));
+
+    const validEmployees = rows.slice(1).map(row => {
+      const employeeObj = {};
+      headers.forEach((header, colIndex) => {
+        employeeObj[header] = row[colIndex] || "";
+      });
+
+      // Ensure employeeId is valid
+      if (!employeeObj.employeeid || employeeObj.employeeid.trim() === "" || employeeObj.employeeid === "null") {
+        employeeObj.employeeid = `EMP-${uuidv4()}`;
+      }
+
+      return employeeObj;
     });
 
-    await newEmployee.save();
-    res.status(201).json({ success: true, message: "Employee added successfully." });
-  } catch (error) {
-    console.error("Error adding employee:", error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-};
+    for (const employee of validEmployees) {
+      // Ensure `ecode` does not break the query if it's not in the schema
+      const query = employee.ecode ? { ecode: employee.ecode } : { employeeId: employee.employeeid };
 
-// Fetch Employee API (with file URLs)
-export const getEmployee = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const employee = await Employee.findById(id);
+      let existingEmployee = await Employee.findOne(query);
 
-    if (!employee) {
-      return res.status(404).json({ success: false, error: "Employee not found" });
+      if (existingEmployee) {
+        employee.employeeid = existingEmployee.employeeId;
+      }
+
+      await Employee.findOneAndUpdate(
+        query,
+        { $set: employee },
+        { upsert: true, new: true, strict: false } // ✅ Allow new fields temporarily
+      );
     }
 
-    // Construct full URLs for the profile image and signature
-    const profileImageUrl = employee.profileImage
-      ? `${req.protocol}://${req.get("host")}/uploads/${employee.profileImage}`
-      : null;
-
-    const signatureUrl = employee.signature
-      ? `${req.protocol}://${req.get("host")}/uploads/${employee.signature}`
-      : null;
-
-    const employeeData = {
-      ...employee.toObject(), // Convert MongoDB document to a plain object
-      profileImage: profileImageUrl, // Include the full URL
-      signature: signatureUrl, // Include the full URL
-    };
-
-    res.status(200).json({ success: true, employee: employeeData });
+    console.log(`Processed ${validEmployees.length} employees`);
   } catch (error) {
-    console.error("Error fetching employee:", error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error("Error importing employees:", error);
   }
 };
 
+// API Endpoint
+export const importEmployeesFromGoogleSheet = async (req, res) => {
+  try {
+    await fetchAndSaveEmployees();
+    res.status(201).json({ success: true, message: "Employees imported successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error syncing employees" });
+  }
+};
 
-// Fetch all employees (with image URLs)
+// Auto Sync Employees (Runs every night at 12 AM)
+cron.schedule("0 0 * * *", async () => {
+  console.log("⏳ Auto-syncing employees from Google Sheets...");
+  await fetchAndSaveEmployees();
+});
+
+// Get all employees from the database
 export const getEmployees = async (req, res) => {
   try {
-    const employees = await Employee.find().populate("project").exec();
-
-    const employeesWithUrls = employees.map((emp) => ({
-      ...emp.toObject(),
-      profileImage: emp.profileImage
-        ? `${req.protocol}://${req.get("host")}/uploads/${emp.profileImage}`
-        : null, // Default to null if no image
-    }));
-    
-    
-
-    res.status(200).json({ success: true, employees: employeesWithUrls });
+    const employees = await Employee.find();
+    res.status(200).json({ success: true, employees });
   } catch (error) {
-    console.error("Error fetching employees:", error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-};
-
-
-export const updateEmployee = async (req, res) => {
-  try {
-    console.log("Uploaded files:", req.files);
-    const {
-      name,
-      address,
-      email,
-      mobileNo,
-      dob,
-      gender,
-      employeeId,
-      maritalStatus,
-      designation,
-      project,
-      sss,
-      tin,
-      philHealth,
-      pagibig,
-      bankAccount,
-      nameOfContact,
-      addressOfContact,
-      numberOfContact,
-    } = req.body;
-
-    // Extract files from `req.files`
-    const profileImage = req.files?.profileImage?.[0]?.filename || null;
-    const signature = req.files?.signature?.[0]?.filename || null;
-
-    // Find the employee by ID
-    const { id } = req.params;
-    const employee = await Employee.findById(id);
-
-    if (!employee) {
-      return res.status(404).json({ success: false, error: "Employee not found." });
-    }
-
-    // Remove old files if new files are uploaded
-    if (profileImage && employee.profileImage) {
-      fs.unlinkSync(path.join("uploads", employee.profileImage));
-    }
-
-    if (signature && employee.signature) {
-      fs.unlinkSync(path.join("uploads", employee.signature));
-    }
-
-    // Update the employee fields
-    employee.name = name || employee.name;
-    employee.address = address || employee.address;
-    employee.email = email || employee.email;
-    employee.mobileNo = mobileNo || employee.mobileNo;
-    employee.dob = dob ? new Date(dob) : employee.dob;
-    employee.gender = gender || employee.gender;
-    employee.employeeId = employeeId || employee.employeeId;
-    employee.maritalStatus = maritalStatus || employee.maritalStatus;
-    employee.designation = designation || employee.designation;
-    employee.project = project || employee.project;
-    employee.sss = sss || employee.sss;
-    employee.tin = tin || employee.tin;
-    employee.philHealth = philHealth || employee.philHealth;
-    employee.pagibig = pagibig || employee.pagibig;
-    employee.bankAccount = bankAccount || employee.bankAccount;
-    employee.nameOfContact = nameOfContact || employee.nameOfContact;
-    employee.addressOfContact = addressOfContact || employee.addressOfContact;
-    employee.numberOfContact = numberOfContact || employee.numberOfContact;
-
-    // Update files only if they are provided
-    if (profileImage) employee.profileImage = profileImage;
-    if (signature) employee.signature = signature;
-
-    await employee.save();
-
-    res.status(200).json({ success: true, message: "Employee updated successfully." });
-  } catch (error) {
-    console.error("Error updating employee:", error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
