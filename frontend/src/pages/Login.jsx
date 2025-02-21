@@ -14,29 +14,33 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await axios.post("http://localhost:5000/api/auth/login", { email, password });
-      if(response.data.success) {
-        login(response.data.user)
-        localStorage.setItem("token", response.data.token)
-        if(response.data.user.role === "admin") {
-          navigate('/admin-dashboard')
+  
+      if (response.data.success) {
+        login(response.data.user);
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("userRole", response.data.user.role);  // ✅ Store role in localStorage
+  
+        if (response.data.user.role === "admin") {
+          navigate('/admin-dashboard');
         } else {
-          navigate("/employee-dashboard")
+          navigate('/admin-dashboard/employees'); // ✅ Redirect to employee dashboard instead
         }
       }
     } catch (error) {
-      if(error.response && !error.response.data.success) {
-        setError(error.response.data.error)
+      if (error.response && !error.response.data.success) {
+        setError(error.response.data.error);
       } else {
-        setError("Server Error")
+        setError("Server Error");
       }
     }
   };
+  
 
   return (
     <div
       className="flex flex-col items-center h-screen justify-center bg-gradient-to-b from-teal-600 to-gray-100 space-y-6"
     >
-      <h2 className="font-sevillana text-3xl text-white">Employee Management System</h2>
+      <h2 className="font-sevillana text-3xl text-white">Payroll System</h2>
       <div className="border shadow p-6 w-80 bg-white">
         <h2 className="text-2xl font-bold mb-4">Login</h2>
         {error && <p className="text-red-500">{error}</p>}

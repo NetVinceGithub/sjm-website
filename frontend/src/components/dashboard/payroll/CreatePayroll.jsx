@@ -94,17 +94,17 @@ const CreatePayroll = () => {
             },
             {
               name: "ID",
-              selector: (row) => row.employeeId || row._id,
+              selector: (row) => row.ecode || row._id,
               sortable: false,
             },
             {
               name: "Email",
-              selector: (row) => row.email,
+              selector: (row) => row.emailaddress,
               sortable: true,
             },
             {
               name: "Project",
-              selector: (row) => row.project?.projectName || "No Project",
+              selector: (row) => row.area || "No Project",
               sortable: true,
             },
             {
