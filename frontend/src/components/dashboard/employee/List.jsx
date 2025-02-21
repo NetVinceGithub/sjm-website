@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import DataTable from "react-data-table-component";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { EmployeeButtons } from "../../../utils/EmployeeHelper";
 
 const List = () => {
   const [employees, setEmployees] = useState([]);
@@ -78,8 +79,10 @@ const List = () => {
           columns={[
             { name: "Ecode", selector: (row) => row.ecode, sortable: true },
             { name: "Name", selector: (row) => row.name, sortable: true },
-            { name: "Position", selector: (row) => row.position, sortable: true },
+            { name: "Position", selector: (row) => row.positiontitle, sortable: true },
             { name: "Department", selector: (row) => row.department || "N/A", sortable: true },
+            {name: "Action", cell: (row) => <EmployeeButtons Id={row.employeeId || row.id} />}
+            
           ]}
           data={filteredEmployees}
           pagination
