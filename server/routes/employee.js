@@ -1,21 +1,15 @@
-import express from 'express';
-import authMiddleware from '../middleware/authMiddleware.js';
-import { addEmployee, uploadFields, getEmployees, getEmployee, updateEmployee, fetchEmployeesByDepId, getEmployeeImage } from '../controllers/employeeController.js';
-import Employee from '../models/Employee.js';
-
+import express from "express";
+import {
+  getEmployee,
+  getEmployees,
+  importEmployeesFromGoogleSheet,
+} from "../controllers/employeeController.js";
 
 const router = express.Router();
 
-router.get('/', authMiddleware, getEmployees);
-router.post('/add', authMiddleware, uploadFields, addEmployee);
-router.get('/:id', authMiddleware, getEmployee);
-router.put('/:id', authMiddleware, updateEmployee);
-router.get('/department/:id', authMiddleware, fetchEmployeesByDepId);
-
-router.get('/image/:id', authMiddleware, getEmployeeImage);
-
-
-
-
+router.get("/import", importEmployeesFromGoogleSheet); // Manual Sync API
+router.get("/", getEmployees);
+router.get("/:id", getEmployee);
+//router.post("/add", addEmployee);
 
 export default router;
