@@ -26,7 +26,8 @@ import AddRatesAndDeductions from "./components/dashboard/salary/AddRatesAndDedu
 import EditRatesAndDeductions from "./components/dashboard/salary/EditRatesAndDeductions";
 import EmployeePayrollData from "./components/dashboard/payroll/EmployeePayrollData";
 import AddMasterlist from "./components/dashboard/employee/AddMasterlist";
-
+import PayslipHistory from "./components/dashboard/dashboard/PayslipHistory";
+import EmployeePayslipHistory from "./components/dashboard/payroll/EmployeePayslipHistory";
 
 
 function App() {
@@ -69,7 +70,9 @@ function App() {
           <Route path="rates-data-dashboard" element={<RatesDashboard />} />
           <Route path="create-payroll" element={<CreatePayroll />} />
           <Route path="employees/payroll-data/:id" element={<EmployeePayrollData />} />
+          <Route path="payslip-history" element={<PayslipHistory />} />
           <Route path="employees/payslip/:id" element={<Payslip />} />
+          <Route path="employees/payslip-history/:id" element={<EmployeePayslipHistory />} />
           <Route path="employees/allowance/:id" element={<Allowance />} />
 
 
