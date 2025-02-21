@@ -38,8 +38,12 @@ const EmployeeIDCard = () => {
           console.error("Failed to fetch employee data.");
         }
       } catch (error) {
-        console.error("Error fetching employee:", error.response?.data || error.message);
-      }
+          console.error("Error fetching employee:", error);
+          console.error("Error response:", error.response?.data);
+          console.error("Error status:", error.response?.status);
+        }
+        
+      
     };
   
     fetchEmployee();
@@ -126,8 +130,11 @@ const signature = employee?.signature
             />
           </div>
           <div className="user-info">
-            <p className="user-id">ID NO. {employee.employeeId}</p>
-            <p className="user-name">{employee.name.toUpperCase()}</p>
+            <p className="user-id">ID NO. {employee.ecode}</p>
+            <p className="user-name">
+              {employee.name ? employee.name : "No Name Available"}
+            </p>
+
             <p className="user-position">{employee.designation}</p>
           </div>
           <div className="user-signature">
@@ -151,11 +158,11 @@ const signature = employee?.signature
             <p className="tin">TIN: {employee.tin}</p>
             <p className="philhealth">PHILHEALTH: {employee.philHealth}</p>
             <p className="pagibig">PAGIBIG: {employee.pagibig}</p>
-            <p className="bday">DATE OF BIRTH: {formattedDOB}</p>
+            <p className="bday">DATE OF BIRTH: {employee.birthdate}</p>
           </div>
           <div className="emergency">
             <p className="emergency-title">In case of emergency, please notify:</p>
-            <p className="emergency-name">{employee.nameOfContact.toUpperCase()}</p>
+            <p className="emergency-name">{employee.nameOfContact}</p>
             <p className="emergency-contact">{employee.numberOfContact}</p>
             <p className="emergency-address">{employee.addressOfContact}</p>
           </div>
