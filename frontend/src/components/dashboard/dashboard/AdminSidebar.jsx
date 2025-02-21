@@ -1,69 +1,169 @@
-import React from 'react'
-import { NavLink } from 'react-router-dom'
-import { FaBuilding, FaTachometerAlt, FaUsers, FaCogs, FaMoneyBillWave, FaCalendarAlt } from 'react-icons/fa'
-import Logo from '/public/logo-rembg.png'
+import React, { useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { FaTachometerAlt, FaUsers, FaCogs, FaMoneyBillWave, FaSignOutAlt } from 'react-icons/fa';
+import { useAuth } from '../../../context/authContext';
+import Logo from '/public/logo-rembg.png';
 
 const AdminSidebar = () => {
-  return(
-    <div className="bg-[#793B4F] text-white h-screen fixed mt-30 text-left bottom-0 space-y-2 w-64">
-      <div className="bg-[#793B4F] h-20 flex items-center justify-center gap-1">
-        <img src={Logo} alt="Company Logo" className="w-12 h-12" />
-        <h3 className="text-white text-poppins font-bold">St. John Majore Services<br />Company Inc.</h3>
-      </div>
-      <div>
-        <NavLink to="/admin-dashboard"
-            className={({isActive}) => `${isActive ? "bg-[#5f2e3d]" : ""} flex items-center space-x-4 block py-2.5 px-4`}
-            end>
-              <FaTachometerAlt />
-              <span>Payroll Dashboard</span>
-        </NavLink>
+  const role = localStorage.getItem("userRole"); // Get user role from localStorage
+  const isAdmin = role === "admin";
+  const isEmployee = role === "employee";
 
-        <NavLink to="/admin-dashboard/employees"
-             className={({isActive}) => `${isActive ? "bg-[#5f2e3d]" : ""} flex items-center space-x-4 block py-2.5 px-4`}
-             end>
+  const [showModal, setShowModal] = useState(false); // State for modal visibility
+  const { logout } = useAuth(); // Get logout function from AuthContext
+  const navigate = useNavigate(); // Hook for navigation
+
+  // Handle restricted access
+  const handleRestrictedAccess = (e) => {
+    e.preventDefault(); // Prevent navigation
+    setShowModal(true); // Show modal
+  };
+
+  // Handle user logout
+  const handleLogout = () => {
+    logout(); // Call logout function
+    navigate('/login'); // Redirect to login page
+  };
+
+  return (
+    <>
+      <div className="bg-[#793B4F] text-white h-screen fixed top-0 left-0 bottom-0 w-64 overflow-y-auto z-10">
+        {/* Logo Section */}
+        <div className="bg-[#793B4F] h-20 flex items-center justify-center gap-1">
+          <img src={Logo} alt="Company Logo" className="w-12 h-12" />
+          <h3 className="text-white text-poppins font-bold text-sm text-center leading-tight">
+            St. John Majore Services <br /> Company Inc.
+          </h3>
+        </div>
+
+        {/* Sidebar Menu */}
+        <div className="p-2">
+          {/* Employees */}
+          {isEmployee || isAdmin ? (
+            <NavLink
+              to="/admin-dashboard/employees"
+              className={({ isActive }) =>
+                `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
+                  isActive ? "bg-[#5f2e3d] font-bold" : "hover:bg-[#924F64]"
+                }`
+              }
+              end
+            >
               <FaUsers />
               <span>Employees</span>
-        </NavLink>
-
-        <NavLink to="/admin-dashboard/departments"
-            className={({isActive}) => `${isActive ? "bg-[#5f2e3d]  " : ""} flex items-center space-x-4 block py-2.5 px-4`}
-            end>
-              <FaCalendarAlt />
-              <span>Department</span>
-        </NavLink>
-
-        <NavLink to="/admin-dashboard"
-            className="flex items-center space-x-4 block py-2.5 px-4 rounded">
-              <FaBuilding />
-              <span>Leave</span>
-        </NavLink>
-
-        
-        <NavLink to="/admin-dashboard/rates-data-dashboard"
-            className="flex items-center space-x-4 block py-2.5 px-4 rounded">
-              <FaBuilding />
-              <span>Manage Payroll Data</span>
-        </NavLink>
-
-   
-
-        <NavLink to="/admin-dashboard/projects"
-            className={({isActive}) => `${isActive ? "bg-teal-500" : ""} flex items-center space-x-4 block py-2.5 px-4 rounded`}
-            end>
+            </NavLink>
+          ) : (
+            <button
+              onClick={handleRestrictedAccess}
+              className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
+            >
               <FaUsers />
-              <span>Projects</span>
-        </NavLink>
+              <span>Employees</span>
+            </button>
+          )}
 
-        <NavLink to="/admin-dashboard/lounge"
-            className={({isActive}) => `${isActive ? "bg-teal-500" : ""} flex items-center space-x-4 block py-2.5 px-4 rounded`}
-              end>
+          {/* Payroll Dashboard */}
+          {isAdmin ? (
+            <NavLink
+              to="/admin-dashboard"
+              className={({ isActive }) =>
+                `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
+                  isActive ? "bg-[#5f2e3d] font-bold" : "hover:bg-[#924F64]"
+                }`
+              }
+              end
+            >
+              <FaTachometerAlt />
+              <span>Payroll Dashboard</span>
+            </NavLink>
+          ) : (
+            <button
+              onClick={handleRestrictedAccess}
+              className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
+            >
+              <FaTachometerAlt />
+              <span>Payroll Dashboard</span>
+            </button>
+          )}
 
+          {/* Payslip History */}
+          {isAdmin ? (
+            <NavLink
+              to="/admin-dashboard/payslip-history"
+              className={({ isActive }) =>
+                `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
+                  isActive ? "bg-[#5f2e3d] font-bold" : "hover:bg-[#924F64]"
+                }`
+              }
+              end
+            >
+              <FaMoneyBillWave />
+              <span>Payslip History</span>
+            </NavLink>
+          ) : (
+            <button
+              onClick={handleRestrictedAccess}
+              className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
+            >
+              <FaMoneyBillWave />
+              <span>Payslip History</span>
+            </button>
+          )}
+
+          {/* Admin Settings */}
+          {isAdmin ? (
+            <NavLink
+              to="/admin-dashboard/lounge"
+              className={({ isActive }) =>
+                `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
+                  isActive ? "bg-teal-500 font-bold" : "hover:bg-[#924F64]"
+                }`
+              }
+              end
+            >
               <FaCogs />
               <span>Admin</span>
-        </NavLink>
-      </div>
-    </div>
-  )
-}
+            </NavLink>
+          ) : (
+            <button
+              onClick={handleRestrictedAccess}
+              className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
+            >
+              <FaCogs />
+              <span>Admin</span>
+            </button>
+          )}
+        </div>
 
-export default AdminSidebar
+        {/* Logout Button */}
+        <div className="p-2 absolute bottom-4 w-full">
+          <button
+            onClick={handleLogout}
+            className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-gray-700 hover:bg-gray-800 rounded-md text-white"
+          >
+            <FaSignOutAlt />
+            <span>Logout</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Modal for restricted access */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg text-center w-80 animate-fadeIn">
+            <h2 className="text-xl font-bold text-red-600">Access Denied</h2>
+            <p className="mt-2 text-gray-700">You do not have permission to access this section.</p>
+            <button
+              onClick={() => setShowModal(false)}
+              className="mt-4 px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900 transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+export default AdminSidebar;
