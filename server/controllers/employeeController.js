@@ -1,199 +1,88 @@
-import path from 'path';
-import Employee from "../models/Employee.js";
-import User from "../models/User.js";
-import bcrypt from "bcrypt";
-import multer from "multer";
-import Department from "../models/Department.js";
+import axios from "axios";
+import dotenv from "dotenv";
+import { v4 as uuidv4 } from "uuid";
+import cron from "node-cron";
+import Employee from "../models/Employee.js"; // Sequelize model
 
-const storage = multer.memoryStorage(); // Use memory storage to read the file as buffer
+dotenv.config();
 
-const upload = multer({
-  storage: storage,
-  fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|gif/;
-    const extname = filetypes.test(file.originalname.toLowerCase());
-    const mimetype = filetypes.test(file.mimetype);
+const SHEET_URL = process.env.GOOGLE_SHEET_URL; // Store API Key securely in .env
 
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb("Error: Images Only!");
-    }
-  },
-  limits: { fileSize: 1024 * 1024 * 5 } // Set file size limit to 5MB
-});
-
-export const uploadFields = upload.fields([
-  { name: 'image', maxCount: 1 },
-  { name: 'signature', maxCount: 1 }
-]);
-
-const addEmployee = async (req, res) => {
+const fetchAndSaveEmployees = async () => {
   try {
-    const {
-      name,
-      address,
-      email,
-      mobileNo,
-      dob,
-      gender,
-      employeeId,
-      maritalStatus,
-      designation,
-      department,
-      sss,
-      tin,
-      philHealth,
-      pagibig,
-      nameOfContact,
-      addressOfContact,
-      numberOfContact
-    } = req.body;
+    const response = await axios.get(SHEET_URL);
+    console.log("✅ Raw Google Sheets Data:", response.data);
 
-    const profileImage = req.files['image'] ? req.files['image'][0].buffer : null;    
-    const signature = req.files['signature'] ? req.files['signature'][0].buffer : null;    
+    const rows = response.data.values;
+    if (!rows || rows.length < 2) {
+      console.log("⚠ No employee data found");
+      return;
+    }
 
-    const newEmployee = new Employee({
-      name,
-      address,
-      email,
-      mobileNo,
-      dob,
-      gender,
-      employeeId,
-      maritalStatus,
-      designation,
-      department,
-      sss,
-      tin,
-      philHealth,
-      pagibig,
-      nameOfContact,
-      addressOfContact,
-      numberOfContact,
-      profileImage, 
-      signature
-      
+    const headers = rows[0].map(header => header.toLowerCase().replace(/\s+/g, ""));
+    console.log("✅ Headers:", headers);
+
+    const validEmployees = rows.slice(1).map(row => {
+      const employeeObj = {};
+      headers.forEach((header, colIndex) => {
+        employeeObj[header] = row[colIndex] || "";
+      });
+      return employeeObj;
     });
 
-    await newEmployee.save();
- 
-    return res.status(200).json({ success: true, message: "Employee created" });
-  } catch (error) {
-    console.error("Server error in adding employee:", error);
-    return res.status(500).json({ success: false, error: "Server error in adding employee" });
-  }
-};
+    console.log(`🔄 Processing ${validEmployees.length} employees...`);
 
-const getEmployee = async (req, res) => {
-  try {  
-    const employee = await Employee.findById(req.params.id).populate("department", "dep_name");
-
-    return res.status(200).json({ success: true, employee }); 
-  } catch (error) {
-    return res.status(500).json({ success: false, error: "get employees server error" });
-  }
-}
-
-const getEmployees = async (req, res) => {
-  try {  
-    const employees = await Employee.find().populate("department", "dep_name"); // Only return dep_name
-    return res.status(200).json({ success: true, employees }); 
-  } catch (error) {
-    return res.status(500).json({ success: false, error: "get employees server error" });
-  }
-};
-
-const getEmployeeImage = async (req, res) => {
-  try {
-    const employee = await Employee.findById(req.params.id);
-
-    if (!employee || !employee.profileImage) {
-      return res.status(404).json({ success: false, error: 'Image not found' });
+    // Save to MySQL Database
+    for (const employee of validEmployees) {
+      await Employee.upsert(employee); // Upsert to avoid duplicates
+      console.log(`✅ Saved: ${employee.name || "Unknown Employee"}`);
     }
 
-    // Send the image binary data as a response
-    res.set('Content-Type', 'image/png'); // or 'image/jpeg' depending on your image type
-    return res.send(Buffer.from(employee.profileImage.data));
+    console.log("🎉 All employees have been imported successfully!");
+
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false, error: 'Error fetching image' });
+    console.error("❌ Error fetching employees:", error);
   }
 };
 
 
+// API Endpoint
+export const importEmployeesFromGoogleSheet = async (req, res) => {
+  try {
+    await fetchAndSaveEmployees();
+    
+    res.status(201).json({ success: true, message: "Employees imported successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error syncing employees" });
+  }
+};
 
+// Auto Sync Employees (Runs every night at 12 AM)
+cron.schedule("0 0 * * *", async () => {
+  console.log("⏳ Auto-syncing employees from Google Sheets...");
+  await fetchAndSaveEmployees();
+});
 
+// Get all employees
+export const getEmployees = async (req, res) => {
+  try {
+    const employees = await Employee.findAll();
+    res.status(200).json({ success: true, employees });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
-
-const fetchEmployeesByDepId = async (req, res) => {
+// Get employee by ID
+export const getEmployee = async (req, res) => {
   const { id } = req.params;
   try {
-    const employees = await Employee.find({ department: id }).populate('userId', { password: 0 });
-    return res.status(200).json({ success: true, employees });
-  } catch (error) {
-    console.error("Server error in fetching employees by department ID:", error); // Added detailed error message
-    return res.status(500).json({ success: false, error: "Server error in fetching employees by department ID" });
-  }
-};
-
-const updateEmployee = async (req, res) =>{
-  try{
-    const { id } = req.params;
-    const {
-      name,
-      address,
-      email,
-      mobileNo,
-      dob,
-      gender,
-      employeeId,
-      maritalStatus,
-      designation,
-      department,
-      sss,
-      tin,
-      philHealth,
-      pagibig,
-      nameOfContact,
-      addressOfContact,
-      numberOfContact,
-    } = req.body;
-
-    const updateEmp = await Employee.findByIdAndUpdate(
-      id, // Provide the ID directly
-      {
-        name,
-        address,
-        email,
-        mobileNo,
-        dob,
-        gender,
-        employeeId,
-        maritalStatus,
-        designation,
-        department,
-        sss,
-        tin,
-        philHealth,
-        pagibig,
-        nameOfContact,
-        addressOfContact,
-        numberOfContact,
-      },
-      { new: true } // Option to return the updated document
-    );
-    
-    if (!updateEmp) {
+    const employee = await Employee.findByPk(id);
+    if (!employee) {
       return res.status(404).json({ success: false, message: "Employee not found" });
     }
-
-    return res.status(200).json({ success: true, updateEmp });
+    res.status(200).json({ success: true, employee });
   } catch (error) {
-    console.error("Error updating employee:", error); // Log the error for debugging
-    return res.status(500).json({ success: false, error: "Server error in updating employee" });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
-
-   
-export { addEmployee, upload, getEmployees, getEmployee, updateEmployee, fetchEmployeesByDepId, getEmployeeImage };

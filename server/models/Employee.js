@@ -1,31 +1,70 @@
-import mongoose from 'mongoose';
-import { Schema } from 'mongoose';
+import { DataTypes } from "sequelize";
+import sequelize from "../db/db.js";
 
-const employeeSchema = new Schema({
+const Employee = sequelize.define("Employee", {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+  },
+  hc: {
+    type: DataTypes.INTEGER,
+  },
+  ecode: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  positiontitle: {
+    type: DataTypes.STRING,
+  },
+  department: {
+    type: DataTypes.STRING,
+  },
+  area: {
+    type: DataTypes.STRING,
+  },
+  emailaddress: {
+    type: DataTypes.STRING,
+  },
+  dailyrate: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0, // Ensure null values default to 0
+  }
+  ,
+  regholidaypay: {
+    type: DataTypes.FLOAT,
+  },
 
-  name:{type:String, required:true},
-  address:{type:String, required:true},
-  email:{type:String, required:true},
-  mobileNo:{type:String, required:true},
-  dob:{type: Date},
-  gender:{type:String},
-  employeeId:{type: String, required: true, unique: true}, 
-  maritalStatus:{type:String}, 
-  designation:{type:String}, 
-  department:{type: Schema.Types.ObjectId, ref:"Department", required:true }, 
-  sss:{type:String},
-  tin:{type:String},
-  philHealth:{type:String},
-  pagibig:{type:String},
-  profileImage: { type: Buffer }, // Field to store the image data 
-  signature: { type: Buffer }, // Field to store the signature data 
-  nameOfContact:{type: String}, 
-  addressOfContact:{type: String}, 
-  numberOfContact:{type: String}, 
-  createdAt: {type: Date, default: Date.now}, 
-  updatedAt: {type: Date, default: Date.now}, 
-   
-});
+  regularduty: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0, // Ensure null values default to 0
+  },
+  regularholiday: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0, // Ensure null values default to 0
+  },
+  tardiness: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0, // Ensure null values default to 0
+  },
+  allowance: {
+    type:DataTypes.FLOAT,
+  },
+  sss: {
+    type:DataTypes.FLOAT,
+  },
+  phic: {
+    type:DataTypes.FLOAT,
+  }, 
+  hdmf: {
+    type:DataTypes.FLOAT,
+  }
 
-const Employee = mongoose.model("Employee", employeeSchema);
+}, { timestamps: false });
+
 export default Employee;

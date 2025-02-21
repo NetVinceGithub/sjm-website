@@ -24,8 +24,8 @@ export const columns = [
     width: "100px"
   },
   {
-    name: "Department", 
-    selector: (row) => row.dep_name,
+    name: "Project", 
+    selector: (row) => row.project,
     width: "120px"
   }
 ];
@@ -49,58 +49,60 @@ export const fetchDepartments = async () => {
   }
 };
 
-
-
-export const getEmployees = async (id) => {
-  let employees;
-  try {
-    const response = await axios.get(`http://localhost:5000/api/employee/department/${id}`, {
+export const fetchProjects = async () => {
+  try{
+    const response = await axios.get('http://localhost:5000/api/projects', {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        Authorization:`Bearer ${localStorage.getItem('token')}`,
       },
     });
-
-    if (response.data.success) {
-      employees = response.data.employees
+    if(response.data.success) {
+      return response.data.projects;
     }
   } catch (error) {
-    if (error.response && !error.response.data.success) {
-      console.error("Error Fetching Employees:", error);
-      return employees;
-    }
+    console.error("Error fetching projects:", error);
+    return [];
   }
-};
+}
 
 
 export const EmployeeButtons = ({ Id }) => {
   const navigate = useNavigate();
 
+  if (!Id) {
+    console.error("Invalid Employee ID");
+    return null;
+  }
+
   return (
     <div className="flex gap-2 justify-center items-center flex-nowrap">
       <button
         className="px-4 py-1 bg-teal-600 text-white text-sm rounded hover:bg-teal-700"
-        onClick={() => navigate(`/admin-dashboard/employees/employee_id/${Id}`)}
-
+        onClick={() => {
+          console.log(`Navigating to: /admin-dashboard/employees/employee-id/${Id}`); 
+          navigate(`/admin-dashboard/employees/employee-id/${Id}`);
+        }}
       >
         View ID
       </button>
 
       <button
         className="px-4 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-        onClick={() => navigate(`/admin-dashboard/employees/edit/${Id}`)}
+        onClick={() => navigate(`/admin-dashboard/employees/allowance/${Id}`)}
       >
-        Edit
+        Allowance
       </button>
 
       <button
-        className="px-4 py-1 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700"
-
+        className="px-4 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+        onClick={() => navigate(`/admin-dashboard/employees/edit/${Id}`)}
       >
-        Salary
+        Benefits
       </button>
     </div>
   );
 };
+
 
 
 
