@@ -28,6 +28,7 @@ import EmployeePayrollData from "./components/dashboard/payroll/EmployeePayrollD
 import AddMasterlist from "./components/dashboard/employee/AddMasterlist";
 import PayslipHistory from "./components/dashboard/dashboard/PayslipHistory";
 import EmployeePayslipHistory from "./components/dashboard/payroll/EmployeePayslipHistory";
+import EmployeePayrollInformationsList from "./components/dashboard/employee/EmployeePayrollInformationsList";
 
 
 function App() {
@@ -59,6 +60,7 @@ function App() {
           <Route path="department/:id" element={<EditDepartment />} />
 
           <Route path="employees" element={<List />} />
+          <Route path="employees/payroll-informations/list" element={<EmployeePayrollInformationsList />} />
           <Route path="add-employee" element={<Add />} />
           <Route path="add-masterlist" element={<AddMasterlist />} />
           <Route path="employees/:id" element={<View />} />
