@@ -4,45 +4,35 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { EmployeeButtons } from "../../../utils/EmployeeHelper";
 import { FaSearch, FaSyncAlt } from "react-icons/fa";
+import { PayrollButtons } from "../../../utils/PayrollHelper";
 
-const List = () => {
-  const [employees, setEmployees] = useState([]);
+const EmployeePayrollInformationsList = () => {
+  const [payrollInformations, setPayrollInformations] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    fetchEmployees();
+    fetchPayrollInformations();
   }, []);
 
-  const fetchEmployees = async () => {
+  const fetchPayrollInformations = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/employee");
+      const response = await axios.get("http://localhost:5000/api/employee/payroll-informations");
       if (response.data.success) {
-        setEmployees(response.data.employees);
-        setFilteredEmployees(response.data.employees);
+        console.log(response.data);
+        setPayrollInformations(response.data.payrollInformations);
+        setFilteredEmployees(response.data.payrollInformations);
       }
     } catch (error) {
-      console.error("Error fetching employees:", error);
+      console.error("Error fetching payroll-informations:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const syncEmployees = async () => {
-    setSyncing(true);
-    try {
-      await axios.get("http://localhost:5000/api/employee/import");
-      fetchEmployees(); // Refresh the employee list after syncing
-      alert("✅ Employees successfully synced from Google Sheets!");
-    } catch (error) {
-      console.error("❌ Error syncing employees:", error);
-      alert("⚠ Failed to sync employees. Check the console for details.");
-    } finally {
-      setSyncing(false);
-    }
-  };
+  
 
   const handleFilter = (e) => {
     const searchTerm = e.target.value.toLowerCase();
@@ -55,10 +45,10 @@ const List = () => {
   return (
     <div className="p-6">
       <h6 className="mt-1">
-        <span className="text-green-500 font-bold">Payroll System</span> / Employee Data
+        <span className="text-green-500 font-bold">Employee Payroll Informations</span> / Employee Data
       </h6>
       <div className="mt-4 bg-white p-4 rounded-lg shadow">
-        <h3 className="text-2xl mt-2 font-bold text-center">MANAGE EMPLOYEES</h3>
+        <h3 className="text-2xl mt-2 font-bold text-center">MANAGE PAYROLL INFORMATION</h3>
 
         <div className="flex justify-between items-center mt-2">
           <div className="flex items-center">
@@ -70,14 +60,7 @@ const List = () => {
             />
             <FaSearch className="ml-[-20px] text-gray-500" />
           </div>
-          <button
-            onClick={syncEmployees}
-            disabled={syncing}
-            className="px-3 py-0.5 h-8 bg-green-500 text-white rounded flex items-center space-x-2 disabled:opacity-50"
-          >
-            <FaSyncAlt className="w-4 h-4" />
-            <span>{syncing ? "Syncing..." : "Sync Employees"}</span>
-          </button>
+          
 
         </div>
 
@@ -87,9 +70,16 @@ const List = () => {
             columns={[
               { name: "Ecode", selector: (row) => row.ecode, sortable: true },
               { name: "Name", selector: (row) => row.name, sortable: true },
-              { name: "Position", selector: (row) => row.positiontitle, sortable: true },
-              { name: "Department", selector: (row) => row.department || "N/A", sortable: true },
-              { name: "Options", cell: (row) => <EmployeeButtons Id={row.employeeId || row.id} /> }
+              { name: "Daily Rate", selector: (row) => row.daily_rate, sortable: true },
+              { name: "Holiday Pay", selector: (row) => row.holiday_pay || "0", sortable: true },
+              { name: "Night Differential", selector: (row) => row.night_differential || "0", sortable: true },
+              { name: "Allowance", selector: (row) => row.allowance || "0", sortable: true },
+              { name: "Tax", selector: (row) => row.tax_deduction || "0", sortable: true },
+              { name: "SSS", selector: (row) => row.sss_contribution || "0", sortable: true },
+              { name: "Pagibig", selector: (row) => row.pagibig_contribution || "0", sortable: true },
+              { name: "Phil Health", selector: (row) => row.philhealth_contribution || "0", sortable: true },
+              { name: "Loan", selector: (row) => row.loan || "0", sortable: true },
+              { name: "Options", cell: (row) => <PayrollButtons Id={row.employeeId || row.id} /> }
             ]}
             data={filteredEmployees}
             pagination
@@ -102,4 +92,4 @@ const List = () => {
   );
 };
 
-export default List;
+export default EmployeePayrollInformationsList;
