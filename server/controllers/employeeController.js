@@ -1,8 +1,8 @@
 import axios from "axios";
 import dotenv from "dotenv";
-import { v4 as uuidv4 } from "uuid";
 import cron from "node-cron";
-import Employee from "../models/Employee.js"; // Sequelize model
+import Employee from "../models/Employee.js"; // Employee Sequelize model
+import PayrollInformation from "../models/PayrollInformation.js"; // Payroll Sequelize model
 
 dotenv.config();
 
@@ -32,25 +32,54 @@ const fetchAndSaveEmployees = async () => {
 
     console.log(`🔄 Processing ${validEmployees.length} employees...`);
 
-    // Save to MySQL Database
+    // Save employees & create payroll information
     for (const employee of validEmployees) {
-      await Employee.upsert(employee); // Upsert to avoid duplicates
-      console.log(`✅ Saved: ${employee.name || "Unknown Employee"}`);
+      const [savedEmployee, created] = await Employee.upsert(employee, { returning: true });
+      console.log(`✅ Employee Saved: ${savedEmployee.name || "Unknown Employee"}`);
+
+      // Check if payroll information already exists for this employee
+      const existingPayroll = await PayrollInformation.findOne({
+        where: { employee_id: savedEmployee.id }
+      });
+
+      if (!existingPayroll) {
+        await PayrollInformation.create({
+          employee_id: savedEmployee.id,
+          ecode: savedEmployee.ecode,
+          name: savedEmployee.name,
+          positiontitle: savedEmployee.positiontitle || "N/A",
+          area_section: savedEmployee.department || "N/A",
+          email: savedEmployee.emailaddress || "N/A",
+          daily_rate: 520,
+          overtime_pay: 81.25,
+          holiday_pay: 520,
+          night_differential: 150,
+          allowance: 1040,
+          tardiness: 0,
+          tax_deduction: 0,
+          sss_contribution: 0,
+          pagibig_contribution: 200,
+          philhealth_contribution: 338,
+          loan: 0,
+        });
+
+        console.log(`✅ PayrollInformation Created for ${savedEmployee.ecode}`);
+      } else {
+        console.log(`⚠ PayrollInformation already exists for ${savedEmployee.ecode}`);
+      }
     }
 
-    console.log("🎉 All employees have been imported successfully!");
+    console.log("🎉 All employees & payroll data have been imported successfully!");
 
   } catch (error) {
     console.error("❌ Error fetching employees:", error);
   }
 };
 
-
 // API Endpoint
 export const importEmployeesFromGoogleSheet = async (req, res) => {
   try {
     await fetchAndSaveEmployees();
-    
     res.status(201).json({ success: true, message: "Employees imported successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Error syncing employees" });
@@ -86,3 +115,25 @@ export const getEmployee = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
+export const getPayrollInformations = async (req, res) => {
+  try {
+    const payrollInformations = await PayrollInformation.findAll();
+    res.status(200).json({ success: true, payrollInformations});
+  } catch (error) {
+    res.status(500).json({success: false, message: error.message}) }
+}
+
+export const getPayrollInformationsById = async (req, res) => {
+  const { id } = req.params;
+  try{
+    const payrollInformation = await PayrollInformation.findByPk(id);
+    if (!payrollInformation) {
+      return res.status(404).json({success: true, message: "Payroll Data not found"});
+    }
+    res.status(200).json({success: true, payrollInformation});
+  }catch (error) {
+    res.status(500).json({success:false, message:error.message});
+  }
+}

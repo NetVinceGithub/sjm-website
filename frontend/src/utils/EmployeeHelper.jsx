@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom';
+import { FaIdCard, FaEnvelope, FaMinusSquare  } from "react-icons/fa";
 
 export const columns = [
   {
@@ -75,29 +76,29 @@ export const EmployeeButtons = ({ Id }) => {
   }
 
   return (
-    <div className="flex gap-2 justify-center items-center flex-nowrap">
+    <div className="grid grid-cols-3 gap-x-0 justify-center items-center">
       <button
-        className="px-4 py-1 bg-teal-600 text-white text-sm rounded hover:bg-teal-700"
+        className="m-0 p-0"
         onClick={() => {
           console.log(`Navigating to: /admin-dashboard/employees/employee-id/${Id}`); 
           navigate(`/admin-dashboard/employees/employee-id/${Id}`);
         }}
       >
-        View ID
+        <FaIdCard className='w-7 h-7' title='View ID' />
       </button>
 
       <button
-        className="px-4 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+        className="m-0 p-0"
         onClick={() => navigate(`/admin-dashboard/employees/allowance/${Id}`)}
       >
-        Allowance
+        <FaEnvelope className='w-7 h-7' title='Message' />
       </button>
 
       <button
-        className="px-4 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+        className="m-0 p-0"
         onClick={() => navigate(`/admin-dashboard/employees/edit/${Id}`)}
       >
-        Benefits
+        <FaMinusSquare className='w-7 h-7 text-red-600' title='Block Employee' />
       </button>
     </div>
   );
