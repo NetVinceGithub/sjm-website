@@ -137,3 +137,22 @@ export const getPayrollInformationsById = async (req, res) => {
     res.status(500).json({success:false, message:error.message});
   }
 }
+
+export const updatePayrollInformation = async (req, res) => {
+  const { id } = req.params;
+  const updatedData = req.body;
+
+  try {
+    const payrollInfo = await PayrollInformation.findByPk(id);
+
+    if (!payrollInfo) {
+      return res.status(404).json({ success: false, message: "Payroll data not found" });
+    }
+
+    await payrollInfo.update(updatedData);
+
+    res.status(200).json({ success: true, message: "Payroll information updated successfully", payrollInfo });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
