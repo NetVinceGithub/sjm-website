@@ -32,15 +32,14 @@ const EmployeePayrollInformationsList = () => {
     }
   };
 
-  
-
   const handleFilter = (e) => {
     const searchTerm = e.target.value.toLowerCase();
-    const records = employees.filter((emp) =>
+    const records = payrollInformations.filter((emp) =>
       emp.name.toLowerCase().includes(searchTerm)
     );
     setFilteredEmployees(records);
   };
+  
 
   return (
     <div className="p-6">
@@ -66,25 +65,26 @@ const EmployeePayrollInformationsList = () => {
 
         {/* Containing the table list */}
         <div className="mt-6 overflow-x-auto">
-          <DataTable
-            columns={[
-              { name: "Ecode", selector: (row) => row.ecode, sortable: true },
-              { name: "Name", selector: (row) => row.name, sortable: true },
-              { name: "Daily Rate", selector: (row) => row.daily_rate, sortable: true },
-              { name: "Holiday Pay", selector: (row) => row.holiday_pay || "0", sortable: true },
-              { name: "Night Differential", selector: (row) => row.night_differential || "0", sortable: true },
-              { name: "Allowance", selector: (row) => row.allowance || "0", sortable: true },
-              { name: "Tax", selector: (row) => row.tax_deduction || "0", sortable: true },
-              { name: "SSS", selector: (row) => row.sss_contribution || "0", sortable: true },
-              { name: "Pagibig", selector: (row) => row.pagibig_contribution || "0", sortable: true },
-              { name: "Phil Health", selector: (row) => row.philhealth_contribution || "0", sortable: true },
-              { name: "Loan", selector: (row) => row.loan || "0", sortable: true },
-              { name: "Options", cell: (row) => <PayrollButtons Id={row.employeeId || row.id} /> }
-            ]}
-            data={filteredEmployees}
-            pagination
-            progressPending={loading}
-          />
+        <DataTable
+          columns={[
+            { name: "Ecode", selector: (row) => row.ecode, sortable: true },
+            { name: "Name", selector: (row) => row.name, sortable: true },
+            { name: "Daily Rate", selector: (row) => row.daily_rate, sortable: true },
+            { name: "Holiday Pay", selector: (row) => row.holiday_pay || "0", sortable: true },
+            { name: "Night Differential", selector: (row) => row.night_differential || "0", sortable: true },
+            { name: "Allowance", selector: (row) => row.allowance || "0", sortable: true },
+            { name: "Tax", selector: (row) => row.tax_deduction || "0", sortable: true },
+            { name: "SSS", selector: (row) => row.sss_contribution || "0", sortable: true },
+            { name: "Pagibig", selector: (row) => row.pagibig_contribution || "0", sortable: true },
+            { name: "Phil Health", selector: (row) => row.philhealth_contribution || "0", sortable: true },
+            { name: "Loan", selector: (row) => row.loan || "0", sortable: true },
+            { name: "Options", cell: (row) => <PayrollButtons Id={row.employeeId || row.id} refreshData={fetchPayrollInformations} /> }
+          ]}
+          data={filteredEmployees}
+          pagination
+          progressPending={loading}
+        />
+
         </div>
       </div>
     </div>
