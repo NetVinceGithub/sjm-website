@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from "react";
 import DataTable from "react-data-table-component";
-import { Link } from "react-router-dom";
 import axios from "axios";
 import { EmployeeButtons } from "../../../utils/EmployeeHelper";
-import { FaSearch, FaSyncAlt } from "react-icons/fa";
+import { FaSearch, FaSyncAlt, FaIdCard } from "react-icons/fa";
+import Modal from "react-modal";
+import EmployeeIDCard from "../EmployeeIDCard"; // Ensure correct import
 
 const List = () => {
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchEmployees();
@@ -52,6 +55,16 @@ const List = () => {
     setFilteredEmployees(records);
   };
 
+  const openModal = (employeeId) => {
+    setSelectedEmployeeId(employeeId);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedEmployeeId(null);
+  };
+
   return (
     <div className="p-6">
       <h6 className="mt-1">
@@ -78,27 +91,55 @@ const List = () => {
             <FaSyncAlt className="w-4 h-4" />
             <span>{syncing ? "Syncing..." : "Sync Employees"}</span>
           </button>
-
         </div>
 
         {/* Containing the table list */}
         <div className="mt-6 overflow-x-auto">
-          <DataTable
-            columns={[
-              { name: "Ecode", selector: (row) => row.ecode, sortable: true },
-              { name: "Name", selector: (row) => row.name, sortable: true },
-              { name: "Position", selector: (row) => row.positiontitle, sortable: true },
-              { name: "Department", selector: (row) => row.department || "N/A", sortable: true },
-              { name: "Options", cell: (row) => <EmployeeButtons Id={row.employeeId || row.id} /> }
-            ]}
-            data={filteredEmployees}
-            pagination
-            progressPending={loading}
-          />
+        <DataTable
+          columns={[
+            { name: "Ecode", selector: (row) => row.ecode, sortable: true },
+            { name: "Name", selector: (row) => row.name, sortable: true },
+            { name: "Position", selector: (row) => row.positiontitle, sortable: true },
+            { name: "Department", selector: (row) => row.department || "N/A", sortable: true },
+            { 
+              name: "ID Card", 
+              cell: (row) => {
+                console.log("Row Data:", row); // Debugging: Check row structure
+                return (
+                  <button
+                    onClick={() => openModal(row.ecode)} // Use ecode if it's the unique ID
+                    className="bg-blue-500 text-white px-2 py-1 rounded flex items-center"
+                  >
+                    <FaIdCard className="mr-1" /> View ID
+                  </button>
+                );
+              }
+            }
+            ,
+            { name: "Options", cell: (row) => <EmployeeButtons Id={row.employeeId || row.id} /> }
+          ]}
+          data={filteredEmployees}
+          pagination
+          progressPending={loading}
+        />;
+
         </div>
       </div>
-    </div>
 
+      {/* Employee ID Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onRequestClose={closeModal}
+        contentLabel="Employee ID Card"
+        className="modal-content"
+        overlayClassName="modal-overlay"
+      >
+        {selectedEmployeeId && <EmployeeIDCard employeeId={selectedEmployeeId} />}
+        <button onClick={closeModal} className="btn btn-danger">
+          Close
+        </button>
+      </Modal>
+    </div>
   );
 };
 

@@ -89,7 +89,7 @@ const AdminSidebar = () => {
           {/* Attendance */}
           {isAdmin ? (
             <NavLink
-              to="/"
+              to="/admin-dashboard/attendance"
               className={({ isActive }) =>
                 `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
                   isActive ? "bg-[#5f2e3d] font-bold border-l-4 translate-x-4 transition-all duration-300 w-56" : "hover:bg-[#924F64]"
@@ -185,7 +185,7 @@ const AdminSidebar = () => {
           {/* Invoice */}
           {isAdmin ? (
             <NavLink
-              to="/"
+              to="/admin-dashboard/invoice-list"
               className={({ isActive }) =>
                 `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
                   isActive ? "bg-[#5f2e3d] font-bold border-l-4 translate-x-4 transition-all duration-300 w-56" : "hover:bg-[#924F64]"

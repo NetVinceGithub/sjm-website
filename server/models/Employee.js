@@ -14,7 +14,7 @@ const Employee = sequelize.define("Employee", {
   ecode: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
+    unique: "unique_ecode", // Prevents Sequelize from creating multiple indexes
   },
   name: {
     type: DataTypes.STRING,
