@@ -30,11 +30,11 @@ const NavBar = () => {
   }, []);
 
   return (
-    <nav className="flex items-center text-white justify-between h-14 bg-[#5f2e3d] px-5">
-      <p>Welcome, {user?.name || "Guest"}</p>
-      <div className="mt-1 text-right leading-tight text-[13px]">
+    <nav className="flex items-center align-middle text-white justify-between h-14 bg-[#5f2e3d] px-6">
+      <p className='mt-3'>Welcome, {user?.name || "Guest"}</p>
+      <div className="mt-3 text-right leading-tight text-[13px]">
         <p>{date}</p> {/* Day and Date on Top */}
-        <p className="text-lg">{time}</p> {/* Time Below */}
+        <p className="-mt-4 font-medium text-xl">{time}</p> {/* Time Below */}
       </div>
     </nav>
   );
