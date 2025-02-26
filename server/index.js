@@ -8,14 +8,27 @@ import ratesRouter from "./routes/ratesAndDeductions.js";
 import projectRouter from "./routes/project.js";
 import allowanceRouter from "./routes/allowance.js";
 import payslipRouter from "./routes/payslip.js";
-import userRouter from "./routes/user.js"
-import sequelize from "./db/db.js"; // Updated to use Sequelize for MySQL
+import userRouter from "./routes/user.js";
+import invoiceRouter from "./routes/invoice.js";
+import sequelize from "./db/db.js"; // Sequelize connection
+
+// Import Models
+import Employee from "./models/Employee.js";
+import PayrollInformation from "./models/PayrollInformation.js";
+
 
 dotenv.config();
 
-// Connect to MySQL Database
-sequelize.sync({ force: false })
-  .then(() => console.log("✅ MySQL Database Connected"))
+
+
+
+// Define associations
+Employee.hasOne(PayrollInformation, { foreignKey: "employee_id", onDelete: "CASCADE" });
+PayrollInformation.belongsTo(Employee, { foreignKey: "employee_id" });
+
+// Sync Database
+sequelize.sync({ alter: true }) // Use `alter: true` to update without dropping tables
+  .then(() => console.log("✅ MySQL Database Synced"))
   .catch((err) => console.error("❌ MySQL Connection Error:", err));
 
 const app = express();
@@ -35,7 +48,10 @@ app.use("/api/projects", projectRouter);
 app.use("/api/allowance", allowanceRouter);
 app.use("/api/payslip", payslipRouter);
 app.use("/api/users", userRouter);
+app.use("/api/invoice", invoiceRouter)
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`🚀 Server is running on port ${PORT}`);
 });
+
+export { Employee, PayrollInformation };

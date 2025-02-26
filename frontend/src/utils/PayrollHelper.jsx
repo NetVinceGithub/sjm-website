@@ -1,32 +1,124 @@
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
+export const PayrollButtons = ({ Id, refreshData }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [payrollData, setPayrollData] = useState({
+    name: "",
+    daily_rate: "",
+    overtime_pay: "",
+    holiday_pay: "",
+    night_differential: "",
+    allowance: "",
+  });
 
-export const PayrollButtons = ({ Id }) => {
-  const navigate = useNavigate();
+  useEffect(() => {
+    if (Id) {
+      fetchPayrollInformationsById();
+    }
+  }, [Id]);
 
-  if (!Id) {
-    console.error("Invalid Employee ID");
-    return null;
-  }
+  const fetchPayrollInformationsById = async () => {
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/api/employee/payroll-informations/${Id}`
+      );
+
+      if (response.data.success && response.data.payrollInformation) {
+        setPayrollData(response.data.payrollInformation);
+      } else {
+        console.warn("No payroll data found for this employee.");
+      }
+    } catch (error) {
+      console.error("Error fetching payroll information:", error);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const response = await axios.put(
+        `http://localhost:5000/api/employee/payroll-informations/${Id}`,
+        payrollData
+      );
+
+      if (response.data.success) {
+        console.log("Payroll updated successfully:", response.data);
+
+        // Close the modal
+        setIsModalOpen(false);
+
+        // Refresh parent data
+        if (refreshData) {
+          refreshData();
+        }
+      } else {
+        console.warn("Failed to update payroll:", response.data.message);
+      }
+    } catch (error) {
+      console.error("Error updating payroll data:", error);
+    }
+  };
 
   return (
     <div className="flex gap-2 justify-center items-center flex-nowrap">
       <button
         className="px-4 py-1 bg-teal-600 text-white text-sm rounded hover:bg-teal-700"
-        onClick={() => navigate(`/admin-dashboard/employees/payroll-data/${Id}`)}
+        onClick={() => setIsModalOpen(true)}
       >
-        Create Payroll
+        Edit
       </button>
 
-      <button
-        className="px-4 py-1 bg-teal-600 text-white text-sm rounded hover:bg-teal-700"
-        onClick={() => navigate(`/admin-dashboard/employees/payslip/${Id}`)}
-      >
-        Payslip
-      </button>
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 px-4">
+          <div className="bg-white p-6 rounded-xl shadow-2xl w-4/5 max-w-lg max-h-[80vh] overflow-y-auto transform transition-all scale-100">
+            <h2 className="text-xl font-semibold mb-4 text-center text-gray-800">Edit Payroll Data</h2>
 
-      
+            <div className="space-y-4">
+              <label className="block text-gray-700 font-medium">{payrollData.name} - {payrollData.ecode}</label>
+
+              {[
+                { label: "Daily Rate", key: "daily_rate" },
+                { label: "Overtime Pay", key: "overtime_pay" },
+                { label: "Holiday Pay", key: "holiday_pay" },
+                { label: "Night Differential", key: "night_differential" },
+                { label: "Allowance", key: "allowance" },
+                { label: "Tax", key: "tax_deduction" },
+                { label: "SSS", key: "sss_contribution" },
+                { label: "Pagibig", key: "pagibig_contribution" },
+                { label: "PhilHealth", key: "philhealth_contribution" },
+                { label: "Loan", key: "loan" },
+              ].map(({ label, key }) => (
+                <div key={key}>
+                  <label className="block text-sm font-medium text-gray-700">{label}:</label>
+                  <input
+                    type="text"
+                    value={payrollData[key] || 0}
+                    onChange={(e) => setPayrollData({ ...payrollData, [key]: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition-all"
+                onClick={() => setIsModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-all"
+                onClick={handleSave}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

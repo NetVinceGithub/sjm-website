@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FaTachometerAlt, FaUsers, FaCogs, FaMoneyBillWave, FaSignOutAlt } from 'react-icons/fa';
+import { FaTachometerAlt, FaUsers, FaCogs, FaMoneyBillWave, FaSignOutAlt, FaRegCalendarAlt , FaPoll, FaScroll, FaPrint, FaFolderOpen   } from 'react-icons/fa';
 import { useAuth } from '../../../context/authContext';
 import Logo from '/public/logo-rembg.png';
 
@@ -38,19 +38,43 @@ const AdminSidebar = () => {
 
         {/* Sidebar Menu */}
         <div className="p-2">
+          {/* Dashboard */}
+          {isAdmin ? (
+            <NavLink
+              to="/admin-dashboard"
+              className={({ isActive }) =>
+                `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
+                  isActive ? "bg-[#5f2e3d] font-bold border-l-4 translate-x-4 transition-all duration-300 w-56" : "hover:bg-[#924F64]"
+                }`
+              }
+              end
+            >
+              <FaTachometerAlt />
+              <span>Dashboard</span>
+            </NavLink>
+          ) : (
+            <button
+              onClick={handleRestrictedAccess}
+              className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
+            >
+              <FaTachometerAlt />
+              <span>Payroll Dashboard</span>
+            </button>
+          )}
+
           {/* Employees */}
           {isEmployee || isAdmin ? (
             <NavLink
               to="/admin-dashboard/employees"
               className={({ isActive }) =>
                 `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
-                  isActive ? "bg-[#5f2e3d] font-bold" : "hover:bg-[#924F64]"
+                  isActive ? "bg-[#5f2e3d] font-bold border-l-4 translate-x-4 transition-all duration-300 w-56" : "hover:bg-[#924F64]"
                 }`
               }
               end
             >
               <FaUsers />
-              <span>Employees</span>
+              <span>Employee IS</span>
             </NavLink>
           ) : (
             <button
@@ -58,55 +82,127 @@ const AdminSidebar = () => {
               className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
             >
               <FaUsers />
-              <span>Employees</span>
+              <span>Employees IS</span>
             </button>
           )}
 
-          {/* Payroll Dashboard */}
+          {/* Attendance */}
           {isAdmin ? (
             <NavLink
-              to="/admin-dashboard"
+              to="/admin-dashboard/attendance"
               className={({ isActive }) =>
                 `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
-                  isActive ? "bg-[#5f2e3d] font-bold" : "hover:bg-[#924F64]"
+                  isActive ? "bg-[#5f2e3d] font-bold border-l-4 translate-x-4 transition-all duration-300 w-56" : "hover:bg-[#924F64]"
                 }`
               }
               end
             >
-              <FaTachometerAlt />
-              <span>Payroll Dashboard</span>
+              <FaRegCalendarAlt   />
+              <span>Attendance IS</span>
             </NavLink>
           ) : (
             <button
               onClick={handleRestrictedAccess}
               className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
             >
-              <FaTachometerAlt />
-              <span>Payroll Dashboard</span>
+              <FaRegCalendarAlt   />
+              <span>Attendance IS</span>
             </button>
           )}
 
-          {/* Payslip History */}
+          {/* Payroll Information */}
+          {isAdmin ? (
+            <NavLink
+              to="/admin-dashboard/employees/payroll-informations/list"
+              className={({ isActive }) =>
+                `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
+                  isActive ? "bg-[#5f2e3d] font-bold border-l-4 translate-x-4 transition-all duration-300 w-56" : "hover:bg-[#924F64]"
+                }`
+              }
+              end
+            >
+              <FaPoll  />
+              <span>Payroll Information</span>
+            </NavLink>
+          ) : (
+            <button
+              onClick={handleRestrictedAccess}
+              className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
+            >
+              <FaPoll  />
+              <span>Payroll Information</span>
+            </button>
+          )}
+
+          {/* Payroll Generator */}
+          {isAdmin ? (
+            <NavLink
+              to="/"
+              className={({ isActive }) =>
+                `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
+                  isActive ? "bg-[#5f2e3d] font-bold border-l-4 translate-x-4 transition-all duration-300 w-56" : "hover:bg-[#924F64]"
+                }`
+              }
+              end
+            >
+              <FaPrint  />
+              <span>Payroll Generator</span>
+            </NavLink>
+          ) : (
+            <button
+              onClick={handleRestrictedAccess}
+              className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
+            >
+              <FaPrint  />
+              <span>Payroll Generator</span>
+            </button>
+          )}
+
+          {/* Payroll History */}
           {isAdmin ? (
             <NavLink
               to="/admin-dashboard/payslip-history"
               className={({ isActive }) =>
                 `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
-                  isActive ? "bg-[#5f2e3d] font-bold" : "hover:bg-[#924F64]"
+                  isActive ? "bg-[#5f2e3d] font-bold border-l-4 translate-x-4 transition-all duration-300 w-56" : "hover:bg-[#924F64]"
                 }`
               }
               end
             >
-              <FaMoneyBillWave />
-              <span>Payslip History</span>
+              <FaFolderOpen  />
+              <span>Payroll History</span>
             </NavLink>
           ) : (
             <button
               onClick={handleRestrictedAccess}
               className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
             >
-              <FaMoneyBillWave />
-              <span>Payslip History</span>
+              <FaFolderOpen   />
+              <span>Payroll History</span>
+            </button>
+          )}
+
+          {/* Invoice */}
+          {isAdmin ? (
+            <NavLink
+              to="/admin-dashboard/invoice-list"
+              className={({ isActive }) =>
+                `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
+                  isActive ? "bg-[#5f2e3d] font-bold border-l-4 translate-x-4 transition-all duration-300 w-56" : "hover:bg-[#924F64]"
+                }`
+              }
+              end
+            >
+              <FaScroll   />
+              <span>Invoice</span>
+            </NavLink>
+          ) : (
+            <button
+              onClick={handleRestrictedAccess}
+              className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
+            >
+              <FaScroll   />
+              <span>Invoice</span>
             </button>
           )}
 
@@ -116,7 +212,7 @@ const AdminSidebar = () => {
               to="/admin-dashboard/lounge"
               className={({ isActive }) =>
                 `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
-                  isActive ? "bg-teal-500 font-bold" : "hover:bg-[#924F64]"
+                  isActive ? "bg-[#5f2e3d] font-bold border-l-4 translate-x-4 transition-all duration-300 w-56" : "hover:bg-[#924F64]"
                 }`
               }
               end
@@ -139,7 +235,7 @@ const AdminSidebar = () => {
         <div className="p-2 absolute bottom-4 w-full">
           <button
             onClick={handleLogout}
-            className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-gray-700 hover:bg-gray-800 rounded-md text-white"
+            className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-[#5f2e3d] hover:bg-[#271017] hover:-translate-y-4 transition-all duration-300 rounded-md text-white"
           >
             <FaSignOutAlt />
             <span>Logout</span>
