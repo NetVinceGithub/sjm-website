@@ -31,7 +31,7 @@ const NavBar = () => {
 
   return (
     <nav className="flex items-center align-middle text-white justify-between h-14 bg-[#5f2e3d] px-6">
-      <p className='mt-3'>Welcome, {user?.name || "Guest"}</p>
+      <p className='mt-3'>Welcome back, <span className='text-brandPrimary font-semibold'>{user?.name || "Guest"}</span>!</p>
       <div className="mt-3 text-right leading-tight text-[13px]">
         <p>{date}</p> {/* Day and Date on Top */}
         <p className="-mt-4 font-medium text-xl">{time}</p> {/* Time Below */}
