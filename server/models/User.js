@@ -13,7 +13,7 @@ const User = sequelize.define('User', {
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true
+    unique: "unique_email", // This prevents Sequelize from creating multiple indexes
   },
   password: {
     type: DataTypes.STRING,

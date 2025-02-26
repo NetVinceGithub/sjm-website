@@ -28,6 +28,11 @@ import EmployeePayrollData from "./components/dashboard/payroll/EmployeePayrollD
 import AddMasterlist from "./components/dashboard/employee/AddMasterlist";
 import PayslipHistory from "./components/dashboard/dashboard/PayslipHistory";
 import EmployeePayslipHistory from "./components/dashboard/payroll/EmployeePayslipHistory";
+import EmployeePayrollInformationsList from "./components/dashboard/employee/EmployeePayrollInformationsList";
+import InvoiceList from "./components/dashboard/invoice/InvoiceList";
+import Attendance from "./components/dashboard/attendance/Attendance";
+import 'bootstrap/dist/css/bootstrap.min.css';
+
 
 
 function App() {
@@ -59,11 +64,11 @@ function App() {
           <Route path="department/:id" element={<EditDepartment />} />
 
           <Route path="employees" element={<List />} />
+          <Route path="employees/payroll-informations/list" element={<EmployeePayrollInformationsList />} />
           <Route path="add-employee" element={<Add />} />
           <Route path="add-masterlist" element={<AddMasterlist />} />
-          <Route path="employees/:id" element={<View />} />
           <Route path="employees/edit/:id" element={<Edit />} />
-          <Route path="employees/employee-id/:id" element={<EmployeeIDCard />} />
+          <Route path="employee/:id" element={<EmployeeIDCard />} />
           <Route path="lounge" element={<AdminLounge />} />
           
           <Route path="employees/rates" element={<PayrollSystemData />} />
@@ -75,6 +80,10 @@ function App() {
           <Route path="employees/payslip-history/:id" element={<EmployeePayslipHistory />} />
           <Route path="employees/allowance/:id" element={<Allowance />} />
 
+
+          <Route path="attendance" element={<Attendance />} />
+
+          <Route path="invoice-list" element={<InvoiceList />} />
 
           <Route path="projects" element={<Projects />} />
           <Route path="add-project" element={<AddProject />} />
