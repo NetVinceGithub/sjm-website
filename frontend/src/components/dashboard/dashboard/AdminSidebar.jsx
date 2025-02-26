@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FaTachometerAlt, FaUsers, FaCogs, FaMoneyBillWave, FaSignOutAlt, FaRegCalendarAlt , FaPoll, FaScroll, FaPrint, FaFolderOpen   } from 'react-icons/fa';
+import { FaTachometerAlt, FaUsers, FaCogs, FaMoneyBillWave, FaSignOutAlt, FaRegCalendarAlt , FaPoll, FaScroll, FaPrint, FaFolderOpen, FaChevronDown} from 'react-icons/fa';
 import { useAuth } from '../../../context/authContext';
 import Logo from '/public/logo-rembg.png';
+
 
 const AdminSidebar = () => {
   const role = localStorage.getItem("userRole"); // Get user role from localStorage
@@ -12,13 +13,14 @@ const AdminSidebar = () => {
   const [showModal, setShowModal] = useState(false); // State for modal visibility
   const { logout } = useAuth(); // Get logout function from AuthContext
   const navigate = useNavigate(); // Hook for navigation
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
 
   // Handle restricted access
   const handleRestrictedAccess = (e) => {
     e.preventDefault(); // Prevent navigation
     setShowModal(true); // Show modal
   };
-
+  
   // Handle user logout
   const handleLogout = () => {
     logout(); // Call logout function
@@ -39,28 +41,34 @@ const AdminSidebar = () => {
         {/* Sidebar Menu */}
         <div className="p-2">
           {/* Dashboard */}
-          {isAdmin ? (
-            <NavLink
-              to="/admin-dashboard"
-              className={({ isActive }) =>
-                `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
-                  isActive ? "bg-[#5f2e3d] font-bold border-l-4 translate-x-4 transition-all duration-300 w-56" : "hover:bg-[#924F64]"
-                }`
-              }
-              end
-            >
-              <FaTachometerAlt />
-              <span>Dashboard</span>
-            </NavLink>
-          ) : (
-            <button
-              onClick={handleRestrictedAccess}
-              className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
-            >
-              <FaTachometerAlt />
-              <span>Payroll Dashboard</span>
-            </button>
-          )}
+          <div className="mb-2">
+            {isAdmin ? (
+              <NavLink
+                to="/admin-dashboard"
+                className={({ isActive }) =>
+                  `flex items-center space-x-4 block py-2.5 px-4 rounded-md ${
+                    isActive ? "bg-[#5f2e3d] font-bold border-l-4 translate-x-4 transition-all duration-300 w-56" : "hover:bg-[#924F64]"
+                  }`
+                }
+                end
+              >
+                <FaTachometerAlt />
+                <span>Dashboard</span>
+              </NavLink>
+            ) : (
+              <button
+                onClick={() => {
+                  setIsDashboardOpen(!isDashboardOpen);
+                  handleRestrictedAccess();
+                }}
+                className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
+              >
+                <FaTachometerAlt />
+                <span>Payroll Dashboard</span>
+              </button>
+            )}
+          </div>
+          
 
           {/* Employees */}
           {isEmployee || isAdmin ? (
