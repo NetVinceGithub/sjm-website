@@ -1,0 +1,21 @@
+@import url(https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap);
+
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+.btn-primary {
+    @apply px-7 bg-brandPrimary text-white rounded hover:bg-neautralDGray transition-all duration-300 hover:-translate-y-4;
+}
+
+.bg-bgImage {
+    background-image: url('../assets/bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    height: 100vh;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+}

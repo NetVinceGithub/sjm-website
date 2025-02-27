@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 
-export const PayrollButtons = ({ Id }) => {
+export const PayrollButtons = ({ Id, refreshData }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [payrollData, setPayrollData] = useState({
     name: "",
@@ -24,8 +24,6 @@ export const PayrollButtons = ({ Id }) => {
         `http://localhost:5000/api/employee/payroll-informations/${Id}`
       );
 
-      console.log("API Response:", response.data);
-
       if (response.data.success && response.data.payrollInformation) {
         setPayrollData(response.data.payrollInformation);
       } else {
@@ -36,10 +34,30 @@ export const PayrollButtons = ({ Id }) => {
     }
   };
 
-  if (!Id) {
-    console.error("Invalid Employee ID");
-    return null;
-  }
+  const handleSave = async () => {
+    try {
+      const response = await axios.put(
+        `http://localhost:5000/api/employee/payroll-informations/${Id}`,
+        payrollData
+      );
+
+      if (response.data.success) {
+        console.log("Payroll updated successfully:", response.data);
+
+        // Close the modal
+        setIsModalOpen(false);
+
+        // Refresh parent data
+        if (refreshData) {
+          refreshData();
+        }
+      } else {
+        console.warn("Failed to update payroll:", response.data.message);
+      }
+    } catch (error) {
+      console.error("Error updating payroll data:", error);
+    }
+  };
 
   return (
     <div className="flex gap-2 justify-center items-center flex-nowrap">
@@ -52,79 +70,48 @@ export const PayrollButtons = ({ Id }) => {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-1/3 z-50 relative">
-            <h2 className="text-lg font-semibold mb-4">Edit Payroll Data</h2>
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 px-4">
+          <div className="bg-white p-6 rounded-xl shadow-2xl w-4/5 max-w-lg max-h-[80vh] overflow-y-auto transform transition-all scale-100">
+            <h2 className="text-xl font-semibold mb-4 text-center text-gray-800">Edit Payroll Data</h2>
 
-            {payrollData && (
-              <>
-                <label className="block mb-2">{payrollData.name}</label>
-                <label className="block mb-2">Daily Rate:</label>
-                <input
-                  type="text"
-                  value={payrollData.daily_rate || ""}
-                  onChange={(e) =>
-                    setPayrollData({ ...payrollData, daily_rate: e.target.value })
-                  }
-                  className="w-full p-2 border rounded mb-4"
-                />
+            <div className="space-y-4">
+              <label className="block text-gray-700 font-medium">{payrollData.name} - {payrollData.ecode}</label>
 
-                <label className="block mb-2">Overtime Pay:</label>
-                <input
-                  type="text"
-                  value={payrollData.overtime_pay || ""}
-                  onChange={(e) =>
-                    setPayrollData({ ...payrollData, overtime_pay: e.target.value })
-                  }
-                  className="w-full p-2 border rounded mb-4"
-                />
-
-                <label className="block mb-2">Holiday Pay:</label>
-                <input
-                  type="text"
-                  value={payrollData.holiday_pay || ""}
-                  onChange={(e) =>
-                    setPayrollData({ ...payrollData, holiday_pay: e.target.value })
-                  }
-                  className="w-full p-2 border rounded mb-4"
-                />
-
-                <label className="block mb-2">Night Differential:</label>
-                <input
-                  type="text"
-                  value={payrollData.night_differential || ""}
-                  onChange={(e) =>
-                    setPayrollData({ ...payrollData, night_differential: e.target.value })
-                  }
-                  className="w-full p-2 border rounded mb-4"
-                />
-
-                <label className="block mb-2">Allowance:</label>
-                <input
-                  type="text"
-                  value={payrollData.allowance || ""}
-                  onChange={(e) =>
-                    setPayrollData({ ...payrollData, allowance: e.target.value })
-                  }
-                  className="w-full p-2 border rounded mb-4"
-                />
-              </>
-            )}
+              {[
+                { label: "Daily Rate", key: "daily_rate" },
+                { label: "Overtime Pay", key: "overtime_pay" },
+                { label: "Holiday Pay", key: "holiday_pay" },
+                { label: "Night Differential", key: "night_differential" },
+                { label: "Allowance", key: "allowance" },
+                { label: "Tax", key: "tax_deduction" },
+                { label: "SSS", key: "sss_contribution" },
+                { label: "Pagibig", key: "pagibig_contribution" },
+                { label: "PhilHealth", key: "philhealth_contribution" },
+                { label: "Loan", key: "loan" },
+              ].map(({ label, key }) => (
+                <div key={key}>
+                  <label className="block text-sm font-medium text-gray-700">{label}:</label>
+                  <input
+                    type="text"
+                    value={payrollData[key] || 0}
+                    onChange={(e) => setPayrollData({ ...payrollData, [key]: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+              ))}
+            </div>
 
             {/* Buttons */}
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-3 mt-6">
               <button
-                className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+                className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition-all"
                 onClick={() => setIsModalOpen(false)}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700"
-                onClick={() => {
-                  console.log("Saving changes for employee:", Id);
-                  setIsModalOpen(false);
-                }}
+                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-all"
+                onClick={handleSave}
               >
                 Save
               </button>
