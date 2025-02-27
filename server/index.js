@@ -9,11 +9,13 @@ import projectRouter from "./routes/project.js";
 import allowanceRouter from "./routes/allowance.js";
 import payslipRouter from "./routes/payslip.js";
 import userRouter from "./routes/user.js";
+import invoiceRouter from "./routes/invoice.js";
 import sequelize from "./db/db.js"; // Sequelize connection
 
 // Import Models
 import Employee from "./models/Employee.js";
 import PayrollInformation from "./models/PayrollInformation.js";
+
 
 dotenv.config();
 
@@ -46,6 +48,7 @@ app.use("/api/projects", projectRouter);
 app.use("/api/allowance", allowanceRouter);
 app.use("/api/payslip", payslipRouter);
 app.use("/api/users", userRouter);
+app.use("/api/invoice", invoiceRouter)
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
