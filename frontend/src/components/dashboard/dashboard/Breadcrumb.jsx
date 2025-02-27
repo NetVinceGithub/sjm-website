@@ -8,7 +8,10 @@ const Breadcrumb = ({ items }) => {
           <li key={index} className="flex items-center">
             {index !== items.length - 1 ? (
               <>
-                <a href={item.href} className="text-neutralDGray no-underline hover:text-brandPrimary">
+                <a
+                  href={item.href}
+                  className={`text-neutralDGray no-underline hover:text-brandPrimary ${index === 0 ? "font-bold" : ""}`}
+                >
                   {item.label}
                 </a>
                 <span className="mx-2 text-gray-400">
