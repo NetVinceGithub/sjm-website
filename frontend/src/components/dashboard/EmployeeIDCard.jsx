@@ -80,28 +80,32 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
   const signature = getProfileImageUrl(employee.signature);
 
   return (
-    <Modal show={show} onHide={handleClose} centered size="lg">
+    <Modal show={show} onHide={handleClose} centered size="xl" scrollable>
       <Modal.Header closeButton>
         <Modal.Title>Employee ID Card</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <div className="id-container" ref={idCardRef}>
+          {/* Front Side of ID */}
           <div className="id-front">
-            <div className="id-header">
-              <img src={logo} alt="Company Logo" className="id-logo" />
+          <div className="id-header">
+            <img src={logo} alt="Company Logo" className="id-logo" />
+            <div className="id-title-container">
               <h1 className="id-title">St. John Majore</h1>
               <p className="id-subtitle">#8 De Villa St., Poblacion, San Juan, Batangas</p>
             </div>
+          </div>
             <div className="id-content">
-              <img src={profileImage} alt="Profile" className="user-img" onError={(e) => (e.target.src = defaultProfile)} />
+              <img src={profileImage} alt="Profile" className="user-img" />
               <p className="user-id">ID NO. {employee.ecode}</p>
               <p className="user-name">{employee.name || "No Name Available"}</p>
               <p className="user-position">{employee.designation}</p>
-              <img src={signature} alt="Signature" className="user-signature" onError={(e) => (e.target.src = defaultProfile)} />
+              <img src={signature} alt="Signature" className="user-signature" />
               <p className="user-signature-label">Signature</p>
             </div>
           </div>
 
+          {/* Back Side of ID */}
           <div className="id-back">
             <p className="address">{employee.address}</p>
             <p className="sss">SSS: {employee.sss}</p>
@@ -128,6 +132,7 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
         </Button>
       </Modal.Footer>
     </Modal>
+
   );
 };
 
