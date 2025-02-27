@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { Link } from 'react-scroll';
-import Logo from '../assets/logo.png';
+import Logo from '../../assets/logo.png';
 
 import { FaXmark, FaBars } from "react-icons/fa6";
 

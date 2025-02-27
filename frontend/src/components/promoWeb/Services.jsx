@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import Client1 from '../assets/client1.png';
-import Client2 from '../assets/client2.png';
+import Client1 from '../../assets/client1.png';
+import Client2 from '../../assets/client2.png';
 import {
   FaToolbox ,
   FaUsersGear,

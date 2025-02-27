@@ -8,9 +8,9 @@ import {
   FaMobileAlt,
   FaMapMarkerAlt,
 } from "react-icons/fa";
-import Logo from "../assets/logo.png";
-import Dole from "../assets/dole.png";
-import SEC from "../assets/sec.png";
+import Logo from "../../assets/logo.png";
+import Dole from "../../assets/dole.png";
+import SEC from "../../assets/sec.png";
 
 
 // Modal component for displaying content like Privacy Policy, Terms, Phone, and Mobile

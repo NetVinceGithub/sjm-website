@@ -1,10 +1,11 @@
 import React from 'react';
-import Home from '../components/Home';
-import Services from '../components/Services';
-import About from '../components/About';
-import Products from '../components/Products';
-import Values from '../components/Values';
-import Connect from '../components/Connect';
+import Home from '../components/promoWeb/Home';
+import Services from '../components/promoWeb/Services';
+import About from '../components/promoWeb/About';
+import Products from '../components/promoWeb/Products';
+import Values from '../components/promoWeb/Values';
+import Connect from '../components/promoWeb/Connect';
+
 
 const Main = () => {
   return (

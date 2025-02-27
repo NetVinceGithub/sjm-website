@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Img31 from '../assets/31.png';
+import Img31 from '../../assets/31.png';
 
 const Connect = () => {
   const [formData, setFormData] = useState({ name: '' });
