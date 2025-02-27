@@ -253,7 +253,7 @@ const AdminSidebar = () => {
                     </NavLink>
 
                     <NavLink
-                      to="/"
+                      to="/admin-dashboard"
                       className={({ isActive }) =>
                         `flex -mt-1 items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                           isActive ? "bg-[#5f2e3d] font-bold border-l-4" : "hover:bg-[#924F64]"

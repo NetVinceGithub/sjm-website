@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Carousel } from 'flowbite-react';
-import Img1 from '../assets/1.png';
-import Img2 from '../assets/2.png';
-import Img3 from '../assets/3.png';
-import Img32 from '../assets/32.jpg';
-import Img33 from '../assets/33.jpg';
-import Img34 from '../assets/34.jpg';
+import Img1 from '../../assets/1.png';
+import Img2 from '../../assets/2.png';
+import Img3 from '../../assets/3.png';
+import Img32 from '../../assets/32.jpg';
+import Img33 from '../../assets/33.jpg';
+import Img34 from '../../assets/34.jpg';
 import { FaArrowUp } from 'react-icons/fa';
 
 const Home = () => {

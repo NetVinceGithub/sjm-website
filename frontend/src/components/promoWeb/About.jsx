@@ -1,5 +1,5 @@
 import React from 'react';
-import Img15 from '../assets/15.png';
+import Img15 from '../../assets/15.png';
 import { FaUsersLine, FaHandshake, FaPeopleCarryBox, FaLink } from "react-icons/fa6";
 
 const About = () => {

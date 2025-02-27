@@ -1,8 +1,8 @@
 import React from 'react';
 import { Carousel } from 'flowbite-react';
-import Img16 from '../assets/16.png'; 
-import Img17 from '../assets/17.png';
-import Img23 from '../assets/23.png';
+import Img16 from '../../assets/16.png'
+import Img17 from '../../assets/17.png';
+import Img23 from '../../assets/23.png';
 
 const Products = () => {
   return (
