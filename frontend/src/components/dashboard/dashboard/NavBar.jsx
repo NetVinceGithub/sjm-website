@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/authContext';
+import { FaBars } from 'react-icons/fa';
 
-const NavBar = () => {
+const NavBar = ({ toggleSidebar }) => {
   const { user } = useAuth();
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -30,8 +31,16 @@ const NavBar = () => {
   }, []);
 
   return (
-    <nav className="flex items-center align-middle text-white justify-between h-14 bg-[#5f2e3d] px-6">
-      <p className='mt-3'>Welcome back, <span className='text-brandPrimary font-semibold'>{user?.name || "Guest"}</span>!</p>
+    <nav className="flex fixed top-0 items-center w-[83%] text-white justify-between h-14 bg-[#5f2e3d] px-6">
+      {/* Hamburger Button (visible on small screens) */}
+      <button 
+        className="text-white text-2xl md:hidden focus:outline-none" 
+        onClick={toggleSidebar}
+      >
+        <FaBars />
+      </button>
+      
+      <p className='mt-3 hidden md:block'>Welcome back, <span className='text-brandPrimary font-semibold'>{user?.name || "Guest"}</span>!</p>
       <div className="mt-3 text-right leading-tight text-[13px]">
         <p>{date}</p> {/* Day and Date on Top */}
         <p className="-mt-4 font-medium text-xl">{time}</p> {/* Time Below */}
