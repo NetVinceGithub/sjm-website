@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import EmployeeDashboard from "./pages/EmloyeeDashboard";
@@ -32,13 +32,33 @@ import EmployeePayrollInformationsList from "./components/dashboard/employee/Emp
 import InvoiceList from "./components/dashboard/invoice/InvoiceList";
 import Attendance from "./components/dashboard/attendance/Attendance";
 import 'bootstrap/dist/css/bootstrap.min.css';
-
+import Main from "./pages/Main";
+import Administration from "./pages/Administration";
+import Questions from "./pages/Questions";
+import Career from "./pages/Career";
+import Offers from "./pages/Offers";
+import ScrollToTop from "./components/promoWeb/ScrollToTop";
 
 
 function App() {
   return (
-    
+  
     <>
+    <Router>
+      <Navbar />
+      <ScrollToTop />
+
+      {/* Home Page with All Content Sections */}
+      <Routes>
+        <Route path="/" element={<Main />} />
+        <Route path="/admin" element={<Administration />} />  
+        <Route path="/faqs" element={<Questions />} />     
+        <Route path="/careers" element={<Career />} />
+        <Route path="/services-offered" element={<Offers />} />
+      </Routes>
+
+      <Foot />
+    </Router>
       <BrowserRouter>
       <Routes>
         {/* Redirect "/" to the admin dashboard */}
