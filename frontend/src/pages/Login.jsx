@@ -1,9 +1,13 @@
 import axios from 'axios';
 import React, { useState } from 'react'; 
 import { useAuth } from '../context/authContext';
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom';
+import BG from '../assets/bg.png';
 
 const Login = () => {
+  const [isChecked, setIsChecked] = useState(false);
+  const [isEmailFocused, setIsEmailFocused] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [email, setEmail] = useState('');  
   const [password, setPassword] = useState(''); 
   const [error, setError] = useState(null);
@@ -38,56 +42,90 @@ const Login = () => {
 
   return (
     <div
-      className="flex flex-col items-center h-screen justify-center bg-gradient-to-b from-teal-600 to-gray-100 space-y-6"
+      className="flex flex-col items-center h-screen backdrop-blur-lg justify-center space-y-6 absolute inset-0 bg-cover bg-center px-4"
+      style={{
+        backgroundImage: `url(${BG})`,
+        opacity: 0.7,
+        zIndex: -1,
+        backgroundSize: "cover",
+        backgroundAttachment: "fixed",
+      }}
     >
-      <h2 className="font-sevillana text-3xl text-white">Payroll System</h2>
-      <div className="border shadow p-6 w-80 bg-white">
-        <h2 className="text-2xl font-bold mb-4">Login</h2>
+      <div className="border shadow-black rounded-lg shadow-lg p-6 bg-white w-full sm:w-[80%] md:w-[60%] lg:w-[40%] xl:w-[30%] max-w-md">
+        <h2 className="font-inter text-[28px] text-center font-bold text-neutralDGray">
+          Payroll Management Login
+        </h2>
+        <hr className="my-3 mb-4" />
+
         {error && <p className="text-red-500">{error}</p>}
 
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="email" className="block text-gray-700">Email</label>
-            <input 
-              type="email" 
-              className="w-full px-3 py-2 border"
-              placeholder="Enter Email"
+          <div className="mb-3">
+            <label htmlFor="email" className="block mb-2 text-neutralGray">
+              Email
+            </label>
+            <input
+              type="email"
+              className="w-full px-3 py-2 border rounded-md"
+              placeholder={isEmailFocused ? "" : "Enter Email"}
+              onFocus={() => setIsEmailFocused(true)}
+              onBlur={() => setIsEmailFocused(false)}
               onChange={(e) => setEmail(e.target.value)}
               required
-              autoComplete="email"  // Added autocomplete attribute
+              autoComplete="email"
             />
-
           </div>
-          <div className="mb-4">
-            <label htmlFor="password" className="block text-gray-700">Password</label>
-            <input 
-              type="password" 
-              className="w-full px-3 py-2 border"
-              placeholder="*********"
+
+          <div className="mb-3">
+            <label htmlFor="password" className="block mb-2 text-neutralGray">
+              Password
+            </label>
+            <input
+              type="password"
+              className="w-full px-3 py-2 border rounded-md"
+              placeholder={isPasswordFocused ? "" : "Enter Password"}
+              onFocus={() => setIsPasswordFocused(true)}
+              onBlur={() => setIsPasswordFocused(false)}
               onChange={(e) => setPassword(e.target.value)}
               required
-              autoComplete="current-password"  // Added autocomplete attribute
+              autoComplete="current-password"
             />
-
           </div>
-          <div className="mb-4 flex items-center justify-between">
+
+          <div className="mb-5 flex items-center justify-between">
             <label className="inline-flex items-center">
-              <input type="checkbox" className="form-checkbox" />
-              <span className="ml-2 text-gray-700">Remember me</span>
+            <input
+              type="checkbox"
+              className="form-checkbox accent-neutralDGray checked:accent-brandPrimary"
+              checked={isChecked}
+              onChange={() => setIsChecked(!isChecked)}
+            />
+            <span
+              className={`ml-2 text-sm transition-colors ${
+                isChecked ? "text-brandPrimary" : "text-neutralGray"
+              }`}
+            >
+              Remember me
+            </span>
             </label>
-            <a href="#" className="text-teal-600">
+            <a
+              href="#"
+              className="text-brandPrimary text-sm hover:text-neautralDGray no-underline hover:underline"
+            >
               Forgot password?
             </a>
           </div>
+
           <button
             type="submit"
-            className="w-full bg-teal-600 text-white py-2"
+            className="w-full bg-brandPrimary hover:bg-neutralDGray rounded-md text-white py-2"
           >
             Login
           </button>
-        </form>  
+        </form>
       </div>
     </div>
+
   )
 }
 

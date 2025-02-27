@@ -1,0 +1,43 @@
+@import url(https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap);
+
+
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+.title {
+    font-family: 'AR JULIAN', sans-serif;
+}
+
+header {
+    z-index: 10001 !important;
+}
+
+.btn-primary {
+    @apply px-7 py-2 bg-brandPrimary text-white rounded hover:bg-neutralDGray transition-all duration-300 hover:-translate-y-4;
+
+}
+
+.icon {
+    width: 48px;
+    height: 48px;
+    color: #4CAF4F;
+}
+  
+.text-gradient {
+    background: linear-gradient(to right, #86B950, #4492D6, #9D426E);
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+.bg-bgImage {
+    background-image: url('../assets/BG.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    height: 100vh;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
