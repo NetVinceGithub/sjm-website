@@ -68,7 +68,7 @@ function AppContent() {
         <Route path="/faqs" element={<Questions />} />
         <Route path="/careers" element={<Career />} />
         <Route path="/services-offered" element={<Offers />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/payroll-management-login" element={<Login />} />
 
         {/* Redirect "/" to the admin dashboard */}
         <Route path="/" element={<Navigate to="/admin-dashboard" />} />

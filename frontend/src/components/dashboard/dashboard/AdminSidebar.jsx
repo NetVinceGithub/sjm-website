@@ -34,7 +34,7 @@ const AdminSidebar = () => {
   // Handle user logout
   const handleLogout = () => {
     logout(); // Call logout function
-    navigate('/login'); // Redirect to login page
+    navigate('/payroll-management-login'); // Redirect to login page
   };
 
   return (

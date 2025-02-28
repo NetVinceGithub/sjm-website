@@ -40,8 +40,8 @@ const Navbar = () => {
         <header className="w-full fixed top-0 left-0 right-0 z-50">
             <nav className={`py-2 lg:px-14 px-4 ${isSticky || isSpecialRoute ? "bg-white border-b shadow-md duration-300" : "bg-transparent md:bg-transparent"}`}>
                 <div className="flex justify-between items-center text-base gap-8">
-                    <a href="/" className="text-[1.6rem] font-semibold flex items-center space-x-3">
-                        <img src={Logo} alt="Company Logo" className="w-14 h-14 inline-block items-center" />
+                    <a href="/" className="text-[1.6rem] font-semibold no-underline flex items-center space-x-3">
+                        <img src={Logo} alt="Company Logo" className="w-14 h-14 inline-block items-center no-underline" />
                         <span className={(isSticky || isSpecialRoute) ? 'text-gray-900' : 'text-gray-100'} style={{ fontFamily: 'AR JULIAN, sans-serif' }}>
                             St.JohnMajore
                         </span>
@@ -51,11 +51,11 @@ const Navbar = () => {
                         {navItems.map(({ id, link, path, type }) => (
                             <li key={id}>
                                 {type === "scroll" ? (
-                                    <Link to={path} spy smooth offset={-80} duration={500} className={`block text-base cursor-pointer ${(isSticky || isSpecialRoute) ? 'text-gray-900' : 'text-white'} hover:text-brandPrimary transition duration-300 ease-in-out ${link === 'Home' ? 'font-bold' : ''}`}>
+                                    <Link to={path} spy smooth offset={-80} duration={500} className={`block no-underline text-base cursor-pointer ${(isSticky || isSpecialRoute) ? 'text-gray-900' : 'text-white'} hover:text-brandPrimary transition duration-300 ease-in-out ${link === 'Home' ? 'font-bold' : ''}`}>
                                         {link}
                                     </Link>
                                 ) : (
-                                    <RouterLink to={path} className={`block text-base cursor-pointer ${(isSticky || isSpecialRoute) ? 'text-gray-900' : 'text-white'} hover:text-brandPrimary transition duration-300 ease-in-out ${link === 'Home' ? 'font-bold' : ''}`}>
+                                    <RouterLink to={path} className={`block no-underline text-base cursor-pointer ${(isSticky || isSpecialRoute) ? 'text-gray-900' : 'text-white'} hover:text-brandPrimary transition duration-300 ease-in-out ${link === 'Home' ? 'font-bold' : ''}`}>
                                         {link}
                                     </RouterLink>
                                 )}
@@ -64,7 +64,7 @@ const Navbar = () => {
                     </ul>
                     
                     <div className="hidden lg:flex items-center">
-                        <button onClick={() => document.getElementById("connect").scrollIntoView({ behavior: "smooth" })} className="bg-brandPrimary text-white py-2 px-4 rounded-md hover:bg-brandPrimaryDark transition-all duration-300">
+                        <button onClick={() => document.getElementById("connect").scrollIntoView({ behavior: "smooth" })} className="bg-brandPrimary text-white py-2 px-4 rounded-md hover:bg-neutralDGray transition-all duration-300">
                             Connect with Us
                         </button>
                     </div>
@@ -82,7 +82,7 @@ const Navbar = () => {
                             {navItems.map(({ id, link, path, type }) => (
                                 <li key={id}>
                                     {type === "scroll" ? (
-                                        <Link to={path} spy smooth offset={-80} duration={500} className="block text-lg cursor-pointer text-white hover:text-gray-300 transition duration-300 ease-in-out" onClick={() => setIsMenuOpen(false)}>
+                                        <Link to={path} spy smooth offset={-80} duration={500} className="block text-lg cursor-pointer no-under text-white hover:text-gray-300 transition duration-300 ease-in-out" onClick={() => setIsMenuOpen(false)}>
                                             {link}
                                         </Link>
                                     ) : (
