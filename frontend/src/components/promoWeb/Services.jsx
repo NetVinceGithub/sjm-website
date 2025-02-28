@@ -86,32 +86,38 @@ const Services = () => {
       </div>
 
       <div className='mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-        {services.map((service) => (
-          <div
-            key={service.id}
-            className={`relative px-4 py-8 text-center md:w-[350px] mt-4 mx-auto md:h-80 rounded-md shadow cursor-pointer hover:-translate-y-5 hover:border-b-4 hover:border-indigo-700 transition-all duration-300 flex flex-col items-center justify-between h-full ${
-              service.id === 6 ? 'group' : ''
-            }`}
-          >
-            <div>
-              <div className='bg-[#E8F5E9] mb-4 h-14 w-14 mx-auto rounded-tl-3xl rounded-br-3xl'>
-                <div className='-ml-5'>{service.image}</div>
-              </div>
-              <h4 className='text-2xl font-bold text-neutralDGray mb-2 px-2'>{service.title}</h4>
-              <p className='text-sm text-neutralGray'>{service.description}</p>
+      {services.map((service) => (
+        <div
+          key={service.id}
+          className={`relative px-4 py-8 text-center md:w-[350px] mt-4 mx-auto md:h-80 
+                      rounded-md shadow cursor-pointer hover:-translate-y-5 
+                      hover:border-b-4 hover:border-indigo-700 transition-all duration-300 
+                      flex flex-col items-center justify-between h-full ${service.id === 6 ? 'group' : ''}`}
+        >
+          <div>
+            <div className='bg-[#E8F5E9] mb-4 h-14 w-14 mx-auto rounded-tl-3xl rounded-br-3xl'>
+              <div className='-ml-5'>{service.image}</div>
             </div>
-            {service.id === 6 && (
-              <Link to="/services-offered">
-                <button className="absolute top-[80%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 
-                                  opacity-0 group-hover:opacity-100 px-6 py-3 
-                                  bg-brandPrimary shadow-lg rounded-md text-white font-semibold 
-                                  hover:bg-neutralDGray transition-all duration-300">
-                  Explore Now
-                </button>
-              </Link>
-            )}
+            <h4 className='text-2xl font-bold text-neutralDGray mb-2 px-2'>{service.title}</h4>
+            <p className='text-sm text-neutralGray'>{service.description}</p>
           </div>
-        ))}
+
+          {/* Explore Now Button - Only appears when the last card (id=6) is hovered */}
+          {service.id === 6 && (
+            <Link to="/services-offered">
+              <button 
+                className="absolute top-[60%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 
+                          opacity-0 group-hover:opacity-100 px-6 py-3 
+                          bg-brandPrimary shadow-lg rounded-md text-white font-semibold 
+                          hover:bg-neutralDGray transition-all duration-300">
+                Explore Now
+              </button>
+            </Link>
+          )}
+        </div>
+      ))}
+
+
       </div>
       {showArrow && (
               <button

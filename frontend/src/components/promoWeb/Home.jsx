@@ -29,7 +29,7 @@ const Home = () => {
         {[{ img: Img32, title: "YOUR TRUSTED <span style='color:#4CAF4F;'>SERVICE PARTNER.</span>", text: "Your partner in delivering top-tier manpower and utility services, from planning to implementation.", imgSrc: Img1 },
           { img: Img33, title: "YOUR SUCCESS, <span style='color:#4CAF4F;'>OUR MISSION.</span>", text: "Join our team committed to delivering exceptional service and creating rewarding opportunities for all.", imgSrc: Img2 },
           { img: Img34, title: "BUILDING FUTURES <span style='color:#4CAF4F;'>TOGETHER.</span>", text: "Collaborate with us to achieve excellence, whether you're a client seeking reliable services or a professional looking to grow.", imgSrc: Img3 }].map((slide, index) => (
-            <div key={index} className="relative w-full h-screen flex flex-col items-start justify-center text-white px-12 md:flex-row md:items-center">
+            <div key={index} className="relative w-full h-screen flex flex-col md:flex-row-reverse items-center text-white px-12">
               <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${slide.img})` }}>
                 <div className="absolute inset-0 bg-black opacity-70"></div>
               </div>
@@ -38,7 +38,7 @@ const Home = () => {
                 <p className="text-lg mt-4 max-w-lg">{slide.text}</p>
                 <button 
                   onClick={() => document.getElementById("connect").scrollIntoView({ behavior: "smooth" })}
-                  className="mt-6 px-6 py-3 bg-brandPrimary text-white font-semibold rounded-lg hover:bg-opacity-90 transition-all">
+                  className="mt-6 px-6 py-3 leading-none bg-brandPrimary text-center text-white font-semibold rounded-lg hover:bg-opacity-90 transition-all">
                   Connect with Us
                 </button>
               </div>
