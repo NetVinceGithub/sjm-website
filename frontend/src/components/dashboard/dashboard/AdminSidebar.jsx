@@ -43,8 +43,12 @@ const AdminSidebar = () => {
         {/* Logo Section */}
         <div className="h-20 flex flex-row items-center justify-center gap-1 px-4">
           <img src={Logo} alt="Company Logo" className="w-12 h-12" />
-          <h3 className="text-white font-bold text-sm mt-2 text-poppins leading-tight">
-            St. John Majore <br /> <span className='text-[15px] font-normal'>Services Company Inc.</span>
+          <h3
+            style={{ fontFamily: ["AR Julian", "sans-serif"].join(", ") }}
+            className="text-white text-[18px] font-bold text-sm mt-2 leading-tight"
+          >
+            St. John Majore <br />
+            <span className="text-[15px] font-normal">Services Company Inc.</span>
           </h3>
         </div>
 
@@ -196,7 +200,7 @@ const AdminSidebar = () => {
                     </NavLink>
 
                     <NavLink
-                      to="/admin-dashboard/attendance"
+                      to=""
                       className={({ isActive }) =>
                         `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${
                           isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"

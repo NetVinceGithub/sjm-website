@@ -98,6 +98,42 @@ const Employee = sequelize.define("Employee", {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
+  sss: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  tin: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  philhealth: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  pagibig: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  contact_name: {
+    type: DataTypes.STRING,
+    defaultValue: "No name available",
+  },
+  contact_number: {
+    type: DataTypes.STRING,
+    defaultValue: "No contact available",
+  },
+  contact_address: {
+    type: DataTypes.STRING,
+    defaultValue: "No address avaible",
+  },
+  profileImage: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  esignature: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
 }, { timestamps: false });
 
 // 🔥 Hook: Automatically create PayrollInformation when an Employee is created
