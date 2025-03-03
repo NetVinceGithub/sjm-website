@@ -46,17 +46,15 @@ const PageTitleUpdater = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Define titles based on route
     const titleMap = {
       "/": "St. John Majore",
       "/payroll-management-login": "SJM Payroll Management Portal",
     };
 
-    // Update the document title
     document.title = titleMap[location.pathname] || "Default Title";
   }, [location.pathname]);
 
-  return null; // This component doesn't render anything
+  return null;
 };
 
 function App() {
