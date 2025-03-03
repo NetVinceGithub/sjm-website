@@ -7,7 +7,7 @@ import Job from "./Job";
 
 const AdminLounge = () => {
   return (
-    <div className="p-6 pt-20">
+    <div className="fixed p-6 pt-20">
       <Breadcrumb
         items={[
           { label: "Dashboard", href: "" },

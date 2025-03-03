@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { FaRegPenToSquare } from "react-icons/fa6";
 
 export const PayrollButtons = ({ Id, refreshData }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -62,10 +63,10 @@ export const PayrollButtons = ({ Id, refreshData }) => {
   return (
     <div className="flex gap-2 justify-center items-center flex-nowrap">
       <button
-        className="px-4 py-1 bg-teal-600 text-white text-sm rounded hover:bg-teal-700"
         onClick={() => setIsModalOpen(true)}
+        className="px-3 py-0.5 w-auto h-8 border text-neutralDGray hover:bg-neutralSilver rounded flex items-center space-x-2 disabled:opacity-50"
       >
-        Edit
+        <FaRegPenToSquare />
       </button>
 
       {/* Modal */}
