@@ -1,5 +1,6 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../db/db.js";
+import PayrollInformation from "./PayrollInformation.js";
 
 const Employee = sequelize.define("Employee", {
   id: {
@@ -12,9 +13,9 @@ const Employee = sequelize.define("Employee", {
     defaultValue: 0,
   },
   ecode: {
-    type: DataTypes.STRING,
+    type: DataTypes.STRING(255), // Explicitly set the length
     allowNull: false,
-    unique: "unique_ecode", // Prevents Sequelize from creating multiple indexes
+    unique: "unique_ecode",
   },
   name: {
     type: DataTypes.STRING,
@@ -43,7 +44,7 @@ const Employee = sequelize.define("Employee", {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
-  "area/section": {
+  area_section: {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
@@ -51,7 +52,7 @@ const Employee = sequelize.define("Employee", {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
-  "tenuritytoclient(inmonths)": {
+  tenurity_to_client: {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
@@ -59,7 +60,7 @@ const Employee = sequelize.define("Employee", {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
-  "team(a/b)": {
+  team_ab: {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
@@ -89,48 +90,83 @@ const Employee = sequelize.define("Employee", {
   },
   emailaddress: {
     type: DataTypes.STRING,
-    allowNull: true, // Allows null values
+    allowNull: true,
     validate: {
-      isEmail: true, // Only validates if an email is provided
+      isEmail: true,
     },
-  },  
+  },
   governmentidnumber: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  sss: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  tin: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  philhealth: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  pagibig: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  contact_name: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  contact_number: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  contact_address: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  profileImage: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  esignature: {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
 }, { timestamps: false });
 
-// 🔥 Hook: Automatically create PayrollInformation when an Employee is created
+// ✅ Ensure Proper Association with PayrollInformation
+Employee.hasOne(PayrollInformation, { foreignKey: "ecode", onDelete: "CASCADE", onUpdate: "CASCADE" });
+PayrollInformation.belongsTo(Employee, { foreignKey: "ecode" });
+
+// ✅ Fix `afterCreate` Hook (Only Creates Payroll Entry Now)
 Employee.afterCreate(async (employee) => {
-  console.log(`🔥 Hook Triggered for Employee: ${employee.ecode}`);
+  console.log(`🔥 Employee.afterCreate Hook Triggered for ${employee.ecode}`);
 
-  await PayrollInformation.create({
-    employee_id: employee.id,
-    ecode: employee.ecode,
-    name: employee.name,
-    positiontitle: employee.positiontitle || "N/A",
-    area_section: employee.department || "N/A",
-    daily_rate: 500,
-    overtime_pay: 100,
-    holiday_pay: 200,
-    night_differential: 150,
-    allowance: 50,
-    tardiness: 0,
-    tax_deduction: 50,
-    sss_contribution: 100,
-    pagibig_contribution: 50,
-    philhealth_contribution: 75,
-  });
+  try {
+    const payroll = await PayrollInformation.create({
+      ecode: employee.ecode,
+      name: employee.name,
+      positiontitle: employee.positiontitle || "N/A",
+      area_section: employee.department || "N/A",
+      daily_rate: 500,
+      overtime_pay: 100,
+      holiday_pay: 200,
+      night_differential: 150,
+      allowance: 50,
+      tardiness: 0,
+      tax_deduction: 50,
+      sss_contribution: 100,
+      pagibig_contribution: 50,
+      philhealth_contribution: 75,
+    });
 
-  console.log(`✅ Payroll Information Created for ${employee.ecode}`);
+    console.log(`✅ Payroll Created for ${payroll.ecode}`);
+  } catch (error) {
+    console.error(`❌ Error creating Payroll: ${error.message}`);
+  }
 });
-
-
-
-
-
-
-
-
 
 export default Employee;
