@@ -10,6 +10,7 @@ import allowanceRouter from "./routes/allowance.js";
 import payslipRouter from "./routes/payslip.js";
 import userRouter from "./routes/user.js";
 import invoiceRouter from "./routes/invoice.js";
+import jobsRouter from "./routes/jobs.js";
 import sequelize from "./db/db.js"; // Sequelize connection
 
 // Import Models
@@ -49,6 +50,7 @@ app.use("/api/allowance", allowanceRouter);
 app.use("/api/payslip", payslipRouter);
 app.use("/api/users", userRouter);
 app.use("/api/invoice", invoiceRouter)
+app.use("/api/jobs", jobsRouter)
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);

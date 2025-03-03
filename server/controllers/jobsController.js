@@ -1,5 +1,4 @@
-import User from "../models/User.js";
-import bcrypt from "bcryptjs";
+import Jobs from "../models/Jobs.js";
 
 export const addUser = async (req, res) => {
   try {
@@ -29,13 +28,13 @@ export const addUser = async (req, res) => {
   }
 };
 
-export const getUsers = async (req, res) => {
-  try {
-    const users = await User.findAll();
-    console.log(users);
-    res.status(200).json({ success: true, message: "Users found", users });
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    res.status(500).json({ success: false, message: "Users not found" });
+export const addJobs = async (req, res) => {
+  try{
+    const {title, description} = req.body;
+    const newJobs = await Jobs.create({title, description});
+    res.statuts(201).json({success:true, message: "Job added successfully"}, );
+
+  }catch (error){
+    res.statuts(500).json({success:false, message: "Internal Server Error in jobsController"});
   }
-};
+}
