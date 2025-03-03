@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import EmployeeDashboard from "./pages/EmloyeeDashboard";
@@ -41,7 +42,22 @@ import ScrollToTop from "./components/promoWeb/ScrollToTop";
 import Navbar from "./components/promoWeb/Navbar";
 import Foot from "./components/promoWeb/Foot";
 
+const PageTitleUpdater = () => {
+  const location = useLocation();
 
+  useEffect(() => {
+    // Define titles based on route
+    const titleMap = {
+      "/": "St. John Majore",
+      "/payroll-management-login": "SJM Payroll Management Portal",
+    };
+
+    // Update the document title
+    document.title = titleMap[location.pathname] || "Default Title";
+  }, [location.pathname]);
+
+  return null; // This component doesn't render anything
+};
 
 function App() {
   return (
@@ -59,7 +75,7 @@ function AppContent() {
     <>
       {/* Show Navbar only in public routes */}
       {publicRoutes.includes(location) && <Navbar />}
-      
+      <PageTitleUpdater />
       <ScrollToTop />
       <Routes>
         {/* Public Routes */}
