@@ -156,3 +156,41 @@ export const updatePayrollInformation = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const updateIDDetails = async (req, res) => {
+  console.log("Received Files:", req.files); // Log all uploaded files
+  console.log("Files Object Keys:", Object.keys(req.files)); // See which fields are present
+
+  const { id } = req.params;
+  const updatedData = req.body;
+
+  try {
+    const employee = await Employee.findByPk(id);
+    if (!employee) {
+      return res.status(404).json({ success: false, message: "Employee not found" });
+    }
+
+    if (req.files) {
+      if (req.files.profileImage) {
+        updatedData.profileImage = req.files.profileImage[0].filename;
+      }
+      if (req.files.esignature) {  
+        updatedData.esignature = req.files.esignature[0].filename;
+      } else {
+        console.log("🚨 Esignature file is missing in req.files!");
+      }
+    }
+
+    await employee.update(updatedData);
+
+    res.status(200).json({
+      success: true,
+      message: "Employee updated successfully",
+      employee,
+    });
+  } catch (error) {
+    console.error("❌ Error updating employee:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
