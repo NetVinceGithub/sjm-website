@@ -5,6 +5,8 @@ import axios from "axios";
 import { EmployeeButtons } from "../../../utils/EmployeeHelper";
 import { FaSearch, FaSyncAlt } from "react-icons/fa";
 import { PayrollButtons } from "../../../utils/PayrollHelper";
+import Breadcrumb from "../dashboard/Breadcrumb";
+import { FaPrint, FaRegFileExcel, FaRegFilePdf } from "react-icons/fa6";
 
 const EmployeePayrollInformationsList = () => {
   const [payrollInformations, setPayrollInformations] = useState([]);
@@ -39,53 +41,107 @@ const EmployeePayrollInformationsList = () => {
     );
     setFilteredEmployees(records);
   };
-  
+
+  const customStyles = {
+    table: {
+      style: {
+        justifyContent: "center",
+        textAlign: "center",
+        fontWeight: "bold",
+        backgroundColor: "#fff",
+        width: "100%",
+        margin: "0 auto",
+      },
+    },
+    headCells: {
+      style: {
+        backgroundColor: "#fff",
+        color: "#333",
+        textAlign: "center",
+        fontWeight: "bold",
+        justifyContent: "center", // Centers content horizontally
+        display: "flex", // Required for justifyContent to work
+        alignItems: "center", // Centers content vertically
+      },
+    },
+    cells: {
+      style: {
+        padding: "8px",
+        textAlign: "center", // Centers text
+        justifyContent: "center", // Centers content horizontally
+        display: "flex", // Needed for flex properties to work
+        alignItems: "center", // Centers content vertically
+      },
+    },
+  };
 
   return (
-    <div className="p-6">
-      <h6 className="mt-1">
-        <span className="text-green-500 font-bold">Employee Payroll Informations</span> / Employee Data
-      </h6>
-      <div className="mt-4 bg-white p-4 rounded-lg shadow">
-        <h3 className="text-2xl mt-2 font-bold text-center">MANAGE PAYROLL INFORMATION</h3>
-
-        <div className="flex justify-between items-center mt-2">
-          <div className="flex items-center">
-            <input
-              type="text"
-              placeholder="Search by Name"
-              onChange={handleFilter}
-              className="px-4 py-0.5 border"
-            />
-            <FaSearch className="ml-[-20px] text-gray-500" />
+    <div className="fixed p-6 pt-20">
+      <Breadcrumb
+        items={[
+          { label: "Payroll", href: "" },
+          { label: "Payroll Information", href: "/admin-dashboard/employees" },
+        ]}
+      />
+      <div className="-mt-1 bg-white p-3 py-3 rounded-lg shadow">
+        <div className="flex items-center justify-between">
+          {/* Button Group - Centered Vertically */}
+          <div className="inline-flex border border-neutralDGray rounded h-8">
+            <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center">
+              <FaPrint title="Print" className="text-neutralDGray] transition-all duration-300" />
+            </button>
+  
+            <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center">
+              <FaRegFileExcel title="Export to Excel" className=" text-neutralDGray" />
+            </button>
+            <button className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center">
+              <FaRegFilePdf title="Export to PDF" className=" text-neutralDGray" />
+            </button>
           </div>
-          
-
+  
+          {/* Search & Sync Section - Aligned with Buttons */}
+          <div className="flex items-center gap-3">
+            <div className="flex rounded items-center">
+              <input
+                type="text"
+                placeholder="Search Employee"
+                onChange={handleFilter}
+                className="px-2 rounded py-0.5 border"
+              />
+              <FaSearch className="ml-[-20px] text-neutralDGray" />
+            </div>
+          </div>
         </div>
 
         {/* Containing the table list */}
-        <div className="mt-6 overflow-x-auto">
-        <DataTable
-          columns={[
-            { name: "Ecode", selector: (row) => row.ecode, sortable: true },
-            { name: "Name", selector: (row) => row.name, sortable: true },
-            { name: "Daily Rate", selector: (row) => row.daily_rate, sortable: true },
-            { name: "Holiday Pay", selector: (row) => row.holiday_pay || "0", sortable: true },
-            { name: "Night Differential", selector: (row) => row.night_differential || "0", sortable: true },
-            { name: "Allowance", selector: (row) => row.allowance || "0", sortable: true },
-            { name: "Tax", selector: (row) => row.tax_deduction || "0", sortable: true },
-            { name: "SSS", selector: (row) => row.sss_contribution || "0", sortable: true },
-            { name: "Pagibig", selector: (row) => row.pagibig_contribution || "0", sortable: true },
-            { name: "Phil Health", selector: (row) => row.philhealth_contribution || "0", sortable: true },
-            { name: "Loan", selector: (row) => row.loan || "0", sortable: true },
-            { name: "Options", cell: (row) => <PayrollButtons Id={row.employeeId || row.id} refreshData={fetchPayrollInformations} /> }
-          ]}
-          data={filteredEmployees}
-          pagination
-          progressPending={loading}
-        />
-
+        <div className="mt-4 overflow-x-auto">
+          <div className="w-full max-w-[75rem]">
+            {/* Scrollable Table Wrapper */}
+            <div className="max-h-[35rem] overflow-y-auto border rounded-md">
+              <DataTable
+                customStyles={customStyles}
+                columns={[
+                  { name: "Ecode", selector: (row) => row.ecode, sortable: true, center:true },
+                  { name: "Name", selector: (row) => row.name, sortable: true, center:true, width: "200px" },
+                  { name: "Daily Rate", selector: (row) => row.daily_rate, sortable: true, center:true, width:"120px" },
+                  { name: "Holiday Pay", selector: (row) => row.holiday_pay || "0", sortable: true, center:true, width: "150px" },
+                  { name: "Night Differential", selector: (row) => row.night_differential || "0", sortable: true, center:true, width:"200px" },
+                  { name: "Allowance", selector: (row) => row.allowance || "0", sortable: true, center:true, width:"120px" },
+                  { name: "Tax", selector: (row) => row.tax_deduction || "0", sortable: true, center:true },
+                  { name: "SSS", selector: (row) => row.sss_contribution || "0", sortable: true, center:true },
+                  { name: "Pagibig", selector: (row) => row.pagibig_contribution || "0", sortable: true, center:true },
+                  { name: "PhilHealth", selector: (row) => row.philhealth_contribution || "0", sortable: true, center:true, width:"120px" },
+                  { name: "Loan", selector: (row) => row.loan || "0", sortable: true, center:true },
+                  { name: "Options", cell: (row) => <PayrollButtons Id={row.employeeId || row.id} refreshData={fetchPayrollInformations} /> }
+                ]}
+                data={filteredEmployees}
+                pagination
+                progressPending={loading}
+              />
+            </div>
+          </div>
         </div>
+
       </div>
     </div>
 

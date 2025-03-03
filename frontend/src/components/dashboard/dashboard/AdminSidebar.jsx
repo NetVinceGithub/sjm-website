@@ -43,8 +43,12 @@ const AdminSidebar = () => {
         {/* Logo Section */}
         <div className="h-20 flex flex-row items-center justify-center gap-1 px-4">
           <img src={Logo} alt="Company Logo" className="w-12 h-12" />
-          <h3 className="text-white font-bold text-sm mt-2 text-poppins leading-tight">
-            St. John Majore <br /> <span className='text-[15px] font-normal'>Services Company Inc.</span>
+          <h3
+            style={{ fontFamily: ["AR Julian", "sans-serif"].join(", ") }}
+            className="text-white text-[18px] font-bold text-sm mt-2 leading-tight"
+          >
+            St. John Majore <br />
+            <span className="text-[15px] font-normal">Services Company Inc.</span>
           </h3>
         </div>
 

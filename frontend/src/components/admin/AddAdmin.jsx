@@ -59,7 +59,7 @@ const AddAdmin = () => {
   return (
     <div>
       {/* ✅ Display Users */}
-      <h3 className=" text-neutralDGray font-semibold mt-1">Current user:</h3>
+      <h3 className=" text-neutralDGray text-lg font-semibold -mt-1">Current user:</h3>
       {loading ? (
         <p>Loading users...</p>
       ) : users.length > 0 ? (
@@ -73,12 +73,12 @@ const AddAdmin = () => {
       ) : (
         <p>No users found.</p>
       )}  
-      <h2 className="text-2xl font-bold mb-6 mt-6 flex text-neutralDGray items-center gap-2">
-        <FaUserPlus className="h-8 w-8 text-neutralDGray" /> Add Admin
+      <h2 className="text-lg font-bold mb-4 mt-2 flex text-neutralDGray items-center gap-2">
+        <FaUserPlus className="h-6 w-6 text-neutralDGray" /> Add Admin
       </h2>
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-3" onSubmit={handleSubmit}>
         <div>
-          <label className="block text-sm font-medium text-neutralDGray">Employee Name</label>
+          <label className="block text-sm -mt-1 font-medium text-neutralDGray">Employee Name</label>
           <input
             type="text"
             name="name"
