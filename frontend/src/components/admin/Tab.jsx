@@ -6,7 +6,7 @@ const Tab = ({ tabs }) => {
   return (
     <div>
       {/* Tab Buttons */}
-      <div className="flex border-b">
+      <div className="flex w-[77rem] border-b">
         {tabs.map((tab, index) => (
           <button
             key={index}
