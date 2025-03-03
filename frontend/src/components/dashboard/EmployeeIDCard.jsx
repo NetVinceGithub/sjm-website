@@ -85,42 +85,64 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
         <Modal.Title>Employee ID Card</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <div className="id-container" ref={idCardRef}>
-          {/* Front Side of ID */}
-          <div className="id-front">
-          <div className="id-header">
-            <img src={logo} alt="Company Logo" className="id-logo" />
-            <div className="id-title-container">
-              <h1 className="id-title">St. John Majore</h1>
-              <p className="id-subtitle">#8 De Villa St., Poblacion, San Juan, Batangas</p>
+      <div className="id-container"  ref={idCardRef}>
+            <div className="id-front">
+                <div className="id-header">
+                    <div className="id-header-left">
+                        <img src={logo} alt="logo" className="id-logo" />
+                    </div>
+                    <div className="id-header-right">
+                        <h1 className="id-title">St.JohnMajore</h1>
+                        <p className="id-subtitle">#8 De Villa St., Poblacion, San Juan, Batangas</p>
+                    </div>
+                </div>
+                <div className="id-content">
+                    <div className="user-img">
+                        <img src={profileImage} alt="user" className="user-img" />
+                    </div>
+                    <div className="user-info">
+                        <p className="user-id">ID NO. {employee.ecode}</p>
+                        <p className="user-name">{employee.name || "No Name Available"}</p>
+                        <p className="user-position">{employee.designation}</p>
+                    </div>
+                    <div className="user-signature">Signature</div>
+                </div>
             </div>
-          </div>
-            <div className="id-content">
-              <img src={profileImage} alt="Profile" className="user-img" />
-              <p className="user-id">ID NO. {employee.ecode}</p>
-              <p className="user-name">{employee.name || "No Name Available"}</p>
-              <p className="user-position">{employee.designation}</p>
-              <img src={signature} alt="Signature" className="user-signature" />
-              <p className="user-signature-label">Signature</p>
-            </div>
-          </div>
 
-          {/* Back Side of ID */}
-          <div className="id-back">
-            <p className="address">{employee.address}</p>
-            <p className="sss">SSS: {employee.sss}</p>
-            <p className="tin">TIN: {employee.tin}</p>
-            <p className="philhealth">PHILHEALTH: {employee.philHealth}</p>
-            <p className="pagibig">PAGIBIG: {employee.pagibig}</p>
-            <p className="bday">DATE OF BIRTH: {formattedDOB}</p>
-            <p className="emergency-title">In case of emergency, please notify:</p>
-            <p className="emergency-name">{employee.nameOfContact}</p>
-            <p className="emergency-contact">{employee.numberOfContact}</p>
-            <p className="emergency-address">{employee.addressOfContact}</p>
-            <img src={hr_signature} alt="HR Signature" className="hr-signature" />
-            <p className="hr-name">MIA MARY SORA</p>
-            <p className="hr-title">Human Resources Department Head</p>
-          </div>
+            <div className="id-back">
+                <div className="id-content-back">
+                    <div className="user-info-back">
+                        <p className="address">{employee.address}</p>
+                        <p className="sss">SSS: {employee.sss}</p>
+                        <p className="tin">TIN: {employee.tin}</p>
+                        <p className="philhealth">PHILHEALTH: {employee.philHealth}</p>
+                        <p className="pagibig">PAGIBIG: {employee.pagibig}</p>
+                        <p className="bday">DATE OF BIRTH: {formattedDOB}</p>
+                    </div>
+                    <div className="emergency">
+                        <p className="emergency-title">In case of emergency, please notify:</p>
+                        <p className="emergency-name">{employee.nameOfContact || "No name available"}</p>
+                        <p className="emergency-contact">{employee.numberOfContact || "No contact available"}</p>
+                        <p className="emergency-address">{employee.addressOfContact || "No address avaible"}</p>
+                    </div>
+                    <div className="hr">
+                      <img src={hr_signature} alt="HR Signature" className="hr-signature" />
+                      <p className="hr-name">MIA MARY SORA</p>
+                      <p className="hr-title">Human Resources Department Head</p>
+                    </div>
+                </div>
+                <div className="id-footer">
+                    <div className="id-footer-left">
+                        <img src={logo} alt="logo" className="footer-logo" />
+                    </div>
+                    <div className="id-footer-right">
+                        <p className="footer-title">St.JohnMajore Services Company Inc.</p>
+                        <p className="footer-subtitle">#8 De Villa St., Poblacion, San Juan, Batangas</p>
+                        <p className="contact">+043 5755675 | 0917 1851909</p>
+                        <p className="email">sjmajore@gmail.com</p>
+                    </div>
+                </div>
+            </div>
         </div>
       </Modal.Body>
       <Modal.Footer>
