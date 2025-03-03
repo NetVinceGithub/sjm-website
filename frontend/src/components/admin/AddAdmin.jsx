@@ -57,28 +57,28 @@ const AddAdmin = () => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-md shadow-md">
+    <div>
       {/* ✅ Display Users */}
-      <h3 className="text-xl font-semibold mt-6"> Users:</h3>
+      <h3 className=" text-neutralDGray text-lg font-semibold -mt-1">Current user:</h3>
       {loading ? (
         <p>Loading users...</p>
       ) : users.length > 0 ? (
-        <ul className="mt-4 border rounded-md p-4 bg-gray-100">
+        <ul className="mt-2 border rounded-md p-1">
           {users.map((user, index) => (
             <li key={index} className="py-2 border-b last:border-b-0">
-              <span className="font-bold">{user.name}</span> - {user.email}
+              <span className="text-neutralDGray font-bold ml-3">{user.name}</span> - {user.email}
             </li>
           ))}
         </ul>
       ) : (
         <p>No users found.</p>
-      )}
-      <h2 className="text-2xl font-bold mb-6 flex text-neutralDGray items-center gap-2">
-        <FaUserPlus className="h-8 w-8 text-neutralDGray" /> Add Admin
+      )}  
+      <h2 className="text-lg font-bold mb-4 mt-2 flex text-neutralDGray items-center gap-2">
+        <FaUserPlus className="h-6 w-6 text-neutralDGray" /> Add Admin
       </h2>
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-3" onSubmit={handleSubmit}>
         <div>
-          <label className="block text-sm font-medium text-neutralDGray">Employee Name</label>
+          <label className="block text-sm -mt-1 font-medium text-neutralDGray">Employee Name</label>
           <input
             type="text"
             name="name"
@@ -119,19 +119,22 @@ const AddAdmin = () => {
             name="role"
             value={formData.role}
             onChange={handleChange}
-            className="mt-1 mb-9 p-2 w-full border rounded-md"
+            className="mt-1 mb-3 p-2 w-full border rounded-md"
           >
             <option value="admin">Admin</option>
             <option value="employee">Employee</option>
           </select>
         </div>
-        <button
-          type="submit"
-          className="w-full bg-brandPrimary hover:bg-neutralDGray text-white py-2 px-4 rounded"
-          disabled={loading}
-        >
-          {loading ? "Adding..." : "Add User"}
-        </button>
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            className="w-[20%] bg-brandPrimary hover:bg-neutralDGray text-white py-2 px-4 rounded"
+            disabled={loading}
+          >
+            {loading ? "Adding..." : "Add Admin"}
+          </button>
+        </div>
+
       </form>
 
       

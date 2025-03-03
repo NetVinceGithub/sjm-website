@@ -1,231 +1,176 @@
-/* General Styling for ID Container */
 .id-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 20px;
-  position: relative;
-  width: 100vw;
-  height: 100vh;
+  display: inline-flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
 }
 
-/* ID Front and Back Styling */
-.id-front,
-.id-back {
+.id-front, .id-back {
   border: 2px solid #000;
   width: 300px;
   height: 450px;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  margin: 10px;
-}
-
-/* Logo Styling */
-.id-header {
-  display: flex;
-  flex-direction: row; /* Aligns items in a row */
-  align-items: center;
-  justify-content: center; /* Centers title and subtitle */
-  text-align: center;
-  gap: 10px; /* Adds spacing between logo and title */
 }
 
 .id-logo {
   width: 80px;
   height: 80px;
-  margin: 0; /* Remove auto margin */
-}
-
-.id-title-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Ensures title & subtitle stay centered */
+  margin: 0 auto;
 }
 
 .id-title {
-  font-size: 25px;
+  font-size: 30px;
   font-weight: bold;
   font-family: 'AR JULIAN', sans-serif;
   color: #974364;
-  margin-top: 5px;
-  margin-bottom: 5px;
+  padding-right: 20px;
+  margin-top: 20px;
 }
 
 .id-subtitle {
   font-size: 9px;
   font-family: Arial, Helvetica, sans-serif;
   color: #000;
-  margin: 0;
+  padding-right: 20px;
+  text-align: right;
+  margin-top: -15px;
 }
 
-
-/* Content Styling */
-.id-content {
-  background-image: url('/public/img-bg.png');
-  background-size: 95% 95%;
-  background-repeat: no-repeat;
-  background-position: top;
-  width: 100%;
-  height: 100%;
-  flex-grow: 1;
-  position: relative;
+.id-header {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: space-between;
+}
+
+.id-content, .id-content-back {
+  background-image: url('../src/assets/img-bg.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  width: 350px;
+  height: 350px;
+  position: absolute;
+}
+
+.id-content {
+  margin-top: -5px;
+  margin-left: -30px;
+}
+
+.id-content-back {
+  margin-top: 10px;
+  margin-left: -30px;
 }
 
 .user-img {
   width: 140px;
   height: 140px;
-  margin-top: 40px;
-  margin-left:9px;
-  object-fit: cover;
+  margin: 60px auto 0;
 }
 
-.user-info {
-  text-align: center;
-  margin-top: 45px;
+.user-info, .user-info-back, .emergency {
   font-size: 12px;
   font-family: Arial, Helvetica, sans-serif;
   color: #000;
   font-weight: bold;
-  line-height: 1.5;
-  margin-left:16px;
+  padding-top: 5px;
+}
+
+.user-info {
+  text-align: center;
+  margin-top: 30px;
+  line-height: 5px;
+  margin-left: 30px;
 }
 
 .user-name {
   font-size: 18px;
-  margin: 2px ;
 }
 
 .user-id {
   font-size: 13px;
 }
 
-.user-signature-label {
-  margin-top: 20px;
-}
-
 .user-signature {
-  width: 90px;
-  height: 90px;
-  position: absolute; /* Ensures the image is placed relative to the .hr container */
-  left: 50%; /* Centers horizontally */
-  transform: translate(-50%, -50%); /* Perfectly centers the signature over the HR name */
-  z-index: 1; /* Ensures the signature stays on top */
-  pointer-events: none; /* Prevents interaction with the image */
-  margin-top:180px;
-}
-
-/* Back Content Styling */
-.id-content-back {
-  background-image: url('../../assets/img-bg.png'); 
-  background-size: 94% 92%;
-  background-repeat: no-repeat;
-  background-position: top;
-  width: 100%;
-  height: 100%;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 10px;
-  align-self: flex-start;
-}
-
-.address,
-.sss,
-.tin,
-.philhealth,
-.pagibig,
-.bday {
-  margin: 5px 0;
-}
-
-.user-info-back {
-  text-align: left;
   font-size: 12px;
-  font-family: Arial, Helvetica, sans-serif;
-  color: #000;
-  font-weight: bold;
+  margin-top: 55px;
+  text-align: center;
+  margin-left: 30px;
+}
+
+.address {
+  margin-left: 10px;
+  line-height: 15px;
+}
+
+.sss, .tin, .philhealth, .pagibig, .bday, .emergency-title, .emergency-name, .emergency-contact, .emergency-address {
+  margin-left: 10px;
+}
+
+.user-info-back, .emergency {
+  text-align: left;
+  margin-top: 10px;
+  line-height: 5px;
   border: 2px solid #000;
   width: 275px;
-  margin: 10px auto;
-  padding: 10px;
-}
-
-.emergency {
-  text-align: left;
-  font-size: 12px;
-  font-family: Arial, Helvetica, sans-serif;
-  color: #000;
-  font-weight: bold;
-  border: 2px solid #000;
-  width: 275px;
-  padding-left: 10px;
-  margin-top: -25px;
+  margin-left: 40px;
 }
 
 .hr {
   text-align: center;
+  margin-top: 50px;
   font-size: 12px;
   font-family: Arial, Helvetica, sans-serif;
   color: #000;
-  line-height: 1.5;
-  
+  line-height: 5px;
 }
 
 .hr-signature {
-  width: 250px;
-  height: 230px;
-  position: absolute; /* Ensures the image is placed relative to the .hr container */
-  top: 0; /* Aligns the signature directly on top of the HR name */
-  left: 45%; /* Centers horizontally */
-  transform: translate(-50%, -50%); /* Perfectly centers the signature over the HR name */
-  z-index: 1; /* Ensures the signature stays on top */
-  pointer-events: none; /* Prevents interaction with the image */
-  margin-top: 320px;
+  width: 200px;
+  height: auto;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-55%, 30%);
+  z-index: 1;
+  pointer-events: none;
 }
-
-.id-hr-signature{
- margin-bottom: 10px;
-}
-
 .hr-name {
   font-size: 15px;
   font-weight: bold;
 }
 
-
-/* Footer Styling */
-.footer-logo {
-  width: 50px;
-  height: auto;
-  margin-right: 10px;
-}
-
 .id-footer {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 5px 10px;
+  align-items: center; 
+  padding: 10px;
+  margin-top: 380px;
+}
+
+.footer-logo {
+  width: 55px;
+  height: 55px;
+  margin: 0; 
 }
 
 .id-footer-right {
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 8px;
+  font-size: 7px;
   text-align: right;
+  margin-right: 0px;
+  line-height: 1.5;
 }
+
 
 .footer-title {
   font-size: 10px;
   font-weight: bold;
+  margin-bottom: 0;
 }
 
-/* Download Button Styling */
+.footer-subtitle, .contact, .email {
+  margin-bottom: 0;
+}
+
 #download-pdf {
   position: absolute;
   bottom: -60px;

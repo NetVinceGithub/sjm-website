@@ -1,7 +1,9 @@
 import axios from 'axios';
+import { div } from 'framer-motion/client';
 import React, { useEffect, useState } from 'react';
 import DataTable from 'react-data-table-component';
 import { useNavigate, useParams } from 'react-router-dom';
+import Breadcrumb from './Breadcrumb';
 
 const PayslipHistory = () => {
   const [payslips, setPayslips] = useState([]);
@@ -106,32 +108,42 @@ const PayslipHistory = () => {
   ];
 
   return (
-    <>
-      {loading ? (
-        <div>Loading...</div>
-      ) : (
-        <div>
-          <div className="text-center">
-            <h3 className="text-2xl font-bold">Payslip History</h3>
+    <div className='p-6 pt-20'>
+      <>
+        <Breadcrumb
+          items={[
+            { label: "Payroll", href: "" },
+            { label: "Payroll Information", href: "/admin-dashboard/employees" },
+            { label: "Payroll Generator", href: "/admin-dashboard/employees" },
+            { label: "Payroll History", href: "/admin-dashboard/employees" },
+          ]}
+        />
+        {loading ? (
+          <div>Loading...</div>
+        ) : (
+          <div>
+            <div className="text-center">
+              <h3 className="text-2xl font-bold">Payslip History</h3>
+            </div>
+            <div className="flex justify-between items-center">
+              <input
+                type="text"
+                placeholder="Search by Name or Employee ID"
+                className="px-4 py-0.5 border"
+                onChange={handleSearch}
+              />
+            </div>
+            <div className="mt-5">
+              <DataTable
+                columns={columns}
+                data={filteredPayslips}
+                pagination
+              />
+            </div>
           </div>
-          <div className="flex justify-between items-center">
-            <input
-              type="text"
-              placeholder="Search by Name or Employee ID"
-              className="px-4 py-0.5 border"
-              onChange={handleSearch}
-            />
-          </div>
-          <div className="mt-5">
-            <DataTable
-              columns={columns}
-              data={filteredPayslips}
-              pagination
-            />
-          </div>
-        </div>
-      )}
-    </>
+        )}
+      </>
+    </div>
   );
 };
 
