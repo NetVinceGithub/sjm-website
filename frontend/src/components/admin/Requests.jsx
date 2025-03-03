@@ -39,8 +39,8 @@ const Requests = () => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-md shadow-md">
-      <h2 className="text-2xl font-bold mb-6 flex text-neutralDGray items-center gap-2">
+    <div>
+      <h2 className="text-2xl font-bold mb-6 mt-1 flex text-neutralDGray items-center gap-2">
         <FaClipboardCheck className="h-8 w-8 text-neutralDGray" />Payroll Requests</h2>
 
       {requests.length === 0 ? (
@@ -57,15 +57,17 @@ const Requests = () => {
         </ul>
       )}
 
-      <button
-        onClick={handleApproveRelease}
-        disabled={requests.length === 0 || loading}
-        className={`mt-4 w-full px-4 py-2 rounded ${
-          requests.length === 0 || loading ? "bg-gray-400 cursor-not-allowed" : "bg-brandPrimary hover:bg-neutralDGray text-white"
-        }`}
-      >
-        {loading ? "Processing..." : "Approve Payroll Release"}
-      </button>
+      <div className="flex justify-end">
+        <button
+          onClick={handleApproveRelease}
+          disabled={requests.length === 0 || loading}
+          className={`mt-4 w-[20%] px-4 py-2 rounded ${
+            requests.length === 0 || loading ? "bg-gray-400 cursor-not-allowed" : "bg-brandPrimary hover:bg-neutralDGray text-white"
+          }`}
+        >
+          {loading ? "Processing..." : "Approve Payroll Release"}
+        </button>
+      </div>
     </div>
   );
 };

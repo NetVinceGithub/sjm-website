@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import { Modal, Button, Form } from "react-bootstrap";
+import { Modal, Button } from "react-bootstrap";
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import logo from "../../assets/logo.png";
@@ -11,100 +11,7 @@ import "./IDCard.css";
 
 const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
   const [employee, setEmployee] = useState(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [extraDetails, setExtraDetails] = useState("");
-  const [image1, setImage1] = useState(null);
-  const [image2, setImage2] = useState(null);
   const idCardRef = useRef(null);
-  const [formData, setFormData] = useState({
-    ecode: "",
-    sss: "",
-    tin: "",
-    philhealth: "",
-    pagibig: "",
-    contact_name: "",
-    contact_number: "",
-    contact_address: "",
-  });
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-  
-    const formDataToSend = new FormData();
-  
-    // Append text fields
-    for (const key in formData) {
-      formDataToSend.append(key, formData[key]);
-    }
-  
-    // Append images if they exist
-    if (image1) {
-      formDataToSend.append("profileImage", image1);
-    }
-    if (image2) {
-      formDataToSend.append("esignature", image2);
-    }
-  
-    try {
-      const response = await axios.put(
-        `http://localhost:5000/api/employees/updateIDDetails/${employeeId}`, 
-        formDataToSend, 
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-  
-      if (response.data.success) {
-        alert("Employee details updated successfully!");
-        setEmployee((prev) => ({
-          ...prev,
-          ...formData, 
-          profileImage: response.data.employee.profileImage, 
-          esignature: response.data.employee.esignature, 
-        }));
-        setShowDetailsModal(false);
-      } else {
-        alert("Failed to update employee details.");
-      }
-    } catch (error) {
-      console.error("Error updating employee details:", error);
-      alert("An error occurred while updating the details.");
-    }
-  };
-  
-  
-  
-  
-  const handleImageChange = (e, setImage) => {
-    setImage(e.target.files[0]);
-  };
-
-
-  useEffect(() => {
-    if (employee) {
-      setFormData({
-        ecode: employee.ecode || "",
-        sss: employee.sss || "",
-        tin: employee.tin || "",
-        philhealth: employee.philhealth || "",
-        pagibig: employee.pagibig || "",
-        contact_name: employee.contact_name || "",
-        contact_number: employee.contact_number || "",
-        contact_address: employee.contact_address || "",
-      });
-    }
-  }, [employee]);
 
   useEffect(() => {
     if (!employeeId) return;
@@ -114,7 +21,7 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
         const response = await axios.get(`http://localhost:5000/api/employee/${employeeId}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-
+        
         if (response.data.success) {
           setEmployee(response.data.employee);
         } else {
@@ -153,8 +60,6 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
       console.error("Error generating PDF:", error.message);
     }
   };
-
-
 
   if (!employee) {
     return null;

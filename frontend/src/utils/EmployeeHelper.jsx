@@ -100,24 +100,6 @@ export const EmployeeButtons = ({ Id }) => {
       >
         <FaMinusSquare className="w-7 h-7 text-red-600" title="Block Employee" />
       </button>
-
-      {/* Modal for displaying Employee ID Card */}
-      <Modal
-        isOpen={modalIsOpen}
-        onRequestClose={() => setModalIsOpen(false)}
-        className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
-      >
-        <div className="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
-          <EmployeeIDCard employeeId={Id} />
-          <button
-            onClick={() => setModalIsOpen(false)}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg"
-          >
-            Close
-          </button>
-        </div>
-      </Modal>
-
     </div>
   );
 };
