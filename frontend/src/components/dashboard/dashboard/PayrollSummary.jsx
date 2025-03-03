@@ -1,8 +1,10 @@
   import React, { useEffect, useState } from "react";
   import DataTable from "react-data-table-component";
   import { FaUsers, FaCashRegister, FaHandHoldingUsd, FaChartPie } from "react-icons/fa";
+  import { HiHome } from "react-icons/hi";
   import { Link } from "react-router-dom";
   import SummaryCard from "./SummaryCard";
+  import Breadcrumb from "./Breadcrumb";
   import axios from "axios";
 
   const PayrollSummary = () => {
@@ -148,27 +150,34 @@
     
 
     return (
-      <div className="p-6">
-        <h3 className="text-2xl font-bold">Payroll Dashboard Overview</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-          <SummaryCard icon={<FaCashRegister />} text="Total Payroll" number={payslips.length} color="bg-[#88B9D3]" />
-          <SummaryCard icon={<FaHandHoldingUsd />} text="Gross Salary" 
-            number={payslips.reduce((acc, p) => acc + (p.basicPay || 0), 0).toLocaleString()} color="bg-[#B9DD8B]" />
-          <SummaryCard icon={<FaChartPie />} text="Total Employee Benefits" number={0} color="bg-[#D18AA6]" />
-          <SummaryCard icon={<FaUsers />} text="Total Headcount" number={payslips.length} color="bg-[#95B375]" />
+      <div className="p-6 pt-20">
+        {/* Add the links */}
+        <Breadcrumb
+          items={[
+            {label: "Dashboard", href: ""},
+            {label: "Payroll Overview", href: ""}
+          ]}
+         />
+          
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6 items-stretch">
+          <SummaryCard icon={<FaCashRegister />} title="Total Payroll" number={payslips.length} color="bg-[#88B9D3]" />
+          <SummaryCard icon={<FaHandHoldingUsd />} title="Gross Salary" number={payslips.reduce((acc, p) => acc + (p.basicPay || 0), 0).toLocaleString()} color="bg-[#B9DD8B]" />
+          <SummaryCard icon={<FaChartPie />} title="Total Employee Benefits" number={0} color="bg-[#D18AA6]" />
+          <SummaryCard icon={<FaUsers />} title="Total Headcount" number={payslips.length} color="bg-[#95B375]" />
         </div>
+
+
 
         <div className="mt-6">
           <label className="block text-sm font-medium text-gray-700">Cutoff Date:</label>
-          <input type="text" onChange={(e) => setCutoffDate(e.target.value)} className="mt-1 p-2 border rounded w-full" required />
+          <input type="text" onChange={(e) => setCutoffDate(e.target.value)} className="mt-1 p-2 border rounded w-[60%]" required />
         </div>
 
         {/* Button Section */}
         <div className="flex space-x-4 mt-6">
         <button
           onClick={handleCreatePayroll}
-          className={`px-4 py-2 rounded text-white ${cutoffDate ? "bg-teal-600 hover:bg-teal-700" : "bg-gray-400 cursor-not-allowed"}`}
+          className={`px-2 py-1 -mt-3 rounded w-32 h-10 text-white ${cutoffDate ? "bg-brandPrimary hover:bg-neutralDGray" : "bg-neutralGray cursor-not-allowed"}`}
           disabled={loading || !cutoffDate} // Disable if loading OR no cutoffDate
         >
           {loading ? "Generating..." : "Create Payroll"}
@@ -178,7 +187,7 @@
 
           <button
             onClick={handleReleaseRequest}
-            className="px-4 py-2 bg-green-600 rounded text-white hover:bg-green-700"
+            className="px-4 bg-brandPrimary py-1 -mt-3 rounded w-32 h-10 text-white hover:bg-neutralDGray"
             disabled={sending}
           >
             {sending ? "Sending..." : "Request"}
@@ -188,8 +197,8 @@
         {message && <p className="mt-4 text-center text-green-600">{message}</p>}
 
         {/* Data Table */}
-        <div className="mt-6">
-          <h4 className="text-lg font-semibold mb-2">Payroll Details</h4>
+        <div className="mt-6 w-[60%]">
+          <h4 className="text-lg font-semibold px-2 py-2 bg-gray-200 mb-2">Payroll Details</h4>
           {loading ? (
             <p className="mt-6 text-center text-gray-600">Loading payslips...</p>
           ) : payslips.length > 0 ? (
