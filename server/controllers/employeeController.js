@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 import cron from "node-cron";
 import Employee from "../models/Employee.js"; // Employee Sequelize model
 import PayrollInformation from "../models/PayrollInformation.js"; // Payroll Sequelize model
-import path from "path";
 
 dotenv.config();
 
@@ -154,45 +153,6 @@ export const updatePayrollInformation = async (req, res) => {
 
     res.status(200).json({ success: true, message: "Payroll information updated successfully", payrollInfo });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-
-
-export const saveEmployeeIDDetails = async (req, res) => {
-  try {
-    const { id } = req.params; // Get employee ID from URL
-    const {
-      sss, tin, philhealth, pagibig, 
-      contact_name, contact_number, contact_address
-    } = req.body;
-
-    // Handle File Uploads
-    const profileImage = req.files?.profileImage ? `/uploads/${req.files.profileImage[0].filename}` : null;
-    const esignature = req.files?.esignature ? `/uploads/${req.files.esignature[0].filename}` : null;
-
-    // Find Employee
-    const employee = await Employee.findByPk(id);
-    if (!employee) {
-      return res.status(404).json({ success: false, message: "Employee not found" });
-    }
-
-    // Update Employee Details
-    await employee.update({
-      sss, tin, philhealth, pagibig,
-      contact_name, contact_number, contact_address,
-      ...(profileImage && { profileImage }), // Only update if image is uploaded
-      ...(esignature && { esignature }),
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Employee ID details updated successfully",
-      employee,
-    });
-  } catch (error) {
-    console.error("Error updating employee details:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
