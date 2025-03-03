@@ -77,10 +77,57 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submitting form:", formData);
+    try {
+      const formDataObj = new FormData();
+  
+      // Append text fields
+      Object.keys(formData).forEach((key) => {
+        formDataObj.append(key, formData[key]);
+      });
+  
+      // Append images
+      if (image1) {
+        formDataObj.append("profileImage", image1);
+      }
+      if (image2) {
+        formDataObj.append("esignature", image2);
+      }
+  
+      // Debugging: Log FormData
+      for (let [key, value] of formDataObj.entries()) {
+        console.log(`${key}:`, value);
+      }
+  
+      const response = await axios.put(
+        `http://localhost:5000/api/employee/update-details/${employeeId}`,
+        formDataObj,
+        {
+          headers: { 
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "multipart/form-data"
+          },
+        }
+      );
+  
+      if (response.data.success) {
+        setEmployee((prev) => ({ ...prev, ...response.data.employee }));
+        setShowDetailsModal(false);
+        setImage1(null);
+        setImage2(null);
+      } else {
+        console.error("Failed to update employee details.");
+      }
+    } catch (error) {
+      console.error("Error updating employee:", error);
+    }
   };
+  
+  
+  
+  
+  
 
   const handleImageChange = (e, setImage) => {
     const file = e.target.files[0];
@@ -98,7 +145,7 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
   };
 
   const profileImage = getProfileImageUrl(employee.profileImage);
-  const signature = getProfileImageUrl(employee.signature);
+  const signature = getProfileImageUrl(employee.esignature);
 
   return (
     <>
@@ -125,7 +172,10 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
                     <div className="user-info">
                         <p className="user-id">ID NO. {employee.ecode}</p>
                         <p className="user-name">{employee.name || "No Name Available"}</p>
-                        <p className="user-position">{employee.designation}</p>
+                        <p className="user-position">{employee.positiontitle}</p>
+                    </div>
+                    <div className="user-signature">
+                        <img src={signature} alt="user" className="user-img" />
                     </div>
                     <div className="user-signature">Signature</div>
                 </div>
@@ -137,15 +187,15 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
                         <p className="address">{employee.address}</p>
                         <p className="sss">SSS: {employee.sss}</p>
                         <p className="tin">TIN: {employee.tin}</p>
-                        <p className="philhealth">PHILHEALTH: {employee.philHealth}</p>
+                        <p className="philhealth">PHILHEALTH: {employee.philhealth}</p>
                         <p className="pagibig">PAGIBIG: {employee.pagibig}</p>
                         <p className="bday">DATE OF BIRTH: {formattedDOB}</p>
                     </div>
                     <div className="emergency">
                         <p className="emergency-title">In case of emergency, please notify:</p>
-                        <p className="emergency-name">{employee.nameOfContact || "No name available"}</p>
-                        <p className="emergency-contact">{employee.numberOfContact || "No contact available"}</p>
-                        <p className="emergency-address">{employee.addressOfContact || "No address avaible"}</p>
+                        <p className="emergency-name">{employee.contact_name || "No name available"}</p>
+                        <p className="emergency-contact">{employee.contact_number || "No contact available"}</p>
+                        <p className="emergency-address">{employee.contact_address || "No address avaible"}</p>
                     </div>
                     <div className="hr">
                       <img src={hr_signature} alt="HR Signature" className="hr-signature" />
@@ -170,7 +220,24 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
         <Modal.Footer>
           <Button variant="secondary" onClick={handleClose}>Close</Button>
           <Button variant="primary" onClick={handleDownload}>Download PDF</Button>
-          <Button variant="primary" onClick={() => setShowDetailsModal(true)}>Add Details</Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setFormData({
+                sss: employee?.sss || "",
+                tin: employee?.tin || "",
+                philhealth: employee?.philhealth || "",
+                pagibig: employee?.pagibig || "",
+                contact_name: employee?.contact_name || "",
+                contact_number: employee?.contact_number || "",
+                contact_address: employee?.contact_address || "",
+              });
+              setShowDetailsModal(true);
+            }}
+          >
+            Edit Details
+          </Button>
+
         </Modal.Footer>
       </Modal>
 
@@ -197,11 +264,37 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
               <Form.Label>PAGIBIG</Form.Label>
               <Form.Control name="pagibig" value={formData.pagibig} placeholder="Enter PAGIBIG" onChange={handleChange} />
             </Form.Group>
-
-            <Button type="submit" className="mt-3">Submit</Button>
+            <Form.Group>
+              <Form.Label>Contact Name</Form.Label>
+              <Form.Control name="contact_name" value={formData.contact_name} placeholder="Enter Contact Name" onChange={handleChange} />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Contact Number</Form.Label>
+              <Form.Control name="contact_number" value={formData.contact_number} placeholder="Enter Contact Number" onChange={handleChange} />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Contact Address</Form.Label>
+              <Form.Control name="contact_address" value={formData.contact_address} placeholder="Enter Contact Address" onChange={handleChange} />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Profile Image</Form.Label>
+              <Form.Control type="file" accept="image/*" onChange={(e) => handleImageChange(e, setImage1)} />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>E signature</Form.Label>
+              <Form.Control type="file" accept="image/*" onChange={(e) => handleImageChange(e, setImage2)} />
+            </Form.Group>
+            {image1 && <img src={URL.createObjectURL(image1)} alt="Preview" className="preview-image" />}
+            {image2 && <img src={URL.createObjectURL(image2)} alt="Preview" className="preview-image" />}
           </Form>
+       
+
+
         </Modal.Body>
         <Modal.Footer>
+          <Button variant="primary" type="submit" onClick={handleSubmit}>
+              Save Changes
+            </Button>
           <Button variant="secondary" onClick={() => setShowDetailsModal(false)}>Cancel</Button>
         </Modal.Footer>
       </Modal>

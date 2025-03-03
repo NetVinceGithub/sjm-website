@@ -63,7 +63,7 @@ function AppContent() {
       <ScrollToTop />
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<Main />} />
+        <Route path="/main" element={<Main />} />
         <Route path="/admin" element={<Administration />} />
         <Route path="/faqs" element={<Questions />} />
         <Route path="/careers" element={<Career />} />
