@@ -3,38 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Modal from "react-modal";
 import axios from "axios";
 import { FaIdCard, FaEnvelope, FaMinusSquare } from "react-icons/fa";
-import EmployeeIDCard from "../components/dashboard/EmployeeIDCard.jsx";
 
 Modal.setAppElement("#root"); // Required for accessibility
-
-export const columns = [
-  {
-    name: "Image",
-    selector: (row) => row.profileImage,
-    width: "90px",
-  },
-  {
-    name: "Name",
-    selector: (row) => row.name,
-    width: "70px",
-  },
-  {
-    name: "ID",
-    selector: (row) => row.id,
-    width: "70px",
-  },
-  {
-    name: "Email",
-    selector: (row) => row.email,
-    sortable: true,
-    width: "100px",
-  },
-  {
-    name: "Project",
-    selector: (row) => row.project,
-    width: "120px",
-  },
-];
 
 export const fetchDepartments = async () => {
   try {
@@ -79,27 +49,19 @@ export const EmployeeButtons = ({ Id }) => {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-x-2 justify-center items-center">
-      {/* View ID Button */}
-      <button className="m-0 p-0" onClick={() => setModalIsOpen(true)}>
-        <FaIdCard className="w-7 h-7" title="View ID" />
-      </button>
-
-      {/* Message Button */}
-      <button
-        className="m-0 p-0"
-        onClick={() => navigate(`/admin-dashboard/employees/allowance/${Id}`)}
-      >
-        <FaEnvelope className="w-7 h-7" title="Message" />
-      </button>
-
-      {/* Block Employee Button */}
-      <button
-        className="m-0 p-0"
-        onClick={() => navigate(`/admin-dashboard/employees/edit/${Id}`)}
-      >
-        <FaMinusSquare className="w-7 h-7 text-red-600" title="Block Employee" />
-      </button>
+    <div className="grid grid-cols-3 gap-x-2 place-items-center">
+      <div className="inline-flex border border-neutralDGray rounded h-8">
+        <button className="w-20 h-full border-r border-neutralDGray rounded-l flex items-center justify-center">
+          <FaIdCard title="View ID" className="text-neutralDGray w-5 h-5" />
+        </button>
+        <button className="w-20 h-full border-r border-neutralDGray flex items-center justify-center">
+          <FaEnvelope title="Message" className="text-neutralDGray w-5 h-5" />
+        </button>
+        <button className="w-20 h-full rounded-r flex items-center justify-center">
+          <FaMinusSquare title="Block" className="text-neutralDGray w-5 h-5" />
+        </button>
+      </div>
     </div>
+
   );
 };

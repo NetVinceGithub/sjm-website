@@ -6,6 +6,7 @@
   import SummaryCard from "./SummaryCard";
   import Breadcrumb from "./Breadcrumb";
   import axios from "axios";
+  import CustomCalendar from "./CustomCalendar";
 
   const PayrollSummary = () => {
     const [payslips, setPayslips] = useState([]);
@@ -150,7 +151,7 @@
     
 
     return (
-      <div className="p-6 pt-20">
+      <div className="fixed w-[80rem] h-screen p-6 pt-20">
         {/* Add the links */}
         <Breadcrumb
           items={[
@@ -166,47 +167,59 @@
           <SummaryCard icon={<FaUsers />} title="Total Headcount" number={payslips.length} color="bg-[#95B375]" />
         </div>
 
+        <div className="flex gap-6 mt-6">
+          {/* Left Section (Form + Table) */}
+          <div className="w-[70%]">
+            {/* Cutoff Date Input */}
+            <label className="block text-sm font-medium text-gray-700">Cutoff Date:</label>
+            <input
+              type="text"
+              onChange={(e) => setCutoffDate(e.target.value)}
+              className="mt-1 p-2 border rounded w-full"
+              required
+            />
 
+            {/* Button Section */}
+            <div className="flex space-x-4 mt-6">
+              <button
+                onClick={handleCreatePayroll}
+                className={`px-2 py-1 -mt-3 rounded w-32 h-10 text-white ${cutoffDate ? "bg-brandPrimary hover:bg-neutralDGray" : "bg-neutralGray cursor-not-allowed"}`}
+                disabled={loading || !cutoffDate}
+              >
+                {loading ? "Generating..." : "Create Payroll"}
+              </button>
 
-        <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-700">Cutoff Date:</label>
-          <input type="text" onChange={(e) => setCutoffDate(e.target.value)} className="mt-1 p-2 border rounded w-[60%]" required />
+              <button
+                onClick={handleReleaseRequest}
+                className="px-4 bg-brandPrimary py-1 -mt-3 rounded w-32 h-10 text-white hover:bg-neutralDGray"
+                disabled={sending}
+              >
+                {sending ? "Sending..." : "Request"}
+              </button>
+            </div>
+
+            {/* Success/Error Message */}
+            {message && <p className="mt-4 text-center text-green-600">{message}</p>}
+
+            {/* Data Table */}
+            <div className="mt-6">
+              <h4 className="text-lg font-semibold px-2 py-2 bg-gray-200 mb-2">Payroll Details</h4>
+              {loading ? (
+                <p className="mt-6 text-center text-gray-600">Loading payslips...</p>
+              ) : payslips.length > 0 ? (
+                <DataTable columns={columns} data={payslips} pagination highlightOnHover striped />
+              ) : (
+                <p className="mt-6 text-center text-gray-600">No payslip records available.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Right Section (Calendar) */}
+          <div className="w-[30%]">
+            <CustomCalendar />
+          </div>
         </div>
 
-        {/* Button Section */}
-        <div className="flex space-x-4 mt-6">
-        <button
-          onClick={handleCreatePayroll}
-          className={`px-2 py-1 -mt-3 rounded w-32 h-10 text-white ${cutoffDate ? "bg-brandPrimary hover:bg-neutralDGray" : "bg-neutralGray cursor-not-allowed"}`}
-          disabled={loading || !cutoffDate} // Disable if loading OR no cutoffDate
-        >
-          {loading ? "Generating..." : "Create Payroll"}
-        </button>
-
-  
-
-          <button
-            onClick={handleReleaseRequest}
-            className="px-4 bg-brandPrimary py-1 -mt-3 rounded w-32 h-10 text-white hover:bg-neutralDGray"
-            disabled={sending}
-          >
-            {sending ? "Sending..." : "Request"}
-          </button>
-        </div>
-
-        {message && <p className="mt-4 text-center text-green-600">{message}</p>}
-
-        {/* Data Table */}
-        <div className="mt-6 w-[60%]">
-          <h4 className="text-lg font-semibold px-2 py-2 bg-gray-200 mb-2">Payroll Details</h4>
-          {loading ? (
-            <p className="mt-6 text-center text-gray-600">Loading payslips...</p>
-          ) : payslips.length > 0 ? (
-            <DataTable columns={columns} data={payslips} pagination highlightOnHover striped />
-          ) : (
-            <p className="mt-6 text-center text-gray-600">No payslip records available.</p>
-          )}
-        </div>
       </div>
     );
   };
