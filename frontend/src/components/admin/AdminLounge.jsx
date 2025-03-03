@@ -3,10 +3,11 @@ import Breadcrumb from "../dashboard/dashboard/Breadcrumb";
 import Tab from "./Tab";
 import Requests from "./Requests";
 import AddAdmin from "./AddAdmin"; // ✅ Import AddAdmin
+import Job from "./Job";
 
 const AdminLounge = () => {
   return (
-    <div className="p-6 pt-20">
+    <div className="fixed p-6 pt-20">
       <Breadcrumb
         items={[
           { label: "Dashboard", href: "" },
@@ -19,8 +20,8 @@ const AdminLounge = () => {
         tabs={[
           { label: "Overview", content: <p>This is the Overview tab.</p> },
           { label: "Payroll Requests", content: <Requests /> },
-          { label: "User Management", content: <AddAdmin /> }, // ✅ Use AddAdmin
-          { label: "Jobs", content: <p>Add or manage jobs here.</p> },
+          { label: "User Management", content: <AddAdmin /> },
+          { label: "Jobs", content: <Job /> },
         ]}
       />
     </div>

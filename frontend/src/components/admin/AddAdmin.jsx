@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaUserPlus } from "react-icons/fa";
 import axios from "axios";
 
@@ -7,10 +7,29 @@ const AddAdmin = () => {
     name: "",
     email: "",
     password: "",
-    role: "employee", // ✅ Default role must match allowed values
+    role: "employee",
   });
 
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get("http://localhost:5000/api/users/get-users");
+        if (response.data.success) {
+          setUsers(response.data.users);
+        }
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -20,13 +39,12 @@ const AddAdmin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const response = await axios.post("http://localhost:5000/api/users/add", formData);
-
       if (response.data.success) {
         alert("✅ User added successfully!");
-        setFormData({ name: "", email: "", password: "", role: "employee" }); // ✅ Reset form
+        setFormData({ name: "", email: "", password: "", role: "employee" });
+        setUsers((prevUsers) => [...prevUsers, response.data.user]); // Add new user to the list
       } else {
         alert(response.data.error || "❌ Failed to save user.");
       }
@@ -39,24 +57,37 @@ const AddAdmin = () => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-md shadow-md">
-      <h2 className="text-2xl font-bold mb-6 flex text-neutralDGray items-center gap-2">
-        <FaUserPlus className="h-8 w-8 text-neutralDGray" /> Add Admin
-        </h2>
-      <form className="space-y-4" onSubmit={handleSubmit}>
+    <div>
+      {/* ✅ Display Users */}
+      <h3 className=" text-neutralDGray text-lg font-semibold -mt-1">Current user:</h3>
+      {loading ? (
+        <p>Loading users...</p>
+      ) : users.length > 0 ? (
+        <ul className="mt-2 border rounded-md p-1">
+          {users.map((user, index) => (
+            <li key={index} className="py-2 border-b last:border-b-0">
+              <span className="text-neutralDGray font-bold ml-3">{user.name}</span> - {user.email}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No users found.</p>
+      )}  
+      <h2 className="text-lg font-bold mb-4 mt-2 flex text-neutralDGray items-center gap-2">
+        <FaUserPlus className="h-6 w-6 text-neutralDGray" /> Add Admin
+      </h2>
+      <form className="space-y-3" onSubmit={handleSubmit}>
         <div>
-          <label className="block text-sm font-medium text-neutralDGray">Employee Name</label>
-            <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                onFocus={(e) => (e.target.placeholder = "")}
-                onBlur={(e) => (e.target.placeholder = "Enter name")}
-                className="mt-1 p-2 w-full border rounded-md"
-                placeholder="Enter name"
-                required
-            />
+          <label className="block text-sm -mt-1 font-medium text-neutralDGray">Employee Name</label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            className="mt-1 p-2 w-full border rounded-md"
+            placeholder="Enter name"
+            required
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-neutralDGray">Company Email</label>
@@ -65,12 +96,10 @@ const AddAdmin = () => {
             name="email"
             value={formData.email}
             onChange={handleChange}
-            onFocus={(e) => (e.target.placeholder = "")}
-            onBlur={(e) => (e.target.placeholder = "Enter email")}
             className="mt-1 p-2 w-full border rounded-md"
             placeholder="Enter email"
             required
-            />
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-neutralDGray">Password</label>
@@ -79,12 +108,10 @@ const AddAdmin = () => {
             name="password"
             value={formData.password}
             onChange={handleChange}
-            onFocus={(e) => (e.target.placeholder = "")}
-            onBlur={(e) => (e.target.placeholder = "Enter password")}
             className="mt-1 p-2 w-full border rounded-md"
             placeholder="Enter password"
             required
-            />
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-neutralDGray">Role</label>
@@ -92,20 +119,25 @@ const AddAdmin = () => {
             name="role"
             value={formData.role}
             onChange={handleChange}
-            className="mt-1 mb-9 p-2 w-full border rounded-md"
+            className="mt-1 mb-3 p-2 w-full border rounded-md"
           >
             <option value="admin">Admin</option>
-            <option value="employee">Employee</option> {/* ✅ Allowed values */}
+            <option value="employee">Employee</option>
           </select>
         </div>
-        <button
-          type="submit"
-          className="w-full bg-brandPrimary hover:bg-neutralDGray text-white py-2 px-4 rounded"
-          disabled={loading}
-        >
-          {loading ? "Adding..." : "Add User"}
-        </button>
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            className="w-[20%] bg-brandPrimary hover:bg-neutralDGray text-white py-2 px-4 rounded"
+            disabled={loading}
+          >
+            {loading ? "Adding..." : "Add Admin"}
+          </button>
+        </div>
+
       </form>
+
+      
     </div>
   );
 };
