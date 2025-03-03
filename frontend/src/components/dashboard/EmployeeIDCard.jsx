@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import { Modal, Button } from "react-bootstrap";
+import { Modal, Button, Form } from "react-bootstrap";
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import logo from "../../assets/logo.png";
@@ -12,6 +12,18 @@ import "./IDCard.css";
 const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
   const [employee, setEmployee] = useState(null);
   const idCardRef = useRef(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [formData, setFormData] = useState({
+    sss: "",
+    tin: "",
+    philhealth: "",
+    pagibig: "",
+    contact_name: "",
+    contact_number: "",
+    contact_address: "",
+  });
+  const [image1, setImage1] = useState(null);
+  const [image2, setImage2] = useState(null);
 
   useEffect(() => {
     if (!employeeId) return;
@@ -21,7 +33,7 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
         const response = await axios.get(`http://localhost:5000/api/employee/${employeeId}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-        
+
         if (response.data.success) {
           setEmployee(response.data.employee);
         } else {
@@ -61,6 +73,20 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
     }
   };
 
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("Submitting form:", formData);
+  };
+
+  const handleImageChange = (e, setImage) => {
+    const file = e.target.files[0];
+    if (file) setImage(file);
+  };
+
   if (!employee) {
     return null;
   }
@@ -68,12 +94,7 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
   const formattedDOB = dayjs(employee.dob).format("MMMM DD, YYYY");
 
   const getProfileImageUrl = (imagePath) => {
-    if (!imagePath) return defaultProfile;
-    try {
-      return new URL(`http://localhost:5000/uploads/${imagePath}`).href;
-    } catch (error) {
-      return defaultProfile;
-    }
+    return imagePath ? `http://localhost:5000/uploads/${imagePath}` : defaultProfile;
   };
 
   const profileImage = getProfileImageUrl(employee.profileImage);
@@ -81,13 +102,12 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
 
   return (
     <>
-      {/* Employee ID Modal */}
       <Modal show={show} onHide={handleClose} centered size="xl" scrollable>
         <Modal.Header closeButton>
           <Modal.Title>Employee ID Card</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-        <div className="id-container"  ref={idCardRef}>
+          <div className="id-container"  ref={idCardRef}>
             <div className="id-front">
                 <div className="id-header">
                     <div className="id-header-left">
@@ -148,76 +168,43 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
         </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleClose}>
-            Close
-          </Button>
-          <Button variant="primary" onClick={handleDownload}>
-            Download PDF
-          </Button>
-          <Button variant="primary" onClick={() => setShowDetailsModal(true)}>
-            Add Details
-          </Button>
+          <Button variant="secondary" onClick={handleClose}>Close</Button>
+          <Button variant="primary" onClick={handleDownload}>Download PDF</Button>
+          <Button variant="primary" onClick={() => setShowDetailsModal(true)}>Add Details</Button>
         </Modal.Footer>
       </Modal>
 
       {/* Second Modal - Add Details */}
       <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} centered>
-      <Modal.Header closeButton>
-        <Modal.Title>Add Details</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <Form onSubmit={handleSubmit}>
-          <Form.Group>
-            <Form.Label>Enter SSS:</Form.Label>
-            <Form.Control name="sss" value={formData.sss} placeholder="Enter SSS" onChange={handleChange} />
-          </Form.Group>
-          <Form.Group>
-            <Form.Label>Enter TIN:</Form.Label>
-            <Form.Control name="tin" value={formData.tin} placeholder="Enter TIN" onChange={handleChange} />
-          </Form.Group>
-          <Form.Group>
-            <Form.Label>Enter PHILHEALTH:</Form.Label>
-            <Form.Control name="philhealth" value={formData.philhealth} placeholder="Enter PHILHEALTH" onChange={handleChange} />
-          </Form.Group>
-          <Form.Group>
-            <Form.Label>Enter PAGIBIG:</Form.Label>
-            <Form.Control name="pagibig" value={formData.pagibig} placeholder="Enter PAGIBIG" onChange={handleChange} />
-          </Form.Group>
-          <Form.Group>
-            <Form.Label>Enter Name of Contact:</Form.Label>
-            <Form.Control name="contact_name" value={formData.contact_name} placeholder="Name of Contact" onChange={handleChange} />
-          </Form.Group>
-          <Form.Group>
-            <Form.Label>Enter Contact Number:</Form.Label>
-            <Form.Control name="contact_number" value={formData.contact_number} placeholder="Contact Number" onChange={handleChange} />
-          </Form.Group>
-          <Form.Group>
-            <Form.Label>Enter Address:</Form.Label>
-            <Form.Control name="contact_address" value={formData.contact_address} placeholder="Address of Contact" onChange={handleChange} />
-          </Form.Group>
+        <Modal.Header closeButton>
+          <Modal.Title>Add Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleSubmit}>
+            <Form.Group>
+              <Form.Label>SSS</Form.Label>
+              <Form.Control name="sss" value={formData.sss} placeholder="Enter SSS" onChange={handleChange} />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>TIN</Form.Label>
+              <Form.Control name="tin" value={formData.tin} placeholder="Enter TIN" onChange={handleChange} />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>PHILHEALTH</Form.Label>
+              <Form.Control name="philhealth" value={formData.philhealth} placeholder="Enter PHILHEALTH" onChange={handleChange} />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>PAGIBIG</Form.Label>
+              <Form.Control name="pagibig" value={formData.pagibig} placeholder="Enter PAGIBIG" onChange={handleChange} />
+            </Form.Group>
 
-          <Form.Group className="mt-3">
-            <Form.Label>Upload First Image</Form.Label>
-            <Form.Control type="file" accept="image/*" onChange={(e) => handleImageChange(e, setImage1)} />
-            {image1 && <img src={URL.createObjectURL(image1)} alt="First Upload" className="preview-image" />}
-          </Form.Group>
-
-          <Form.Group className="mt-3">
-            <Form.Label>Upload Second Image</Form.Label>
-            <Form.Control type="file" accept="image/*" onChange={(e) => handleImageChange(e, setImage2)} />
-            {image2 && <img src={URL.createObjectURL(image2)} alt="Second Upload" className="preview-image" />}
-          </Form.Group>
-
-          <Button type="submit" className="mt-3">Submit</Button>
-        </Form>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={() => setShowDetailsModal(false)}>Cancel</Button>
-        <Button variant="primary" onClick={() => console.log({ formData, image1, image2 })}>
-          Save Details
-        </Button>
-      </Modal.Footer>
-    </Modal>
+            <Button type="submit" className="mt-3">Submit</Button>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDetailsModal(false)}>Cancel</Button>
+        </Modal.Footer>
+      </Modal>
     </>
   );
 };
