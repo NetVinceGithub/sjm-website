@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import EmployeeDashboard from "./pages/EmloyeeDashboard";
@@ -32,22 +32,48 @@ import EmployeePayrollInformationsList from "./components/dashboard/employee/Emp
 import InvoiceList from "./components/dashboard/invoice/InvoiceList";
 import Attendance from "./components/dashboard/attendance/Attendance";
 import 'bootstrap/dist/css/bootstrap.min.css';
+import Main from "./pages/Main";
+import Administration from "./pages/Administration";
+import Questions from "./pages/Questions";
+import Career from "./pages/Career";
+import Offers from "./pages/Offers";
+import ScrollToTop from "./components/promoWeb/ScrollToTop";
+import Navbar from "./components/promoWeb/Navbar";
+import Foot from "./components/promoWeb/Foot";
 
 
 
 function App() {
   return (
-    
+    <Router>
+      <AppContent />
+    </Router>
+  );
+}
+
+function AppContent() {
+  const publicRoutes = ["/", "/admin", "/faqs", "/careers", "/services-offered"];
+  const location = useLocation().pathname;
+
+  return (
     <>
-      <BrowserRouter>
+      {/* Show Navbar only in public routes */}
+      {publicRoutes.includes(location) && <Navbar />}
+      
+      <ScrollToTop />
       <Routes>
+        {/* Public Routes */}
+        <Route path="/main" element={<Main />} />
+        <Route path="/admin" element={<Administration />} />
+        <Route path="/faqs" element={<Questions />} />
+        <Route path="/careers" element={<Career />} />
+        <Route path="/services-offered" element={<Offers />} />
+        <Route path="/payroll-management-login" element={<Login />} />
+
         {/* Redirect "/" to the admin dashboard */}
         <Route path="/" element={<Navigate to="/admin-dashboard" />} />
 
-        {/* Login Route */}
-        <Route path="/login" element={<Login />} />
-
-        {/* Admin Dashboard Routes */}
+        {/* Admin Dashboard Routes (Protected) */}
         <Route
           path="/admin-dashboard"
           element={
@@ -59,10 +85,9 @@ function App() {
           }
         >
           <Route index element={<AdminSummary />} />
-          <Route path="departments" element={<DepartmentList />} /> 
+          <Route path="departments" element={<DepartmentList />} />
           <Route path="add-department" element={<AddDepartment />} />
           <Route path="department/:id" element={<EditDepartment />} />
-
           <Route path="employees" element={<List />} />
           <Route path="employees/payroll-informations/list" element={<EmployeePayrollInformationsList />} />
           <Route path="add-employee" element={<Add />} />
@@ -70,7 +95,6 @@ function App() {
           <Route path="employees/edit/:id" element={<Edit />} />
           <Route path="employee/:id" element={<EmployeeIDCard />} />
           <Route path="lounge" element={<AdminLounge />} />
-          
           <Route path="employees/rates" element={<PayrollSystemData />} />
           <Route path="rates-data-dashboard" element={<RatesDashboard />} />
           <Route path="create-payroll" element={<CreatePayroll />} />
@@ -79,33 +103,24 @@ function App() {
           <Route path="employees/payslip/:id" element={<Payslip />} />
           <Route path="employees/payslip-history/:id" element={<EmployeePayslipHistory />} />
           <Route path="employees/allowance/:id" element={<Allowance />} />
-
-
           <Route path="attendance" element={<Attendance />} />
-
           <Route path="invoice-list" element={<InvoiceList />} />
-
           <Route path="projects" element={<Projects />} />
           <Route path="add-project" element={<AddProject />} />
           <Route path="edit-project/:id" element={<EditProject />} />
-
           <Route path="add-rates" element={<AddRatesAndDeductions />} />
           <Route path="rates/edit/:id" element={<EditRatesAndDeductions />} />
-          
         </Route>
 
+        {/* Employee Dashboard */}
         <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
-
-
-
-
-
-
       </Routes>
-    </BrowserRouter>
+
+      {/* Show footer only in public routes */}
+      {publicRoutes.includes(location) && <Foot />}
     </>
-    
   );
 }
+
 
 export default App;

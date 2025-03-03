@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import DataTable from "react-data-table-component";
 import axios from "axios";
-import { EmployeeButtons } from "../../../utils/EmployeeHelper";
+// import { EmployeeButtons } from "../../../utils/EmployeeHelper";
 import { FaSearch, FaSyncAlt, FaIdCard } from "react-icons/fa";
-import Modal from "react-modal";
-import EmployeeIDCard from "../EmployeeIDCard"; // Ensure correct import
+import EmployeeIDCard from "../EmployeeIDCard";
+import Breadcrumb from "../dashboard/Breadcrumb";
+import { FaPrint, FaRegFileExcel, FaRegFilePdf } from "react-icons/fa6";
+import { FaEnvelope, FaMinusSquare } from "react-icons/fa";
 
 const List = () => {
   const [employees, setEmployees] = useState([]);
@@ -65,80 +67,130 @@ const List = () => {
     setSelectedEmployeeId(null);
   };
 
-  return (
-    <div className="p-6">
-      <h6 className="mt-1">
-        <span className="text-green-500 font-bold">Payroll System</span> / Employee Data
-      </h6>
-      <div className="mt-4 bg-white p-4 rounded-lg shadow">
-        <h3 className="text-2xl mt-2 font-bold text-center">MANAGE EMPLOYEES</h3>
+  const customStyles = {
+    table: {
+      style: {
+        justifyContent: "center",
+        textAlign: "center",
+        fontWeight: "bold",
+        backgroundColor: "#fff",
+        width: "100%",
+        margin: "0 auto",
+      },
+    },
+    headCells: {
+      style: {
+        backgroundColor: "#fff",
+        color: "#333",
+        textAlign: "center",
+        fontWeight: "bold",
+        justifyContent: "center", // Centers content horizontally
+        display: "flex", // Required for justifyContent to work
+        alignItems: "center", // Centers content vertically
+      },
+    },
+    cells: {
+      style: {
+        padding: "8px",
+        textAlign: "center", // Centers text
+        justifyContent: "center", // Centers content horizontally
+        display: "flex", // Needed for flex properties to work
+        alignItems: "center", // Centers content vertically
+      },
+    },
+  };
 
-        <div className="flex justify-between items-center mt-2">
-          <div className="flex items-center">
-            <input
-              type="text"
-              placeholder="Search by Name"
-              onChange={handleFilter}
-              className="px-4 py-0.5 border"
-            />
-            <FaSearch className="ml-[-20px] text-gray-500" />
-          </div>
+  return (
+    <div className="fixed p-6 pt-20">
+      <Breadcrumb
+        items={[
+          { label: "Employee", href: "" },
+          { label: "Masterlist", href: "/admin-dashboard/employees" },
+        ]}
+      />
+      <div className="bg-white w-[77rem] -mt-1 py-3 p-2 rounded-lg shadow">
+        <div className="flex items-center justify-between">
+        {/* Button Group - Centered Vertically */}
+        <div className="inline-flex border border-neutralDGray rounded h-8">
+          <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center">
+            <FaPrint title="Print" className="text-neutralDGray] transition-all duration-300" />
+          </button>
+
+          <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center">
+            <FaRegFileExcel title="Export to Excel" className=" text-neutralDGray" />
+          </button>
+          <button className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center">
+            <FaRegFilePdf title="Export to PDF" className=" text-neutralDGray" />
+          </button>
+        </div>
+
+        {/* Search & Sync Section - Aligned with Buttons */}
+        <div className="flex items-center gap-3">
+            <div className="flex rounded items-center">
+              <input
+                type="text"
+                placeholder="Search Employee"
+                onChange={handleFilter}
+                className="px-2 rounded py-0.5 border"
+              />
+              <FaSearch className="ml-[-20px] text-neutralDGray" />
+            </div>
           <button
             onClick={syncEmployees}
             disabled={syncing}
-            className="px-3 py-0.5 h-8 bg-green-500 text-white rounded flex items-center space-x-2 disabled:opacity-50"
+            className="px-3 py-0.5 h-8 border text-neutralDGray hover:bg-brandPrimary hover:text-white rounded flex items-center space-x-2 disabled:opacity-50"
           >
             <FaSyncAlt className="w-4 h-4" />
             <span>{syncing ? "Syncing..." : "Sync Employees"}</span>
           </button>
         </div>
+      </div>
 
         {/* Containing the table list */}
-        <div className="mt-6 overflow-x-auto">
-        <DataTable
-          columns={[
-            { name: "Ecode", selector: (row) => row.ecode, sortable: true },
-            { name: "Name", selector: (row) => row.name, sortable: true },
-            { name: "Position", selector: (row) => row.positiontitle, sortable: true },
-            { name: "Department", selector: (row) => row.department || "N/A", sortable: true },
-            { 
-              name: "ID Card", 
-              cell: (row) => {
-                console.log("Row Data:", row); // Debugging: Check row structure
-                return (
-                  <button
-                    onClick={() => openModal(row.ecode)} // Use ecode if it's the unique ID
-                    className="bg-blue-500 text-white px-2 py-1 rounded flex items-center"
-                  >
-                    <FaIdCard className="mr-1" /> View ID
-                  </button>
-                );
-              }
-            }
-            ,
-            { name: "Options", cell: (row) => <EmployeeButtons Id={row.employeeId || row.id} /> }
-          ]}
-          data={filteredEmployees}
-          pagination
-          progressPending={loading}
-        />;
-
+        <div className="mt-3 overflow-x-auto">
+          <div className="w-full flex justify-center">
+            <div className="w-full max-w-[75rem]">
+              <div className="border rounded-md">
+                <DataTable
+                  customStyles={customStyles}
+                  columns={[
+                    { name: "Ecode", selector: (row) => row.ecode, sortable: true, width: "110px", center: true },
+                    { name: "Name", selector: (row) => row.name, sortable: true, width: "200px" },
+                    { name: "Position", selector: (row) => row.positiontitle, sortable: true, width: "350px", center: true },
+                    { name: "Department", selector: (row) => row.department || "N/A", sortable: true, width: "250px", center: true },
+                    {
+                      name: "Options",
+                      cell: (row) => (
+                        <div className="flex justify-center items-center">
+                          <button onClick={() => openModal(row.employeeId || row.id)} className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center">
+                            <FaIdCard title="View ID" className=" text-neutralDGray w-5 h-5" />
+                          </button>
+                          <button className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center">
+                            <FaEnvelope title="Message" className=" text-neutralDGray w-5 h-5" />
+                          </button>
+                          <button className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-r flex items-center justify-center">
+                            <FaMinusSquare title="Block" className=" text-neutralDGray w-5 h-5" />
+                          </button>
+                        </div>
+                      ),
+                      width: "240px", // Adjusted for better fit
+                      center: true,
+                    },
+                  ]}
+                  data={filteredEmployees}
+                  pagination
+                  progressPending={loading}
+                />
+              </div>
+            </div>
+          </div>
         </div>
+
+
       </div>
 
       {/* Employee ID Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onRequestClose={closeModal}
-        contentLabel="Employee ID Card"
-        className="modal-content"
-        overlayClassName="modal-overlay"
-      >
-        {selectedEmployeeId && <EmployeeIDCard employeeId={selectedEmployeeId} />}
-        <button onClick={closeModal} className="btn btn-danger">
-          Close
-        </button>
-      </Modal>
+      <EmployeeIDCard show={isModalOpen} handleClose={closeModal} employeeId={selectedEmployeeId} />
     </div>
   );
 };
