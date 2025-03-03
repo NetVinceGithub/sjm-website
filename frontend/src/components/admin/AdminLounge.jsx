@@ -3,6 +3,7 @@ import Breadcrumb from "../dashboard/dashboard/Breadcrumb";
 import Tab from "./Tab";
 import Requests from "./Requests";
 import AddAdmin from "./AddAdmin"; // ✅ Import AddAdmin
+import Job from "./Job";
 
 const AdminLounge = () => {
   return (
@@ -20,7 +21,7 @@ const AdminLounge = () => {
           { label: "Overview", content: <p>This is the Overview tab.</p> },
           { label: "Payroll Requests", content: <Requests /> },
           { label: "User Management", content: <AddAdmin /> }, // ✅ Use AddAdmin
-          { label: "Jobs", content: <p>Add or manage jobs here.</p> },
+          { label: "Jobs", content: <Job /> },
         ]}
       />
     </div>
