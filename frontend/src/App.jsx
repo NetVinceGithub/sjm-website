@@ -41,6 +41,9 @@ import Offers from "./pages/Offers";
 import ScrollToTop from "./components/promoWeb/ScrollToTop";
 import Navbar from "./components/promoWeb/Navbar";
 import Foot from "./components/promoWeb/Foot";
+import Overview from "./components/dashboard/dashboard/Overview";
+import AddNew from "./components/dashboard/employee/AddNew";
+import History from "./components/dashboard/attendance/History";
 
 const PageTitleUpdater = () => {
   const location = useLocation();
@@ -99,12 +102,15 @@ function AppContent() {
           }
         >
           <Route index element={<AdminSummary />} />
+          <Route path="overview" element={<Overview />} />
+
           <Route path="departments" element={<DepartmentList />} />
           <Route path="add-department" element={<AddDepartment />} />
           <Route path="department/:id" element={<EditDepartment />} />
           <Route path="employees" element={<List />} />
           <Route path="employees/payroll-informations/list" element={<EmployeePayrollInformationsList />} />
-          <Route path="add-employee" element={<Add />} />
+          <Route path="add" element={<Add />} />
+          <Route path="add-employee" element={<AddNew />} />
           <Route path="add-masterlist" element={<AddMasterlist />} />
           <Route path="employees/edit/:id" element={<Edit />} />
           <Route path="employee/:id" element={<EmployeeIDCard />} />
@@ -118,6 +124,7 @@ function AppContent() {
           <Route path="employees/payslip-history/:id" element={<EmployeePayslipHistory />} />
           <Route path="employees/allowance/:id" element={<Allowance />} />
           <Route path="attendance" element={<Attendance />} />
+          <Route path="attendance/history" element={<History />} />
           <Route path="invoice-list" element={<InvoiceList />} />
           <Route path="projects" element={<Projects />} />
           <Route path="add-project" element={<AddProject />} />
