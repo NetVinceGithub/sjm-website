@@ -73,6 +73,7 @@ import payslipRouter from "./routes/payslip.js";
 import userRouter from "./routes/user.js";
 import invoiceRouter from "./routes/invoice.js";
 import jobsRouter from "./routes/jobs.js";
+import attendanceRouter from "./routes/attendance.js";
 
 // Routes
 app.use("/api/auth", authRouter);
@@ -85,6 +86,7 @@ app.use("/api/payslip", payslipRouter);
 app.use("/api/users", userRouter);
 app.use("/api/invoice", invoiceRouter);
 app.use("/api/jobs", jobsRouter);
+app.use("/api/attendance", attendanceRouter);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
