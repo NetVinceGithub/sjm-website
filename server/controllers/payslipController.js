@@ -3,6 +3,12 @@ import dotenv from "dotenv";
 import Payslip from "../models/Payslip.js";
 import Employee from "../models/Employee.js";
 import PayslipHistory from "../models/PayslipHistory.js";
+import { Op } from "sequelize"; // Ensure you have Sequelize operators
+import Attendance from "../models/Attendance.js";
+import PayrollInformation from "../models/PayrollInformation.js";
+import axios from "axios";
+import AttendanceSummary from "../models/AttendanceSummary.js";
+
 
 dotenv.config();
 
@@ -228,53 +234,47 @@ export const getPayslipByEcode = async (req, res) => {
 };
 
 
+
 export const generatePayroll = async (req, res) => {
   try {
-
     console.log("🚀 Starting Payroll Generation...");
-
+    console.log("📩 Received Request Body:", req.body); // ✅ Debugging step
     const { cutoffDate } = req.body;
 
+    // Fetch all required data
     const employees = await Employee.findAll();
     if (!employees || employees.length === 0) {
       console.log("⚠️ No Employees Found!");
       return res.status(400).json({ success: false, message: "No employees found!" });
     }
 
+    const attendanceSummaries = await AttendanceSummary.findAll();
+    const payrollInformations = await PayrollInformation.findAll();
+
     let generatedPayslips = [];
 
     for (const employee of employees) {
-      console.log(`📌 Processing Payroll for: ${employee.name} (${employee.ecode})`);
+      console.log(`Processing Payroll for: ${employee.name} (${employee.ecode})`);
 
-      // Ensure default values to prevent "null" issues
-      const regularduty = Number(employee.regularduty) || 0;
-      const regularholiday = Number(employee.regularholiday) || 0;
-      const regularholidaypay = Number(employee.regholidaypay) * regularholiday || 0;
-      const allowance = employee.allowance || 0;
-      const tardinessDeductions = 65/60;
-      const tardiness = Number((tardinessDeductions * employee.tardiness || 0).toFixed(2));
+      // 🔍 Find the employee's attendance summary
+      const employeeAttendance = attendanceSummaries.find(summary => summary.ecode === employee.ecode) || {};
 
-      const basicPay = Number(employee.dailyrate) * regularduty || 0;
-      const gross_pay = basicPay + regularholidaypay + allowance;
-      
-      console.log("regular duty:", regularduty);
-      console.log("regular holiday:", regularholiday);
-      console.log("regular regularholidaypay:", regularholidaypay);
-      console.log("regular basic pay:", basicPay);
-      console.log("regular gross pay:", gross_pay);
-      console.log("tardiness:", tardiness);
+      const employeePayrollInfo = payrollInformations.find(info => info.ecode === employee.ecode) || {};
 
-      const overtimePay = employee.overtime_pay || 0;
-      const holidayPay = employee.regholidaypay || 0;
-      const sss = employee.sss || 0;
-      const phic = employee.phic || 0;
-      const hdmf = employee.hdmf || 0;
+      const basicPay = (employeeAttendance.totalHours || 0) * (employeePayrollInfo.hourly_rate || 0);
+      const overtimePay = (employeeAttendance.totalOvertime || 0) * (employeePayrollInfo.overtime_pay ) ;
+      const holidayPay = (employeeAttendance.holiday || 0) * (employeePayrollInfo.hourly_rate || 0);
+      const allowance = employeePayrollInfo.allowance || 0;
+      const sss = employeePayrollInfo.sss || 0;
+      const phic = employeePayrollInfo.phic || 0;
+      const hdmf = employeePayrollInfo.hdmf || 0;
 
-      const totalEarnings = gross_pay;
-      const totalDeductions = (Number(sss) || 0) + (Number(phic) || 0) + (Number(hdmf) || 0) + (Number(tardiness) || 0);
-      
-      const netPay = Math.round(Number(totalEarnings) - Number(totalDeductions));
-      console.log("Payroll Data:", employee.emailaddress); // Check if email exists before saving
+      const tardiness = (employeeAttendance.totalTardiness || 0) * (employeePayrollInfo.hourly_rate/ 60);
+      const gross_pay = basicPay + overtimePay + holidayPay;
+      const totalEarnings = gross_pay + allowance;
+      const totalDeductions = tardiness + sss + phic + hdmf;
+
+      const netPay = totalEarnings - totalDeductions;
 
       const payslipData = {
         ecode: employee.ecode,
@@ -284,27 +284,33 @@ export const generatePayroll = async (req, res) => {
         project: employee.area || "N/A",
         position: employee.positiontitle || "N/A",
         department: employee.department,
-        regularduty: employee.regularduty,
-        regularholiday: employee.regularholiday,
-        dailyrate: employee.dailyrate || 0,
         cutoffDate,
-        basicPay,
-        overtimePay,
-        holidayPay,
-        gross_pay,
-        allowance,
-        tardiness,
-        sss,
-        phic,
-        hdmf,
-        totalEarnings,
-        totalDeductions,
-        netPay,
-        status:"pending",
+        dailyrate: employeePayrollInfo.daily_rate || 0,
+        basicPay: basicPay.toFixed(2),
+        noOfDays: 0,
+        overtimePay: overtimePay.toFixed(2),
+        totalOvertime: attendanceSummaries.totalOvertime.toFixed(2),
+        holidayPay: holidayPay.toFixed(2),
+        nightDifferential: payrollInformations.night_differential,
+        allowance: allowance.toFixed(2),
+        sss: sss.toFixed(2),
+        phic: phic.toFixed(2),
+        hdmf: hdmf.toFixed(2),
+        loan: payrollInformations.load.toFixed(2),
+        totalTardiness: tardiness.toFixed(2),
+        totalHours: employeeAttendance.totalHours.toFixed(2),
+        otherDeductions:payrollInformations.otherDeductions.toFixed(2),
+        totalEarnings: totalEarnings.toFixed(2),
+        totalDeductions: totalDeductions.toFixed(2),
+        adjustment: payrollInformations.adjustment,
+        gross_pay: gross_pay.toFixed(2),
+        netPay: netPay.toFixed(2),
+        status: "pending",
       };
 
       console.log("✅ Payslip Data:", payslipData);
 
+      // Save the payslip to the database
       try {
         const newPayslip = await Payslip.create(payslipData);
         generatedPayslips.push(newPayslip);
@@ -320,6 +326,9 @@ export const generatePayroll = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error during payroll generation." });
   }
 };
+
+
+
 
 
 export const requestRelease = async (req, res) => {

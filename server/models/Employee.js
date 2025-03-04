@@ -141,25 +141,35 @@ Employee.afterCreate(async (employee) => {
   console.log(`🔥 Hook Triggered for Employee: ${employee.ecode}`);
 
   await PayrollInformation.create({
-    employee_id: employee.id,
+    employee_id: employee.id, // ✅ Ensure employee_id is correctly assigned
     ecode: employee.ecode,
     name: employee.name,
     positiontitle: employee.positiontitle || "N/A",
     area_section: employee.department || "N/A",
     daily_rate: 500,
+    hourly_rate: 65,
+    ot_hourly_rate: 81.25,
+    ot_rate_sp_holiday: 109.85,
+    ot_rate_reg_holiday: 109.85,
+    special_hol_rate: 156,
+    regular_hol_ot_rate: 156,
     overtime_pay: 100,
     holiday_pay: 200,
-    night_differential: 150,
-    allowance: 50,
-    tardiness: 0,
-    tax_deduction: 50,
-    sss_contribution: 100,
-    pagibig_contribution: 50,
-    philhealth_contribution: 75,
+    night_differential: 6.50,
+    allowance: 104,
+    tardiness: 1.08,
+    tax_deduction: 0,
+    sss_contribution: 0,
+    pagibig_contribution: 200,
+    philhealth_contribution: 338,
+    loan: 0,
+    otherDeductions: 0,
+    adjustment: 0,
   });
 
   console.log(`✅ Payroll Information Created for ${employee.ecode}`);
 });
+
 
 
 
