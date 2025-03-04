@@ -32,3 +32,15 @@
     border-radius: 8px;
   }
   
+  /* Default calendar styles */
+  .react-calendar {
+    width: 100%;
+    border: none;
+  }
+
+  /* Highlight selected range */
+  .highlighted {
+    background-color: #4CAF50 !important; /* Green background */
+    color: white !important;
+    border-radius: 5px;
+  }

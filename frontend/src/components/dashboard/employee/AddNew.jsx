@@ -2,6 +2,8 @@ import React from 'react';
 import Breadcrumb from '../dashboard/Breadcrumb';
 
 const AddNew = () => {
+
+  console.log("Bat dito naga displayyyyy");
   return(
     <div className="p-6 pt-20">
       <Breadcrumb
