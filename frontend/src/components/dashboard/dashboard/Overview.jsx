@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import SummaryCard from "./SummaryCard";
 import Breadcrumb from "./Breadcrumb";
 import CustomCalendar from "./CustomCalendar";
+
 import PayrollLineChart from "./PayrollLineChart";
 import { LineChart } from "recharts";
 
@@ -24,8 +25,10 @@ const Overview = () => {
         setLoading(false);
       }
     };
+
     fetchPayslips();
   }, []);
+
 
   const handleCreatePayroll = async () => {
     if (!cutoffDate) {
@@ -37,34 +40,51 @@ const Overview = () => {
       setMessage("");
       setLoading(true);
       const response = await axios.post("http://localhost:5000/api/payslip/generate", { cutoffDate });
+
+  
+
+  
+
       if (response.data.success && Array.isArray(response.data.payslips)) {
         setPayslips(response.data.payslips);
         setMessage("✅ Payroll successfully generated!");
       } else {
+
         setMessage(`❌ Failed to generate payroll: ${response.data.message || "Unknown error"}`);
       }
     } catch (error) {
+
+       
       setMessage(`❌ ${error.response?.data?.message || "An error occurred while generating payroll."}`);
     } finally {
       setLoading(false);
     }
   };
 
+
+
   const handleReleaseRequest = async () => {
     if (!payslips.length) {
       alert("No payslips available!");
       return;
     }
+
     setSending(true);
     setMessage("");
     try {
       const response = await axios.post("http://localhost:5000/api/payslip/request-release", { status: "pending" });
+
+
+    
       if (response.data.success) {
         setMessage("✅ Payroll release request sent to Admin!");
       } else {
         setMessage("❌ Failed to send request.");
       }
     } catch (error) {
+
+
+     
       setMessage("❌ An error occurred while sending the request.");
     } finally {
       setSending(false);
@@ -101,6 +121,8 @@ const Overview = () => {
               <li><p><strong className="text-neutralDGray">Pag-IBIG</strong> - 2% of salary for both employer and employee for salaries over P1,500.</p></li>
             </ul>
           </div>
+
+  
         </div>
       </div>
     </div>
