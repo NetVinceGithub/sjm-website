@@ -18,7 +18,6 @@ const AdminLounge = () => {
 
       <Tab
         tabs={[
-          { label: "Overview", content: <p>This is the Overview tab.</p> },
           { label: "Payroll Requests", content: <Requests /> },
           { label: "User Management", content: <AddAdmin /> },
           { label: "Jobs", content: <Job /> },

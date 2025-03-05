@@ -234,83 +234,101 @@ export const getPayslipByEcode = async (req, res) => {
 };
 
 
-
 export const generatePayroll = async (req, res) => {
-  try {
-    console.log("🚀 Starting Payroll Generation...");
-    console.log("📩 Received Request Body:", req.body); // ✅ Debugging step
-    const { cutoffDate } = req.body;
+  console.log("🔍 Incoming request body:", req.body);
+  const { cutoffDate } = req.body;
 
-    // Fetch all required data
+  if (!cutoffDate) {
+    return res.status(400).json({ success: false, message: "cutoffDate is required" });
+  }
+
+  try {
+    console.log("🚀 Starting Payroll Generation for cutoffDate:", cutoffDate);
+
+    // Fetch data
     const employees = await Employee.findAll();
+    const attendanceSummaries = await AttendanceSummary.findAll();
+    const payrollInformations = await PayrollInformation.findAll();
+
+    console.log("📊 Attendance Summaries:", JSON.stringify(attendanceSummaries, null, 2));
+    console.log("📊 Payroll Informations:", JSON.stringify(payrollInformations, null, 2));
+
     if (!employees || employees.length === 0) {
       console.log("⚠️ No Employees Found!");
       return res.status(400).json({ success: false, message: "No employees found!" });
     }
-
-    const attendanceSummaries = await AttendanceSummary.findAll();
-    const payrollInformations = await PayrollInformation.findAll();
 
     let generatedPayslips = [];
 
     for (const employee of employees) {
       console.log(`Processing Payroll for: ${employee.name} (${employee.ecode})`);
 
-      // 🔍 Find the employee's attendance summary
       const employeeAttendance = attendanceSummaries.find(summary => summary.ecode === employee.ecode) || {};
-
       const employeePayrollInfo = payrollInformations.find(info => info.ecode === employee.ecode) || {};
 
-      const basicPay = (employeeAttendance.totalHours || 0) * (employeePayrollInfo.hourly_rate || 0);
-      const overtimePay = (employeeAttendance.totalOvertime || 0) * (employeePayrollInfo.overtime_pay ) ;
-      const holidayPay = (employeeAttendance.holiday || 0) * (employeePayrollInfo.hourly_rate || 0);
+      const totalHours = Number(employeeAttendance?.totalHours) || 0;
+
+      const totalOvertime = Number(employeeAttendance?.totalOvertime) || 0;
+
+      
+      const hourlyRate = employeePayrollInfo.hourly_rate || 0;
+      const overtimeRate = employeePayrollInfo.overtime_pay || 0;
+      const holidayHours = Number(employeeAttendance?.holiday) || 0;
+      const dailyRate = employeePayrollInfo.daily_rate || 0;
       const allowance = employeePayrollInfo.allowance || 0;
-      const sss = employeePayrollInfo.sss || 0;
-      const phic = employeePayrollInfo.phic || 0;
-      const hdmf = employeePayrollInfo.hdmf || 0;
+      const sss = employeePayrollInfo.sss_contribution || 0;
+      const phic = employeePayrollInfo.philhealth_contribution || 0;
+      const hdmf = employeePayrollInfo.pagibig_contribution || 0;
+      const tardiness = (Number(employeeAttendance?.totalTardiness) || 0) * (hourlyRate / 60);
+      const nightDifferential = employeePayrollInfo.night_differential || 0;
+      const loan = employeePayrollInfo.loan || 0;
+      const otherDeductions = employeePayrollInfo.otherDeductions || 0;
+      const adjustment = employeePayrollInfo.adjustment || 0;
 
-      const tardiness = (employeeAttendance.totalTardiness || 0) * (employeePayrollInfo.hourly_rate/ 60);
-      const gross_pay = basicPay + overtimePay + holidayPay;
-      const totalEarnings = gross_pay + allowance;
-      const totalDeductions = tardiness + sss + phic + hdmf;
-
-      const netPay = totalEarnings - totalDeductions;
+      // Salary Computation
+      const basicPay = totalHours * hourlyRate;
+      const overtimePay = totalOvertime * overtimeRate;
+      const holidayPay = holidayHours * hourlyRate;
+      const grossPay = basicPay + overtimePay + holidayPay;
+      const totalEarnings = grossPay + allowance;
+      const totalDeductions = tardiness + sss + phic + hdmf + loan + otherDeductions;
+      const netPay = totalEarnings - totalDeductions + adjustment;
 
       const payslipData = {
         ecode: employee.ecode,
         email: employee.emailaddress,
         employeeId: employee.id,
         name: employee.name,
-        project: employee.area || "N/A",
+        project: employee["area/section"] || "N/A",
         position: employee.positiontitle || "N/A",
         department: employee.department,
         cutoffDate,
-        dailyrate: employeePayrollInfo.daily_rate || 0,
+        dailyrate: dailyRate.toFixed(2),
         basicPay: basicPay.toFixed(2),
         noOfDays: 0,
         overtimePay: overtimePay.toFixed(2),
-        totalOvertime: attendanceSummaries.totalOvertime.toFixed(2),
+        totalOvertime: totalOvertime,
         holidayPay: holidayPay.toFixed(2),
-        nightDifferential: payrollInformations.night_differential,
+        nightDifferential: nightDifferential.toFixed(2),
         allowance: allowance.toFixed(2),
         sss: sss.toFixed(2),
         phic: phic.toFixed(2),
         hdmf: hdmf.toFixed(2),
-        loan: payrollInformations.load.toFixed(2),
+        loan: loan.toFixed(2),
         totalTardiness: tardiness.toFixed(2),
-        totalHours: employeeAttendance.totalHours.toFixed(2),
-        otherDeductions:payrollInformations.otherDeductions.toFixed(2),
+        totalHours: totalHours.toFixed(2),
+        otherDeductions: otherDeductions.toFixed(2),
         totalEarnings: totalEarnings.toFixed(2),
         totalDeductions: totalDeductions.toFixed(2),
-        adjustment: payrollInformations.adjustment,
-        gross_pay: gross_pay.toFixed(2),
+        adjustment: adjustment.toFixed(2),
+        gross_pay: grossPay.toFixed(2),
         netPay: netPay.toFixed(2),
         status: "pending",
       };
 
       console.log("✅ Payslip Data:", payslipData);
 
-      // Save the payslip to the database
+      // Save the payslip
       try {
         const newPayslip = await Payslip.create(payslipData);
         generatedPayslips.push(newPayslip);
@@ -320,12 +338,14 @@ export const generatePayroll = async (req, res) => {
     }
 
     res.status(201).json({ success: true, message: "Payroll generated!", payslips: generatedPayslips });
-
   } catch (error) {
     console.error("❌ Payroll Generation Error:", error);
     res.status(500).json({ success: false, message: "Server error during payroll generation." });
   }
 };
+
+
+
 
 
 
@@ -415,3 +435,21 @@ export const pendingRequests = async (req, res) => {
     res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 }
+
+export const getPayslipById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Fetch payslip from the database
+    const payslip = await Payslip.findOne({ where: { employee_id: id } });
+
+    if (!payslip) {
+      console.log(`Payslip not found for employee_id: ${id}`);
+      return res.status(404).json({ message: "Payslip not found" });
+    }
+    res.status(200).json(payslip);
+    
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
