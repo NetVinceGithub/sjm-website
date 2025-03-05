@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import Breadcrumb from "../dashboard/Breadcrumb";
+import DataTable from "react-data-table-component";
 
 const Attendance = () => {
   const [attendanceData, setAttendanceData] = useState([]);
@@ -159,6 +160,25 @@ const Attendance = () => {
     }
   };
 
+  const attendanceColumns = [
+    { name: "E-Code", selector: row => row.ecode, sortable: true, width: "100px", center: true },
+    { name: "Date", selector: row => row.ea_txndte, sortable: true, center: true },
+    { name: "Scheduled In", selector: row => row.schedin, sortable: true, width: "120px", center: true },
+    { name: "Scheduled Out", selector: row => row.schedout, sortable: true, width: "130px", center: true },
+    { name: "Time In", selector: row => row.timein, sortable: true, center: true },
+    { name: "Time Out", selector: row => row.timeout2, sortable: true, center: true },
+    { name: "Tardiness (mins)", selector: row => row.tardiness, sortable: true, width: "140px", center: true },
+    { name: "Total Hours Worked", selector: row => row.total_hours, sortable: true, width: "170px", center: true },
+    { name: "Overtime (hrs)", selector: row => row.overtime, sortable: true, width: "130px", center: true },
+  ];
+
+  const summaryColumns = [
+    { name: "E-Code", selector: row => row.ecode, sortable: true, width: "100px", center: true },
+    { name: "Total Tardiness (mins)", selector: row => row.totalTardiness, sortable: true, width: "170px", center: true  },
+    { name: "Total Hours Worked", selector: row => row.totalHours, sortable: true, width: "160px", center: true  },
+    { name: "Total Overtime (hrs)", selector: row => row.totalOvertime, sortable: true, width: "160px", center: true  },
+  ];
+
   return (
     <div className="p-6 pt-20">
       <Breadcrumb
@@ -168,18 +188,12 @@ const Attendance = () => {
         ]}
       />
   
-      <div className="p-2 rounded border border-neutralDGray">
+      <div className="p-2 rounded border bg-white shadow-sm border-neutralDGray">
         <h2 className="text-lg font-semibold text-neutralDGray mb-2">
           Upload Attendance File
         </h2>
-        <button
-          onClick={handleSubmit}
-          className="mt-4 px-4 py-2 bg-brandPrimary text-white rounded-md"
-        >
-          Save Attendance
-        </button>
-        <div className="flex items-center gap-3 border border-neutralDGray rounded-md p-2 bg-slate-50">
-          <label className="px-4 py-2 bg-brandPrimary text-white rounded-md cursor-pointer">
+        <div className="flex items-center justify-between border border-neutralDGray rounded-md p-2 bg-slate-50">
+          <label className="px-4 py-2 bg-brandPrimary hover:bg-neutralDGray text-white rounded-md cursor-pointer">
             Upload File
             <input
               type="file"
@@ -191,72 +205,38 @@ const Attendance = () => {
           <span className="text-sm text-neutralDGray">
             {selectedFile || "No file selected"}
           </span>
+          <button
+            onClick={handleSubmit}
+            className="px-4 py-2 h-auto bg-brandPrimary hover:bg-neutralDGray cursor-pointer text-white rounded-md"
+          >
+            Save Attendance
+          </button>
         </div>
       </div>
-  
-      {/* Detailed Attendance Table */}
-      {attendanceData.length > 0 && (
-        <div className="overflow-auto border p-2 mt-4">
-          <h2 className="text-lg font-semibold text-neutralDGray mb-2">
-            Detailed Attendance
-          </h2>
-          <table className="w-full border-collapse border border-gray-400">
-            <thead>
-              <tr className="bg-gray-200">
-                {Object.keys(attendanceData[0]).map((header, index) => (
-                  <th key={index} className="border p-2">
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {attendanceData.map((row, rowIndex) => (
-                <tr key={rowIndex} className="border">
-                  {Object.values(row).map((cell, cellIndex) => (
-                    <td key={cellIndex} className="border p-2">
-                      {cell}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="grid mt-3 grid-cols-2 gap-3">
+        {/* Attendance Table */}
+        <div className="overflow-auto h-[458px] rounded border bg-white shadow-sm p-2">
+          <h2 className="text-lg font-semibold text-neutralDGray mb-2">Detailed Attendance</h2>
+          {attendanceData.length > 0 ? (
+            <DataTable columns={attendanceColumns} data={attendanceData} pagination highlightOnHover />
+          ) : (
+            <p className="text-center text-gray-500">No attendance data available.</p>
+          )}
         </div>
-      )}
-  
-      {/* Summary Table */}
-      {summaryData.length > 0 && (
-        <div className="overflow-auto border p-2 mt-4">
-          <h2 className="text-lg font-semibold text-neutralDGray mb-2">
-            Attendance Summary
-          </h2>
-          <table className="w-full border-collapse border border-gray-400">
-            <thead>
-              <tr className="bg-gray-200">
-                <th className="border p-2">Employee Code</th>
-                <th className="border p-2">Total Tardiness (mins)</th>
-                <th className="border p-2">Total Hours Worked</th>
-                <th className="border p-2">Total Overtime (hrs)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {summaryData.map((row, rowIndex) => (
-                <tr key={rowIndex} className="border">
-                  <td className="border p-2">{row.ecode}</td>
-                  <td className="border p-2">{parseFloat(row.totalTardiness).toFixed(2)}</td>
-                  <td className="border p-2">{parseFloat(row.totalHours).toFixed(2)}</td>
-                  <td className="border p-2">{parseFloat(row.totalOvertime).toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
 
-          </table>
+        {/* Summary Table */}
+        <div className="overflow-auto h-[458px] rounded border bg-white shadow-sm p-2">
+          <h2 className="text-lg font-semibold text-neutralDGray mb-2">Attendance Summary</h2>
+          {summaryData.length > 0 ? (
+            <DataTable columns={summaryColumns} data={summaryData} pagination highlightOnHover />
+          ) : (
+            <p className="text-center text-gray-500">No summary data available.</p>
+          )}
         </div>
-      )}
+      </div>
+
     </div>
   );
-  
 };
 
 export default Attendance;

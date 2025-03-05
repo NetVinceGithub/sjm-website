@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import EmployeeDashboard from "./pages/EmloyeeDashboard";
@@ -43,8 +44,22 @@ import Foot from "./components/promoWeb/Foot";
 import Overview from "./components/dashboard/dashboard/Overview";
 import AddNew from "./components/dashboard/employee/AddNew";
 import History from "./components/dashboard/attendance/History";
+import PayrollSummary from "./components/dashboard/dashboard/PayrollSummary";
 
+const PageTitleUpdater = () => {
+  const location = useLocation();
 
+  useEffect(() => {
+    const titleMap = {
+      "/sjm": "St. John Majore",
+      "/payroll-management-login": "SJM Payroll Management Portal",
+    };
+
+    document.title = titleMap[location.pathname] || "Default Title";
+  }, [location.pathname]);
+
+  return null;
+};
 
 function App() {
   return (
@@ -62,11 +77,11 @@ function AppContent() {
     <>
       {/* Show Navbar only in public routes */}
       {publicRoutes.includes(location) && <Navbar />}
-      
+      <PageTitleUpdater />
       <ScrollToTop />
       <Routes>
         {/* Public Routes */}
-        <Route path="/main" element={<Main />} />
+        <Route path="/sjm" element={<Main />} />
         <Route path="/admin" element={<Administration />} />
         <Route path="/faqs" element={<Questions />} />
         <Route path="/careers" element={<Career />} />
@@ -87,7 +102,7 @@ function AppContent() {
             </PrivateRoutes>
           }
         >
-          <Route index element={<AdminSummary />} />
+          <Route index element={<Overview />} />
           <Route path="overview" element={<Overview />} />
 
           <Route path="departments" element={<DepartmentList />} />
@@ -106,6 +121,7 @@ function AppContent() {
           <Route path="create-payroll" element={<CreatePayroll />} />
           <Route path="employees/payroll-data/:id" element={<EmployeePayrollData />} />
           <Route path="payslip-history" element={<PayslipHistory />} />
+          <Route path="payroll-summary" element={<PayrollSummary/>}/>
           <Route path="employees/payslip/:id" element={<Payslip />} />
           <Route path="employees/payslip-history/:id" element={<EmployeePayslipHistory />} />
           <Route path="employees/allowance/:id" element={<Allowance />} />
