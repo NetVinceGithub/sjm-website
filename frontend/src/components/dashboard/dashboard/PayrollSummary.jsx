@@ -41,7 +41,7 @@ const PayrollSummary = () => {
       setLoading(true);
       console.log("📩 Sending request with cutoffDate:", cutoffDate);
   
-      const response = await axios.post("http://localhost:5000/api/payslip/generate", { cutoffDate });
+      const response = await axios.post("http://localhost:5000/api/payslip/generate", { cutoffDate: cutoffDate.trim() });
   
       console.log("✅ Payroll response:", response.data);
   
@@ -100,7 +100,7 @@ const PayrollSummary = () => {
     {
       name: "Payslip",
       cell: (row) => (
-        <Link to={`/payslip/${row.ecode}`} style={{ textDecoration: "none" }}>
+        <Link to={`/admin-dashboard/employees/payslip/${row.employeeId}`} style={{ textDecoration: "none" }}>
           <button
             style={{
               backgroundColor: "#007bff",
