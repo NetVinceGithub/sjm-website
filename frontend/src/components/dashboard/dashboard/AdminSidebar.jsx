@@ -58,7 +58,7 @@ const AdminSidebar = () => {
           <div className="mb-1">
             <button
               onClick={() => toggleDropdown("dashboard")}
-              className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition"
+              className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition-all duration-300"
             >
               <span className="flex items-center space-x-4">
                 <FaTachometerAlt />
@@ -115,7 +115,7 @@ const AdminSidebar = () => {
             {/* Toggle Employee Dropdown */}
             <button
               onClick={() => toggleDropdown("employee")}
-              className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition"
+              className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition-all duration-300"
             >
               <span className="flex items-center space-x-4">
                 <FaUsers />
@@ -132,7 +132,7 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/employees"
                       className={({ isActive }) =>
-                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${
+                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition-all duration-300 ${
                           isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
                         }`
                       }
@@ -145,7 +145,7 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/add-employee"
                       className={({ isActive }) =>
-                        `flex -mt-3 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${
+                        `flex -mt-3 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition-all duration-300 ${
                           isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
                         }`
                       }
@@ -229,7 +229,7 @@ const AdminSidebar = () => {
           <div className="mb-1 -mt-2">
             <button
               onClick={() => toggleDropdown("payroll")}
-              className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition"
+              className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition-all duration-300"
             >
               <span className="flex items-center space-x-4">
                 <FaFileInvoiceDollar  />
@@ -257,7 +257,7 @@ const AdminSidebar = () => {
                     </NavLink>
 
                     <NavLink
-                      to="/admin-dashboard"
+                      to="/admin-dashboard/payroll-summary"
                       className={({ isActive }) =>
                         `flex -mt-1 items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                           isActive ? "bg-[#5f2e3d] font-bold border-l-4" : "hover:bg-[#924F64]"

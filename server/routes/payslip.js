@@ -4,7 +4,8 @@ import {
   addPayslip, getPayslips, sendPayslips,
   getPayslipsHistory, getPayslipByEcode, generatePayroll, requestRelease, 
   releasePayroll,
-  pendingRequests
+  pendingRequests,
+  getPayslipById
 } from "../controllers/payslipController.js";
 import { sequelize } from "../db/db.js"; // Ensure correct path
 import { QueryTypes } from "sequelize";
@@ -15,6 +16,8 @@ const router = express.Router();
 
 // Fetch payslips
 router.get("/", getPayslips);
+
+router.get("/:id", getPayslipById);
 
 // Add a payslip
 router.post("/", addPayslip);
@@ -29,27 +32,8 @@ router.get("/history", getPayslipsHistory);
 router.get("/history/ecode/:ecode", getPayslipByEcode);
 
 // Generate Payroll
-router.post("/generate", async (req, res) => {
-  try {
-    const { cutoffDate } = req.body;
-    if (!cutoffDate) {
-      return res.status(400).json({ success: false, message: "Missing cutoff date!" });
-    }
-
-    const payslips = await generatePayroll(cutoffDate);
-
-    res.json({
-      success: true,
-      payslips: payslips || [], // Ensure array is returned
-    });
-  } catch (error) {
-    console.error("❌ Payroll generation error:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error", payslips: [] });
-  }
-});
-
-
-
+router.post("/generate", generatePayroll);
+  
 
 // Request payroll release
 router.post("/request-release", requestRelease);

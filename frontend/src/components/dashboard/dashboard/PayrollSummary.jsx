@@ -41,7 +41,7 @@ const PayrollSummary = () => {
       setLoading(true);
       console.log("📩 Sending request with cutoffDate:", cutoffDate);
   
-      const response = await axios.post("http://localhost:5000/api/payslip/generate", { cutoffDate });
+      const response = await axios.post("http://localhost:5000/api/payslip/generate", { cutoffDate: cutoffDate.trim() });
   
       console.log("✅ Payroll response:", response.data);
   
@@ -100,7 +100,7 @@ const PayrollSummary = () => {
     {
       name: "Payslip",
       cell: (row) => (
-        <Link to={`/payslip/${row.ecode}`} style={{ textDecoration: "none" }}>
+        <Link to={`/admin-dashboard/employees/payslip/${row.employeeId}`} style={{ textDecoration: "none" }}>
           <button
             style={{
               backgroundColor: "#007bff",
@@ -121,69 +121,71 @@ const PayrollSummary = () => {
   return (
     <div className="fixed w-[80rem] h-screen p-6 pt-20">
       {/* Breadcrumb Navigation */}
-      <Breadcrumb items={[{ label: "Dashboard", href: "" }, { label: "Payroll Overview", href: "" }]} />
+      <Breadcrumb
+          items={[
+            { label: "Payroll", href: "" },
+            { label: "Payroll Information", href: "/admin-dashboard/employees" },
+            { label: "Payroll Generator", href: "/admin-dashboard/employees" },
+          ]}
+        />
+        <div className="flex gap-4 mt-3">
+          {/* Left Section (Payroll Form) */}
+          <div className="w-[60%] bg-white rounded shadow-sm p-3">
+            {/* Cutoff Date Input */}
+            <label className="block text-sm font-medium text-gray-700">Cutoff Date:</label>
+            <div className="flex items-center justify-between mt-3">
+              {/* Cutoff Date Input */}
+              <input
+                type="text"
+                value={cutoffDate}
+                readOnly
+                className="p-2 border rounded w-[60%] bg-gray-100 cursor-not-allowed"
+              />
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6 items-stretch">
-        <SummaryCard icon={<FaCashRegister />} title="Total Payroll" number={payslips.length} color="bg-[#88B9D3]" />
-        <SummaryCard icon={<FaHandHoldingUsd />} title="Gross Salary" number={payslips.reduce((acc, p) => acc + (p.basicPay || 0), 0).toLocaleString()} color="bg-[#B9DD8B]" />
-        <SummaryCard icon={<FaChartPie />} title="Total Employee Benefits" number={0} color="bg-[#D18AA6]" />
-        <SummaryCard icon={<FaUsers />} title="Total Headcount" number={payslips.length} color="bg-[#95B375]" />
-      </div>
+              {/* Button Section */}
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleCreatePayroll}
+                  className={`px-2 py-1 ml-2 rounded w-36 h-10 text-white ${
+                    cutoffDate ? "bg-brandPrimary hover:bg-neutralDGray" : "bg-neutralGray cursor-not-allowed opacity-50"
+                  }`}
+                  disabled={loading || !cutoffDate}
+                >
+                  {loading ? "Generating..." : "Create Payroll"}
+                </button>
 
-      <div className="flex gap-6 mt-6">
-        {/* Left Section (Form + Table) */}
-        <div className="w-[70%]">
-          {/* Cutoff Date Input */}
-          <label className="block text-sm font-medium text-gray-700">Cutoff Date:</label>
-          <input
-            type="text"
-            value={cutoffDate} // Display the selected date
-            readOnly
-            className="mt-1 p-2 border rounded w-full bg-gray-100 cursor-not-allowed"
-          />
+                <button
+                  onClick={handleReleaseRequest}
+                  className="px-4 bg-brandPrimary py-1 rounded w-32 h-10 text-white hover:bg-neutralDGray disabled:opacity-50"
+                  disabled={sending}
+                >
+                  {sending ? "Sending..." : "Request"}
+                </button>
+              </div>
+            </div>
 
-          {/* Button Section */}
-          <div className="flex space-x-4 mt-6">
-            <button
-              onClick={handleCreatePayroll}
-              className={`px-2 py-1 -mt-3 rounded w-32 h-10 text-white ${cutoffDate ? "bg-brandPrimary hover:bg-neutralDGray" : "bg-neutralGray cursor-not-allowed"}`}
-              disabled={loading || !cutoffDate}
-            >
-              {loading ? "Generating..." : "Create Payroll"}
-            </button>
+            {/* Success/Error Message */}
+            {message && <p className="mt-4 text-center text-green-600">{message}</p>}
 
-            <button
-              onClick={handleReleaseRequest}
-              className="px-4 bg-brandPrimary py-1 -mt-3 rounded w-32 h-10 text-white hover:bg-neutralDGray"
-              disabled={sending}
-            >
-              {sending ? "Sending..." : "Request"}
-            </button>
+            {/* Data Table */}
+            <div className="mt-6">
+              <h4 className="text-lg text-neutralDGray rounded font-semibold px-2 py-2 bg-gray-200 mb-2">Payroll Details</h4>
+              {loading ? (
+                <p className="mt-6 text-center text-gray-600">Loading payslips...</p>
+              ) : payslips.length > 0 ? (
+                <DataTable columns={columns} data={payslips} pagination highlightOnHover striped />
+              ) : (
+                <p className="mt-6 text-center text-gray-600">No payslip records available.</p>
+              )}
+            </div>
           </div>
 
-          {/* Success/Error Message */}
-          {message && <p className="mt-4 text-center text-green-600">{message}</p>}
-
-          {/* Data Table */}
-          <div className="mt-6">
-            <h4 className="text-lg font-semibold px-2 py-2 bg-gray-200 mb-2">Payroll Details</h4>
-            {loading ? (
-              <p className="mt-6 text-center text-gray-600">Loading payslips...</p>
-            ) : payslips.length > 0 ? (
-              <DataTable columns={columns} data={payslips} pagination highlightOnHover striped />
-            ) : (
-              <p className="mt-6 text-center text-gray-600">No payslip records available.</p>
-            )}
+          {/* Right Section (Calendar) */}
+          <div className="w-[40%]">
+            <CustomCalendar onDateChange={setCutoffDate} />
           </div>
         </div>
-
-        {/* Right Section (Calendar) */}
-        <div className="w-[30%]">
-          <CustomCalendar onDateChange={setCutoffDate} />
-        </div>
       </div>
-    </div>
   );
 };
 

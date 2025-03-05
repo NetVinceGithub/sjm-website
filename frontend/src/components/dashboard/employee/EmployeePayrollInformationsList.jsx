@@ -117,7 +117,7 @@ const EmployeePayrollInformationsList = () => {
         <div className="mt-4 overflow-x-auto">
           <div className="w-full max-w-[75rem]">
             {/* Scrollable Table Wrapper */}
-            <div className="max-h-[35rem] overflow-y-auto border rounded-md">
+            <div className="max-h-[35rem] overflow-y-auto text-neutralDGray border rounded-md">
               <DataTable
                 customStyles={customStyles}
                 columns={[
