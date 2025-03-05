@@ -3,6 +3,7 @@
     "framer-motion": "^12.4.7",
     "react-multi-carousel": "^2.8.5",
     "react-scroll": "^1.9.3",
+    "recharts": "^2.15.1",
     "xlsx": "^0.18.5"
   }
 }

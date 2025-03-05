@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import DataTable from 'react-data-table-component';
 import { useNavigate, useParams } from 'react-router-dom';
 import Breadcrumb from './Breadcrumb';
+import { FaSearch, FaSyncAlt } from "react-icons/fa";
+import { FaPrint, FaRegFileExcel, FaRegFilePdf } from "react-icons/fa6";
 
 const PayslipHistory = () => {
   const [payslips, setPayslips] = useState([]);
@@ -118,30 +120,49 @@ const PayslipHistory = () => {
             { label: "Payroll History", href: "/admin-dashboard/employees" },
           ]}
         />
-        {loading ? (
-          <div>Loading...</div>
-        ) : (
-          <div>
-            <div className="text-center">
-              <h3 className="text-2xl font-bold">Payslip History</h3>
+        <div className='bg-white p-3 rounded shadow-sm border -mt-1'>
+          {loading ? (
+            <div>Loading...</div>
+          ) : (
+            <div>
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="inline-flex border border-neutralDGray rounded h-8">
+                    <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center">
+                      <FaPrint title="Print" className="text-neutralDGray] transition-all duration-300" />
+                    </button>
+          
+                    <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center">
+                      <FaRegFileExcel title="Export to Excel" className=" text-neutralDGray" />
+                    </button>
+                    <button className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center">
+                      <FaRegFilePdf title="Export to PDF" className=" text-neutralDGray" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex rounded items-center">
+                      <input
+                        type="text"
+                        placeholder="Search by Name or Employee ID"
+                        className="px-2 w-[268px] rounded py-0.5 border"
+                        onChange={handleSearch}
+                      />
+                      <FaSearch className="ml-[-20px] text-neutralDGray" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <hr />
+              <div className="mt-3">
+                <DataTable
+                  columns={columns}
+                  data={filteredPayslips}
+                  pagination
+                />
+              </div>
             </div>
-            <div className="flex justify-between items-center">
-              <input
-                type="text"
-                placeholder="Search by Name or Employee ID"
-                className="px-4 py-0.5 border"
-                onChange={handleSearch}
-              />
-            </div>
-            <div className="mt-5">
-              <DataTable
-                columns={columns}
-                data={filteredPayslips}
-                pagination
-              />
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </>
     </div>
   );
