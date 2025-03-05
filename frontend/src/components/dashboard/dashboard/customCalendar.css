@@ -26,6 +26,21 @@
     font-size: 16px;
     color: #4d4d4d;
   }
+
+  .react-calendar__tile {
+    height: 30px !important;  /* Adjust the height */
+    width: 30px !important;   /* Adjust the width */
+    font-size: 12px !important; /* Reduce font size */
+    padding: 3px !important;
+  }
+
+  .custom-calendar-tile {
+    background-color: #4CAF4F !important;  /* Custom highlight color */
+    color: white !important;  /* Text color */
+    border-radius: 50%;  /* Circular highlight */
+    font-weight: bold;
+  }
+  
   
   .custom-calendar .react-calendar__navigation button:hover {
     background: #4d4d4d;

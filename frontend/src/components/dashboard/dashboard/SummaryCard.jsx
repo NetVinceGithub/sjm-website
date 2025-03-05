@@ -3,7 +3,7 @@ import { FaUser } from 'react-icons/fa';
 
 const SummaryCard = ({ icon, title, number, color }) => {
   return (
-    <div className="h-[70px] -mt-7 flex rounded hover:scale-105 transition-all duration-300 bg-white">
+    <div className="h-[70px] -mt-7 border border-neutralDGray shadow-sm flex rounded hover:scale-105 transition-all duration-300 bg-white">
       {/* Left Section: Icon */}
       <div className={`text-2xl flex justify-center rounded-l w-14 rounded-bl items-center ${color} text-white px-3`}>
         {icon}
