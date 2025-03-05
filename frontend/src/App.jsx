@@ -15,7 +15,7 @@ import View from "./components/dashboard/employee/View";
 import Edit from "./components/dashboard/employee/Edit";
 import Allowance from "./components/dashboard/employee/Allowance";
 import EmployeeIDCard from "./components/dashboard/EmployeeIDCard";
-import Payslip from "./components/dashboard/payroll/Payslip";
+import Payslip from "./components/dashboard/payroll/PayslipModal";
 import AdminLounge from "./components/admin/AdminLounge";
 import PayrollSystemData from "./components/dashboard/salary/PayrollSystemData";
 import Projects from "./components/dashboard/projects/Projects";
