@@ -9,7 +9,9 @@ import {
   getPayrollInformations,
   getPayrollInformationsById,
   updatePayrollInformation,
-  updateIDDetails
+  updateIDDetails,
+  getEmployeeStatus,
+  toggleEmployeeStatus
 } from "../controllers/employeeController.js";
 
 const router = express.Router();
@@ -47,6 +49,8 @@ const upload = multer({
 // Employee Routes
 router.get("/import", importEmployeesFromGoogleSheet);
 router.get("/", getEmployees);
+router.get("/status", getEmployeeStatus);
+router.put("/toggle-status/:id", toggleEmployeeStatus);
 router.get("/payroll-informations/:id", getPayrollInformationsById);
 router.put("/payroll-informations/:id", updatePayrollInformation);
 router.put("/update-details/:id", upload.fields([

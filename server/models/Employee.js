@@ -134,6 +134,10 @@ const Employee = sequelize.define("Employee", {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
+  status: {
+    type: DataTypes.STRING,
+    defaultValue: "active",
+  },
 }, { timestamps: false });
 
 // 🔥 Hook: Automatically create PayrollInformation when an Employee is created
