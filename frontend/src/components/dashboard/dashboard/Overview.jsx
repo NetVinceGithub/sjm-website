@@ -13,6 +13,7 @@ import { LineChart } from "recharts";
 const Overview = () => {
   const [payslips, setPayslips] = useState([]);
   const [cutoffDate, setCutoffDate] = useState("");
+  const [employees, setEmployees] = useState([]); // will fetch the active employees
 
   useEffect(() => {
     const fetchPayslips = async () => {
@@ -21,13 +22,23 @@ const Overview = () => {
         setPayslips(response.data);
       } catch (error) {
         console.error("Error fetching payslips:", error);
-      } finally {
-        setLoading(false);
-      }
+      } 
     };
 
     fetchPayslips();
   }, []);
+
+  useEffect(() => {
+    const fetchEmployees = async () => { 
+      try {
+        const response = await axios.get("http://localhost:5000/api/employee/status");
+        setEmployees(response.data);
+      } catch (error) {
+        console.log("Error fetching active employees", error);
+      }
+  };
+  fetchEmployees();
+}, []);
 
 
   const handleCreatePayroll = async () => {
@@ -38,7 +49,6 @@ const Overview = () => {
 
     try {
       setMessage("");
-      setLoading(true);
       const response = await axios.post("http://localhost:5000/api/payslip/generate", { cutoffDate });
 
   
@@ -56,9 +66,7 @@ const Overview = () => {
 
        
       setMessage(`❌ ${error.response?.data?.message || "An error occurred while generating payroll."}`);
-    } finally {
-      setLoading(false);
-    }
+    } 
   };
 
 
@@ -91,6 +99,38 @@ const Overview = () => {
     }
   };
 
+  
+  const columns = [
+    { 
+      name: "Name", 
+      selector: (row) => row.name, 
+      width: "110px", 
+      center: true 
+    },
+    { 
+      name: "Position", 
+      selector: (row) => row.positiontitle, 
+      width: "110px", 
+      center: true 
+    },
+    { 
+      name: "Status", 
+      width: "110px", 
+      center: true,
+      cell: (row) => (
+        <span className="flex items-center gap-2">
+          <span 
+            className={`w-3 h-3 rounded-full ${
+              row.status.toLowerCase() === "active" ? "bg-green-500" : "bg-red-500"
+            }`}
+          ></span>
+          {row.status}
+        </span>
+      )
+    },
+  ];
+  
+
   return (
     <div className="fixed w-full max-w-7xl mx-auto p-6 pt-20">
       <Breadcrumb items={[{ label: "Dashboard", href: "" }, { label: "Overview", href: "" }]} />
@@ -105,7 +145,11 @@ const Overview = () => {
         <div className="w-[45%]">
           <PayrollLineChart payslips={payslips} className="border border-neutralDGray" />
           <div className="bg-white h-[220px] border border-neutralDGray rounded shadow-sm mt-6">
-            <h6>Padisplay ng active employees dito ang ilalagay lang ay Name Position Status</h6>
+          <DataTable 
+            columns={columns} 
+            data={employees}
+          />
+
           </div>
 
         </div>

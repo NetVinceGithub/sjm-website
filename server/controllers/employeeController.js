@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import cron from "node-cron";
 import Employee from "../models/Employee.js"; // Employee Sequelize model
 import PayrollInformation from "../models/PayrollInformation.js"; // Payroll Sequelize model
+import sequelize from "../db/db.js";
+import { QueryTypes } from "sequelize";
 
 dotenv.config();
 
@@ -194,3 +196,44 @@ export const updateIDDetails = async (req, res) => {
   }
 };
 
+
+
+
+export const getEmployeeStatus = async (req, res) => {
+  try {
+    console.log("Fetching all employees...");
+
+    const employees = await sequelize.query(
+      "SELECT * FROM employees", // ✅ Remove WHERE condition
+      { type: QueryTypes.SELECT }
+    );
+
+    console.log("Query executed successfully:", employees);
+    res.status(200).json(employees);
+  } catch (error) {
+    console.error("Database Query Error:", error);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+
+export const toggleEmployeeStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the employee
+    const employee = await Employee.findByPk(id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // Toggle status
+    const newStatus = employee.status === "active" ? "inactive" : "active";
+    await employee.update({ status: newStatus });
+
+    res.status(200).json({ success: true, newStatus });
+  } catch (error) {
+    console.error("Error updating employee status:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
