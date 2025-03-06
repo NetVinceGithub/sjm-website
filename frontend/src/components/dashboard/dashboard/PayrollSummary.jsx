@@ -81,20 +81,22 @@ const PayrollSummary = () => {
   };
   
   
-  
   const handleReleaseRequest = async () => {
     if (!payslips.length) {
       alert("No payslips available!");
       return;
     }
-
+  
     setSending(true);
     setMessage("");
-
+  
     try {
-      // Send release request to the backend
-      const response = await axios.post("http://localhost:5000/api/payslip/request-release", { status: "pending" });
-
+      // Get requester (you might use the logged-in user)
+  
+      const response = await axios.post("http://localhost:5000/api/payslip/request-release", {
+        requestedBy,
+      });
+  
       if (response.data.success) {
         setMessage("✅ Payroll release request sent to Admin!");
       } else {
@@ -107,6 +109,7 @@ const PayrollSummary = () => {
       setSending(false);
     }
   };
+  
 
   // Define table columns
   const columns = [
@@ -217,7 +220,7 @@ const PayrollSummary = () => {
                 {loading ? (
                   <p className="mt-6 text-center text-gray-600">Loading payslips...</p>
                 ) : payslips.length > 0 ? (
-                  <DataTable columns={columns} data={payslips} pagination highlightOnHover striped />
+                  <DataTable columns={columns} data={payslips} highlightOnHover striped />
                 ) : (
                   <p className="mt-6 text-center text-gray-600">No payslip records available.</p>
                 )}
