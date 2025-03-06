@@ -81,12 +81,12 @@ function AppContent() {
       <ScrollToTop />
       <Routes>
         {/* Public Routes */}
+        <Route path="/payroll-management-login" element={<Login />} />
         <Route path="/sjm" element={<Main />} />
         <Route path="/admin" element={<Administration />} />
         <Route path="/faqs" element={<Questions />} />
         <Route path="/careers" element={<Career />} />
         <Route path="/services-offered" element={<Offers />} />
-        <Route path="/payroll-management-login" element={<Login />} />
 
         {/* Redirect "/" to the admin dashboard */}
         <Route path="/" element={<Navigate to="/admin-dashboard" />} />

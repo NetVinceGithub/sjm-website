@@ -9,7 +9,7 @@ const PrivateRoutes = ({children}) => {
     return <div>Loading.....</div>
   }
 
-  return user ? children: <Navigate to="/login" />
+  return user ? children: <Navigate to="/payroll-management-login" />
 
 }
 
