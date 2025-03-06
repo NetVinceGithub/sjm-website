@@ -8,7 +8,9 @@ import Attendance from "../models/Attendance.js";
 import PayrollInformation from "../models/PayrollInformation.js";
 import axios from "axios";
 import AttendanceSummary from "../models/AttendanceSummary.js";
-
+import { QueryTypes } from "sequelize";
+import sequelize from "../db/db.js";
+import PayrollReleaseRequest from "../models/PayrollReleaseRequest.js"; // Ensure correct path
 
 dotenv.config();
 
@@ -261,15 +263,19 @@ export const generatePayroll = async (req, res) => {
     let generatedPayslips = [];
 
     for (const employee of employees) {
+      // Skip inactive employees
+      if (employee.status === "inactive") {
+        console.log(`⏭️ Skipping inactive employee: ${employee.name} (${employee.ecode})`);
+        continue;
+      }
+
       console.log(`Processing Payroll for: ${employee.name} (${employee.ecode})`);
 
       const employeeAttendance = attendanceSummaries.find(summary => summary.ecode === employee.ecode) || {};
       const employeePayrollInfo = payrollInformations.find(info => info.ecode === employee.ecode) || {};
 
       const totalHours = Number(employeeAttendance?.totalHours) || 0;
-
       const totalOvertime = Number(employeeAttendance?.totalOvertime) || 0;
-
       
       const hourlyRate = employeePayrollInfo.hourly_rate || 0;
       const overtimeRate = employeePayrollInfo.overtime_pay || 0;
@@ -346,21 +352,16 @@ export const generatePayroll = async (req, res) => {
 
 
 
-
-
-
-
-
-export const requestRelease = async (req, res) => {
+export const requestPayrollRelease = async (req, res) => {
   try {
-    await Payslip.update(
-      { status: "pending" },  // ✅ Set status to "pending"
-      { where: {} }
-    );
-    res.json({ success: true, message: "Payroll release request sent!" });
+    const { requestedBy } = req.body;
+
+    const request = await PayrollReleaseRequest.create({ requestedBy, status: "pending" });
+
+    res.status(201).json({ message: "Payroll release requested", request });
   } catch (error) {
-    console.error("Server error:", error);
-    res.status(500).json({ success: false, message: "Server error", error: error.message });
+    console.error("Error requesting payroll release:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -424,17 +425,36 @@ export const releasePayroll = async (req, res) => {
 
 export const pendingRequests = async (req, res) => {
   try {
-    const pendingRequests = await sequelize.query(
-      "SELECT * FROM payslips WHERE status = 'pending';",
-      { type: QueryTypes.SELECT }
-    );
+    const requests = await PayrollReleaseRequest.findAll({ where: { status: "pending" } });
 
-    res.json(pendingRequests);
+    res.json(requests);
   } catch (error) {
-    console.error("❌ Error fetching pending requests:", error);
-    res.status(500).json({ success: false, error: "Internal Server Error" });
+    console.error("Error fetching pending requests:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
-}
+};
+
+export const updatePayrollRequest = async (req, res) => {
+  try {
+    const { requestId, status } = req.body;
+
+    const request = await PayrollReleaseRequest.findByPk(requestId);
+    if (!request) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    request.status = status;
+    await request.save();
+
+    res.json({ message: `Payroll request ${status}`, request });
+  } catch (error) {
+    console.error("Error updating payroll request:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+
 
 export const getPayslipById = async (req, res) => {
   try {
@@ -451,5 +471,16 @@ export const getPayslipById = async (req, res) => {
     
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+export const deleteAllPayslips = async (req, res) => {
+  try {
+    await Payslip.destroy({ where: {}, truncate: true }); // Deletes all rows
+    res.status(200).json({ message: "All payslips deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting all payslips:", error);
+    res.status(500).json({ message: "Internal server error." });
   }
 };

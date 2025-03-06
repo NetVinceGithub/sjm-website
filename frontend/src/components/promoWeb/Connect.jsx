@@ -1,9 +1,19 @@
 import React, { useState } from 'react';
 import Img31 from '../../assets/31.png';
+import axios from 'axios'; // ✅ Correct Import
 
 const Connect = () => {
-  const [formData, setFormData] = useState({ name: '' });
+  const [formData, setFormData] = useState({
+    firstname: '',
+    surname: '',
+    type: '',
+    services: '',
+    email: '',
+    phone: '',
+    message: ''
+  });
 
+  const [statusMessage, setStatusMessage] = useState(''); 
   // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -11,10 +21,19 @@ const Connect = () => {
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form Submitted:', formData);
+    try {
+      const response = await axios.post('http://localhost:5000/api/connect', formData);
+      setStatusMessage('Form submitted successfully!'); // ✅ Now defined
+      setFormData({ firstname: '', surname: '', type: '', services: '', email: '', phone: '', message: '' });
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setStatusMessage('Error submitting form. Please try again.');
+    }
   };
+
+  
 
   return (
     <div>
@@ -69,8 +88,8 @@ const Connect = () => {
                     onChange={handleChange}
                   >
                     <option value="">Select Type</option>
-                    <option value="type1">Client</option>
-                    <option value="type2">Applicant</option>
+                    <option value="Client">Client</option>
+                    <option value="Applicant">Applicant</option>
                   </select>
                 </div>
 
@@ -86,11 +105,11 @@ const Connect = () => {
                     onChange={handleChange}
                   >
                     <option value="">Select Service</option>
-                    <option value="service1">Manpower Services</option>
-                    <option value="service2">Hospitality Services</option>
-                    <option value="service3">Utility Services</option>
-                    <option value="service4">Equipment Rental and Supply</option>
-                    <option value="service5">Materials Supply</option>
+                    <option value="Manpower Services">Manpower Services</option>
+                    <option value="Hospitality Services">Hospitality Services</option>
+                    <option value="Utility Services">Utility Services</option>
+                    <option value="Equipment Rental and Supply">Equipment Rental and Supply</option>
+                    <option value="Materials Supply">Materials Supply</option>
                   </select>
                 </div>
               </div>
