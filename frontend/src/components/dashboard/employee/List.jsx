@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
 import DataTable from "react-data-table-component";
 import axios from "axios";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+
 // import { EmployeeButtons } from "../../../utils/EmployeeHelper";
 import { FaSearch, FaSyncAlt, FaIdCard } from "react-icons/fa";
 import EmployeeIDCard from "../EmployeeIDCard";
@@ -15,7 +20,8 @@ const List = () => {
   const [syncing, setSyncing] = useState(false);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [employeeToToggle, setEmployeeToToggle] = useState(null);
   useEffect(() => {
     fetchEmployees();
   }, []);
@@ -67,6 +73,101 @@ const List = () => {
     setSelectedEmployeeId(null);
   };
 
+
+  const handleToggleStatus = async (id, currentStatus) => {
+    // Determine the new status
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+  
+    // Optimistically update both states
+    setEmployees((prevEmployees) =>
+      prevEmployees.map((emp) =>
+        emp.id === id ? { ...emp, status: newStatus } : emp
+      )
+    );
+    
+    setFilteredEmployees((prevFiltered) =>
+      prevFiltered.map((emp) =>
+        emp.id === id ? { ...emp, status: newStatus } : emp
+      )
+    );
+  
+    try {
+      // Send API request to update status
+      const response = await axios.put(`http://localhost:5000/api/employee/toggle-status/${id}`);
+  
+      if (!response.data.success) {
+        console.error("Failed to update employee status.");
+        fetchEmployees(); // Revert the UI if the API request fails
+      }
+    } catch (error) {
+      console.error("Error updating employee status:", error);
+      fetchEmployees(); // Ensure the UI reflects the correct data if the request fails
+    }
+  };
+  
+  const exportToExcel = () => {
+    if (filteredEmployees.length === 0) {
+      alert("⚠ No data available to export.");
+      return;
+    }
+  
+    // Define columns to exclude
+    const excludedColumns = ["sss", "tin", "philhealth", "pagibig", "contact_name", "contact_number", "contact_address", "profileImage","esignature", "status",]; // Add column keys you want to exclude
+  
+    // Filter out the excluded columns
+    const modifiedData = filteredEmployees.map((employee) => {
+      const filteredEmployee = { ...employee };
+      excludedColumns.forEach((col) => delete filteredEmployee[col]); // Remove unwanted columns
+      return filteredEmployee;
+    });
+  
+    // Convert the modified data to a worksheet
+    const ws = XLSX.utils.json_to_sheet(modifiedData);
+  
+    // Create a new workbook and append the worksheet
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Employees");
+  
+    // Write the file and trigger download
+    XLSX.writeFile(wb, "Employee_List.xlsx");
+  };
+  
+  
+  const exportToPDF = () => {
+    if (filteredEmployees.length === 0) {
+      alert("⚠ No data available to export.");
+      return;
+    }
+  
+    const doc = new jsPDF();
+    doc.text("Employee Masterlist", 14, 15);
+  
+    const tableColumn = ["Ecode", "Name", "Position", "Department", "Status"];
+    const tableRows = filteredEmployees.map((emp) => [
+      emp.ecode,
+      emp.name,
+      emp.positiontitle,
+      emp.department || "N/A",
+      emp.status.toUpperCase(),
+    ]);
+  
+    // Use autoTable function correctly
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 20,
+    });
+  
+    doc.save("Employee_List.pdf");
+  };
+  
+
+  const printTable = () => {
+    window.print();
+  };
+  
+  
+
   const customStyles = {
     table: {
       style: {
@@ -112,14 +213,24 @@ const List = () => {
         <div className="flex items-center justify-between">
         {/* Button Group - Centered Vertically */}
         <div className="inline-flex border border-neutralDGray rounded h-8">
-          <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center">
-            <FaPrint title="Print" className="text-neutralDGray] transition-all duration-300" />
-          </button>
+        <button
+          onClick={printTable} // Print the table
+          className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
+        >
+          <FaPrint title="Print" className="text-neutralDGray] transition-all duration-300" />
+        </button>
 
-          <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center">
+          <button
+            onClick={exportToExcel} // Add the onClick event
+            className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center"
+          >
             <FaRegFileExcel title="Export to Excel" className=" text-neutralDGray" />
           </button>
-          <button className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center">
+
+          <button
+            onClick={exportToPDF} // Export as PDF
+            className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center"
+          >
             <FaRegFilePdf title="Export to PDF" className=" text-neutralDGray" />
           </button>
         </div>
@@ -168,9 +279,15 @@ const List = () => {
                           <button className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center">
                             <FaEnvelope title="Message" className=" text-neutralDGray w-5 h-5" />
                           </button>
-                          <button className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-r flex items-center justify-center">
-                            <FaMinusSquare title="Block" className=" text-neutralDGray w-5 h-5" />
+                          <button
+                            className={`w-20 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${
+                              row.status === "active" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+                            }`}
+                            onClick={() => handleToggleStatus(row.id, row.status)} // Toggle status on click
+                          >
+                            <FaMinusSquare title="Toggle Status" className="w-5 h-5" />
                           </button>
+
                         </div>
                       ),
                       width: "240px", // Adjusted for better fit
@@ -178,7 +295,6 @@ const List = () => {
                     },
                   ]}
                   data={filteredEmployees}
-                  pagination
                   progressPending={loading}
                 />
               </div>
