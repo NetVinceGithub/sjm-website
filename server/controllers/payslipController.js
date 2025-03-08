@@ -48,7 +48,7 @@ export const sendPayslips = async (req, res) => {
     let failedEmails = [];
     let payslipIdsToDelete = [];
 
-    for (let payslip of payslips) {
+    for (let payslip of payslips) {            
       if (!payslip.email) {
         console.warn(`⚠️ Skipping payslip for ${payslip.name} (No email provided)`);
         failedEmails.push({ name: payslip.name, reason: "No email provided" });
@@ -124,19 +124,35 @@ export const sendPayslips = async (req, res) => {
         // Save to history
         await PayslipHistory.create({
           ecode: payslip.ecode,
-          employeeId: Number(payslip.employeeId),
           email: payslip.email,
+          employeeId: payslip.id,
           name: payslip.name,
-          position: payslip.position,
-          project: payslip.project,
-          cutoffDate: payslip.cutoff_date || "N/A",  // Ensure correct field name
-          allowance: payslip.allowance || 0,
-          basicPay: payslip.basic_pay ?? 0,  
-          overtimePay: payslip.overtimePay ?? 0,  
-          holidayPay: payslip.holiday_pay ?? 0,  
-          totalDeductions: payslip.total_deductions ?? 0,  
-          netPay: payslip.net_pay ?? 0,  
+          project: payslip.project || "N/A",
+          position: payslip.position || "N/A",
+          department: payslip.department,
+          cutoffDate: payslip.cutoff_date,
+          dailyrate: parseFloat(payslip.dailyrate) || 0,
+          basicPay: parseFloat(payslip.basic_pay) || 0,
+          noOfDays: parseFloat(payslip.no_of_days) || 0,
+          overtimePay: parseFloat(payslip.overtime_pay || 0).toFixed(2),
+          totalOvertime: parseFloat(payslip.total_overtime || 0).toFixed(2),
+          holidayPay: parseFloat(payslip.holiday_pay || 0).toFixed(2),
+          nightDifferential: parseFloat(payslip.night_differential || 0).toFixed(2),
+          allowance: parseFloat(payslip.allowance || 0).toFixed(2),
+          sss: parseFloat(payslip.sss || 0).toFixed(2),
+          phic: parseFloat(payslip.phic || 0).toFixed(2),
+          hdmf: parseFloat(payslip.hdmf || 0).toFixed(2),
+          loan: parseFloat(payslip.loan || 0).toFixed(2),
+          totalTardiness: parseFloat(payslip.total_tardiness || 0).toFixed(2),
+          totalHours: parseFloat(payslip.total_hours || 0).toFixed(2),
+          otherDeductions: parseFloat(payslip.other_deductions || 0).toFixed(2),
+          totalEarnings: parseFloat(payslip.total_earnings || 0).toFixed(2),
+          totalDeductions: parseFloat(payslip.total_deductions || 0).toFixed(2),
+          adjustment: parseFloat(payslip.adjustment || 0).toFixed(2),
+          gross_pay: parseFloat(payslip.gross_pay || 0).toFixed(2),
+          netPay: parseFloat(payslip.net_pay || 0).toFixed(2),
         });
+        
         
         
 
@@ -369,7 +385,7 @@ export const requestPayrollRelease = async (req, res) => {
 export const releasePayroll = async (req, res) => {
   try {
     const [results, metadata] = await sequelize.query(
-      "UPDATE payslips SET status = 'approved' WHERE status = 'pending';",
+      "UPDATE payslips SET status = 'released' WHERE status = 'pending';",
       { type: QueryTypes.RAW }
     );
 
@@ -379,9 +395,10 @@ export const releasePayroll = async (req, res) => {
     if (metadata.affectedRows > 0) {
       // 🔍 Fetch all approved payslips
       const payslips = await sequelize.query(
-        "SELECT * FROM payslips WHERE status = 'approved';",
+        "SELECT * FROM payslips WHERE status = 'released';", // Change 'approved' to 'released'
         { type: QueryTypes.SELECT }
       );
+      
 
       console.log("📄 Approved Payslips:", payslips); // ✅ Log fetched payslips
 

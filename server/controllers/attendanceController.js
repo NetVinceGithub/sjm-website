@@ -2,9 +2,10 @@ import Attendance from "../models/Attendance.js";
 import moment from "moment";
 import AttendanceSummary from "../models/AttendanceSummary.js";
 
+
 export const saveAttendance = async (req, res) => {
   try {
-    console.log("Received attendance data:", req.body); // Debugging
+    console.log("Received attendance data:", req.body);
 
     const attendanceRecords = req.body.attendanceData;
 
@@ -12,14 +13,19 @@ export const saveAttendance = async (req, res) => {
       return res.status(400).json({ message: "Invalid data format. Expecting an array." });
     }
 
-    // Convert date format before inserting
-    const formattedRecords = attendanceRecords.map(record => ({
-      ...record,
-      ea_txndte: moment(record.ea_txndte, ["DD-MMM-YY", "YYYY-MM-DD"]).format("YYYY-MM-DD") // Convert date
-    }));
+    const formattedRecords = attendanceRecords.map(record => {
+      if (record.ea_txndte) {
+        const formattedDate = moment(record.ea_txndte, ["DD-MMM-YY", "YYYY-MM-DD"], true);
+        if (!formattedDate.isValid()) {
+          console.error(`Invalid date format: ${record.ea_txndte}`);
+          throw new Error(`Invalid date format: ${record.ea_txndte}. Expected format: DD-MMM-YY or YYYY-MM-DD.`);
+        }
+        record.ea_txndte = formattedDate.format("YYYY-MM-DD"); // Convert to MySQL format
+      }
+      return record;
+    });
 
-    // Bulk insert using Sequelize
-    const result = await Attendance.bulkCreate(formattedRecords);
+    const result = await Attendance.bulkCreate(formattedRecords, { validate: true });
 
     res.status(201).json({
       message: "Attendance data saved successfully",
@@ -31,6 +37,7 @@ export const saveAttendance = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 export const saveAttendanceSummary = async (req, res) => {
   try {
@@ -56,3 +63,11 @@ export const saveAttendanceSummary = async (req, res) => {
   }
 };
 
+export const getAttendance = async (req, res) => {
+  try {
+    const attendance = await Attendance.findAll();
+    res.status(200).json({attendance});
+  } catch (error) {
+    res.status(500).json({success: false, error: "error in attendancController"});
+  }
+}
