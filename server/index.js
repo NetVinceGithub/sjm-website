@@ -38,7 +38,7 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(cors());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ✅ **Move `upload` setup before importing routes**
+// ✅ Move `upload` setup before importing routes
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
@@ -62,7 +62,7 @@ export const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-// ✅ **Now import routes (after `upload` is initialized)**
+// ✅ Now import routes (after `upload` is initialized)
 import authRouter from "./routes/auth.js";
 import departmentRouter from "./routes/department.js";
 import employeeRouter from "./routes/employee.js";
@@ -74,11 +74,18 @@ import userRouter from "./routes/user.js";
 import invoiceRouter from "./routes/invoice.js";
 import jobsRouter from "./routes/jobs.js";
 import attendanceRouter from "./routes/attendance.js";
-import connectRouter from "./routes/connect.js"
-// Routes
+import connectRouter from "./routes/connect.js"; // ✅ Import connectRouter
+
+// Add logging middleware to log incoming requests
+app.use((req, res, next) => {
+  console.log(`Request URL: ${req.url}, Method: ${req.method}`);
+  next();
+});
+
+// Your existing routes go here
 app.use("/api/auth", authRouter);
 app.use("/api/department", departmentRouter);
-app.use("/api/employee", employeeRouter); // No more error!
+app.use("/api/employee", employeeRouter);
 app.use("/api/rates", ratesRouter);
 app.use("/api/projects", projectRouter);
 app.use("/api/allowance", allowanceRouter);
@@ -87,7 +94,8 @@ app.use("/api/users", userRouter);
 app.use("/api/invoice", invoiceRouter);
 app.use("/api/jobs", jobsRouter);
 app.use("/api/attendance", attendanceRouter);
-app.use("/api/connect", connectRouter );
+app.use("/api/connect", connectRouter); // Ensure this line is included
+
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);

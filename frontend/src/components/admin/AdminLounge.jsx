@@ -4,6 +4,7 @@ import Tab from "./Tab";
 import Requests from "./Requests";
 import AddAdmin from "./AddAdmin"; // ✅ Import AddAdmin
 import Job from "./Job";
+import ConnectMessages from "./ConnectMessages";
 
 const AdminLounge = () => {
   return (
@@ -21,6 +22,7 @@ const AdminLounge = () => {
           { label: "Payroll Requests", content: <Requests /> },
           { label: "User Management", content: <AddAdmin /> },
           { label: "Jobs", content: <Job /> },
+          {label: "Messages", content: <ConnectMessages />}
         ]}
       />
     </div>
