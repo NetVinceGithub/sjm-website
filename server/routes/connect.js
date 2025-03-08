@@ -1,18 +1,8 @@
 import express from "express";
-import Connect from "../models/Connect.js";
-import { addMessages } from "../controllers/connectController.js";
-
-
-
-
+import { addMessages, getMessages } from "../controllers/connectController.js";
 const router = express.Router();
 
 // POST request to save form data
-router.post('/connect', addMessages);
-
-
-
-
-
-
+router.post('/', addMessages); // The route should be '/' since it is prefixed by '/api/connect' in index.js
+router.get('/messages', getMessages);
 export default router;
