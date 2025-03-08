@@ -1,6 +1,6 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../db/db.js";
-
+import moment from "moment"; // Import moment.js for date formatting
 
 const Attendance = sequelize.define("Attendance", {
   id: {
@@ -13,25 +13,34 @@ const Attendance = sequelize.define("Attendance", {
     allowNull: false,
   },
   ea_txndte: {
-    type: DataTypes.DATEONLY, // Stores date without time
+    type: DataTypes.DATEONLY,
     allowNull: false,
+    set(value) {
+      this.setDataValue("ea_txndte", moment(value, ["DD-MMM-YY", "YYYY-MM-DD"]).format("YYYY-MM-DD"));
+    },
   },
-  schedin: {
-    type: DataTypes.STRING(10),
-    allowNull: true,
+  ea_day: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return moment(this.getDataValue("ea_txndte")).format("DD");
+    },
   },
-  schedout: {
-    type: DataTypes.STRING(10),
-    allowNull: true,
+  ea_month: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return moment(this.getDataValue("ea_txndte")).format("MM");
+    },
   },
-  timein: {
-    type: DataTypes.STRING(10),
-    allowNull: true,
+  ea_year: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return moment(this.getDataValue("ea_txndte")).format("YYYY");
+    },
   },
-  timeout2: {
-    type: DataTypes.STRING(10),
-    allowNull: true,
-  },
+  schedin: DataTypes.STRING(10),
+  schedout: DataTypes.STRING(10),
+  timein: DataTypes.STRING(10),
+  timeout2: DataTypes.STRING(10),
   tardiness: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -48,8 +57,10 @@ const Attendance = sequelize.define("Attendance", {
     defaultValue: 0.0,
   },
 }, {
-  tableName: "attendance", // Matches your MySQL table name
-  timestamps: false, // Disables `createdAt` and `updatedAt`
+  tableName: "attendances",
+  timestamps: false,
+  freezeTableName: true,
 });
 
 export default Attendance;
+
