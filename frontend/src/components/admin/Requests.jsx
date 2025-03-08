@@ -26,7 +26,7 @@ const Requests = () => {
   // Function to release payroll (approve all pending payslips)
   const handleApprove = async () => {
     try {
-      const response = await axios.post("http://localhost:5000/api/release-payroll");
+      const response = await axios.post("http://localhost:5000/api/payslip/release-payroll");
   
       if (response.data.success) {
         setMessage(response.data.message);
