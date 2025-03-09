@@ -9,7 +9,7 @@ const History = () => {
   useEffect(() => {
     const fetchAttendance = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/attendance/get-attendance");
+        const response = await axios.get("http://localhost:5000/api/attendance/get-history");
         console.log("Fetched Attendance Data:", response.data);
 
         if (response.data.attendance) {
