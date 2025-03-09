@@ -91,3 +91,16 @@ export const getAttendanceSummary = async (req, res) => {
     res.status(500).json({success: false, error:"error in attendancecontroller"})
   }
  }
+
+ export const deleteAllAttendance = async (req, res) => {
+  try {
+    // Delete all records from Attendance and AttendanceHistory
+    await Attendance.destroy({ where: {}, truncate: true });
+    await AttendanceSummary.destroy({ where: {}, truncate: true });
+
+    res.status(200).json({ message: "All attendance records deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting all attendance records:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
