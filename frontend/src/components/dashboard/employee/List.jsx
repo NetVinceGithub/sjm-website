@@ -12,6 +12,8 @@ import EmployeeIDCard from "../EmployeeIDCard";
 import Breadcrumb from "../dashboard/Breadcrumb";
 import { FaPrint, FaRegFileExcel, FaRegFilePdf } from "react-icons/fa6";
 import { FaEnvelope, FaMinusSquare } from "react-icons/fa";
+import BlockEmployeeModal from "../modals/BlockEmployeeModal";
+import UnBlockEmployeeModal from "../modals/UnblockEmployeeModal";
 
 const List = () => {
   const [employees, setEmployees] = useState([]);
@@ -22,6 +24,10 @@ const List = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [employeeToToggle, setEmployeeToToggle] = useState(null);
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+  const [isUnBlockModalOpen, setIsUnBlockModalOpen] = useState(false);
+  const [employeeToBlock, setEmployeeToBlock] = useState(null);
+
   useEffect(() => {
     fetchEmployees();
   }, []);
@@ -73,37 +79,71 @@ const List = () => {
     setSelectedEmployeeId(null);
   };
 
-
-  const handleToggleStatus = async (id, currentStatus) => {
-    // Determine the new status
-    const newStatus = currentStatus === "active" ? "inactive" : "active";
+  const confirmBlockEmployee = async () => {
+    if (employeeToBlock) {
+      try {
+        await axios.put(`http://localhost:5000/api/employee/toggle-status/${employeeToBlock.id}`);
+        
+        // Update employee status in state
+        setEmployees((prevEmployees) =>
+          prevEmployees.map((emp) =>
+            emp.id === employeeToBlock.id
+              ? { ...emp, status: "inactive" }
+              : emp
+          )
+        );
   
-    // Optimistically update both states
-    setEmployees((prevEmployees) =>
-      prevEmployees.map((emp) =>
-        emp.id === id ? { ...emp, status: newStatus } : emp
-      )
-    );
-    
-    setFilteredEmployees((prevFiltered) =>
-      prevFiltered.map((emp) =>
-        emp.id === id ? { ...emp, status: newStatus } : emp
-      )
-    );
+        setFilteredEmployees((prevFiltered) =>
+          prevFiltered.map((emp) =>
+            emp.id === employeeToBlock.id
+              ? { ...emp, status: "inactive" }
+              : emp
+          )
+        );
   
-    try {
-      // Send API request to update status
-      const response = await axios.put(`http://localhost:5000/api/employee/toggle-status/${id}`);
-  
-      if (!response.data.success) {
-        console.error("Failed to update employee status.");
-        fetchEmployees(); // Revert the UI if the API request fails
+        setIsBlockModalOpen(false); 
+        setEmployeeToBlock(null);  
+      } catch (error) {
+        console.error("Error blocking employee:", error);
+        alert("⚠ Failed to block employee. Please try again.");
       }
-    } catch (error) {
-      console.error("Error updating employee status:", error);
-      fetchEmployees(); // Ensure the UI reflects the correct data if the request fails
     }
   };
+  
+  const confirmUnblockEmployee = async () => {
+    if (employeeToBlock) {
+      try {
+        await axios.put(`http://localhost:5000/api/employee/toggle-status/${employeeToBlock.id}`);
+        
+        await fetchEmployees(); // Force refresh from the backend
+  
+        setIsUnBlockModalOpen(false);
+        setEmployeeToBlock(null);
+      } catch (error) {
+        console.error("Error unblocking employee:", error);
+        alert("⚠ Failed to unblock employee. Please try again.");
+      }
+    }
+  };
+  
+  
+  
+  
+  const handleToggleStatus = async (id, currentStatus) => {
+    const employee = employees.find((emp) => emp.id === id);
+  
+    if (!employee) return;
+  
+    if (currentStatus === "inactive") {
+      setEmployeeToBlock(employee);
+      setIsUnBlockModalOpen(true);  // Open Unblock Modal if the employee is inactive
+    } else {
+      setEmployeeToBlock(employee);
+      setIsBlockModalOpen(true); // Open Block Modal if the employee is active
+    }
+  };
+  
+  
   
   const exportToExcel = () => {
     if (filteredEmployees.length === 0) {
@@ -283,10 +323,12 @@ const List = () => {
                             className={`w-20 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${
                               row.status === "active" ? "bg-green-500 text-white" : "bg-red-500 text-white"
                             }`}
-                            onClick={() => handleToggleStatus(row.id, row.status)} // Toggle status on click
+                            onClick={() => handleToggleStatus(row.id, row.status)}
                           >
                             <FaMinusSquare title="Toggle Status" className="w-5 h-5" />
                           </button>
+
+
 
                         </div>
                       ),
@@ -307,6 +349,22 @@ const List = () => {
 
       {/* Employee ID Modal */}
       <EmployeeIDCard show={isModalOpen} handleClose={closeModal} employeeId={selectedEmployeeId} />
+      <BlockEmployeeModal
+        isOpen={isBlockModalOpen}
+        onClose={() => setIsBlockModalOpen(false)}
+        onConfirm={confirmBlockEmployee}
+        employee={employeeToBlock}
+      />
+
+      <UnBlockEmployeeModal
+        isOpen={isUnBlockModalOpen}
+        onClose={() => setIsUnBlockModalOpen(false)}
+        onConfirm={confirmUnblockEmployee}
+        employee={employeeToBlock}
+      />
+
+
+
     </div>
   );
 };

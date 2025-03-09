@@ -1,6 +1,7 @@
 import Attendance from "../models/Attendance.js";
 import moment from "moment";
 import AttendanceSummary from "../models/AttendanceSummary.js";
+import AttendanceHistory from "../models/AttendanceHistory.js";
 
 
 export const saveAttendance = async (req, res) => {
@@ -25,11 +26,13 @@ export const saveAttendance = async (req, res) => {
       return record;
     });
 
-    const result = await Attendance.bulkCreate(formattedRecords, { validate: true });
+    const result1 = await Attendance.bulkCreate(formattedRecords, { validate: true });
+    const result2 = await AttendanceHistory.bulkCreate(formattedRecords, { validate: true });
 
     res.status(201).json({
       message: "Attendance data saved successfully",
-      insertedRows: result.length,
+      insertedRows: result1.length,
+      insertedRows: result2.length,
     });
 
   } catch (error) {
@@ -71,3 +74,20 @@ export const getAttendance = async (req, res) => {
     res.status(500).json({success: false, error: "error in attendancController"});
   }
 }
+export const getAttendanceHistory = async (req, res) => {
+  try {
+    const attendance = await AttendanceHistory.findAll();
+    res.status(200).json({attendance});
+  } catch (error) {
+    res.status(500).json({success: false, error: "error in attendancController"});
+  }
+}
+
+export const getAttendanceSummary = async (req, res) => {
+  try {
+    const summary = await AttendanceSummary.findAll()
+    res.status(200).json({summary});
+  } catch (error) {
+    res.status(500).json({success: false, error:"error in attendancecontroller"})
+  }
+ }
