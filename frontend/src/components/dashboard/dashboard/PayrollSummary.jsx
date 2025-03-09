@@ -67,15 +67,18 @@ const PayrollSummary = () => {
     try {
       console.log("📩 Fetching attendance data...");
       const attendanceResponse = await axios.get("http://localhost:5000/api/attendance/get-attendance");
-  
-      const attendanceData = attendanceResponse.data;
+
+      // Ensure you extract the correct field
+      const attendanceData = attendanceResponse.data.attendance || [];
+      console.log("📊 Fetched attendance data:", attendanceData);
       
       if (!attendanceData || !Array.isArray(attendanceData) || attendanceData.length === 0) {
         console.log("🚫 No attendance data found! Stopping payroll generation.");
-        setNoAttendanceModalOpen(true); // Show modal
+        setNoAttendanceModalOpen(true);
         setLoading(false);
-        return; // Stop further execution
+        return;
       }
+      
   
       console.log("📩 Sending payroll request with cutoffDate:", cutoffDate);
   
