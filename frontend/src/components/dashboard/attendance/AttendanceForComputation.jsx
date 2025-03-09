@@ -1,49 +1,66 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
+import DeleteAttendanceModal from "../modals/DeleteAttendanceModal";
 
 const AttendanceForComputation = () => {
   const [attendanceData, setAttendanceData] = useState([]);
   const [attendanceSummary, setAttendanceSummary] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate(); // Initialize navigate function
+  const [isModalOpen, setIsModalOpen] = useState(false); // Manage modal state
+  const navigate = useNavigate();
+
+  const fetchAttendance = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/attendance/get-attendance");
+      console.log("Fetched Attendance Data:", response.data);
+
+      if (response.data.attendance) {
+        setAttendanceData(response.data.attendance);
+      } else {
+        setError("Invalid data format from API");
+      }
+    } catch (err) {
+      setError("Failed to fetch attendance data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSummary = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/attendance/get-summary");
+      console.log("Fetched Summary Data:", response.data);
+      
+      setAttendanceSummary(response.data.summary || []);
+    } catch (error) {
+      console.error("Error fetching summary:", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchAttendance = async () => {
-      try {
-        const response = await axios.get("http://localhost:5000/api/attendance/get-attendance");
-        console.log("Fetched Attendance Data:", response.data);
-
-        if (response.data.attendance) {
-          setAttendanceData(response.data.attendance);
-        } else {
-          setError("Invalid data format from API");
-        }
-      } catch (err) {
-        setError("Failed to fetch attendance data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchAttendance();
   }, []);
 
   useEffect(() => {
-    const fetchSummary = async () => {
-      try {
-        const response = await axios.get("http://localhost:5000/api/attendance/get-summary");
-        console.log("Fetched Summary Data:", response.data);
-        
-        setAttendanceSummary(response.data.summary || []);
-      } catch (error) {
-        console.error("Error fetching summary:", error);
-      }
-    };
-
     fetchSummary();
   }, []);
+
+  const deleteAllAttendance = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/api/attendance/delete-all-attendance", { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete");
+
+      // Update the UI state and refresh data
+      setAttendanceData([]);
+      fetchSummary();
+      fetchAttendance();
+      setIsModalOpen(false); // Close the modal after deletion
+    } catch (error) {
+      console.error("Error deleting attendance:", error);
+    }
+  };
 
   if (loading) return <p>Loading attendance data...</p>;
   if (error) return <p style={{ color: "red" }}>{error}</p>;
@@ -114,13 +131,33 @@ const AttendanceForComputation = () => {
         </tbody>
       </table>
 
-      {/* Button to navigate to Payroll Summary */}
       <button
         onClick={() => navigate("/admin-dashboard/payroll-summary")}
         className="mt-4 px-4 py-2 bg-brandPrimary text-white rounded hover:bg-neutralDGray"
       >
         Generate Payroll
       </button>
+
+      <button
+        onClick={() => navigate("/admin-dashboard/attendance")}
+        className="mt-4 px-4 py-2 bg-brandPrimary text-white rounded hover:bg-neutralDGray"
+      >
+        Add Attendance
+      </button>
+
+      <button 
+        className="mt-4 px-4 py-2 bg-brandPrimary text-white rounded hover:bg-neutralDGray"
+        onClick={() => setIsModalOpen(true)} // Open modal
+      >
+        Delete Attendance
+      </button>
+
+      {/* Delete Attendance Confirmation Modal */}
+      <DeleteAttendanceModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={deleteAllAttendance} // Calls delete function
+      />
     </div>
   );
 };
