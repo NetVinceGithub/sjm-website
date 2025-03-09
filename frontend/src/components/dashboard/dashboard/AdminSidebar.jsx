@@ -198,6 +198,18 @@ const AdminSidebar = () => {
                       <FaCalendarPlus />
                       <span>Add Attendance</span>
                     </NavLink>
+                    <NavLink
+                      to="/admin-dashboard/attendance-computation"
+                      className={({ isActive }) =>
+                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${
+                          isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                        }`
+                      }
+                      end
+                    >
+                      <FaCalendarPlus />
+                      <span>Attendance for Computation</span>
+                    </NavLink>
 
                     <NavLink
                       to="/admin-dashboard/attendance/history"

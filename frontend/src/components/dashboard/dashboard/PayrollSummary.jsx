@@ -2,13 +2,14 @@ import React, { useEffect, useState } from "react";
 import DataTable from "react-data-table-component";
 import { FaSearch } from "react-icons/fa";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import SummaryCard from "./SummaryCard";
 import Breadcrumb from "./Breadcrumb";
 import CustomCalendar from "./CustomCalendar";
 import { FaPrint, FaRegFileExcel, FaRegFilePdf } from "react-icons/fa6";
 import { FaReceipt } from "react-icons/fa6";
 import PayslipModal from "../payroll/PayslipModal"
+import NoAttendanceModal from "../modals/NoAttendanceModal";
 
 
 
@@ -20,6 +21,9 @@ const PayrollSummary = () => {
   const [cutoffDate, setCutoffDate] = useState(""); // Store selected cutoff date
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [noAttendanceModalOpen, setNoAttendanceModalOpen] = useState(false); // State for modal
+
+  const navigate = useNavigate();
   
   const handleOpenModal = (employeeId) => {
     setSelectedEmployee(employeeId);
@@ -50,26 +54,46 @@ const PayrollSummary = () => {
   };
 
   // Compute and generate payslips
+
   const handleCreatePayroll = async () => {
     if (!cutoffDate) {
       alert("Please select a cutoff date!");
       return;
     }
   
-    try {
-      setMessage("");
-      setLoading(true);
-      console.log("📩 Sending request with cutoffDate:", cutoffDate);
+    setMessage("");
+    setLoading(true);
   
-      const response = await axios.post("http://localhost:5000/api/payslip/generate", { cutoffDate: cutoffDate.trim() });
+    try {
+      console.log("📩 Fetching attendance data...");
+      const attendanceResponse = await axios.get("http://localhost:5000/api/attendance/get-attendance");
+  
+      const attendanceData = attendanceResponse.data;
+      
+      if (!attendanceData || !Array.isArray(attendanceData) || attendanceData.length === 0) {
+        console.log("🚫 No attendance data found! Stopping payroll generation.");
+        setNoAttendanceModalOpen(true); // Show modal
+        setLoading(false);
+        return; // Stop further execution
+      }
+  
+      console.log("📩 Sending payroll request with cutoffDate:", cutoffDate);
+  
+      const response = await axios.post("http://localhost:5000/api/payslip/generate", {
+        cutoffDate: cutoffDate.trim(),
+      });
   
       console.log("✅ Payroll response:", response.data);
   
       if (response.data.success && Array.isArray(response.data.payslips)) {
-        setPayslips(response.data.payslips);
-        setMessage("✅ Payroll successfully generated!");
+        if (response.data.payslips.length === 0) {
+          console.log("🚫 No payslips generated, opening modal.");
+          setNoAttendanceModalOpen(true);
+        } else {
+          setPayslips(response.data.payslips);
+          setMessage("✅ Payroll successfully generated!");
+        }
       } else {
-        console.error("❌ Error Details:", response.data);
         setMessage(`❌ Failed to generate payroll: ${response.data.message || "Unknown error"}`);
       }
     } catch (error) {
@@ -79,6 +103,8 @@ const PayrollSummary = () => {
       setLoading(false);
     }
   };
+  
+  
   
   
   const handleReleaseRequest = async () => {
@@ -172,11 +198,10 @@ const PayrollSummary = () => {
                 </button>
 
                 <button
-                  onClick={handleReleaseRequest}
+                  onClick={() => navigate("/admin-dashboard/attendance-computation")}
                   className="px-4 bg-brandPrimary py-1 rounded w-32 h-10 text-white hover:bg-neutralDGray disabled:opacity-50"
-                  disabled={sending}
                 >
-                  {sending ? "Sending..." : "Request"}
+                  Attendance
                 </button>
               </div>
             </div>
@@ -239,6 +264,7 @@ const PayrollSummary = () => {
           onClose={() => setModalOpen(false)} 
           employeeId={selectedEmployee}
         />
+        <NoAttendanceModal isOpen={noAttendanceModalOpen} onClose={() => setNoAttendanceModalOpen(false)} />
       </div>
   );
 };

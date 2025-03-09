@@ -80,17 +80,6 @@ export const sendPayslips = async (req, res) => {
               </tr>
             </table>
 
-            <table>
-              <tr style="background-color: #f2f2f2; text-align: center;">
-                <th style="border: 3px solid #AA396F; padding: 8px;">POSITION</th>          
-                <th style="border: 3px solid #AA396F; padding: 8px;">CUT-OFF DATE</th>          
-              </tr>
-              <tr style="text-align: center;">
-                <td style="border: 3px solid #AA396F; padding: 8px;">${payslip.position || "N/A"}</td>   
-                <td style="border: 3px solid #AA396F; padding: 8px;">${payslip.cutoff_date || "N/A"}</td>
-              </tr>
-            </table>
-            
             <h3>Payroll Summary</h3>
             <table style="width: 100%; border-collapse: collapse;">
               <tr style="background-color: #f2f2f2;">
@@ -120,8 +109,8 @@ export const sendPayslips = async (req, res) => {
         await transporter.sendMail(mailOptions);
         console.log(`📩 Payslip sent to ${payslip.email}`);
         successfulEmails.push(payslip.email);
-        console.log("For payslip history" , payslip)
-        // Save to history
+        
+        // Save to payslip history
         await PayslipHistory.create({
           ecode: payslip.ecode,
           email: payslip.email,
@@ -133,28 +122,10 @@ export const sendPayslips = async (req, res) => {
           cutoffDate: payslip.cutoff_date,
           dailyrate: parseFloat(payslip.dailyrate) || 0,
           basicPay: parseFloat(payslip.basic_pay) || 0,
-          noOfDays: parseFloat(payslip.no_of_days) || 0,
-          overtimePay: parseFloat(payslip.overtime_pay || 0).toFixed(2),
-          totalOvertime: parseFloat(payslip.total_overtime || 0).toFixed(2),
-          holidayPay: parseFloat(payslip.holiday_pay || 0).toFixed(2),
-          nightDifferential: parseFloat(payslip.night_differential || 0).toFixed(2),
-          allowance: parseFloat(payslip.allowance || 0).toFixed(2),
-          sss: parseFloat(payslip.sss || 0).toFixed(2),
-          phic: parseFloat(payslip.phic || 0).toFixed(2),
-          hdmf: parseFloat(payslip.hdmf || 0).toFixed(2),
-          loan: parseFloat(payslip.loan || 0).toFixed(2),
-          totalTardiness: parseFloat(payslip.total_tardiness || 0).toFixed(2),
           totalHours: parseFloat(payslip.total_hours || 0).toFixed(2),
-          otherDeductions: parseFloat(payslip.other_deductions || 0).toFixed(2),
-          totalEarnings: parseFloat(payslip.total_earnings || 0).toFixed(2),
           totalDeductions: parseFloat(payslip.total_deductions || 0).toFixed(2),
-          adjustment: parseFloat(payslip.adjustment || 0).toFixed(2),
-          gross_pay: parseFloat(payslip.gross_pay || 0).toFixed(2),
           netPay: parseFloat(payslip.net_pay || 0).toFixed(2),
         });
-        
-        
-        
 
         payslipIdsToDelete.push(payslip.id);
       } catch (error) {
@@ -163,26 +134,37 @@ export const sendPayslips = async (req, res) => {
       }
     }
 
-    // Bulk delete sent payslips
-    if (payslipIdsToDelete.length > 0) {
-      await Payslip.destroy({ where: { id: payslipIdsToDelete } });
-      console.log(`🗑 Deleted ${payslipIdsToDelete.length} sent payslips.`);
-    }
+// Bulk delete sent payslips
+      if (payslipIdsToDelete.length > 0) {
+        await Payslip.destroy({ where: { id: payslipIdsToDelete } });
+        console.log(`🗑 Deleted ${payslipIdsToDelete.length} sent payslips.`);
+      }
 
-    res.status(200).json({
-      success: true,
-      message: "Payslips processed.",
-      summary: {
-        sent: successfulEmails.length,
-        failed: failedEmails.length,
-        failedDetails: failedEmails,
-      },
-    });
+      // Delete all records from AttendanceSummary and Attendance tables
+      try {
+        await AttendanceSummary.destroy({ where: {} });
+        await Attendance.destroy({ where: {} });
+        console.log("🗑 Cleared AttendanceSummary and Attendance tables.");
+      } catch (error) {
+        console.error("❌ Error while clearing attendance data:", error);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Payslips processed and attendance records cleared.",
+        summary: {
+          sent: successfulEmails.length,
+          failed: failedEmails.length,
+          failedDetails: failedEmails,
+        },
+      });
+
   } catch (error) {
     console.error("❌ Server error while sending payslips:", error);
     res.status(500).json({ success: false, message: "Server error while sending payslips." });
   }
 };
+
 
 
 // 🔹 Add Payslip

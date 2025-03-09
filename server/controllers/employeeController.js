@@ -220,20 +220,22 @@ export const getEmployeeStatus = async (req, res) => {
 export const toggleEmployeeStatus = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log(`Received request to toggle status for Employee ID: ${id}`);
 
-    // Find the employee
     const employee = await Employee.findByPk(id);
     if (!employee) {
+      console.log("Employee not found");
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    // Toggle status
     const newStatus = employee.status === "active" ? "inactive" : "active";
     await employee.update({ status: newStatus });
 
+    console.log(`Employee ${id} status changed to ${newStatus}`);
     res.status(200).json({ success: true, newStatus });
   } catch (error) {
     console.error("Error updating employee status:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+

@@ -45,6 +45,7 @@ import Overview from "./components/dashboard/dashboard/Overview";
 import AddNew from "./components/dashboard/employee/AddNew";
 import History from "./components/dashboard/attendance/History";
 import PayrollSummary from "./components/dashboard/dashboard/PayrollSummary";
+import AttendanceForComputation from "./components/dashboard/attendance/AttendanceForComputation";
 
 const PageTitleUpdater = () => {
   const location = useLocation();
@@ -126,6 +127,7 @@ function AppContent() {
           <Route path="employees/payslip-history/:id" element={<EmployeePayslipHistory />} />
           <Route path="employees/allowance/:id" element={<Allowance />} />
           <Route path="attendance" element={<Attendance />} />
+          <Route path="attendance-computation" element={<AttendanceForComputation />} />
           <Route path="attendance/history" element={<History />} />
           <Route path="invoice-list" element={<InvoiceList />} />
           <Route path="projects" element={<Projects />} />

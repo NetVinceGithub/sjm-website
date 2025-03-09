@@ -49,29 +49,45 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
 
   const handleDownload = async () => {
     if (!employee || !idCardRef.current) return;
-
+  
+    console.log("Generating PDF for:", employee);
+    console.log("Profile Image URL:", profileImage);
+    console.log("Signature URL:", signature);
+  
     try {
-      const dataUrl = await toPng(idCardRef.current, {
-        cacheBust: true,
-        width: idCardRef.current.offsetWidth,
-        height: idCardRef.current.offsetHeight,
+      const dataUrl = await toPng(idCardRef.current, { cacheBust: true });
+  
+      // Initialize PDF with Legal size (8.5 x 14 inches)
+      const pdf = new jsPDF({
+        orientation: "portrait", // Use "landscape" if needed
+        unit: "in", // Set to inches
+        format: "legal" // Legal paper size (8.5 x 14 inches)
       });
-
-      const pdf = new jsPDF();
-      const imgProps = pdf.getImageProperties(dataUrl);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      let pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-      if (pdfHeight > pdf.internal.pageSize.getHeight()) {
-        pdfHeight = pdf.internal.pageSize.getHeight();
-      }
-
-      pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
+  
+      // Get PDF dimensions (Legal size: 8.5 x 14 inches)
+      const pdfWidth = pdf.internal.pageSize.getWidth(); // 8.5 inches
+      const pdfHeight = pdf.internal.pageSize.getHeight(); // 14 inches
+  
+      // Define ID card size in inches (8.48 cm x 5.72 cm)
+      const idCardWidth = 3.34; // 8.48 cm converted to inches
+      const idCardHeight = 2.25; // 5.72 cm converted to inches
+  
+      // Positioning the ID card in the center of the page
+      const xPosition = (pdfWidth - idCardWidth) / 2; // Center horizontally
+      const yPosition = (pdfHeight - idCardHeight) / 2; // Center vertically
+  
+      // Add image to the PDF at a fixed size
+      pdf.addImage(dataUrl, "PNG", xPosition, yPosition, idCardWidth, idCardHeight);
+  
+      // Save the PDF
       pdf.save(`${employee?.name || "employee-id"}.pdf`);
     } catch (error) {
-      console.error("Error generating PDF:", error.message);
+      console.error("Error generating PDF:", error);
+      alert("Failed to generate PDF. Please try again.");
     }
   };
+  
+  
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -141,11 +157,16 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
   const formattedDOB = dayjs(employee.dob).format("MMMM DD, YYYY");
 
   const getProfileImageUrl = (imagePath) => {
-    return imagePath ? `http://localhost:5000/uploads/${imagePath}` : defaultProfile;
+    if (!imagePath || imagePath === "N/A") {
+      return defaultProfile; // Use default profile picture
+    }
+    return `http://localhost:5000/uploads/${imagePath}`;
   };
+  
 
   const profileImage = getProfileImageUrl(employee.profileImage);
   const signature = getProfileImageUrl(employee.esignature);
+  
 
   return (
     <>
