@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { FaTachometerAlt, FaUsers, FaCogs, FaMoneyBillWave, FaSignOutAlt, FaRegCalendarAlt , FaPoll, FaScroll, FaPrint, FaFolderOpen, FaChevronDown, FaChevronUp, FaBookOpen,
-  FaClipboardList, FaUserPlus, FaCalendarPlus , FaCalendarCheck, FaFileInvoiceDollar   
+  FaClipboardList, FaUserPlus, FaCalendarPlus , FaCalendarCheck, FaFileInvoiceDollar, FaCalculator 
  } from 'react-icons/fa';
 import { useAuth } from '../../../context/authContext';
 import Logo from '/public/logo-rembg.png';
@@ -207,8 +207,8 @@ const AdminSidebar = () => {
                       }
                       end
                     >
-                      <FaCalendarPlus />
-                      <span>Attendance for Computation</span>
+                      <FaCalculator />
+                      <span>A. Computation</span>
                     </NavLink>
 
                     <NavLink
@@ -336,7 +336,7 @@ const AdminSidebar = () => {
         <div className="p-2 relative mt-3 bottom-4 w-full">
           <button
             onClick={handleLogout}
-            className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-[#5f2e3d] hover:bg-[#271017] hover:-translate-y-4 transition-all duration-300 rounded-md text-white"
+            className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-[#5f2e3d] hover:bg-[#271017] hover:scale-95 transition-all duration-300 rounded-md text-white"
           >
             <FaSignOutAlt />
             <span>Logout</span>

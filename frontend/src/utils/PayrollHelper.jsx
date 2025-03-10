@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { FaRegPenToSquare } from "react-icons/fa6";
+import { FaRegPenToSquare, FaXmark } from "react-icons/fa6";
 
 export const PayrollButtons = ({ Id, refreshData }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -68,15 +68,27 @@ export const PayrollButtons = ({ Id, refreshData }) => {
       >
         <FaRegPenToSquare />
       </button>
-
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 px-4">
-          <div className="bg-white p-6 rounded-xl shadow-2xl w-4/5 max-w-lg max-h-[80vh] overflow-y-auto transform transition-all scale-100">
-            <h2 className="text-xl font-semibold mb-4 text-center text-gray-800">Edit Payroll Data</h2>
+          <div className="relative bg-white p-6 mt-11 -mr-[60rem] rounded-xl shadow-2xl w-4/5 max-w-[22rem] max-h-[80vh] overflow-y-auto transform transition-all scale-100">
+            {/* Close Button */}
+            <button
+              className="absolute left-5 top-1 right-4 text-gray-600 hover:text-red-500 transition"
+              onClick={() => setIsModalOpen(false)}
+            >
+              <FaXmark size={20} />
+            </button>
+
+            <h2 className="text-xl font-poppins font-semibold mb-4 -mt-2 text-center text-neutralDGray">
+              Edit Payroll Data
+            </h2>
+            <hr className="mb-3 -mt-3" />
 
             <div className="space-y-4">
-              <label className="block text-gray-700 font-medium">{payrollData.name} - {payrollData.ecode}</label>
+              <label className="block text-gray-700 font-medium">
+               EMPLOYEE: {payrollData.ecode} - {payrollData.name}
+              </label>
 
               {[
                 { label: "Daily Rate", key: "daily_rate" },
@@ -90,13 +102,17 @@ export const PayrollButtons = ({ Id, refreshData }) => {
                 { label: "PhilHealth", key: "philhealth_contribution" },
                 { label: "Loan", key: "loan" },
               ].map(({ label, key }) => (
-                <div key={key}>
-                  <label className="block text-sm font-medium text-gray-700">{label}:</label>
+                <div key={key} className="flex flex-col">
+                  <label className="text-sm text-left mb-1 font-medium text-gray-700">
+                    {label}:
+                  </label>
                   <input
                     type="text"
                     value={payrollData[key] || 0}
-                    onChange={(e) => setPayrollData({ ...payrollData, [key]: e.target.value })}
-                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    onChange={(e) =>
+                      setPayrollData({ ...payrollData, [key]: e.target.value })
+                    }
+                    className="w-72 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               ))}
@@ -105,13 +121,13 @@ export const PayrollButtons = ({ Id, refreshData }) => {
             {/* Buttons */}
             <div className="flex justify-end gap-3 mt-6">
               <button
-                className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition-all"
+                className="px-4 py-2 border text-neutralDGray rounded-lg hover:bg-red-400 transition-all"
                 onClick={() => setIsModalOpen(false)}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-all"
+                className="px-4 py-2 border text-neutralDGray rounded-lg hover:bg-green-400 transition-all"
                 onClick={handleSave}
               >
                 Save
