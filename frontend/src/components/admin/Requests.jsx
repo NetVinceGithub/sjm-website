@@ -56,7 +56,7 @@ const Requests = () => {
   };
 
   return (
-    <div>
+    <div className="p-6 bg-white rounded shadow-sm">
       <h2 className="text-2xl font-bold mb-6 mt-1 flex text-neutralDGray items-center gap-2">
         <FaClipboardCheck className="h-8 w-8 text-neutralDGray" />
         Payroll Requests

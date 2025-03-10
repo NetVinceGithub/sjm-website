@@ -40,7 +40,7 @@ const NavBar = ({ toggleSidebar }) => {
         <FaBars />
       </button>
       
-      <p className='mt-3 hidden md:block'>Welcome back, <span className='text-brandPrimary font-semibold'>{user?.name || "Guest"}</span>!</p>
+      <p className='mt-3 align-middle hidden md:block'>Welcome back, <span className='text-brandPrimary font-semibold'>{user?.name || "Guest"}</span>!</p>
       <div className="mt-3 text-right leading-tight text-[13px]">
         <p>{date}</p> {/* Day and Date on Top */}
         <p className="-mt-4 font-medium text-xl">{time}</p> {/* Time Below */}
