@@ -13,11 +13,13 @@ const InvoiceList = () => {
   const [selectedCutoff, setSelectedCutoff] = useState(null);
   const [filteredInvoices, setFilteredInvoices] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState({ cutoffDate: null, project: null });
 
   useEffect(() => {
     const fetchInvoices = async () => {
       try {
         const response = await axios.get("http://localhost:5000/api/invoice");
+        console.log(response.data);
         if (response.data.success && Array.isArray(response.data.invoice)) {
           setInvoices(response.data.invoice);
         } else {
@@ -41,104 +43,31 @@ const InvoiceList = () => {
     setIsModalOpen(true);
   };
 
+  const handleGroupClick = (cutoffDate, project) => {
+    const filtered = invoices.filter(
+      (invoice) => invoice.cutoffDate === cutoffDate && invoice.project === project
+    );
+    setFilteredInvoices(filtered);
+    setSelectedGroup({ cutoffDate, project });
+    setIsModalOpen(true);
+  };
+
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedCutoff(null);
     setFilteredInvoices([]);
+    setSelectedGroup({ cutoffDate: null, project: null });
   };
 
-  const exportToPDF = () => {
-    const doc = new jsPDF();
-    doc.text(`Invoices for Cutoff Date: ${selectedCutoff}`, 10, 10);
-    autoTable(doc, {
-      startY: 20,
-      head: [
-        [
-          "Ecode",
-          "Name",
-          "Position",
-          "Rate",
-          "Ot Hrs",
-          "Overtime Pay",
-          "Normal Hrs",
-          "Total Earnings",
-          "Gross Pay",
-          "Total Deductions",
-          "Net Pay",
-        ],
-      ],
-      body: filteredInvoices.map((row) => [
-        row.ecode,
-        row.name,
-        row.position,
-        row.dailyrate,
-        row.totalOvertime,
-        row.overtimePay,
-        row.totalHours,
-        row.totalEarnings,
-        row.gross_pay,
-        row.totalDeductions,
-        row.netPay,
-      ]),
+  const groupByCutoffAndProject = () => {
+    const groups = {};
+    invoices.forEach((invoice) => {
+      const key = `${invoice.cutoffDate}-${invoice.project}`;
+      if (!groups[key]) {
+        groups[key] = { cutoffDate: invoice.cutoffDate, project: invoice.project };
+      }
     });
-    doc.save(`invoices_${selectedCutoff}.pdf`);
-  };
-
-  const exportToExcel = () => {
-    const excludedColumns = [
-      "ecode",
-      "email",
-      "project",
-      "department",
-      "basicPay",
-      "noOfDays",
-      "nightDifferential",
-      "allowance",
-      "sss",
-      "phic",
-      "hdmf",
-      "loan",
-      "adjustment",
-      "date",
-    ]; // Add column keys to exclude
-
-    // Filter out unwanted columns
-    const filteredData = filteredInvoices.map((invoice) =>
-      Object.fromEntries(
-        Object.entries(invoice).filter(
-          ([key]) => !excludedColumns.includes(key)
-        )
-      )
-    );
-
-    const worksheet = XLSX.utils.json_to_sheet(filteredData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Invoices");
-    XLSX.writeFile(workbook, `invoices_${selectedCutoff}.xlsx`);
-  };
-
-  const printTable = () => {
-    const printWindow = window.open("", "_blank");
-    printWindow.document.write(
-      "<html><head><title>Print Invoice</title></head><body>"
-    );
-    printWindow.document.write(
-      `<h3>Invoices for Cutoff Date: ${selectedCutoff}</h3>`
-    );
-    printWindow.document.write(
-      "<table border='1' width='100%' style='border-collapse: collapse;'>"
-    );
-    printWindow.document.write(
-      "<tr><th>Ecode</th><th>Name</th><th>Position</th><th>Rate</th><th>Ot Hrs</th><th>Overtime Pay</th><th>Normal Hrs</th><th>Total Earnings</th><th>Gross Pay</th><th>Total Deductions</th><th>Net Pay</th></tr>"
-    );
-    filteredInvoices.forEach((row) => {
-      printWindow.document.write(
-        `<tr><td>${row.ecode}</td><td>${row.name}</td><td>${row.position}</td><td>${row.dailyrate}</td><td>${row.totalOvertime}</td><td>${row.overtimePay}</td><td>${row.totalHours}</td><td>${row.totalEarnings}</td><td>${row.gross_pay}</td><td>${row.totalDeductions}</td><td>${row.netPay}</td></tr>`
-      );
-    });
-    printWindow.document.write("</table></body></html>");
-    printWindow.document.close();
-    printWindow.print();
+    return Object.values(groups);
   };
 
   return (
@@ -166,16 +95,22 @@ const InvoiceList = () => {
                 name: "Cutoff Date",
                 selector: (row) => row.cutoffDate,
                 sortable: true,
+              },
+              {
+                name: "Project",
+                selector: (row) => row.project,
+                sortable: true,
+              },
+              {
+                name: "Action",
                 cell: (row) => (
-                  <button onClick={() => handleCutoffClick(row.cutoffDate)}>
-                    {row.cutoffDate}
+                  <button onClick={() => handleGroupClick(row.cutoffDate, row.project)}>
+                    View Details
                   </button>
                 ),
               },
             ]}
-            data={[...new Set(invoices.map((invoice) => invoice.cutoffDate))].map(
-              (cutoffDate) => ({ cutoffDate })
-            )}
+            data={groupByCutoffAndProject()}
             highlightOnHover
             striped
           />
@@ -186,7 +121,7 @@ const InvoiceList = () => {
             style={{
               position: "fixed",
               top: 0,
-              left: 0,
+              left: "8%",
               width: "100%",
               height: "100%",
               backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -206,7 +141,7 @@ const InvoiceList = () => {
                 overflowY: "auto",
               }}
             >
-              <h3>Invoices for Cutoff Date: {selectedCutoff}</h3>
+              <h3>Invoices for Cutoff Date: {selectedGroup.cutoffDate} | Project: {selectedGroup.project}</h3>
               <DataTable
                 columns={[
                   { name: "Ecode", selector: (row) => row.ecode },
@@ -216,15 +151,9 @@ const InvoiceList = () => {
                   { name: "Ot hours", selector: (row) => row.totalOvertime },
                   { name: "Amount", selector: (row) => row.overtimePay },
                   { name: "Normal Hours", selector: (row) => row.totalHours },
-                  {
-                    name: "Normal Amount",
-                    selector: (row) => row.totalEarnings,
-                  },
+                  { name: "Normal Amount", selector: (row) => row.totalEarnings },
                   { name: "Gross Pay", selector: (row) => row.gross_pay },
-                  {
-                    name: "Total Deductions",
-                    selector: (row) => row.totalDeductions,
-                  },
+                  { name: "Total Deductions", selector: (row) => row.totalDeductions },
                   { name: "Net Pay", selector: (row) => row.netPay },
                 ]}
                 data={filteredInvoices}
@@ -232,9 +161,6 @@ const InvoiceList = () => {
                 striped
               />
               <button onClick={closeModal}>Close</button>
-              <button onClick={printTable}>Print</button>
-              <button onClick={exportToPDF}>PDF</button>
-              <button onClick={exportToExcel}>Excel</button>
             </div>
           </div>
         )}

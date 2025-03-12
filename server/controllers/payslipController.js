@@ -11,6 +11,7 @@ import AttendanceSummary from "../models/AttendanceSummary.js";
 import { QueryTypes } from "sequelize";
 import sequelize from "../db/db.js";
 import PayrollReleaseRequest from "../models/PayrollReleaseRequest.js"; // Ensure correct path
+import path from 'path';
 dotenv.config();
 
 // Configure Email Transporter once
@@ -64,7 +65,7 @@ export const sendPayslips = async (req, res) => {
           <div style="background-color: white; align-items: center;">
                       <div style="background-color: #0093DD; width: 200px; height: 100px; border: 2px solid #0093DD; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; margin-left: 45px;">
                         <h1 style="color: white; font-weight: bold; font-size: 25px; text-align: center; margin-top: 10px;">e-PAYROLL SLIP</h1>
-                        <img src="${companyLogo}" alt="Company Logo" style="margin-top: -65px; margin-left: 265px; width: 140px; height: auto;" />  
+                        <img src="" alt="Company Logo" style="margin-top: -65px; margin-left: 265px; width: 140px; height: auto;" />  
                       </div>
           
                       <h2 style="font-weight: bold; margin-top: 30px; margin-left: 40px; font-size: 18px;">Payslip No.:</h2>
@@ -250,7 +251,7 @@ export const sendPayslips = async (req, res) => {
                         </div>
                       </div>
                     </div>
-        `,
+        `
       };
 
       try {
