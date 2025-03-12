@@ -9,6 +9,8 @@ import sequelize from "./db/db.js";
 import Employee from "./models/Employee.js";
 import PayrollInformation from "./models/PayrollInformation.js";
 
+
+
 dotenv.config();
 
 // Define associations
@@ -23,15 +25,30 @@ sequelize.sync({ alter: true })
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Ensure uploads directory exists
-const uploadsDir = './uploads';
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
 
 // Get current directory using ES Module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+app.use("/public", express.static(path.join(__dirname, "../frontend/public")));
+
+// ✅ Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// ✅ Test Route to Serve Image
+app.get("/long-logo", (req, res) => {
+  const filePath = path.join(__dirname, "../frontend/public/fonts/long-logo.png");
+
+  // Check if file exists before sending
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send("File not found!");
+  }
+});
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
@@ -81,6 +98,17 @@ app.use((req, res, next) => {
   console.log(`Request URL: ${req.url}, Method: ${req.method}`);
   next();
 });
+
+
+// Serve frontend's public folder as static
+app.use("/public", express.static(path.join(__dirname, "public")));
+
+// Example route to test access
+
+
+// Start server
+app.listen(5000, () => console.log("Server running on port 5000"));
+
 
 // Your existing routes go here
 app.use("/api/auth", authRouter);

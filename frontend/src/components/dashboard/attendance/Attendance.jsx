@@ -2,11 +2,15 @@ import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import Breadcrumb from "../dashboard/Breadcrumb";
 import DataTable from "react-data-table-component";
+import { Modal, Button } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 
 const Attendance = () => {
   const [attendanceData, setAttendanceData] = useState([]);
   const [summaryData, setSummaryData] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const navigate = useNavigate();
 
   const requiredColumns = ["ecode", "ea_txndte", "schedin", "schedout", "timein", "timeout2"];
 
@@ -132,7 +136,6 @@ const Attendance = () => {
 
   const handleSubmit = async () => {
     if (attendanceData.length === 0 || summaryData.length === 0) {
-      alert("No attendance data to submit.");
       return;
     }
 
@@ -152,11 +155,10 @@ const Attendance = () => {
       });
 
       if (!summaryResponse.ok) throw new Error("Failed to save summary");
+      setShowModal(true);
 
-      alert("Attendance data and summary saved successfully!");
     } catch (error) {
       console.error("Error:", error);
-      alert("Error saving attendance data.");
     }
   };
 
@@ -180,6 +182,8 @@ const Attendance = () => {
   ];
 
   return (
+
+    
     <div className="fixed p-6 pt-16">
       <Breadcrumb
         items={[
@@ -187,6 +191,23 @@ const Attendance = () => {
           { label: "Add Attendance", href: "/admin-dashboard/employees" },
         ]}
       />
+       <div>
+      <button onClick={handleSubmit}>Save Attendance</button>
+
+      <Modal show={showModal} onHide={() => setShowModal(false)} style={{ position: "fixed", top: "28%", left: "5%" }}>
+        <Modal.Header closeButton>
+          <Modal.Title>Success!</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>Attendance saved successfully!</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowModal(false)}>Close</Button>
+          <Button variant="primary" onClick={() => navigate("/admin-dashboard/payroll-summary")}>Go to Payroll</Button>
+        </Modal.Footer>
+      </Modal>
+
+      
+    </div>
+    
   
       <div className="p-2 -mt-3 rounded border w-[77rem] bg-white shadow-sm border-neutralDGray">
         <h2 className="text-lg font-semibold text-neutralDGray mb-2">

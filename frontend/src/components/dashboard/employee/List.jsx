@@ -4,7 +4,6 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { FaXmark } from "react-icons/fa6";
 
 
 // import { EmployeeButtons } from "../../../utils/EmployeeHelper";
@@ -153,7 +152,7 @@ const List = () => {
     }
   
     // Define columns to exclude
-    const excludedColumns = ["sss", "tin", "philhealth", "pagibig", "contact_name", "contact_number", "contact_address", "profileImage","esignature", "status",]; // Add column keys you want to exclude
+    const excludedColumns = ["id","sss", "tin", "philhealth", "pagibig", "contact_name", "contact_number", "contact_address", "profileImage","esignature", "status",]; // Add column keys you want to exclude
   
     // Filter out the excluded columns
     const modifiedData = filteredEmployees.map((employee) => {
@@ -243,14 +242,14 @@ const List = () => {
   };
 
   return (
-    <div className="fixed p-6 pt-16">
+    <div className="fixed p-6 pt-20">
       <Breadcrumb
         items={[
           { label: "Employee", href: "" },
           { label: "Masterlist", href: "/admin-dashboard/employees" },
         ]}
       />
-      <div className="bg-white w-[77rem] -mt-2 py-3 p-2 rounded-lg shadow">
+      <div className="bg-white w-[77rem] -mt-1 py-3 p-2 rounded-lg shadow">
         <div className="flex items-center justify-between">
         {/* Button Group - Centered Vertically */}
         <div className="inline-flex border border-neutralDGray rounded h-8">
