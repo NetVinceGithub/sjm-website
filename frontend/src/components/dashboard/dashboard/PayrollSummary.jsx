@@ -10,6 +10,7 @@ import { FaPrint, FaRegFileExcel, FaRegFilePdf } from "react-icons/fa6";
 import { FaReceipt } from "react-icons/fa6";
 import PayslipModal from "../payroll/PayslipModal"
 import NoAttendanceModal from "../modals/NoAttendanceModal";
+import * as XLSX from "xlsx";
 
 
 
@@ -138,6 +139,62 @@ const PayrollSummary = () => {
       setSending(false);
     }
   };
+
+
+  const handleDownloadExcel = () => {
+    if (!payslips || payslips.length === 0) {
+      alert("No payroll data available to download!");
+      return;
+    }
+  
+    try {
+      // Convert payslip data to worksheet format
+      const worksheet = XLSX.utils.json_to_sheet(
+        payslips.map((payslip) => ({
+          "Employee ID": payslip.ecode || "N/A",
+          "Employee Name": payslip.name || "Unknown",
+          "Email": payslip.email || "Unknown",
+          "Basic Pay": `₱${(payslip.basicPay || 0).toLocaleString()}`,
+          "Gross Salary": `₱${(payslip.gross_pay || 0).toLocaleString()}`,
+          "Deductions": `₱${(payslip.totalDeductions || 0).toLocaleString()}`,
+          "Net Salary": `₱${(payslip.netPay || 0).toLocaleString()}`,
+        }))
+      );
+  
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Payroll");
+  
+      // Generate file name with cutoff date
+      const fileName = `Payroll_${cutoffDate || "NoDate"}.xlsx`;
+  
+      // Download the file
+      XLSX.writeFile(workbook, fileName);
+      console.log("✅ Excel file downloaded successfully!");
+    } catch (error) {
+      console.error("❌ Error downloading Excel:", error);
+      alert("Failed to download Excel. Please try again.");
+    }
+  };
+  
+  
+  const handleDeletePayroll = async () => {
+    if (!window.confirm("Are you sure you want to delete all payroll records?")) {
+      return;
+    }
+    try {
+      const response = await axios.delete("http://localhost:5000/api/payslip");
+      if (response.data.success) {
+        setPayslips([]);
+        alert("All payroll records have been deleted.");
+      } else {
+        alert("Failed to delete payroll records.");
+      }
+    } catch (error) {
+      console.error("Error deleting payroll:", error);
+      alert("An error occurred while deleting payroll records.");
+    }
+  };
+  
   
 
   // Define table columns
@@ -205,6 +262,18 @@ const PayrollSummary = () => {
                   className="px-4 bg-brandPrimary py-1 rounded w-32 h-10 text-white hover:bg-neutralDGray disabled:opacity-50"
                 >
                   Attendance
+                </button>
+                <button
+                  onClick={handleDownloadExcel}
+                  className="px-4 bg-brandPrimary py-1 rounded w-32 h-10 text-white hover:bg-neutralDGray disabled:opacity-50"
+                >
+                  Download Excel
+                </button>
+                <button
+                  onClick={handleDeletePayroll}
+                  className="px-4 bg-brandPrimary py-1 rounded w-32 h-10 text-white hover:bg-neutralDGray disabled:opacity-50"
+                >
+                  Delete Payroll 
                 </button>
               </div>
             </div>
