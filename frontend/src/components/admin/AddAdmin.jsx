@@ -57,9 +57,9 @@ const AddAdmin = () => {
   };
 
   return (
-    <div>
+    <div className="p-6 h-[33rem] bg-white rounded shadow-sm">
       {/* ✅ Display Users */}
-      <h3 className=" text-neutralDGray text-lg font-semibold -mt-1">Current user:</h3>
+      <h3 className=" text-neutralDGray text-lg font-semibold -mt-3">Current user:</h3>
       {loading ? (
         <p>Loading users...</p>
       ) : users.length > 0 ? (
@@ -73,7 +73,7 @@ const AddAdmin = () => {
       ) : (
         <p>No users found.</p>
       )}  
-      <h2 className="text-lg font-bold mb-4 mt-2 flex text-neutralDGray items-center gap-2">
+      <h2 className="text-lg font-bold mb-3 mt-2 flex text-neutralDGray items-center gap-2">
         <FaUserPlus className="h-6 w-6 text-neutralDGray" /> Add Admin
       </h2>
       <form className="space-y-3" onSubmit={handleSubmit}>
@@ -119,7 +119,7 @@ const AddAdmin = () => {
             name="role"
             value={formData.role}
             onChange={handleChange}
-            className="mt-1 mb-3 p-2 w-full border rounded-md"
+            className="mt-1 mb-1 p-2 w-full border rounded-md"
           >
             <option value="admin">Admin</option>
             <option value="employee">Employee</option>
@@ -128,7 +128,7 @@ const AddAdmin = () => {
         <div className="flex justify-end">
           <button
             type="submit"
-            className="w-[20%] bg-brandPrimary hover:bg-neutralDGray text-white py-2 px-4 rounded"
+            className="w-[20%] bg-brandPrimary h-11 hover:bg-neutralDGray text-white py-1 px-3 rounded"
             disabled={loading}
           >
             {loading ? "Adding..." : "Add Admin"}

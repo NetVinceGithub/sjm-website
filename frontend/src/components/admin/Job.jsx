@@ -46,8 +46,8 @@ const Job = () => {
   };
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6 mt-1 flex text-neutralDGray items-center gap-2">
+    <div className="p-6 h-[33rem] bg-white rounded shadow-sm">
+      <h2 className="text-2xl font-bold mb-6 -mt-2 flex text-neutralDGray items-center gap-2">
         <FaUserPlus className="h-8 w-8 text-neutralDGray" /> Add Job
       </h2>
       <form className="space-y-4" onSubmit={handleSubmit}>
@@ -109,7 +109,7 @@ const Job = () => {
         <div className="flex justify-end">
           <button
             type="submit"
-            className="w-[20%] bg-brandPrimary hover:bg-neutralDGray text-white py-2 px-4 rounded"
+            className="w-[20%] bg-brandPrimary h-11 hover:bg-neutralDGray text-white py-1 px-3 rounded"
             disabled={loading}
           >
             {loading ? "Adding..." : "Add Job"}

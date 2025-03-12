@@ -58,21 +58,21 @@ export default function CustomCalendar({ onDateChange }) {
   return (
     <div className="flex max-w-2xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
       {/* Left Panel */}
-      <div className="w-1/2 bg-brandPrimary text-white flex flex-col justify-center items-center p-2 h-65">
+      <div className="w-[45%] bg-brandPrimary text-white flex flex-col justify-center items-center p-2 h-65">
         <h1 className="text-6xl font-bold">{selectedDate.getDate()}</h1>
         <p className="text-xl uppercase">{selectedDate.toLocaleDateString("en-US", { weekday: "long" })}</p>
         <hr className="w-full border-t border-gray-900 my-2" />
         <div className="mt-2 ml-3">
           <strong>Notice!</strong>
           <ul className="space-y-1">
-            <li className="list-disc mb-2"><p className="m-0">{notice1}</p></li>
-            <li className="list-disc"><p className="m-0">{notice2 || notice3}</p></li>
+            <li className="list-disc text-sm mb-2"><p className="m-0">{notice1}</p></li>
+            <li className="list-disc text-sm"><p className="m-0">{notice2 || notice3}</p></li>
           </ul>
         </div>
       </div>
 
       {/* Right Panel */}
-      <div className="w-1/2 border h-65 border-neutralDGray p-2">
+      <div className="w-[55%] border h-65 border-neutralDGray p-2">
         <Calendar
           onClickDay={handleDateChange}
           tileClassName={({ date }) =>

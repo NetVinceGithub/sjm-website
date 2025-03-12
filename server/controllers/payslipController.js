@@ -11,10 +11,8 @@ import AttendanceSummary from "../models/AttendanceSummary.js";
 import { QueryTypes } from "sequelize";
 import sequelize from "../db/db.js";
 import PayrollReleaseRequest from "../models/PayrollReleaseRequest.js"; // Ensure correct path
-
+import path from 'path';
 dotenv.config();
-
-
 
 // Configure Email Transporter once
 const transporter = nodemailer.createTransport({
@@ -41,16 +39,20 @@ export const sendPayslips = async (req, res) => {
 
     if (!payslips || payslips.length === 0) {
       console.log("⚠️ No payslips received.");
-      return res.status(400).json({ success: false, message: "No payslips provided." });
+      return res
+        .status(400)
+        .json({ success: false, message: "No payslips provided." });
     }
 
     let successfulEmails = [];
     let failedEmails = [];
     let payslipIdsToDelete = [];
 
-    for (let payslip of payslips) {            
+    for (let payslip of payslips) {
       if (!payslip.email) {
-        console.warn(`⚠️ Skipping payslip for ${payslip.name} (No email provided)`);
+        console.warn(
+          `⚠️ Skipping payslip for ${payslip.name} (No email provided)`
+        );
         failedEmails.push({ name: payslip.name, reason: "No email provided" });
         continue;
       }
@@ -60,56 +62,203 @@ export const sendPayslips = async (req, res) => {
         to: payslip.email,
         subject: `Payslip for ${payslip.name}`,
         html: `
-          <div style="border: 3px solid #000; width: 60%; margin: 0 auto; padding: 20px; font-family: Arial, Helvetica, sans-serif;">
-            <div style="background-color: #0093DD; width: 100%; height: 100px; border-radius: 0 0 30px 30px; text-align: center;">
-              <h2 style="color: #fff; font-weight: bold; font-size: 30px; line-height: 100px;">e-PAYROLL SLIP</h2>
-            </div>
-            <h3 style="margin-top: 20px;">Payslip No.: </h3>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-              <tr style="background-color: #f2f2f2; text-align: center;">
-                <th style="border: 3px solid #AA396F; padding: 8px;">ECODE</th>
-                <th style="border: 3px solid #AA396F; padding: 8px;">EMPLOYEE NAME</th>
-                <th style="border: 3px solid #AA396F; padding: 8px;">PROJECT SITE</th>
-                <th style="border: 3px solid #AA396F; padding: 8px;">RATE</th>
-              </tr>
-              <tr style="text-align: center;">
-                <td style="border: 3px solid #AA396F; padding: 8px;">${payslip.ecode || "N/A"}</td>
-                <td style="border: 3px solid #AA396F; padding: 8px;">${payslip.name || "-"}</td>
-                <td style="border: 3px solid #AA396F; padding: 8px;">${payslip.project || "-"}</td>
-                <td style="border: 3px solid #AA396F; padding: 8px;">₱${(payslip.dailyrate || 0).toLocaleString()}</td>
-              </tr>
-            </table>
-
-            <h3>Payroll Summary</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr style="background-color: #f2f2f2;">
-                <th style="border: 3px solid #AA396F; padding: 8px;">EARNINGS</th>
-                <th style="border: 3px solid #AA396F; padding: 8px;">FIGURES</th>
-                <th style="border: 3px solid #AA396F; padding: 8px;">DEDUCTIONS</th>
-                <th style="border: 3px solid #AA396F; padding: 8px;">FIGURES</th>
-              </tr>
-              <tr>
-                <td style="border: 3px solid #AA396F; padding: 8px;">Basic Pay</td>
-                <td style="border: 3px solid #AA396F; padding: 8px;">₱${(payslip.basic_pay || 0).toLocaleString()}</td>
-                <td style="border: 3px solid #AA396F; padding: 8px;">Total Deductions</td>
-                <td style="border: 3px solid #AA396F; padding: 8px;">₱${(payslip.total_deductions || 0).toLocaleString()}</td>
-              </tr>
-              <tr style="background-color: #f2f2f2;">
-                <th style="border: 3px solid #AA396F; padding: 8px;" colspan="2">NET PAY</th>
-                <th style="border: 3px solid #AA396F; padding: 8px;" colspan="2">₱${(payslip.net_pay || 0).toLocaleString()}</th>
-              </tr>
-            </table>
-
-            <p style="margin-top: 20px;">Thank you, <br><strong>HR Payroll Team</strong></p>
-          </div>
-        `,
+          <div style="background-color: white; align-items: center;">
+                      <div style="background-color: #0093DD; width: 200px; height: 100px; border: 2px solid #0093DD; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; margin-left: 45px;">
+                        <h1 style="color: white; font-weight: bold; font-size: 25px; text-align: center; margin-top: 10px;">e-PAYROLL SLIP</h1>
+                        <img src="" alt="Company Logo" style="margin-top: -65px; margin-left: 265px; width: 140px; height: auto;" />  
+                      </div>
+          
+                      <h2 style="font-weight: bold; margin-top: 30px; margin-left: 40px; font-size: 18px;">Payslip No.:</h2>
+                      <table style="border-collapse: collapse;">
+                        <thead>
+                          <tr style="border: 3px solid #AA396F;">
+                            <th style="border: 3px solid #AA396F; text-align: center;">ECODE</th>
+                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">EMPLOYEE NAME</th>
+                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">PROJECT SITE</th>
+                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">RATE</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr style="height: 45px;">
+                            <td style="border: 3px solid #AA396F; text-align: center;">${
+                              payslip.ecode || "N/A"
+                            }</td>
+                            <td style="border: 3px solid #AA396F; width: 290px; text-align: center;">${
+                              payslip.name || "N/A"
+                            }</td>
+                            <td style="border: 3px solid #AA396F; text-align: center;">${
+                              payslip.project || "N/A"
+                            }</td>
+                            <td style="border: 3px solid #AA396F; text-align: center;">${
+                              payslip.dailyrate || "0.00"
+                            }</td>
+                          </tr>
+                          <tr>
+                            <th style="border: 3px solid #AA396F; text-align: center;" colspan="2">
+                              POSITION
+                            </th>
+                            <th style="border: 3px solid #AA396F; text-align: center;" colspan="2">
+                              CUT-OFF DATE
+                            </th>
+                          </tr>
+                          <tr>
+                            <td style="height: 45px; border: 3px solid #AA396F; text-align: center;" colspan="2">
+                              ${payslip.position || "N/A"}
+                            </td>
+                            <td style="height: 45px; border: 3px solid #AA396F; text-align: center;" colspan="2">
+                              ${payslip.cutoff_date || "N/A"}
+                            </td>
+                          </tr>
+                          <tr>
+                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">EARNINGS</th>
+                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">FIGURES</th>
+                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">DEDUCTIONS</th>
+                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">FIGURES</th>
+                          </tr>
+                          <tr>
+                            <td style="border-bottom: 0; border: 3px solid #AA396F; border-bottom-width: 0; text-align: left;">Basic Pay</td>
+                            <td style="border: 3px solid #AA396F; border-bottom-width: 0;">${
+                              payslip.dailyrate || "0.00"
+                            }</td>
+                            <td style="border: 3px solid #AA396F; border-bottom-width: 0; font-weight: bold; width: 280px; font-size: 9px; background-color: #AA396F; border-radius: 10px; padding: 1px; text-align: center;">GOVERNMENT CONTRIBUTIONS</td>
+                            <td style="border: 3px solid #AA396F; border-bottom-width: 0;"></td>
+                          </tr>
+                          <tr>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">No. of Days</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.no_of_days || "0"
+                            }</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">SSS</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.sss || "0.00"
+                            }</td>
+                          </tr>
+                          <tr>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Overtime Pay</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.overtime_pay || "0.00"
+                            }</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">PHIC</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.phic || "0.00"
+                            }</td>
+                          </tr>
+                          <tr>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Overtime Hours</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.overtime_hours
+                            }</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">HDMF</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.hdmf
+                            }</td>
+                          </tr>
+                          <tr>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Holiday Pay</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.holiday_pay
+                            }</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Cash Advance/Loan</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.loan
+                            }</td>
+                          </tr>
+                          <tr>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Night Differenctial</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.night_differential
+                            }</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Tardiness</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.tardiness
+                            }</td>
+                          </tr>
+                          <tr>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Allowance</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.allowance
+                            }</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Other Deductions</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.other_deductions
+                            }</td>
+                          </tr>
+                          <tr>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;"></td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;"></td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Total Deductions</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">
+                              ${payslip.total_deductions || "0.00"}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;"></td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;"></td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Adjustments</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.adjustment
+                            }</td>
+                          </tr>
+                          <tr>
+                            <th style="border: 3px solid #AA396F; text-align: center;" colspan="2">
+                              NET PAY
+                            </th>
+                            <th style="border: 3px solid #AA396F; text-align: center;"  colspan="2">
+                              AMOUNT
+                            </th>
+                          </tr>
+                          <tr style="border: 3px solid #AA396F;">
+                            <td style="border: 3px solid #AA396F; text-align: left" colspan="2">
+                              NETPAY: ₱${payslip.net_pay || "0.00"}
+                            </td>
+                            <td style="border: 3px solid #AA396F;" colspan="2"></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                        <div style="min-height: 100px; width: auto; background-color: #bbe394; padding: 10px;">
+                          <div style="display: block;">
+                            <h6 style="font-weight: bold; font-size: 14px; text-align: center; margin-bottom: 2px;">
+                              Mia Mary Sora
+                            </h6>
+                            <p style="margin-top: 0; font-size: 12px; text-align: center;">
+                              Human Resource Head
+                            </p>
+                          </div>
+                          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; font-size: 12px; margin-top: -4px; max-width: 100%;">
+                            <div>
+                            <p>
+                              <strong>Company:</strong> St. John Majore Services Company
+                              Inc.
+                            </p>
+                            <p>
+                              <strong>Email:</strong> sjmajore@gmail.com
+                            </p>
+                            <p>
+                              <strong>Web:</strong> N/A
+                            </p>
+                            </div>
+                                
+                            <div>
+                            <p>
+                              <strong>Address:</strong>
+                            </p>
+                            <p>
+                              8 Patron Central Plaza De Villa St., Poblacion <br />
+                              San Juan, Batangas
+                            </p>
+                          </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+        `
       };
 
       try {
         await transporter.sendMail(mailOptions);
         console.log(`📩 Payslip sent to ${payslip.email}`);
         successfulEmails.push(payslip.email);
-        
+
         // Save to payslip history
         await PayslipHistory.create({
           ecode: payslip.ecode,
@@ -134,67 +283,99 @@ export const sendPayslips = async (req, res) => {
       }
     }
 
-// Bulk delete sent payslips
-      if (payslipIdsToDelete.length > 0) {
-        await Payslip.destroy({ where: { id: payslipIdsToDelete } });
-        console.log(`🗑 Deleted ${payslipIdsToDelete.length} sent payslips.`);
-      }
+    // Bulk delete sent payslips
+    if (payslipIdsToDelete.length > 0) {
+      await Payslip.destroy({ where: { id: payslipIdsToDelete } });
+      console.log(`🗑 Deleted ${payslipIdsToDelete.length} sent payslips.`);
+    }
 
-      // Delete all records from AttendanceSummary and Attendance tables
-      try {
-        await AttendanceSummary.destroy({ where: {} });
-        await Attendance.destroy({ where: {} });
-        console.log("🗑 Cleared AttendanceSummary and Attendance tables.");
-      } catch (error) {
-        console.error("❌ Error while clearing attendance data:", error);
-      }
+    // Delete all records from AttendanceSummary and Attendance tables
+    try {
+      await AttendanceSummary.destroy({ where: {} });
+      await Attendance.destroy({ where: {} });
+      console.log("🗑 Cleared AttendanceSummary and Attendance tables.");
+    } catch (error) {
+      console.error("❌ Error while clearing attendance data:", error);
+    }
 
-      res.status(200).json({
-        success: true,
-        message: "Payslips processed and attendance records cleared.",
-        summary: {
-          sent: successfulEmails.length,
-          failed: failedEmails.length,
-          failedDetails: failedEmails,
-        },
-      });
-
+    res.status(200).json({
+      success: true,
+      message: "Payslips processed and attendance records cleared.",
+      summary: {
+        sent: successfulEmails.length,
+        failed: failedEmails.length,
+        failedDetails: failedEmails,
+      },
+    });
   } catch (error) {
     console.error("❌ Server error while sending payslips:", error);
-    res.status(500).json({ success: false, message: "Server error while sending payslips." });
+    res.status(500).json({
+      success: false,
+      message: "Server error while sending payslips.",
+    });
   }
 };
-
-
 
 // 🔹 Add Payslip
 export const addPayslip = async (req, res) => {
   try {
     const {
-      ecode, email, employeeId, name, project, position,
-      dailyRate, basicPay, overtimePay, holidaySalary, allowance,
-      sss, phic, hdmf, totalEarnings, totalDeductions, netPay
+      ecode,
+      email,
+      employeeId,
+      name,
+      project,
+      position,
+      dailyRate,
+      basicPay,
+      overtimePay,
+      holidaySalary,
+      allowance,
+      sss,
+      phic,
+      hdmf,
+      totalEarnings,
+      totalDeductions,
+      netPay,
     } = req.body;
 
     if (!employeeId || !name || !position || !dailyRate || !basicPay) {
-      return res.status(400).json({ success: false, message: "Missing required fields" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required fields" });
     }
 
     const newPayslip = new Payslip({
-      ecode, email, employeeId, name, project, position,
-      dailyRate, basicPay, overtimePay, holidaySalary, allowance,
-      sss, phic, hdmf, totalEarnings, totalDeductions, netPay
+      ecode,
+      email,
+      employeeId,
+      name,
+      project,
+      position,
+      dailyRate,
+      basicPay,
+      overtimePay,
+      holidaySalary,
+      allowance,
+      sss,
+      phic,
+      hdmf,
+      totalEarnings,
+      totalDeductions,
+      netPay,
     });
 
     await newPayslip.save();
-    res.status(201).json({ success: true, message: "Payslip created successfully", payslip: newPayslip });
-
+    res.status(201).json({
+      success: true,
+      message: "Payslip created successfully",
+      payslip: newPayslip,
+    });
   } catch (error) {
     console.error("Error adding payslip:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 
 export const getPayslips = async (req, res) => {
   try {
@@ -205,8 +386,6 @@ export const getPayslips = async (req, res) => {
     res.status(500).json({ success: false, message: "Error getting payslips" });
   }
 };
-
-
 
 // 🔹 Fetch Payslip History
 export const getPayslipsHistory = async (req, res) => {
@@ -225,7 +404,9 @@ export const getPayslipByEcode = async (req, res) => {
   try {
     const payslip = await PayslipHistory.findOne({ ecode });
     if (!payslip) {
-      return res.status(404).json({ success: false, message: "Payslip not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Payslip not found" });
     }
     res.status(200).json({ success: true, payslip });
   } catch (error) {
@@ -233,13 +414,14 @@ export const getPayslipByEcode = async (req, res) => {
   }
 };
 
-
 export const generatePayroll = async (req, res) => {
   console.log("🔍 Incoming request body:", req.body);
   const { cutoffDate } = req.body;
 
   if (!cutoffDate) {
-    return res.status(400).json({ success: false, message: "cutoffDate is required" });
+    return res
+      .status(400)
+      .json({ success: false, message: "cutoffDate is required" });
   }
 
   try {
@@ -250,12 +432,20 @@ export const generatePayroll = async (req, res) => {
     const attendanceSummaries = await AttendanceSummary.findAll();
     const payrollInformations = await PayrollInformation.findAll();
 
-    console.log("📊 Attendance Summaries:", JSON.stringify(attendanceSummaries, null, 2));
-    console.log("📊 Payroll Informations:", JSON.stringify(payrollInformations, null, 2));
+    console.log(
+      "📊 Attendance Summaries:",
+      JSON.stringify(attendanceSummaries, null, 2)
+    );
+    console.log(
+      "📊 Payroll Informations:",
+      JSON.stringify(payrollInformations, null, 2)
+    );
 
     if (!employees || employees.length === 0) {
       console.log("⚠️ No Employees Found!");
-      return res.status(400).json({ success: false, message: "No employees found!" });
+      return res
+        .status(400)
+        .json({ success: false, message: "No employees found!" });
     }
 
     let generatedPayslips = [];
@@ -263,18 +453,26 @@ export const generatePayroll = async (req, res) => {
     for (const employee of employees) {
       // Skip inactive employees
       if (employee.status === "inactive") {
-        console.log(`⏭️ Skipping inactive employee: ${employee.name} (${employee.ecode})`);
+        console.log(
+          `⏭️ Skipping inactive employee: ${employee.name} (${employee.ecode})`
+        );
         continue;
       }
 
-      console.log(`Processing Payroll for: ${employee.name} (${employee.ecode})`);
+      console.log(
+        `Processing Payroll for: ${employee.name} (${employee.ecode})`
+      );
 
-      const employeeAttendance = attendanceSummaries.find(summary => summary.ecode === employee.ecode) || {};
-      const employeePayrollInfo = payrollInformations.find(info => info.ecode === employee.ecode) || {};
+      const employeeAttendance =
+        attendanceSummaries.find(
+          (summary) => summary.ecode === employee.ecode
+        ) || {};
+      const employeePayrollInfo =
+        payrollInformations.find((info) => info.ecode === employee.ecode) || {};
 
       const totalHours = Number(employeeAttendance?.totalHours) || 0;
       const totalOvertime = Number(employeeAttendance?.totalOvertime) || 0;
-      
+
       const hourlyRate = employeePayrollInfo.hourly_rate || 0;
       const overtimeRate = employeePayrollInfo.overtime_pay || 0;
       const holidayHours = Number(employeeAttendance?.holiday) || 0;
@@ -283,7 +481,8 @@ export const generatePayroll = async (req, res) => {
       const sss = employeePayrollInfo.sss_contribution || 0;
       const phic = employeePayrollInfo.philhealth_contribution || 0;
       const hdmf = employeePayrollInfo.pagibig_contribution || 0;
-      const tardiness = (Number(employeeAttendance?.totalTardiness) || 0) * (hourlyRate / 60);
+      const tardiness =
+        (Number(employeeAttendance?.totalTardiness) || 0) * 1.08;
       const nightDifferential = employeePayrollInfo.night_differential || 0;
       const loan = employeePayrollInfo.loan || 0;
       const otherDeductions = employeePayrollInfo.otherDeductions || 0;
@@ -293,10 +492,11 @@ export const generatePayroll = async (req, res) => {
       const basicPay = totalHours * hourlyRate;
       const overtimePay = totalOvertime * overtimeRate;
       const holidayPay = holidayHours * hourlyRate;
-      const grossPay = basicPay + overtimePay + holidayPay;
-      const totalEarnings = grossPay + allowance;
-      const totalDeductions = tardiness + sss + phic + hdmf + loan + otherDeductions;
-      const netPay = totalEarnings - totalDeductions + adjustment;
+      const grossPay = basicPay + overtimePay + holidayPay + allowance;
+      const totalEarnings = grossPay + adjustment;
+      const totalDeductions =
+        tardiness + sss + phic + hdmf + loan + otherDeductions;
+      const netPay = totalEarnings - totalDeductions;
 
       const payslipData = {
         ecode: employee.ecode,
@@ -341,20 +541,28 @@ export const generatePayroll = async (req, res) => {
       }
     }
 
-    res.status(201).json({ success: true, message: "Payroll generated!", payslips: generatedPayslips });
+    res.status(201).json({
+      success: true,
+      message: "Payroll generated!",
+      payslips: generatedPayslips,
+    });
   } catch (error) {
     console.error("❌ Payroll Generation Error:", error);
-    res.status(500).json({ success: false, message: "Server error during payroll generation." });
+    res.status(500).json({
+      success: false,
+      message: "Server error during payroll generation.",
+    });
   }
 };
-
-
 
 export const requestPayrollRelease = async (req, res) => {
   try {
     const { requestedBy } = req.body;
 
-    const request = await PayrollReleaseRequest.create({ requestedBy, status: "pending" });
+    const request = await PayrollReleaseRequest.create({
+      requestedBy,
+      status: "pending",
+    });
 
     res.status(201).json({ message: "Payroll release requested", request });
   } catch (error) {
@@ -362,7 +570,6 @@ export const requestPayrollRelease = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 export const releasePayroll = async (req, res) => {
   try {
@@ -380,7 +587,6 @@ export const releasePayroll = async (req, res) => {
         "SELECT * FROM payslips WHERE status = 'released';", // Change 'approved' to 'released'
         { type: QueryTypes.SELECT }
       );
-      
 
       console.log("📄 Approved Payslips:", payslips); // ✅ Log fetched payslips
 
@@ -420,11 +626,13 @@ export const releasePayroll = async (req, res) => {
     console.error("❌ Error releasing payroll:", error);
     res.status(500).json({ success: false, error: "Internal Server Error" });
   }
-}
+};
 
 export const pendingRequests = async (req, res) => {
   try {
-    const requests = await PayrollReleaseRequest.findAll({ where: { status: "pending" } });
+    const requests = await PayrollReleaseRequest.findAll({
+      where: { status: "pending" },
+    });
 
     res.json(requests);
   } catch (error) {
@@ -452,13 +660,10 @@ export const updatePayrollRequest = async (req, res) => {
   }
 };
 
-
-
-
 export const getPayslipById = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Fetch payslip from the database
     const payslip = await Payslip.findOne({ where: { employee_id: id } });
 
@@ -467,12 +672,10 @@ export const getPayslipById = async (req, res) => {
       return res.status(404).json({ message: "Payslip not found" });
     }
     res.status(200).json(payslip);
-    
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
 
 export const deleteAllPayslips = async (req, res) => {
   try {

@@ -152,7 +152,7 @@ const List = () => {
     }
   
     // Define columns to exclude
-    const excludedColumns = ["sss", "tin", "philhealth", "pagibig", "contact_name", "contact_number", "contact_address", "profileImage","esignature", "status",]; // Add column keys you want to exclude
+    const excludedColumns = ["id","sss", "tin", "philhealth", "pagibig", "contact_name", "contact_number", "contact_address", "profileImage","esignature", "status",]; // Add column keys you want to exclude
   
     // Filter out the excluded columns
     const modifiedData = filteredEmployees.map((employee) => {

@@ -4,19 +4,19 @@
 
 .payslip {
   border: 3px solid #000;
-  width: 55%;
+  width: 60%;
   align-items: center;
   margin: 0 auto;
-  margin-top: 40px;
+  margin-top: 0px;
 }
 
 .payslip-header {
   background-color: #0093DD;
-  width: 340px;
-  height: 200px;
+  width: 200px;
+  height: 100px;
   border: 2px solid #0093DD;
   border-radius: 0 0 30px 30px;
-  margin-left: 50px;
+  margin-left: 45px;
 }
 
 .payslip-modal {
@@ -29,14 +29,14 @@
   justify-content: center;
   align-items: center;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 1000; /* Ensure it's above other elements */
+  z-index: 1000; 
 }
 
 
 .header-img {
-  margin-top: -150px;
-  margin-left: 375px;
-  width: 320px;
+  margin-top: -65px;
+  margin-left: 265px;
+  width: 140px;
   height: auto;
 }
 
@@ -44,9 +44,9 @@
   color: #fff;
   font-weight: bold;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 45px;
+  font-size: 25px;
   text-align: center;
-  margin-top: 30px;
+  margin-top: 10px;
 }
 
 .header-two {
@@ -54,25 +54,34 @@
   font-family: Arial, Helvetica, sans-serif;
   margin-top: 30px;
   margin-left: 40px;
+  font-size: 18px;
 }
 
 table {
   margin-top: 10px;
   width: 90%;
   border-collapse: collapse;
-  margin-left: 40px;
+  margin-left: 30px;
   margin-bottom: 30px;
   align-items: center;
 }
 
 th, td {
+  padding: 5px;
+  text-align: center;
+  font-size: 10px;
+}
+
+.bor {
   border: 3px solid #AA396F;
-  padding: 8px;
-  text-align: left;
 }
 
 th {
   background-color: #f2f2f2;
+}
+
+.net {
+  text-align: left;
 }
 
 .align {
@@ -88,13 +97,21 @@ th {
 }
 
 .GovCon {
-  font-weight:  bold;
-  width: 185px;
-  font-size: 11px;
+  font-weight:  normal;
+  width: 280px;
+  font-size: 9px;
   background-color: #AA396F;
-  border-radius: 10px;
-  padding: 2px;
+  border-radius: 10px;  
+  padding: 1px;
   text-align: center;
+}
+
+.name {
+  width: 290px;
+}
+
+.left {
+  text-align: left;
 }
 
 .cell3 {
@@ -129,4 +146,11 @@ button {
   width: 180px; height: 50px;
   font-family: Arial, Helvetica, sans-serif;
   font-size: medium;
+}
+
+.footer {
+  height: 100px;
+  width: auto;
+  background-color: #bbe394;
+  padding: 10px;
 }

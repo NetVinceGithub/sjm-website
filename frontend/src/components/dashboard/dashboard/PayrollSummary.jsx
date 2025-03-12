@@ -144,7 +144,7 @@ const PayrollSummary = () => {
   const columns = [
     { name: "Employee ID", selector: (row) => row.ecode || "N/A", sortable: true, width: "120px", center: true},
     { name: "Employee Name", selector: (row) => row.name || "Unknown", sortable: true, width: "200px", center: true },
-    { name: "Email", selector: (row) => row.email || "Unknown", sortable: true, width: "220px", center:true  },
+    { name: "Email", selector: (row) => row.email || "Unknown", sortable: true, width: "220px", center: true  },
     { name: "Basic Pay", selector: (row) => `₱${(row.basicPay || 0).toLocaleString()}`, sortable: true, width: "120px", center: true },
     { name: "Gross Salary", selector: (row) => `₱${(row.gross_pay || 0).toLocaleString()}`, sortable: true, width: "140px", center: true },
     { name: "Deductions", selector: (row) => `₱${(row.totalDeductions || 0).toLocaleString()}`, sortable: true, width: "140px", center: true },
@@ -165,7 +165,7 @@ const PayrollSummary = () => {
   ];
 
   return (
-    <div className="fixed w-[80rem] h-screen p-6 pt-20">
+    <div className="fixed w-[80rem] h-screen p-6 pt-16">
       {/* Breadcrumb Navigation */}
       <Breadcrumb
           items={[
@@ -174,12 +174,12 @@ const PayrollSummary = () => {
             { label: "Payroll Generator", href: "/admin-dashboard/employees" },
           ]}
         />
-        <div className="flex gap-3 -mt-1">
+        <div className="flex gap-3 -mt-2">
           {/* Left Section (Payroll Form) */}
           <div className="w-[60%] bg-white rounded gap-2 shadow-sm p-3">
             {/* Cutoff Date Input */}
             <label className="block text-sm font-medium text-gray-700">Cutoff Date:</label>
-            <div className="flex items-center justify-between mt-3">
+            <div className="flex items-center justify-between mt-2">
               {/* Cutoff Date Input */}
               <input
                 type="text"
@@ -213,7 +213,7 @@ const PayrollSummary = () => {
             {message && <p className="mt-4 text-center text-green-600">{message}</p>}
 
             {/* Data Table */}
-            <div className="mt-6">
+            <div className="mt-3">
               <h4 className="text-lg text-neutralDGray rounded font-semibold px-2 py-2 bg-gray-200 mb-2">Payroll Details</h4>
               <div className="flex items-center justify-between">
                 {/* Button Group - Centered Vertically */}
@@ -248,7 +248,7 @@ const PayrollSummary = () => {
                 {loading ? (
                   <p className="mt-6 text-center text-gray-600">Loading payslips...</p>
                 ) : payslips.length > 0 ? (
-                  <DataTable columns={columns} data={payslips} highlightOnHover striped />
+                  <DataTable columns={columns} className="-mt-4" data={payslips} highlightOnHover striped />
                 ) : (
                   <p className="mt-6 text-center text-gray-600">No payslip records available.</p>
                 )}
