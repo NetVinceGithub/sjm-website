@@ -121,13 +121,13 @@ export const PayrollButtons = ({ Id, refreshData }) => {
             {/* Buttons */}
             <div className="flex justify-end gap-3 mt-6">
               <button
-                className="px-4 py-2 border text-neutralDGray rounded-lg hover:bg-red-400 transition-all"
+                className="px-4 py-2 border text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
                 onClick={() => setIsModalOpen(false)}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 border text-neutralDGray rounded-lg hover:bg-green-400 transition-all"
+                className="px-4 py-2 border text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                 onClick={handleSave}
               >
                 Save
