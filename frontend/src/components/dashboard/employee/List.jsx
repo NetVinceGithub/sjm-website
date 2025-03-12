@@ -4,6 +4,7 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { FaXmark } from "react-icons/fa6";
 
 
 // import { EmployeeButtons } from "../../../utils/EmployeeHelper";
@@ -242,14 +243,14 @@ const List = () => {
   };
 
   return (
-    <div className="fixed p-6 pt-20">
+    <div className="fixed p-6 pt-16">
       <Breadcrumb
         items={[
           { label: "Employee", href: "" },
           { label: "Masterlist", href: "/admin-dashboard/employees" },
         ]}
       />
-      <div className="bg-white w-[77rem] -mt-1 py-3 p-2 rounded-lg shadow">
+      <div className="bg-white w-[77rem] -mt-2 py-3 p-2 rounded-lg shadow">
         <div className="flex items-center justify-between">
         {/* Button Group - Centered Vertically */}
         <div className="inline-flex border border-neutralDGray rounded h-8">
