@@ -149,8 +149,16 @@ button {
 }
 
 .footer {
-  height: 100px;
+  height: 130px;
   width: auto;
   background-color: #bbe394;
   padding: 10px;
+}
+
+.words {
+  line-height: 0%;
+}
+
+.word1 {
+  line-height: 16px;
 }

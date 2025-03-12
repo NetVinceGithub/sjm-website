@@ -192,7 +192,6 @@ const Attendance = () => {
         ]}
       />
        <div>
-      <button onClick={handleSubmit}>Save Attendance</button>
 
       <Modal show={showModal} onHide={() => setShowModal(false)} style={{ position: "fixed", top: "28%", left: "5%" }}>
         <Modal.Header closeButton>
