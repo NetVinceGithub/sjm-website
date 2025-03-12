@@ -6,6 +6,8 @@ const Requests = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
   const [message, setMessage] = useState(""); // To store API response messages
 
   useEffect(() => {
@@ -33,6 +35,8 @@ const Requests = () => {
         setRequests((prev) =>
           prev.map((p) => ({ ...p, status: "approved" })) // Update UI
         );
+        setShowSuccessModal(true); // Show success modal
+
       } else {
         setMessage("Failed to release payroll.");
       }
@@ -53,6 +57,11 @@ const Requests = () => {
       console.error("Error deleting payroll requests:", error);
       alert("Failed to delete payslips.");
     }
+  };
+
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    setRequests([]); // Reset requests after confirming
   };
 
   return (
@@ -112,6 +121,29 @@ const Requests = () => {
               >
                 Confirm
               </button>
+            </div>
+          </div>
+        </div>
+      )};
+
+       {/* Success Modal for Approval */}
+       {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h3 className="text-lg font-semibold mb-4">Success!</h3>
+            <p>Payroll has been successfully approved.</p>
+
+            <div className="flex justify-end mt-6">
+            <button
+              onClick={() => {
+                setShowSuccessModal(false);
+                handleCloseSuccessModal();
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Close
+            </button>
+
             </div>
           </div>
         </div>
