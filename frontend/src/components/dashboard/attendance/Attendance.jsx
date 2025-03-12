@@ -180,7 +180,7 @@ const Attendance = () => {
   ];
 
   return (
-    <div className="p-6 pt-20">
+    <div className="fixed p-6 pt-16">
       <Breadcrumb
         items={[
           { label: "Attendance", href: "" },
@@ -188,7 +188,7 @@ const Attendance = () => {
         ]}
       />
   
-      <div className="p-2 rounded border bg-white shadow-sm border-neutralDGray">
+      <div className="p-2 -mt-3 rounded border w-[77rem] bg-white shadow-sm border-neutralDGray">
         <h2 className="text-lg font-semibold text-neutralDGray mb-2">
           Upload Attendance File
         </h2>

@@ -76,14 +76,14 @@ const EmployeePayrollInformationsList = () => {
   };
 
   return (
-    <div className="fixed p-6 pt-20">
+    <div className="fixed p-6 pt-16">
       <Breadcrumb
         items={[
           { label: "Payroll", href: "" },
           { label: "Payroll Information", href: "/admin-dashboard/employees" },
         ]}
       />
-      <div className="-mt-1 bg-white p-3 py-3 rounded-lg shadow">
+      <div className="-mt-2 bg-white p-3 py-3 rounded-lg shadow">
         <div className="flex items-center justify-between">
           {/* Button Group - Centered Vertically */}
           <div className="inline-flex border border-neutralDGray rounded h-8">

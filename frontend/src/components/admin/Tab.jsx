@@ -6,12 +6,12 @@ const Tab = ({ tabs }) => {
   return (
     <div>
       {/* Tab Buttons */}
-      <div className="flex w-[77rem] border-b">
+      <div className="flex w-[77rem] -mt-3 border-b">
         {tabs.map((tab, index) => (
           <button
             key={index}
             className={`py-1 px-4 h-10 w-auto ${
-              activeTab === index ? "border-b-2 border-brandPrimary bg-gradient-to-t from-brandPrimary/30 to-neutralSilver/30 font-bold" : "text-gray-500"
+              activeTab === index ? "border-b-2 text-sm border-brandPrimary bg-gradient-to-t from-brandPrimary/30 to-neutralSilver/30 font-bold" : "text-gray-500"
             }`}
             onClick={() => setActiveTab(index)}
           >
