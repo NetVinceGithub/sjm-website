@@ -19,6 +19,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
         const response = await axios.get(
           `http://localhost:5000/api/payslip/${employeeId}`
         );
+        console.log(response.data);
         setPayslip(response.data);
       } catch (err) {
         console.error("Error fetching payslip:", err);
@@ -113,27 +114,27 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                 </tr>
                 <tr>
                   <td className="cell4 bor left">Overtime Hours</td>
-                  <td className="cell4 bor"></td>
+                  <td className="cell4 bor">{payslip.totalOvertime}</td>
                   <td className="cell4 bor down left">HDMF</td>
-                  <td className="cell4 bor down"></td>
+                  <td className="cell4 bor down">{payslip.hdmf}</td>
                 </tr>
                 <tr>
                   <td className="cell4 bor left">Holiday Pay</td>
-                  <td className="cell4 bor"></td>
+                  <td className="cell4 bor">{payslip.holidayPay}</td>
                   <td className="cell4  bor left">Cash Advance/Loan</td>
-                  <td className="cell4 bor"></td>
+                  <td className="cell4 bor">{payslip.loan}</td>
                 </tr>
                 <tr>
                   <td className="cell4 bor left">Night Differenctial</td>
-                  <td className="cell4 bor"></td>
+                  <td className="cell4 bor">{payslip.nightDifferential}</td>
                   <td className="cell4 bor left">Tardiness</td>
-                  <td className="cell4 bor"></td>
+                  <td className="cell4 bor">{payslip.totalTardiness}</td>
                 </tr>
                 <tr>
                   <td className="cell4 bor left">Allowance</td>
-                  <td className="cell4 bor"></td>
+                  <td className="cell4 bor">{payslip.allowance}</td>
                   <td className="cell4 bor left">Other Deductions</td>
-                  <td className="cell4 bor"></td>
+                  <td className="cell4 bor">{payslip.otherDeductions}</td>
                 </tr>
                 <tr>
                   <td className="cell4 bor left"></td>
@@ -147,7 +148,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                   <td className="cell4 bor left"></td>
                   <td className="cell4 bor"></td>
                   <td className="cell4 bor left">Adjustments</td>
-                  <td className="cell4 bor"></td>
+                  <td className="cell4 bor">{payslip.adjustment}</td>
                 </tr>
                 <tr>
                   <th className="cell bor align" colSpan={2}>
@@ -161,7 +162,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                   <td className="cell5 net" colSpan={2}>
                     NETPAY: ₱{payslip.netPay || "0.00"}
                   </td>
-                  <td className="cell5" colSpan={2}></td>
+                  <td className="cell5" colSpan={2}>{payslip.totalDeductions}</td>
                 </tr>
               </tbody>
             </table>
