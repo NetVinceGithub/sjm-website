@@ -61,156 +61,170 @@ export const sendPayslips = async (req, res) => {
         to: payslip.email,
         subject: `Payslip for ${payslip.name}`,
         html: `
-          <div className="payslip bg-white">
-                      <div className="bg-[#0093DD] w-[200px] h-[100px] border-2 border-[#0093DD] rounded-b-[30px] ml-[45px]">
-                        <h1 className="text-white font-bold text-[25px] text-center mt-[10px]">e-PAYROLL SLIP</h1>
-                        <img  alt="Company Logo" className="mt-[-65px] ml-[265px] w-[140px] h-auto" />
+          <div style="background-color: white; align-items: center;">
+                      <div style="background-color: #0093DD; width: 200px; height: 100px; border: 2px solid #0093DD; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; margin-left: 45px;">
+                        <h1 style="color: white; font-weight: bold; font-size: 25px; text-align: center; margin-top: 10px;">e-PAYROLL SLIP</h1>
+                        <img src="${companyLogo}" alt="Company Logo" style="margin-top: -65px; margin-left: 265px; width: 140px; height: auto;" />  
                       </div>
           
-                      <h2 className="font-bold mt-[30px] ml-[40px] text-[18px]">Payslip No.:</h2>
-                      <table>
+                      <h2 style="font-weight: bold; margin-top: 30px; margin-left: 40px; font-size: 18px;">Payslip No.:</h2>
+                      <table style="border-collapse: collapse;">
                         <thead>
-                          <tr className="border-[3px] border-[#AA396F]">
-                            <th className="border-[3px] border-[#AA396F] text-center">ECODE</th>
-                            <th className="w-[200px] border-[3px] border-[#AA396F] text-center">EMPLOYEE NAME</th>
-                            <th className="w-[200px] border-[3px] border-[#AA396F] text-center">PROJECT SITE</th>
-                            <th className="w-[200px] border-[3px] border-[#AA396F] text-center">RATE</th>
+                          <tr style="border: 3px solid #AA396F;">
+                            <th style="border: 3px solid #AA396F; text-align: center;">ECODE</th>
+                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">EMPLOYEE NAME</th>
+                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">PROJECT SITE</th>
+                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">RATE</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr className="h-[45px]">
-                            <td className="border-[3px] border-[#AA396F]">${payslip.ecode || "N/A"}</td>
-                            <td className="border-[3px] border-[#AA396F] w-[290px]">${
+                          <tr style="height: 45px;">
+                            <td style="border: 3px solid #AA396F; text-align: center;">${
+                              payslip.ecode || "N/A"
+                            }</td>
+                            <td style="border: 3px solid #AA396F; width: 290px; text-align: center;">${
                               payslip.name || "N/A"
                             }</td>
-                            <td className="border-[3px] border-[#AA396F]">${payslip.project || "N/A"}</td>
-                            <td className="border-[3px] border-[#AA396F]">${
+                            <td style="border: 3px solid #AA396F; text-align: center;">${
+                              payslip.project || "N/A"
+                            }</td>
+                            <td style="border: 3px solid #AA396F; text-align: center;">${
                               payslip.dailyrate || "0.00"
                             }</td>
                           </tr>
                           <tr>
-                            <th className="border-[3px] border-[#AA396F] text-center" colSpan={2}>
+                            <th style="border: 3px solid #AA396F; text-align: center;" colspan="2">
                               POSITION
                             </th>
-                            <th className="border-[3px] border-[#AA396F] text-center" colSpan={2}>
+                            <th style="border: 3px solid #AA396F; text-align: center;" colspan="2">
                               CUT-OFF DATE
                             </th>
                           </tr>
                           <tr>
-                            <td className="h-[45px] border-[3px] border-[#AA396F]" colSpan={2}>
+                            <td style="height: 45px; border: 3px solid #AA396F; text-align: center;" colspan="2">
                               ${payslip.position || "N/A"}
                             </td>
-                            <td className="h-[45px] border-[3px] border-[#AA396F]" colSpan={2}>
+                            <td style="height: 45px; border: 3px solid #AA396F; text-align: center;" colspan="2">
                               ${payslip.cutoff_date || "N/A"}
                             </td>
                           </tr>
                           <tr>
-                            <th className="w-[200px] border-[3px] border-[#AA396F] text-center">EARNINGS</th>
-                            <th className="w-[200px] border-[3px] border-[#AA396F] text-center">FIGURES</th>
-                            <th className="w-[200px] border-[3px] border-[#AA396F] text-center">DEDUCTIONS</th>
-                            <th className="w-[200px] border-[3px] border-[#AA396F] text-center">FIGURES</th>
+                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">EARNINGS</th>
+                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">FIGURES</th>
+                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">DEDUCTIONS</th>
+                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">FIGURES</th>
                           </tr>
                           <tr>
-                            <td className="border-b-0 border-[3px] border-[#AA396F] text-left">Basic Pay</td>
-                            <td className="border-b-0 border-[3px] border-[#AA396F]">${
+                            <td style="border-bottom: 0; border: 3px solid #AA396F; border-bottom-width: 0; text-align: left;">Basic Pay</td>
+                            <td style="border: 3px solid #AA396F; border-bottom-width: 0;">${
                               payslip.dailyrate || "0.00"
                             }</td>
-                            <td className="border-b-0 border-[3px] border-[#AA396F] font-normal w-[280px] text-[9px] bg-[#AA396F] rounded-[10px] p-[1px] text-center">GOVERNMENT CONTRIBUTIONS</td>
-                            <td className="border-b-0 border-[3px] border-[#AA396F]"></td>
+                            <td style="border: 3px solid #AA396F; border-bottom-width: 0; font-weight: bold; width: 280px; font-size: 9px; background-color: #AA396F; border-radius: 10px; padding: 1px; text-align: center;">GOVERNMENT CONTRIBUTIONS</td>
+                            <td style="border: 3px solid #AA396F; border-bottom-width: 0;"></td>
                           </tr>
                           <tr>
-                            <td className="cell4 bor left">No. of Days</td>
-                            <td className="cell4 bor">${
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">No. of Days</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
                               payslip.no_of_days || "0"
                             }</td>
-                            <td className="cell4 bor left">SSS</td>
-                            <td className="cell4 bor">${
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">SSS</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
                               payslip.sss || "0.00"
                             }</td>
                           </tr>
                           <tr>
-                            <td className="cell4 bor left">Overtime Pay</td>
-                            <td className="cell4 bor">${
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Overtime Pay</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
                               payslip.overtime_pay || "0.00"
                             }</td>
-                            <td className="cell4 bor left">PHIC</td>
-                            <td className="cell4 bor">${
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">PHIC</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
                               payslip.phic || "0.00"
                             }</td>
                           </tr>
                           <tr>
-                            <td className="cell4 bor left">Overtime Hours</td>
-                            <td className="cell4 bor">${
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Overtime Hours</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
                               payslip.overtime_hours
                             }</td>
-                            <td className="cell4 bor down left">HDMF</td>
-                            <td className="cell4 bor down">${payslip.hdmf}</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">HDMF</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.hdmf
+                            }</td>
                           </tr>
                           <tr>
-                            <td className="cell4 bor left">Holiday Pay</td>
-                            <td className="cell4 bor">${
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Holiday Pay</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
                               payslip.holiday_pay
                             }</td>
-                            <td className="cell4  bor left">Cash Advance/Loan</td>
-                            <td className="cell4 bor">${payslip.loan}</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Cash Advance/Loan</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.loan
+                            }</td>
                           </tr>
                           <tr>
-                            <td className="cell4 bor left">Night Differenctial</td>
-                            <td className="cell4 bor">${
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Night Differenctial</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
                               payslip.night_differential
                             }</td>
-                            <td className="cell4 bor left">Tardiness</td>
-                            <td className="cell4 bor">${payslip.tardiness}</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Tardiness</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.tardiness
+                            }</td>
                           </tr>
                           <tr>
-                            <td className="cell4 bor left">Allowance</td>
-                            <td className="cell4 bor">${payslip.allowance}</td>
-                            <td className="cell4 bor left">Other Deductions</td>
-                            <td className="cell4 bor">${
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Allowance</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.allowance
+                            }</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Other Deductions</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
                               payslip.other_deductions
                             }</td>
                           </tr>
                           <tr>
-                            <td className="cell4 bor left"></td>
-                            <td className="cell4 bor"></td>
-                            <td className="cell4 bor left">Total Deductions</td>
-                            <td className="cell4 bor">
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;"></td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;"></td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Total Deductions</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">
                               ${payslip.total_deductions || "0.00"}
                             </td>
                           </tr>
                           <tr>
-                            <td className="cell4 bor left"></td>
-                            <td className="cell4 bor"></td>
-                            <td className="cell4 bor left">Adjustments</td>
-                            <td className="cell4 bor">${payslip.adjustment}</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;"></td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;"></td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Adjustments</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
+                              payslip.adjustment
+                            }</td>
                           </tr>
                           <tr>
-                            <th className="cell bor align" colSpan={2}>
+                            <th style="border: 3px solid #AA396F; text-align: center;" colspan="2">
                               NET PAY
                             </th>
-                            <th className="cell bor align" colSpan={2}>
+                            <th style="border: 3px solid #AA396F; text-align: center;"  colspan="2">
                               AMOUNT
                             </th>
                           </tr>
-                          <tr className="cell5">
-                            <td className="cell5 net" colSpan={2}>
+                          <tr style="border: 3px solid #AA396F;">
+                            <td style="border: 3px solid #AA396F; text-align: left" colspan="2">
                               NETPAY: ₱${payslip.net_pay || "0.00"}
                             </td>
-                            <td className="cell5" colSpan={2}></td>
+                            <td style="border: 3px solid #AA396F;" colspan="2"></td>
                           </tr>
                         </tbody>
                       </table>
-                      <div className="footer">
-                        <div className="block">
-                          <h6 className="font-bold text-[14px] text-center">
-                            Mia Mary Sora
-                          </h6>
-                          <p className="-mt-3 text-[12px] text-center">
-                            Human Resource Head
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 text-[12px] -mt-1">
-                          <div>
+                        <div style="min-height: 100px; width: auto; background-color: #bbe394; padding: 10px;">
+                          <div style="display: block;">
+                            <h6 style="font-weight: bold; font-size: 14px; text-align: center; margin-bottom: 2px;">
+                              Mia Mary Sora
+                            </h6>
+                            <p style="margin-top: 0; font-size: 12px; text-align: center;">
+                              Human Resource Head
+                            </p>
+                          </div>
+                          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; font-size: 12px; margin-top: -4px; max-width: 100%;">
+                            <div>
                             <p>
                               <strong>Company:</strong> St. John Majore Services Company
                               Inc.
@@ -221,9 +235,9 @@ export const sendPayslips = async (req, res) => {
                             <p>
                               <strong>Web:</strong> N/A
                             </p>
-                          </div>
-          
-                          <div>
+                            </div>
+                                
+                            <div>
                             <p>
                               <strong>Address:</strong>
                             </p>
@@ -231,6 +245,7 @@ export const sendPayslips = async (req, res) => {
                               8 Patron Central Plaza De Villa St., Poblacion <br />
                               San Juan, Batangas
                             </p>
+                          </div>
                           </div>
                         </div>
                       </div>
