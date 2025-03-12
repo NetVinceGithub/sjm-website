@@ -113,7 +113,7 @@ const AddNew = () => {
   ];
 
   return (
-    <div className="fixed p-6 pt-20">
+    <div className="fixed p-6 pt-16">
       {/* Breadcrumb Navigation */}
       <Breadcrumb
         items={[
@@ -122,7 +122,7 @@ const AddNew = () => {
           { label: "Add Employee", href: "" },
         ]}
       />
-      <div className="flex gap-6 -mt-1">
+      <div className="flex gap-6 -mt-2">
         {/* Left Side - Employee Form */}
         <div className="w-[50%]">
           <div className="w-[606px] mx-auto bg-white p-3 rounded-md shadow-md">

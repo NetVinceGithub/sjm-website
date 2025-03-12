@@ -139,14 +139,14 @@ const Overview = () => {
   ];
 
   return (
-    <div className="fixed w-full max-w-7xl mx-auto p-6 pt-20">
+    <div className="fixed w-full max-w-7xl mx-auto p-6 pt-16">
       <Breadcrumb
         items={[
           { label: "Dashboard", href: "" },
           { label: "Overview", href: "" },
         ]}
       />
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-3">
         <SummaryCard
           icon={<FaCashRegister />}
           title="Total Payroll"
@@ -175,13 +175,13 @@ const Overview = () => {
         />
       </div>
 
-      <div className="flex gap-6 mt-6">
+      <div className="flex gap-3 mt-3">
         <div className="w-[45%]">
           <PayrollLineChart
             payslips={payslips}
             className="border border-neutralDGray"
           />
-          <div className="bg-white overflow-auto h-[220px] border border-neutralDGray rounded shadow-sm mt-6">
+          <div className="bg-white overflow-auto h-[233px] border border-neutralDGray rounded shadow-sm mt-3">
             <div className="flex justify-between">
               <h6 className="p-3 mb-0 ml-1 text-neutralDGray">
                 <strong>Employee Status</strong>
@@ -193,7 +193,7 @@ const Overview = () => {
                     placeholder="Search Employee"
                     className="px-2 rounded py-0.5 text-sm border"
                   />
-                  <FaSearch className="ml-[-20px] text-neutralDGray" />
+                  <FaSearch className="ml-[-20px] mr-3 text-neutralDGray" />
                 </div>
               </div>
             </div>
@@ -202,10 +202,10 @@ const Overview = () => {
           </div>
         </div>
         <div className="w-[55%]">
-          <div className="p-3 border w-[41rem] border-neutralDGray bg-white shadow-sm rounded">
+          <div className="p-3 border w-[659px] h-[331px] border-neutralDGray bg-white shadow-sm rounded">
             <CustomCalendar onDateChange={setCutoffDate} />
           </div>
-          <div className="bg-white h-[148px] shadow-sm mt-6 rounded">
+          <div className="bg-white border-neutralDGray h-[150px] shadow-sm mt-3 rounded">
             <h6 className="p-3 ml-1 text-neutralDGray">
               <strong>Notes:</strong>
             </h6>

@@ -8,7 +8,7 @@ import ConnectMessages from "./ConnectMessages";
 
 const AdminLounge = () => {
   return (
-    <div className="fixed p-6 pt-20">
+    <div className="fixed p-6 pt-16">
       <Breadcrumb
         items={[
           { label: "Dashboard", href: "" },

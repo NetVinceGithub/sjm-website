@@ -74,7 +74,7 @@ const AttendanceForComputation = () => {
   if (error) return <p style={{ color: "red" }}>{error}</p>;
 
   return (
-    <div className="fixed p-6 pt-20">
+    <div className="fixed p-6 pt-16">
       <Breadcrumb
         items={[
           { label: "Attendance", href: "/admin-dashboard/attendance" },
@@ -82,7 +82,7 @@ const AttendanceForComputation = () => {
           { label: "Attendance Computation", href: "" },
         ]}
       />
-      <div className="-mt-1 bg-white p-3 py-3 rounded-lg shadow">
+      <div className="-mt-2 bg-white p-3 py-3 rounded-lg shadow">
         <div className="mt-4 overflow-x-auto">
           <div className="w-[75rem]">
             <div className="max-h-[75rem] overflow-y-auto text-neutralDGray border rounded-md">
