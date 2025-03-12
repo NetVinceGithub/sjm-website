@@ -121,7 +121,7 @@ const Overview = () => {
     },
     {
       name: "Status",
-      width: "90px",
+      width: "100px",
       center: true,
       cell: (row) => (
         <span className="flex items-center gap-2">
