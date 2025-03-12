@@ -76,7 +76,7 @@ const History = () => {
             <div className="flex rounded items-center">
               <input
                 type="text"
-                placeholder="Search Employee"
+                placeholder="Search ECode"
                 className="px-2 rounded py-0.5 border"
               />
               <FaSearch className="ml-[-20px] text-neutralDGray" />
