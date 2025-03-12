@@ -190,7 +190,7 @@ const PayslipHistory = () => {
             { label: "Payroll History", href: "/admin-dashboard/employees" },
           ]}
         />
-        <div className="bg-white p-3 w-[77rem] rounded shadow-sm border -mt-3">
+        <div className="bg-white p-3 w-[77rem] h-[37rem] rounded shadow-sm border -mt-3">
           {loading ? (
             <div>Loading...</div>
           ) : (
@@ -232,7 +232,7 @@ const PayslipHistory = () => {
                 </div>
               </div>
               <hr />
-              <div className="mt-3">
+              <div className="mt-3 border h-[31rem]  border-neutralDGray rounded overflow-x-auto">
                 <DataTable
                   columns={columns}
                   data={filteredPayslips}

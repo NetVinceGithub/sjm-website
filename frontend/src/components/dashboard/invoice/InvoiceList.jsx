@@ -4,6 +4,7 @@ import DataTable from "react-data-table-component";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import { FaSearch, FaSyncAlt } from "react-icons/fa";
 
 const InvoiceList = () => {
   const [invoices, setInvoices] = useState([]);
@@ -142,27 +143,43 @@ const InvoiceList = () => {
 
   return (
     <div className="p-6 pt-20">
-      <div className="bg-white w-[77rem] -mt-2 py-3 p-2 rounded-lg shadow">
-        <h2 className="text-base ml-3 font-poppins">Cutoff Dates</h2>
-        <DataTable
-          columns={[
-            {
-              name: "Cutoff Date",
-              selector: (row) => row.cutoffDate,
-              sortable: true,
-              cell: (row) => (
-                <button onClick={() => handleCutoffClick(row.cutoffDate)}>
-                  {row.cutoffDate}
-                </button>
-              ),
-            },
-          ]}
-          data={[...new Set(invoices.map((invoice) => invoice.cutoffDate))].map(
-            (cutoffDate) => ({ cutoffDate })
-          )}
-          highlightOnHover
-          striped
-        />
+      <div className="bg-white w-[77rem] -mt-3 py-3 p-2 rounded-lg shadow">
+        <div className="flex -mt-3 justify-between">
+          <h6 className="p-3 mb-0 ml-1 text-md text-neutralDGray">
+            <strong>Invoice List</strong>
+          </h6>
+          <div className="flex items-center gap-3">
+            <div className="flex rounded items-center">
+              <input
+                type="text"
+                placeholder="Search Employee"
+                className="px-2 rounded py-0.5 text-sm border"
+              />
+              <FaSearch className="ml-[-20px] mr-3 text-neutralDGray" />
+            </div>
+          </div>
+        </div>
+        <div className="mt-2 border h-[31rem]  border-neutralDGray rounded overflow-x-auto">
+          <DataTable
+            columns={[
+              {
+                name: "Cutoff Date",
+                selector: (row) => row.cutoffDate,
+                sortable: true,
+                cell: (row) => (
+                  <button onClick={() => handleCutoffClick(row.cutoffDate)}>
+                    {row.cutoffDate}
+                  </button>
+                ),
+              },
+            ]}
+            data={[...new Set(invoices.map((invoice) => invoice.cutoffDate))].map(
+              (cutoffDate) => ({ cutoffDate })
+            )}
+            highlightOnHover
+            striped
+          />
+        </div>
 
         {isModalOpen && (
           <div
