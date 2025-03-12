@@ -64,7 +64,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
   <Modal.Header closeButton  >
   
     <Modal.Title>Employee Payslip</Modal.Title>
-    <Button variant="primary" onClick={downloadPDF} className="ms-3">
+    <Button onClick={downloadPDF} className="ms-[40rem] border bg-transparent border-neutralDGray hover:bg-neutralSilver" style={{ color: "#4d4d4d"}}>
     Download PDF
   </Button>
   </Modal.Header>
@@ -179,14 +179,14 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
             <p className="-mt-3 text-[12px] text-center">Human Resource Head</p>
           </div>
           <div className="grid grid-cols-2 gap-4 text-[12px] -mt-1">
-            <div>
+            <div className="words">
               <p><strong>Company:</strong> St. John Majore Services Company Inc.</p>
               <p><strong>Email:</strong> sjmajore@gmail.com</p>
               <p><strong>Web:</strong> N/A</p>
             </div>
-            <div>
+            <div className="words">
               <p><strong>Address:</strong></p>
-              <p>8 Patron Central Plaza De Villa St., Poblacion<br />San Juan, Batangas</p>
+              <p className="word1">8 Patron Central Plaza De Villa St., Poblacion<br />San Juan, Batangas</p>
             </div>
           </div>
         </div>

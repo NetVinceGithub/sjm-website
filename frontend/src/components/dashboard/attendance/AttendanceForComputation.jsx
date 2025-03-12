@@ -85,10 +85,10 @@ const AttendanceForComputation = () => {
       <div className="-mt-2 bg-white p-3 py-3 rounded-lg shadow">
         <div className="mt-4 overflow-x-auto">
           <div className="w-[75rem]">
-            <div className="max-h-[75rem] overflow-y-auto text-neutralDGray border rounded-md">
+            <div className="h-[33rem] overflow-y-auto text-neutralDGray border rounded-md">
               <p className="italic font-poppins text-neutralDGray p-2">* This is the summary of attendance, that contains useful info for payroll generation.</p>
               <table
-                className="w-[70rem] mb-1 mt-2 border-collapse overflow-hidden rounded-lg"
+                className="w-[70rem] mb-1 mt-2 border-collapse overflow-auto rounded-lg"
                 border="1"
                 cellPadding="5"
                 cellSpacing="0"
