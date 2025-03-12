@@ -139,11 +139,7 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
       console.error("Error updating employee:", error);
     }
   };
-  
-  
-  
-  
-  
+
 
   const handleImageChange = (e, setImage) => {
     const file = e.target.files[0];
