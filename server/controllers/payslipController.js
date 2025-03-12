@@ -62,61 +62,61 @@ export const sendPayslips = async (req, res) => {
         subject: `Payslip for ${payslip.name}`,
         html: `
           <div className="payslip bg-white">
-                      <div className="payslip-header">
-                        <h1 className="header-title">e-PAYROLL SLIP</h1>
-                        <img src={LongLogo} alt="Company Logo" className="header-img" />
+                      <div className="bg-[#0093DD] w-[200px] h-[100px] border-2 border-[#0093DD] rounded-b-[30px] ml-[45px]">
+                        <h1 className="text-white font-bold text-[25px] text-center mt-[10px]">e-PAYROLL SLIP</h1>
+                        <img  alt="Company Logo" className="mt-[-65px] ml-[265px] w-[140px] h-auto" />
                       </div>
           
-                      <h2 className="header-two">Payslip No.:</h2>
+                      <h2 className="font-bold mt-[30px] ml-[40px] text-[18px]">Payslip No.:</h2>
                       <table>
                         <thead>
-                          <tr className="bor">
-                            <th className="cell bor align">ECODE</th>
-                            <th className="cell-w bor align">EMPLOYEE NAME</th>
-                            <th className="cell-w bor align">PROJECT SITE</th>
-                            <th className="cell-w bor align">RATE</th>
+                          <tr className="border-[3px] border-[#AA396F]">
+                            <th className="border-[3px] border-[#AA396F] text-center">ECODE</th>
+                            <th className="w-[200px] border-[3px] border-[#AA396F] text-center">EMPLOYEE NAME</th>
+                            <th className="w-[200px] border-[3px] border-[#AA396F] text-center">PROJECT SITE</th>
+                            <th className="w-[200px] border-[3px] border-[#AA396F] text-center">RATE</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr className="cell1">
-                            <td className="bor">${payslip.ecode || "N/A"}</td>
-                            <td className="bor name">${
+                          <tr className="h-[45px]">
+                            <td className="border-[3px] border-[#AA396F]">${payslip.ecode || "N/A"}</td>
+                            <td className="border-[3px] border-[#AA396F] w-[290px]">${
                               payslip.name || "N/A"
                             }</td>
-                            <td className="bor">${payslip.project || "N/A"}</td>
-                            <td className="bor">${
+                            <td className="border-[3px] border-[#AA396F]">${payslip.project || "N/A"}</td>
+                            <td className="border-[3px] border-[#AA396F]">${
                               payslip.dailyrate || "0.00"
                             }</td>
                           </tr>
                           <tr>
-                            <th className="cell bor align" colSpan={2}>
+                            <th className="border-[3px] border-[#AA396F] text-center" colSpan={2}>
                               POSITION
                             </th>
-                            <th className="cell bor align" colSpan={2}>
+                            <th className="border-[3px] border-[#AA396F] text-center" colSpan={2}>
                               CUT-OFF DATE
                             </th>
                           </tr>
                           <tr>
-                            <td className="cell1 bor" colSpan={2}>
+                            <td className="h-[45px] border-[3px] border-[#AA396F]" colSpan={2}>
                               ${payslip.position || "N/A"}
                             </td>
-                            <td className="cell1 bor" colSpan={2}>
+                            <td className="h-[45px] border-[3px] border-[#AA396F]" colSpan={2}>
                               ${payslip.cutoff_date || "N/A"}
                             </td>
                           </tr>
                           <tr>
-                            <th className="cell-w bor align">EARNINGS</th>
-                            <th className="cell-w bor align">FIGURES</th>
-                            <th className="cell-w bor align">DEDUCTIONS</th>
-                            <th className="cell-w bor align">FIGURES</th>
+                            <th className="w-[200px] border-[3px] border-[#AA396F] text-center">EARNINGS</th>
+                            <th className="w-[200px] border-[3px] border-[#AA396F] text-center">FIGURES</th>
+                            <th className="w-[200px] border-[3px] border-[#AA396F] text-center">DEDUCTIONS</th>
+                            <th className="w-[200px] border-[3px] border-[#AA396F] text-center">FIGURES</th>
                           </tr>
                           <tr>
-                            <td className="cell3 bor left">Basic Pay</td>
-                            <td className="cell3 bor">${
+                            <td className="border-b-0 border-[3px] border-[#AA396F] text-left">Basic Pay</td>
+                            <td className="border-b-0 border-[3px] border-[#AA396F]">${
                               payslip.dailyrate || "0.00"
                             }</td>
-                            <td className="cell3 bor GovCon">GOVERNMENT CONTRIBUTIONS</td>
-                            <td className="cell3 bor"></td>
+                            <td className="border-b-0 border-[3px] border-[#AA396F] font-normal w-[280px] text-[9px] bg-[#AA396F] rounded-[10px] p-[1px] text-center">GOVERNMENT CONTRIBUTIONS</td>
+                            <td className="border-b-0 border-[3px] border-[#AA396F]"></td>
                           </tr>
                           <tr>
                             <td className="cell4 bor left">No. of Days</td>
@@ -140,19 +140,25 @@ export const sendPayslips = async (req, res) => {
                           </tr>
                           <tr>
                             <td className="cell4 bor left">Overtime Hours</td>
-                            <td className="cell4 bor">${payslip.overtime_hours}</td>
+                            <td className="cell4 bor">${
+                              payslip.overtime_hours
+                            }</td>
                             <td className="cell4 bor down left">HDMF</td>
                             <td className="cell4 bor down">${payslip.hdmf}</td>
                           </tr>
                           <tr>
                             <td className="cell4 bor left">Holiday Pay</td>
-                            <td className="cell4 bor">${payslip.holiday_pay}</td>
+                            <td className="cell4 bor">${
+                              payslip.holiday_pay
+                            }</td>
                             <td className="cell4  bor left">Cash Advance/Loan</td>
                             <td className="cell4 bor">${payslip.loan}</td>
                           </tr>
                           <tr>
                             <td className="cell4 bor left">Night Differenctial</td>
-                            <td className="cell4 bor">${payslip.night_differential}</td>
+                            <td className="cell4 bor">${
+                              payslip.night_differential
+                            }</td>
                             <td className="cell4 bor left">Tardiness</td>
                             <td className="cell4 bor">${payslip.tardiness}</td>
                           </tr>
@@ -160,7 +166,9 @@ export const sendPayslips = async (req, res) => {
                             <td className="cell4 bor left">Allowance</td>
                             <td className="cell4 bor">${payslip.allowance}</td>
                             <td className="cell4 bor left">Other Deductions</td>
-                            <td className="cell4 bor">${payslip.other_deductions}</td>
+                            <td className="cell4 bor">${
+                              payslip.other_deductions
+                            }</td>
                           </tr>
                           <tr>
                             <td className="cell4 bor left"></td>
@@ -227,9 +235,6 @@ export const sendPayslips = async (req, res) => {
                         </div>
                       </div>
                     </div>
-                  )}
-                </div>
-              </div>
         `,
       };
 
@@ -288,12 +293,10 @@ export const sendPayslips = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Server error while sending payslips:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server error while sending payslips.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Server error while sending payslips.",
+    });
   }
 };
 
@@ -347,13 +350,11 @@ export const addPayslip = async (req, res) => {
     });
 
     await newPayslip.save();
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: "Payslip created successfully",
-        payslip: newPayslip,
-      });
+    res.status(201).json({
+      success: true,
+      message: "Payslip created successfully",
+      payslip: newPayslip,
+    });
   } catch (error) {
     console.error("Error adding payslip:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -524,21 +525,17 @@ export const generatePayroll = async (req, res) => {
       }
     }
 
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: "Payroll generated!",
-        payslips: generatedPayslips,
-      });
+    res.status(201).json({
+      success: true,
+      message: "Payroll generated!",
+      payslips: generatedPayslips,
+    });
   } catch (error) {
     console.error("❌ Payroll Generation Error:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server error during payroll generation.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Server error during payroll generation.",
+    });
   }
 };
 
