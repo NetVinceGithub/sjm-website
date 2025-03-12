@@ -272,7 +272,7 @@ const Career = () => {
             </div>
             <Button
               onClick={() => { setSelectedJob(service); setShowModal(true); }}
-              className="absolute top-[80%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-brandPrimary shadow-md text-white font-semibold hover:bg-neutralDGray transition-all duration-300"
+              className="absolute top-[87%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 group-hover:opacity-100 bg-brandPrimary shadow-md font-semibold hover:bg-neutralDGray transition-all duration-300"
             >
               Explore Now
             </Button>
@@ -283,7 +283,7 @@ const Career = () => {
       {showArrow && (
               <button
                 onClick={scrollToTop}
-                className="fixed bottom-10 right-10 bg-brandPrimary opacity-50 text-white p-4 rounded-full shadow-lg transition-all duration-300 hover:bg-brandPrimary hover:-translate-y-4 hover:opacity-100 hover:text-white"
+                className="fixed bottom-10 right-10 bg-brandPrimary  text-white p-4 rounded-full shadow-lg transition-all duration-300 hover:bg-brandPrimary hover:-translate-y-4 hover:opacity-100 hover:text-white"
               >
                 <FaArrowUp className="text-xl" />
               </button>
