@@ -5,6 +5,13 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { FaSearch, FaSyncAlt } from "react-icons/fa";
+import {
+  FaArrowUpRightFromSquare,
+  FaPrint,
+  FaRegFileExcel,
+  FaRegFilePdf,
+  FaXmark,
+} from "react-icons/fa6";
 
 const InvoiceList = () => {
   const [invoices, setInvoices] = useState([]);
@@ -13,7 +20,10 @@ const InvoiceList = () => {
   const [selectedCutoff, setSelectedCutoff] = useState(null);
   const [filteredInvoices, setFilteredInvoices] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState({ cutoffDate: null, project: null });
+  const [selectedGroup, setSelectedGroup] = useState({
+    cutoffDate: null,
+    project: null,
+  });
 
   useEffect(() => {
     const fetchInvoices = async () => {
@@ -45,7 +55,8 @@ const InvoiceList = () => {
 
   const handleGroupClick = (cutoffDate, project) => {
     const filtered = invoices.filter(
-      (invoice) => invoice.cutoffDate === cutoffDate && invoice.project === project
+      (invoice) =>
+        invoice.cutoffDate === cutoffDate && invoice.project === project
     );
     setFilteredInvoices(filtered);
     setSelectedGroup({ cutoffDate, project });
@@ -64,7 +75,10 @@ const InvoiceList = () => {
     invoices.forEach((invoice) => {
       const key = `${invoice.cutoffDate}-${invoice.project}`;
       if (!groups[key]) {
-        groups[key] = { cutoffDate: invoice.cutoffDate, project: invoice.project };
+        groups[key] = {
+          cutoffDate: invoice.cutoffDate,
+          project: invoice.project,
+        };
       }
     });
     return Object.values(groups);
@@ -81,7 +95,7 @@ const InvoiceList = () => {
             <div className="flex rounded items-center">
               <input
                 type="text"
-                placeholder="Search Employee"
+                placeholder="Search Project"
                 className="px-2 rounded py-0.5 text-sm border"
               />
               <FaSearch className="ml-[-20px] mr-3 text-neutralDGray" />
@@ -104,8 +118,16 @@ const InvoiceList = () => {
               {
                 name: "Action",
                 cell: (row) => (
-                  <button onClick={() => handleGroupClick(row.cutoffDate, row.project)}>
-                    View Details
+                  <button
+                    className="w-10 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center"
+                    onClick={() =>
+                      handleGroupClick(row.cutoffDate, row.project)
+                    }
+                  >
+                    <FaArrowUpRightFromSquare
+                    title="View Details"
+                    className="text-neutralDGray w-5 h-5"
+                  />
                   </button>
                 ),
               },
@@ -141,26 +163,94 @@ const InvoiceList = () => {
                 overflowY: "auto",
               }}
             >
-              <h3>Invoices for Cutoff Date: {selectedGroup.cutoffDate} | Project: {selectedGroup.project}</h3>
+              <h3>
+                Invoices for Cutoff Date: {selectedGroup.cutoffDate} | Project:{" "}
+                {selectedGroup.project}
+              </h3>
               <DataTable
                 columns={[
                   { name: "Ecode", selector: (row) => row.ecode },
-                  { name: "Name", selector: (row) => row.name },
-                  { name: "Position", selector: (row) => row.position },
-                  { name: "Daily Rate", selector: (row) => row.dailyrate },
-                  { name: "Ot hours", selector: (row) => row.totalOvertime },
-                  { name: "Amount", selector: (row) => row.overtimePay },
-                  { name: "Normal Hours", selector: (row) => row.totalHours },
-                  { name: "Normal Amount", selector: (row) => row.totalEarnings },
-                  { name: "Gross Pay", selector: (row) => row.gross_pay },
-                  { name: "Total Deductions", selector: (row) => row.totalDeductions },
-                  { name: "Net Pay", selector: (row) => row.netPay },
+                  { name: "Name", selector: (row) => row.name, width: "200px" },
+                  {
+                    name: "Position",
+                    selector: (row) => row.position,
+                    width: "200px",
+                  },
+                  {
+                    name: "Daily Rate",
+                    selector: (row) => row.dailyrate,
+                    width: "130px",
+                  },
+                  {
+                    name: "Ot hours",
+                    selector: (row) => row.totalOvertime,
+                    width: "130px",
+                  },
+                  {
+                    name: "Amount",
+                    selector: (row) => row.overtimePay,
+                    width: "130px",
+                  },
+                  {
+                    name: "Normal Hours",
+                    selector: (row) => row.totalHours,
+                    width: "130px",
+                  },
+                  {
+                    name: "Normal Amount",
+                    selector: (row) => row.totalEarnings,
+                    width: "130px",
+                  },
+                  {
+                    name: "Gross Pay",
+                    selector: (row) => row.gross_pay,
+                    width: "130px",
+                  },
+                  {
+                    name: "Total Deductions",
+                    selector: (row) => row.totalDeductions,
+                    width: "130px",
+                  },
+                  {
+                    name: "Net Pay",
+                    selector: (row) => row.netPay,
+                    width: "130px",
+                  },
                 ]}
                 data={filteredInvoices}
                 highlightOnHover
                 striped
               />
-              <button onClick={closeModal}>Close</button>
+              <div className="flex justify-between items-center mt-3 w-full">
+                <button
+                  onClick={closeModal}
+                  className="flex items-center h-auto w-auto justify-center px-4 py-2 border border-neutralDGray rounded hover:bg-neutralSilver"
+                >
+                  <FaXmark className="mr-2 text-neutralDGray" />
+                  Close
+                </button>
+
+                <div className="flex">
+                  <button className="w-20 h-8 border hover:bg-neutralSilver rounded-l-md border-neutralDGray b  border-l-0 flex items-center justify-center">
+                    <FaPrint
+                      title="Print"
+                      className="text-neutralDGray w-5 h-5"
+                    />
+                  </button>
+                  <button className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray border-l-0 flex items-center justify-center">
+                    <FaRegFileExcel
+                      title="Export to Excel"
+                      className="text-neutralDGray w-5 h-5"
+                    />
+                  </button>
+                  <button className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-r border-l-0 flex items-center justify-center transition">
+                    <FaRegFilePdf
+                      title="Export to PDF"
+                      className="text-neutralDGray w-5 h-5"
+                    />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
