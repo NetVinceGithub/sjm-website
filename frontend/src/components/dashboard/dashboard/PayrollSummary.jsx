@@ -263,17 +263,12 @@ const PayrollSummary = () => {
                 >
                   Attendance
                 </button>
-                <button
-                  onClick={handleDownloadExcel}
-                  className="px-4 bg-brandPrimary py-1 rounded w-32 h-10 text-white hover:bg-neutralDGray disabled:opacity-50"
-                >
-                  Download Excel
-                </button>
+
                 <button
                   onClick={handleDeletePayroll}
                   className="px-4 bg-brandPrimary py-1 rounded w-32 h-10 text-white hover:bg-neutralDGray disabled:opacity-50"
                 >
-                  Delete Payroll 
+                  Delete  
                 </button>
               </div>
             </div>
@@ -287,14 +282,15 @@ const PayrollSummary = () => {
               <div className="flex items-center justify-between">
                 {/* Button Group - Centered Vertically */}
                 <div className="inline-flex border border-neutralDGray rounded h-8">
-                  <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center">
+                  <button 
+                  onClick={handleDownloadExcel} className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center">
                     <FaPrint title="Print" className="text-neutralDGray] transition-all duration-300" />
                   </button>
         
-                  <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center">
+                  <button onClick={handleDownloadExcel} className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center">
                     <FaRegFileExcel title="Export to Excel" className=" text-neutralDGray" />
                   </button>
-                  <button className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center">
+                  <button onClick={handleDownloadExcel} className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center">
                     <FaRegFilePdf title="Export to PDF" className=" text-neutralDGray" />
                   </button>
                 </div>
