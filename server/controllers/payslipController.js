@@ -65,7 +65,7 @@ export const sendPayslips = async (req, res) => {
           <div style="background-color: white; align-items: center;">
                       <div style="background-color: #0093DD; width: 200px; height: 100px; border: 2px solid #0093DD; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; margin-left: 45px;">
                         <h1 style="color: white; font-weight: bold; font-size: 25px; text-align: center; margin-top: 10px;">e-PAYROLL SLIP</h1>
-                        <img src="" alt="Company Logo" style="margin-top: -65px; margin-left: 265px; width: 140px; height: auto;" />  
+                        <img src="https://drive.google.com/uc?export=view&id=1hthE-VT5Sk4Xp3tYW5l1_UEv0bCOkfmd" alt="Company Logo" style="margin-top: -65px; margin-left: 265px; width: 140px; height: auto;" />  
                       </div>
           
                       <h2 style="font-weight: bold; margin-top: 30px; margin-left: 40px; font-size: 18px;">Payslip No.:</h2>

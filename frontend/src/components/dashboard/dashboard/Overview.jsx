@@ -156,9 +156,10 @@ const Overview = () => {
         <SummaryCard
           icon={<FaHandHoldingUsd />}
           title="Gross Salary"
-          number={payslips
-            .reduce((acc, p) => acc + (p.basicPay || 0), 0)
-            .toLocaleString()}
+          number={0}
+          // number={payslips
+          //   .reduce((acc, p) => acc + (p.basicPay || 0), 0)
+          //   .toLocaleString()}
           color="bg-green-400"
         />
         <SummaryCard
