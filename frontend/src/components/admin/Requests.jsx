@@ -100,7 +100,7 @@ const Requests = () => {
       ) : (
         <p className="text-gray-500">No pending payroll requests.</p>
       )}
-
+      
       {/* Confirmation Modal for Rejection */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">

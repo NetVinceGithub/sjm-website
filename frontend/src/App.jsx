@@ -33,14 +33,7 @@ import EmployeePayrollInformationsList from "./components/dashboard/employee/Emp
 import InvoiceList from "./components/dashboard/invoice/InvoiceList";
 import Attendance from "./components/dashboard/attendance/Attendance";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import Main from "./pages/Main";
-import Administration from "./pages/Administration";
-import Questions from "./pages/Questions";
-import Career from "./pages/Career";
-import Offers from "./pages/Offers";
-import ScrollToTop from "./components/promoWeb/ScrollToTop";
-import Navbar from "./components/promoWeb/Navbar";
-import Foot from "./components/promoWeb/Foot";
+
 import Overview from "./components/dashboard/dashboard/Overview";
 import AddNew from "./components/dashboard/employee/AddNew";
 import History from "./components/dashboard/attendance/History";
@@ -78,17 +71,10 @@ function AppContent() {
   return (
     <>
       {/* Show Navbar only in public routes */}
-      {publicRoutes.includes(location) && <Navbar />}
       <PageTitleUpdater />
-      <ScrollToTop />
       <Routes>
         {/* Public Routes */}
         <Route path="/payroll-management-login" element={<Login />} />
-        <Route path="/sjm" element={<Main />} />
-        <Route path="/admin" element={<Administration />} />
-        <Route path="/faqs" element={<Questions />} />
-        <Route path="/careers" element={<Career />} />
-        <Route path="/services-offered" element={<Offers />} />
 
         {/* Redirect "/" to the admin dashboard */}
         <Route path="/" element={<Navigate to="/admin-dashboard" />} />
@@ -144,7 +130,6 @@ function AppContent() {
       </Routes>
 
       {/* Show footer only in public routes */}
-      {publicRoutes.includes(location) && <Foot />}
     </>
   );
 }
