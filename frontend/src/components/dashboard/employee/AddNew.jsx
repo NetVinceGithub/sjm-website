@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import DataTable from "react-data-table-component"; // Import Data Table
+import DataTable from "react-data-table-component";
 import Breadcrumb from "../dashboard/Breadcrumb";
 import { fetchProjects } from "../../../utils/EmployeeHelper";
 import axios from "axios";
@@ -114,7 +114,6 @@ const AddNew = () => {
 
   return (
     <div className="fixed p-6 pt-16">
-      {/* Breadcrumb Navigation */}
       <Breadcrumb
         items={[
           { label: "Employee", href: "" },
@@ -123,7 +122,6 @@ const AddNew = () => {
         ]}
       />
       <div className="flex gap-6 -mt-2">
-        {/* Left Side - Employee Form */}
         <div className="w-[50%]">
           <div className="w-[606px] mx-auto bg-white p-3 rounded-md shadow-md">
             <h2 className="text-[1.2rem] text-neutralDGray font-bold mb-3 flex items-center gap-2">
@@ -131,7 +129,6 @@ const AddNew = () => {
             </h2>
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 gap-4 -space-y-1">
-                {/* Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Name</label>
                   <input
@@ -145,7 +142,6 @@ const AddNew = () => {
                   />
                 </div>
 
-                {/* Address */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Address</label>
                   <input
@@ -160,7 +156,6 @@ const AddNew = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Email */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Email</label>
                     <input
@@ -174,7 +169,6 @@ const AddNew = () => {
                     />
                   </div>
 
-                  {/* Phone Number */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Phone Number</label>
                     <input
@@ -203,7 +197,6 @@ const AddNew = () => {
                     />
                   </div>
 
-                  {/* Assign Project */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Project</label>
                     <select
@@ -224,7 +217,6 @@ const AddNew = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Gender */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Gender</label>
                     <select
@@ -241,7 +233,6 @@ const AddNew = () => {
                     </select>
                   </div>
 
-                  {/* Civil Status */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Civil Status</label>
                     <select
@@ -260,7 +251,7 @@ const AddNew = () => {
                     </select>
                   </div>
                 </div>
-                {/* Date Hired */}
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Date Hired</label>
                   <input
@@ -275,7 +266,6 @@ const AddNew = () => {
 
               </div>
 
-              {/* Submit Button */}
               <button
                 type="submit"
                 className="w-full mt-3 h-10 bg-brandPrimary hover:bg-neutralDGray text-white py-2 px-4 rounded-md"
@@ -286,7 +276,6 @@ const AddNew = () => {
           </div>
         </div>
 
-        {/* Right Side - Data Table with Search */}
         <div className="w-[50%]">
           <div className="bg-white w-[606px] p-4 rounded-md shadow-md">
             <h2 className="text-[1.2rem] text-neutralDGray font-bold mb-4">New Employee List</h2>
@@ -303,7 +292,6 @@ const AddNew = () => {
                   </button>
                 </div>
 
-                {/* Search Input */}
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex rounded items-center border border-gray-300 px-2">
                     <input
@@ -318,10 +306,9 @@ const AddNew = () => {
                 </div>
               </div>
 
-            {/* React Data Table */}
             <DataTable
               columns={columns}
-              data={filteredEmployees} // Use filtered data
+              data={filteredEmployees} 
               pagination
               highlightOnHover
               striped

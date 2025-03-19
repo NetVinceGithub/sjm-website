@@ -124,7 +124,7 @@ const Requests = () => {
             </div>
           </div>
         </div>
-      )};
+      )}
 
        {/* Success Modal for Approval */}
        {showSuccessModal && (
