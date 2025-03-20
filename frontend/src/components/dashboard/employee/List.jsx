@@ -27,6 +27,7 @@ const List = () => {
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
   const [isUnBlockModalOpen, setIsUnBlockModalOpen] = useState(false);
   const [employeeToBlock, setEmployeeToBlock] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     fetchEmployees();
@@ -52,10 +53,9 @@ const List = () => {
     try {
       await axios.get("http://localhost:5000/api/employee/import");
       fetchEmployees(); // Refresh the employee list after syncing
-      alert("✅ Employees successfully synced from Google Sheets!");
+      setModalOpen(true);
     } catch (error) {
       console.error("❌ Error syncing employees:", error);
-      alert("⚠ Failed to sync employees. Check the console for details.");
     } finally {
       setSyncing(false);
     }
@@ -294,6 +294,22 @@ const List = () => {
             <FaSyncAlt className="w-4 h-4" />
             <span>{syncing ? "Syncing..." : "Sync Employees"}</span>
           </button>
+        
+            {modalOpen && (
+              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+                  <h2 className="text-xl font-bold text-green-600">Sync Successful</h2>
+                  <p className="text-gray-700 mt-2">Employees have been successfully synchronized.</p>
+                  <button 
+                    onClick={() => setModalOpen(false)} 
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+
         </div>
       </div>
 
