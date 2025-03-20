@@ -3,11 +3,15 @@ import axios from "axios";
 import DataTable from "react-data-table-component";
 import { FaSearch } from "react-icons/fa";
 import { FaUpRightFromSquare } from "react-icons/fa6";
+import {Modal, Button} from "react-bootstrap";
 
 const ConnectMessages = () => {
   const [messages, setMessages] = useState([]);
   const [filteredMessages, setFilteredMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [show, setShow] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -62,7 +66,20 @@ const ConnectMessages = () => {
     setFilteredMessages(records);
   };
 
+  const handleOpenModal = (message) => {
+    setSelectedMessage(message); // Store the entire message object
+    setShow(true);
+  };
+  
+
+  const handleClose = () => {
+    setShow(false);
+    setSelectedMessage(null);
+  };
+
+
   return (
+    
     <div className="p-6 bg-white rounded shadow-sm">
       <div className="text-center">
         <h3 className="text-2xl font-bold">Website Inquiry Messages</h3>
@@ -71,7 +88,7 @@ const ConnectMessages = () => {
         <div className="flex rounded items-center">
           <input
             type="text"
-            placeholder="Search Employee"
+            placeholder="Search Surname"
             onChange={handleFilter}
             className="px-2 rounded py-0.5 border"
           />
@@ -100,13 +117,12 @@ const ConnectMessages = () => {
               selector: (row) => row.phone,
               sortable: true,
             },
-            { name: "Message", selector: (row) => row.message, sortable: true },
             { name: "Time sent", selector: (row) => row.createdAt },
             {
               name: "Action",
               cell: (row) => (
                 <button
-                  onClick={() => handleOpenModal(row.employeeId)}
+                  onClick={() => handleOpenModal(row)} // Pass the full row object
                   title="View Inquiry"
                   className="px-3 py-0.5 w-auto h-8 border text-neutralDGray hover:bg-neutralSilver rounded flex items-center disabled:opacity-50"
                 >
@@ -114,11 +130,36 @@ const ConnectMessages = () => {
                 </button>
               ),
             },
+            
           ]}
           data={messages}
           progressPending={loading} // To show loading indicator
         />
       </div>
+      <Modal show={show} onHide={handleClose} centered size="xl" scrollable>
+        <Modal.Header closeButton>
+          <Modal.Title>Message</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="flex justify-center">
+            <div className="w-full max-w-3xl bg-white p-6 border border-gray-300 rounded-md shadow-md min-h-[500px]">
+              <h3 className="text-center text-lg font-bold mb-4">Inquiry Message</h3>
+              <p className="text-justify whitespace-pre-wrap">
+                {selectedMessage?.message || "No message available"}
+              </p>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <button
+            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+            onClick={handleClose}
+          >
+            Close
+          </button>
+        </Modal.Footer>
+      </Modal>
+
     </div>
   );
 };

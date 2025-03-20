@@ -23,6 +23,7 @@ const PayrollSummary = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [noAttendanceModalOpen, setNoAttendanceModalOpen] = useState(false); // State for modal
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const navigate = useNavigate();
   
@@ -31,19 +32,20 @@ const PayrollSummary = () => {
     setModalOpen(true);
   };  
 
+  const fetchPayslips = async () => {
+    try {
+      setLoading(true); // Ensure loading state is set
+      const response = await axios.get("http://localhost:5000/api/payslip");
+      setPayslips([...response.data]); // Force a new reference to trigger re-render
+    } catch (error) {
+      console.error("Error fetching payslips:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   useEffect(() => {
-    const fetchPayslips = async () => {
-      try {
-        const response = await axios.get("http://localhost:5000/api/payslip");
-        setPayslips(response.data);
-      } catch (error) {
-        console.error("Error fetching payslips:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPayslips();
+    fetchPayslips(); // Fetch when component mounts
   }, []);
 
   const handleFilter = (e) => {
@@ -58,7 +60,6 @@ const PayrollSummary = () => {
 
   const handleCreatePayroll = async () => {
     if (!cutoffDate) {
-      alert("Please select a cutoff date!");
       return;
     }
   
@@ -113,7 +114,6 @@ const PayrollSummary = () => {
   
   const handleReleaseRequest = async () => {
     if (!payslips.length) {
-      alert("No payslips available!");
       return;
     }
   
@@ -143,7 +143,6 @@ const PayrollSummary = () => {
 
   const handleDownloadExcel = () => {
     if (!payslips || payslips.length === 0) {
-      alert("No payroll data available to download!");
       return;
     }
   
@@ -172,26 +171,21 @@ const PayrollSummary = () => {
       console.log("✅ Excel file downloaded successfully!");
     } catch (error) {
       console.error("❌ Error downloading Excel:", error);
-      alert("Failed to download Excel. Please try again.");
     }
   };
   
   
   const handleDeletePayroll = async () => {
-    if (!window.confirm("Are you sure you want to delete all payroll records?")) {
-      return;
-    }
     try {
       const response = await axios.delete("http://localhost:5000/api/payslip");
       if (response.data.success) {
-        setPayslips([]);
-        alert("All payroll records have been deleted.");
-      } else {
-        alert("Failed to delete payroll records.");
+        setPayslips([]); 
       }
+      fetchPayslips();
     } catch (error) {
       console.error("Error deleting payroll:", error);
-      alert("An error occurred while deleting payroll records.");
+    } finally {
+      setShowConfirmModal(false); // Close modal after action
     }
   };
   
@@ -223,6 +217,30 @@ const PayrollSummary = () => {
 
   return (
     <div className="fixed w-[80rem] h-screen p-6 pt-16">
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-2xl w-96 relative">
+            <h3 className="text-lg font-semibold mb-4">Confirm Deletion</h3>
+            <p>Are you sure you want to delete generated payroll?</p>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeletePayroll}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Breadcrumb Navigation */}
       <Breadcrumb
           items={[
@@ -265,7 +283,7 @@ const PayrollSummary = () => {
                 </button>
 
                 <button
-                  onClick={handleDeletePayroll}
+                  onClick={() => setShowConfirmModal(true)}
                   className="px-4 bg-brandPrimary py-1 rounded w-32 h-10 text-white hover:bg-neutralDGray disabled:opacity-50"
                 >
                   Delete  

@@ -14,6 +14,7 @@ const Requests = () => {
     const fetchRequests = async () => {
       try {
         const response = await axios.get("http://localhost:5000/api/payslip");
+        console.log(response.data);
         setRequests(response.data);
       } catch (error) {
         console.error("Error fetching payroll requests:", error);
@@ -64,6 +65,8 @@ const Requests = () => {
     setRequests([]); // Reset requests after confirming
   };
 
+  const totalNetPay = requests.reduce((acc, curr) => acc + Number(curr.netPay || 0), 0);
+
   return (
     <div className="p-6 bg-white rounded shadow-sm">
       <h2 className="text-2xl font-bold mb-6 mt-1 flex text-neutralDGray items-center gap-2">
@@ -79,7 +82,8 @@ const Requests = () => {
         <div className="border p-4 rounded shadow-md">
           <p className="text-lg font-semibold mb-4">Total Payslips: {requests.length}</p>
 
-          <p><strong>Amount:</strong> ${requests[0]?.amount}</p>
+          <p><strong>Amount:</strong> ₱ {totalNetPay}</p>
+
           <p><strong>Date Requested:</strong> {new Date(requests[0]?.date).toLocaleDateString()}</p>
 
           <div className="flex gap-2 mt-4">
@@ -124,7 +128,7 @@ const Requests = () => {
             </div>
           </div>
         </div>
-      )};
+      )}
 
        {/* Success Modal for Approval */}
        {showSuccessModal && (

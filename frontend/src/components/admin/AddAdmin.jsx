@@ -17,7 +17,9 @@ const AddAdmin = () => {
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const response = await axios.get("http://localhost:5000/api/users/get-users");
+        const response = await axios.get(
+          "http://localhost:5000/api/users/get-users"
+        );
         if (response.data.success) {
           setUsers(response.data.users);
         }
@@ -40,7 +42,10 @@ const AddAdmin = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/users/add", formData);
+      const response = await axios.post(
+        "http://localhost:5000/api/users/add",
+        formData
+      );
       if (response.data.success) {
         alert("✅ User added successfully!");
         setFormData({ name: "", email: "", password: "", role: "employee" });
@@ -59,26 +64,33 @@ const AddAdmin = () => {
   return (
     <div className="p-6 h-[33rem] bg-white rounded shadow-sm">
       {/* ✅ Display Users */}
-      <h3 className=" text-neutralDGray text-lg font-semibold -mt-3">Current user:</h3>
+      <h3 className=" text-neutralDGray text-lg font-semibold -mt-3">
+        Current user:
+      </h3>
       {loading ? (
         <p>Loading users...</p>
       ) : users.length > 0 ? (
         <ul className="mt-2 border rounded-md p-1">
           {users.map((user, index) => (
             <li key={index} className="py-2 border-b last:border-b-0">
-              <span className="text-neutralDGray font-bold ml-3">{user.name}</span> - {user.email}
+              <span className="text-neutralDGray font-bold ml-3">
+                {user.name}
+              </span>{" "}
+              - {user.email}
             </li>
           ))}
         </ul>
       ) : (
         <p>No users found.</p>
-      )}  
+      )}
       <h2 className="text-lg font-bold mb-3 mt-2 flex text-neutralDGray items-center gap-2">
         <FaUserPlus className="h-6 w-6 text-neutralDGray" /> Add Admin
       </h2>
       <form className="space-y-3" onSubmit={handleSubmit}>
         <div>
-          <label className="block text-sm -mt-1 font-medium text-neutralDGray">Employee Name</label>
+          <label className="block text-sm -mt-1 font-medium text-neutralDGray">
+            Employee Name
+          </label>
           <input
             type="text"
             name="name"
@@ -90,7 +102,9 @@ const AddAdmin = () => {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-neutralDGray">Company Email</label>
+          <label className="block text-sm font-medium text-neutralDGray">
+            Company Email
+          </label>
           <input
             type="email"
             name="email"
@@ -102,7 +116,9 @@ const AddAdmin = () => {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-neutralDGray">Password</label>
+          <label className="block text-sm font-medium text-neutralDGray">
+            Password
+          </label>
           <input
             type="password"
             name="password"
@@ -114,7 +130,9 @@ const AddAdmin = () => {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-neutralDGray">Role</label>
+          <label className="block text-sm font-medium text-neutralDGray">
+            Role
+          </label>
           <select
             name="role"
             value={formData.role}
@@ -134,10 +152,7 @@ const AddAdmin = () => {
             {loading ? "Adding..." : "Add Admin"}
           </button>
         </div>
-
       </form>
-
-      
     </div>
   );
 };

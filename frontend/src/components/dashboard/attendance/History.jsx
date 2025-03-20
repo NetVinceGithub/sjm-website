@@ -8,6 +8,7 @@ const History = () => {
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState(""); // State for search input
 
   useEffect(() => {
     const fetchAttendance = async () => {
@@ -32,6 +33,11 @@ const History = () => {
     fetchAttendance();
   }, []);
 
+  // Filtered data based on search input
+  const filteredData = attendanceData.filter((record) =>
+    record.ecode.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (loading) return <p>Loading attendance data...</p>;
   if (error) return <p style={{ color: "red" }}>{error}</p>;
 
@@ -52,34 +58,28 @@ const History = () => {
         <div className="flex items-center justify-between">
           <div className="inline-flex border border-neutralDGray rounded h-8">
             <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center">
-              <FaPrint
-                title="Print"
-                className="text-neutralDGray] transition-all duration-300"
-              />
+              <FaPrint title="Print" className="text-neutralDGray]" />
             </button>
 
             <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center">
-              <FaRegFileExcel
-                title="Export to Excel"
-                className=" text-neutralDGray"
-              />
+              <FaRegFileExcel title="Export to Excel" className=" text-neutralDGray" />
             </button>
             <button className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center">
-              <FaRegFilePdf
-                title="Export to PDF"
-                className=" text-neutralDGray"
-              />
+              <FaRegFilePdf title="Export to PDF" className=" text-neutralDGray" />
             </button>
           </div>
 
+          {/* Search Input */}
           <div className="flex items-center gap-3">
-            <div className="flex rounded items-center">
+            <div className="flex rounded items-center border px-2 py-1">
               <input
                 type="text"
                 placeholder="Search ECode"
-                className="px-2 rounded py-0.5 border"
+                className="px-2 py-1 outline-none"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)} // Update searchQuery state
               />
-              <FaSearch className="ml-[-20px] text-neutralDGray" />
+              <FaSearch className="ml-2 text-neutralDGray" />
             </div>
           </div>
         </div>
@@ -89,33 +89,33 @@ const History = () => {
               <table className="w-[70rem] border-collapse mb-[11px] overflow-hidden rounded-lg" border="1" cellPadding="5" cellSpacing="0">
                 <thead className="rounded">
                   <tr>
-                    <th className="px-4 border text-center  py-2 first:rounded-tl-lg last:rounded-tr-lg">Ecode</th>
-                    <th className="px-4 border text-center  py-2">Date</th>
-                    <th className="px-4 border text-center  py-2">Sched In</th>
-                    <th className="px-4 border text-center  py-2">Sched Out</th>
-                    <th className="px-4 border text-center  py-2">Time In</th>
-                    <th className="px-4 border text-center  py-2">Time Out</th>
-                    <th className="px-4 border text-center  py-2">Total Hours</th>
-                    <th className="px-4 border text-center  py-2">Overtime</th>
+                    <th className="px-4 border text-center py-2 first:rounded-tl-lg last:rounded-tr-lg">Ecode</th>
+                    <th className="px-4 border text-center py-2">Date</th>
+                    <th className="px-4 border text-center py-2">Sched In</th>
+                    <th className="px-4 border text-center py-2">Sched Out</th>
+                    <th className="px-4 border text-center py-2">Time In</th>
+                    <th className="px-4 border text-center py-2">Time Out</th>
+                    <th className="px-4 border text-center py-2">Total Hours</th>
+                    <th className="px-4 border text-center py-2">Overtime</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {attendanceData.length > 0 ? (
-                    attendanceData.map((record) => (
+                  {filteredData.length > 0 ? (
+                    filteredData.map((record) => (
                       <tr key={record.id}>
-                        <td className="border text-center  px-4 py-2">{record.ecode}</td>
-                        <td className="border text-center  px-4 py-2">{record.ea_txndte}</td>
-                        <td className="border text-center  px-4 py-2">{record.schedin || "N/A"}</td>
-                        <td className="border text-center  px-4 py-2">{record.schedout || "N/A"}</td>
-                        <td className="border text-center  px-4 py-2">{record.timein || "N/A"}</td>
-                        <td className="border text-center  px-4 py-2">{record.timeout2 || "N/A"}</td>
-                        <td className="border text-center  px-4 py-2">{record.total_hours}</td>
-                        <td className="border text-center  px-4 py-2">{record.overtime}</td>
+                        <td className="border text-center px-4 py-2">{record.ecode}</td>
+                        <td className="border text-center px-4 py-2">{record.ea_txndte}</td>
+                        <td className="border text-center px-4 py-2">{record.schedin || "N/A"}</td>
+                        <td className="border text-center px-4 py-2">{record.schedout || "N/A"}</td>
+                        <td className="border text-center px-4 py-2">{record.timein || "N/A"}</td>
+                        <td className="border text-center px-4 py-2">{record.timeout2 || "N/A"}</td>
+                        <td className="border text-center px-4 py-2">{record.total_hours}</td>
+                        <td className="border text-center px-4 py-2">{record.overtime}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td className="border text-center  px-4 py-2" colSpan="9">No attendance records found</td>
+                      <td className="border text-center px-4 py-2" colSpan="8">No matching records found</td>
                     </tr>
                   )}
                 </tbody>
