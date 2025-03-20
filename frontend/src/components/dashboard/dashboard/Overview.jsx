@@ -47,6 +47,10 @@ const Overview = () => {
     fetchEmployees();
   }, []);
 
+  const totalGrossSalary = payslips.reduce((acc, p) => acc + (p.gross_pay || 0), 0);
+  const totalBenefits = payslips.reduce((acc, p) => acc + (p.allowance || 0), 0);
+  const totalPayroll = payslips.reduce((acc, p) => acc + (p.netPay || 0), 0);
+
   const handleCreatePayroll = async () => {
     if (!cutoffDate) {
       alert("Please select a cutoff date!");
@@ -147,27 +151,26 @@ const Overview = () => {
         ]}
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-3">
-        <SummaryCard
+      <SummaryCard
           icon={<FaCashRegister />}
           title="Total Payroll"
-          number={payslips.length}
+          number={`₱${payslips.reduce((acc, p) => acc + parseFloat(p.netPay), 0).toLocaleString()}`}
           color="bg-blue-400"
         />
         <SummaryCard
           icon={<FaHandHoldingUsd />}
           title="Gross Salary"
-          number={0}
-          // number={payslips
-          //   .reduce((acc, p) => acc + (p.basicPay || 0), 0)
-          //   .toLocaleString()}
+          number={`₱${payslips.reduce((acc, p) => acc + parseFloat(p.gross_pay), 0).toLocaleString()}`}
           color="bg-green-400"
         />
         <SummaryCard
           icon={<FaChartPie />}
           title="Total Employee Benefits"
-          number={0}
+          number={`₱${payslips.reduce((acc, p) => acc + parseFloat(p.allowance), 0).toLocaleString()}`}
           color="bg-pink-400"
         />
+
+
         <SummaryCard
           icon={<FaUsers />}
           title="Total Headcount"
