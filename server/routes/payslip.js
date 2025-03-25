@@ -2,11 +2,12 @@ import express from "express";
 import axios from "axios";
 import {
   addPayslip, getPayslips, sendPayslips,
-  getPayslipsHistory, getPayslipByEcode, generatePayroll, requestPayrollRelease, 
+  getPayslipsHistory, generatePayroll, requestPayrollRelease, 
   releasePayroll,
   pendingRequests,
   getPayslipById,
-  deleteAllPayslips
+  deleteAllPayslips, 
+  getPayslipByEmployeeId
 } from "../controllers/payslipController.js";
 import { sequelize } from "../db/db.js"; // Ensure correct path
 import { QueryTypes } from "sequelize";
@@ -17,7 +18,7 @@ const router = express.Router();
 
 router.get("/", getPayslips);
 router.get("/history", getPayslipsHistory);
-router.get("/history/ecode/:ecode", getPayslipByEcode);
+router.get("/history/:employeeId", getPayslipByEmployeeId);
 router.post("/generate", generatePayroll);
 router.post("/request-release", requestPayrollRelease);
 
