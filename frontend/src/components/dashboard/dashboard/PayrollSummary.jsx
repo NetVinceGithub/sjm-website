@@ -11,7 +11,7 @@ import { FaReceipt } from "react-icons/fa6";
 import PayslipModal from "../payroll/PayslipModal"
 import NoAttendanceModal from "../modals/NoAttendanceModal";
 import * as XLSX from "xlsx";
-
+import { Modal, Button } from "react-bootstrap";
 
 
 const PayrollSummary = () => {
@@ -24,13 +24,55 @@ const PayrollSummary = () => {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [noAttendanceModalOpen, setNoAttendanceModalOpen] = useState(false); // State for modal
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [show, setShow] = useState(false);
+  const [employees, setEmployeeList] = useState("");
+  const [selectedOvertime, setSelectedOvertime] = useState([]);
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
+  
 
   const navigate = useNavigate();
+  
+
+  useEffect(() => {
+    const fetchAttendanceAndFilterEmployees = async () => {
+      try {
+        console.log("📩 Fetching attendance data...");
+        const attendanceResponse = await axios.get("http://localhost:5000/api/attendance/get-attendance");
+  
+        const attendanceData = attendanceResponse.data.attendance || [];
+        console.log("📊 Attendance Data:", attendanceData);
+  
+        const validEcodes = new Set(attendanceData.map((record) => record.ecode));
+  
+        const filtered = employees.filter((employee) => 
+          validEcodes.has(employee.ecode) && 
+          employee.status !== "inactive"
+        );
+  
+        setFilteredEmployees(filtered);
+      } catch (error) {
+        console.error("❌ Error fetching attendance:", error.response?.data || error);
+      }
+    };
+  
+    if (show) {
+      fetchAttendanceAndFilterEmployees();
+    }
+  }, [show, employees]);
+  
   
   const handleOpenModal = (employeeId) => {
     setSelectedEmployee(employeeId);
     setModalOpen(true);
-  };  
+  };
+  
+  const handleCheckboxChange = (ecode) => {
+    setSelectedOvertime((prevSelected) =>
+      prevSelected.includes(ecode)
+        ? prevSelected.filter((id) => id !== ecode)
+        : [...prevSelected, ecode]
+    );
+  };
 
   const fetchPayslips = async () => {
     try {
@@ -45,6 +87,14 @@ const PayrollSummary = () => {
   };
   
   useEffect(() => {
+    if (show) {
+      // Pre-select all employees' ecode by default when the modal opens
+      setSelectedOvertime(filteredEmployees.map((employee) => employee.ecode));
+    }
+  }, [show, filteredEmployees]);
+  
+
+  useEffect(() => {
     fetchPayslips(); // Fetch when component mounts
   }, []);
 
@@ -57,8 +107,33 @@ const PayrollSummary = () => {
   };
 
   // Compute and generate payslips
-
   const handleCreatePayroll = async () => {
+    try {
+      console.log("📩 Fetching employee data...");
+      const employeeResponse = await axios.get("http://localhost:5000/api/employee");
+  
+      const employeeData = employeeResponse.data.employees || [];
+      console.log("📊 Fetched employee data:", employeeData);
+  
+      if (!employeeData.length) {
+        console.log("🚫 No employees found!");
+        setMessage("No employees available for payroll.");
+        return;
+      }
+  
+      // Step 1: Show modal for selecting employees for overtime approval
+      setShow(true);
+      console.log(employeeData);
+      setEmployeeList(employeeData); // Store employees in state to display in modal
+    } catch (error) {
+      console.error("❌ Error fetching employees:", error);
+      console.error("🔴 Full error details:", error.response?.status, error.response?.data);
+      setMessage(`❌ Failed to fetch employees: ${error.response?.data?.message || error.message}`);
+    }
+    
+  };
+  
+  const proceedWithPayroll = async (selectedEmployees) => {
     if (!cutoffDate) {
       return;
     }
@@ -69,34 +144,41 @@ const PayrollSummary = () => {
     try {
       console.log("📩 Fetching attendance data...");
       const attendanceResponse = await axios.get("http://localhost:5000/api/attendance/get-attendance");
-
-      // Ensure you extract the correct field
+  
       const attendanceData = attendanceResponse.data.attendance || [];
       console.log("📊 Fetched attendance data:", attendanceData);
-      
-      if (!attendanceData || !Array.isArray(attendanceData) || attendanceData.length === 0) {
+  
+      if (!attendanceData.length) {
         console.log("🚫 No attendance data found! Stopping payroll generation.");
         setNoAttendanceModalOpen(true);
         setLoading(false);
         return;
       }
-      
   
       console.log("📩 Sending payroll request with cutoffDate:", cutoffDate);
   
+      const updatedAttendanceData = attendanceData.map((record) => ({
+        ...record,
+        overtimeHours: selectedEmployees.includes(record.ecode) ? record.overtimeHours : 0, // Remove OT if not selected
+      }));
+  
+      // Step 2: Send only selected employees along with the filtered attendance data
       const response = await axios.post("http://localhost:5000/api/payslip/generate", {
         cutoffDate: cutoffDate.trim(),
+        selectedEmployees, // List of employees approved for overtime
+        attendanceData: updatedAttendanceData, // Ensure overtime is only applied to selected ones
       });
   
       console.log("✅ Payroll response:", response.data);
   
       if (response.data.success && Array.isArray(response.data.payslips)) {
-        if (response.data.payslips.length === 0) {
+        if (!response.data.payslips.length) {
           console.log("🚫 No payslips generated, opening modal.");
           setNoAttendanceModalOpen(true);
         } else {
           setPayslips(response.data.payslips);
           setMessage("✅ Payroll successfully generated!");
+          setShow(false); // ✅ Closes modal after approval
         }
       } else {
         setMessage(`❌ Failed to generate payroll: ${response.data.message || "Unknown error"}`);
@@ -111,6 +193,17 @@ const PayrollSummary = () => {
   
   
   
+
+  
+  
+  const handleApprovalModal = (message) => {
+    setShow(true);
+  };
+  
+
+  const handleClose = () => {
+    setShow(false);
+  };
   
   const handleReleaseRequest = async () => {
     if (!payslips.length) {
@@ -351,6 +444,54 @@ const PayrollSummary = () => {
           employeeId={selectedEmployee}
         />
         <NoAttendanceModal isOpen={noAttendanceModalOpen} onClose={() => setNoAttendanceModalOpen(false)} />
+
+        <Modal show={show} onHide={handleClose} centered size="xl" scrollable>
+      <Modal.Header closeButton>
+        <Modal.Title>Overtime Approval</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <div className="flex justify-center">
+          <div className="w-full max-w-3xl bg-white p-6 border border-gray-300 rounded-md shadow-md min-h-[500px]">
+            <h3 className="text-center text-lg font-bold mb-4">Overtime Approval</h3>
+            {filteredEmployees.length > 0 ? (
+              <ul className="list-none pl-0">
+                {filteredEmployees.map((employee) => (
+                  <li key={employee.ecode} className="flex items-center gap-3 text-lg mb-2">
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5"
+                      checked={selectedOvertime.includes(employee.ecode)}
+                      onChange={() => handleCheckboxChange(employee.ecode)}
+                    />
+                    {employee.name}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-center text-gray-500">No employees available.</p>
+            )}
+          </div>
+        </div>
+      </Modal.Body>
+      <Modal.Footer>
+        <button
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          onClick={() => {
+            proceedWithPayroll(selectedOvertime);
+            handleClose(); // Automatically close modal after clicking "Approve Overtime"
+          }}
+        >
+          Approve Overtime
+        </button>
+        <button
+          className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+          onClick={handleClose}
+        >
+          Close
+        </button>
+      </Modal.Footer>
+    </Modal>
+
       </div>
   );
 };
