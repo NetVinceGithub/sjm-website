@@ -11,6 +11,8 @@ import {
   FaRegFilePdf,
   FaReceipt,
 } from "react-icons/fa6";
+import {Modal, Button} from "react-bootstrap";
+import PayslipHistoryModal from "../payroll/PayslipHistoryModal";
 
 const PayslipHistory = () => {
   const [payslips, setPayslips] = useState([]);
@@ -18,6 +20,15 @@ const PayslipHistory = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { Id } = useParams();
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+
+
+  const handleOpenModal = (ecode) => {
+    setSelectedEmployee(ecode);
+    setModalOpen(true);
+  }
 
   useEffect(() => {
     const fetchPayslipHistory = async () => {
@@ -165,7 +176,7 @@ const PayslipHistory = () => {
       name: "Actions",
       cell: (row) => (
         <button
-          onClick={() => handleOpenModal(row.employeeId)}
+          onClick={() => handleOpenModal(row.ecode)}
           title="View Payslip"
           className="px-3 py-0.5 w-auto h-8 border text-neutralDGray hover:bg-neutralSilver rounded flex items-center space-x-2 disabled:opacity-50"
         >
@@ -236,13 +247,18 @@ const PayslipHistory = () => {
                 <DataTable
                   columns={columns}
                   data={filteredPayslips}
-                  pagination
                 />
               </div>
             </div>
           )}
         </div>
       </>
+
+      <PayslipHistoryModal
+          isOpen={modalOpen} 
+          onClose={() => setModalOpen(false)} 
+          employeeId={selectedEmployee}
+        />
     </div>
   );
 };
