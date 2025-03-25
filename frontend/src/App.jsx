@@ -50,7 +50,7 @@ const PageTitleUpdater = () => {
       "/payroll-management-login": "SJM Payroll Management Portal",
     };
 
-    document.title = titleMap[location.pathname] || "Default Title";
+    document.title = titleMap[location.pathname] || "SJM Payroll Management Portal";
   }, [location.pathname]);
 
   return null;
