@@ -27,9 +27,15 @@ const AttendanceSummary = sequelize.define("AttendanceSummary", {
     allowNull: false,
     defaultValue: 0.0,
   },
+  daysPresent: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0, // New column to track attendance days
+  },
 }, {
   tableName: "attendancesummary", // Matches your MySQL table name
   timestamps: false, // Disables `createdAt` and `updatedAt`
 });
 
 export default AttendanceSummary;
+
