@@ -25,10 +25,12 @@ const PayslipHistory = () => {
 
 
 
-  const handleOpenModal = (ecode) => {
-    setSelectedEmployee(ecode);
+  const handleOpenModal = (employeeId) => {
+    console.log("Opening modal for employee:", employeeId); // Debugging
+    setSelectedEmployee(employeeId);
     setModalOpen(true);
-  }
+  };
+  
 
   useEffect(() => {
     const fetchPayslipHistory = async () => {
@@ -176,7 +178,7 @@ const PayslipHistory = () => {
       name: "Actions",
       cell: (row) => (
         <button
-          onClick={() => handleOpenModal(row.ecode)}
+          onClick={() => handleOpenModal(row.employeeId)} // ✅ Use correct key
           title="View Payslip"
           className="px-3 py-0.5 w-auto h-8 border text-neutralDGray hover:bg-neutralSilver rounded flex items-center space-x-2 disabled:opacity-50"
         >
@@ -185,6 +187,7 @@ const PayslipHistory = () => {
       ),
       ignoreRowClick: true,
     },
+    ,
   ];
 
   return (
@@ -254,11 +257,12 @@ const PayslipHistory = () => {
         </div>
       </>
 
-      <PayslipHistoryModal
-          isOpen={modalOpen} 
-          onClose={() => setModalOpen(false)} 
-          employeeId={selectedEmployee}
-        />
+      <PayslipHistoryModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)} 
+        employeeId={selectedEmployee} 
+      />
+
     </div>
   );
 };
