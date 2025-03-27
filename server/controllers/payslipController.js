@@ -165,7 +165,7 @@ export const sendPayslips = async (req, res) => {
                             }</td>
                           </tr>
                           <tr>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Night Differenctial</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Night Differential</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
                               payslip.night_differential
                             }</td>
