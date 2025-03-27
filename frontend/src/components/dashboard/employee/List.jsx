@@ -4,6 +4,7 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import defaultProfile from "../../../../src/assets/default-profile.png"; // Adjust path as needed
 
 
 // import { EmployeeButtons } from "../../../utils/EmployeeHelper";
@@ -33,6 +34,8 @@ const List = () => {
     fetchEmployees();
   }, []);
 
+  
+
   const fetchEmployees = async () => {
     setLoading(true);
     try {
@@ -47,6 +50,8 @@ const List = () => {
       setLoading(false);
     }
   };
+
+  
 
   const syncEmployees = async () => {
     setSyncing(true);
@@ -321,10 +326,24 @@ const List = () => {
                 <DataTable
                   customStyles={customStyles}
                   columns={[
+                    {
+                      name: "Image",
+                      cell: (row) => (
+                        <img 
+                          src={`http://localhost:5000/uploads/${row.profileImage}`} 
+                          alt="Profile" 
+                          className="w-10 h-10 rounded-full object-cover" 
+                          onError={(e) => e.target.src = defaultProfile} // Fallback image
+                        />
+                      ),
+                      width: "80px",
+                      center: true
+                    }
+                    ,
                     { name: "Ecode", selector: (row) => row.ecode, sortable: true, width: "110px", center: true },
                     { name: "Name", selector: (row) => row.name, sortable: true, width: "200px" },
                     { name: "Position", selector: (row) => row.positiontitle, sortable: true, width: "350px", center: true },
-                    { name: "Department", selector: (row) => row.department || "N/A", sortable: true, width: "250px", center: true },
+                    { name: "Department", selector: (row) => row.department || "N/A", sortable: true, width: "190px", center: true },
                     {
                       name: "Options",
                       cell: (row) => (
@@ -364,7 +383,8 @@ const List = () => {
       </div>
 
       {/* Employee ID Modal */}
-      <EmployeeIDCard show={isModalOpen} handleClose={closeModal} employeeId={selectedEmployeeId} />
+      <EmployeeIDCard show={isModalOpen} handleClose={closeModal} employeeId={selectedEmployeeId} refreshEmployees={fetchEmployees} // Pass the function as a prop
+ />
       <BlockEmployeeModal
         isOpen={isBlockModalOpen}
         onClose={() => setIsBlockModalOpen(false)}
