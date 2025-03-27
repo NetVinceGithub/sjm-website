@@ -109,15 +109,22 @@ const Attendance = () => {
 
   const generateSummary = (data) => {
     const summary = data.reduce((acc, row) => {
-      const { ecode, tardiness, total_hours, overtime } = row;
+      const { ecode, ea_txndte, tardiness, total_hours, overtime } = row;
   
       if (!acc[ecode]) {
-        acc[ecode] = { ecode, totalTardiness: 0, totalHours: 0, totalOvertime: 0 };
+        acc[ecode] = { 
+          ecode, 
+          totalTardiness: 0, 
+          totalHours: 0, 
+          totalOvertime: 0, 
+          daysPresent: new Set() // Use a Set to track unique dates
+        };
       }
   
       acc[ecode].totalTardiness += tardiness;
       acc[ecode].totalHours += parseFloat(total_hours) || 0;
       acc[ecode].totalOvertime += parseFloat(overtime) || 0;
+      acc[ecode].daysPresent.add(ea_txndte); // Add unique date
   
       return acc;
     }, {});
@@ -125,13 +132,15 @@ const Attendance = () => {
     // Convert values to 2 decimal places
     const formattedSummary = Object.values(summary).map((item) => ({
       ecode: item.ecode,
-      totalTardiness: item.totalTardiness.toFixed(2), 
-      totalHours: item.totalHours.toFixed(2), 
+      totalTardiness: item.totalTardiness.toFixed(2),
+      totalHours: item.totalHours.toFixed(2),
       totalOvertime: item.totalOvertime.toFixed(2),
+      daysPresent: item.daysPresent.size, // Count unique dates
     }));
   
     setSummaryData(formattedSummary);
   };
+  
   
 
   const handleSubmit = async () => {
@@ -176,10 +185,12 @@ const Attendance = () => {
 
   const summaryColumns = [
     { name: "E-Code", selector: row => row.ecode, sortable: true, width: "100px", center: true },
+    { name: "Days Present", selector: row => row.daysPresent, sortable: true, width: "130px", center: true },
     { name: "Total Tardiness (mins)", selector: row => row.totalTardiness, sortable: true, width: "170px", center: true  },
     { name: "Total Hours Worked", selector: row => row.totalHours, sortable: true, width: "160px", center: true  },
     { name: "Total Overtime (hrs)", selector: row => row.totalOvertime, sortable: true, width: "160px", center: true  },
   ];
+  
 
   return (
 

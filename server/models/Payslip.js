@@ -22,7 +22,7 @@ const Payslip = db.define("Payslip", {
   cutoffDate: DataTypes.STRING,
   dailyrate: DataTypes.DECIMAL(10, 2),
   basicPay: DataTypes.DECIMAL(10, 2),
-  noOfDays: DataTypes.DECIMAL(10, 2),
+  noOfDays: DataTypes.INTEGER,
   overtimePay: DataTypes.DECIMAL(10, 2),
   totalOvertime: DataTypes.DECIMAL(10, 2),
   holidayPay: DataTypes.DECIMAL(10, 2),

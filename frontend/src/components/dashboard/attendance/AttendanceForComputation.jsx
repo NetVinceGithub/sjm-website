@@ -98,6 +98,9 @@ const AttendanceForComputation = () => {
                     <th className="border text-center px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg">
                       Ecode
                     </th>
+                    <th className="border text-center px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg">
+                      No. of Days Present
+                    </th>
                     <th className="border text-center  px-4 py-2">
                       Total Tardiness
                     </th>
@@ -115,6 +118,9 @@ const AttendanceForComputation = () => {
                       <tr key={record.id}>
                         <td className="border text-center  px-4 py-2">
                           {record.ecode}
+                        </td>
+                        <td className="border text-center  px-4 py-2">
+                          {record.daysPresent}
                         </td>
                         <td className="border text-center  px-4 py-2">
                           {record.totalTardiness}

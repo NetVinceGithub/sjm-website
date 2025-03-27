@@ -129,9 +129,13 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
   
       if (response.data.success) {
         setEmployee((prev) => ({ ...prev, ...response.data.employee }));
+
         setShowDetailsModal(false);
         setImage1(null);
         setImage2(null);
+
+        refreshEmployees(); // Calls fetchEmployees() from List.jsx
+
       } else {
         console.error("Failed to update employee details.");
       }

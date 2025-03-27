@@ -14,20 +14,24 @@ const PayslipHistoryModal
 
 
   useEffect(() => {
-    if (!isOpen || !employeeId) return;
-
+    if (!isOpen || !employeeId) {
+      console.log("Payslip modal is closed or employeeId is missing.");
+      return;
+    }
+  
+    console.log(`Fetching payslip for Employee ID: ${employeeId}`);
+  
     const fetchPayslip = async () => {
       setLoading(true);
       setError(null);
-    
+  
       try {
         const response = await axios.get(
           `http://localhost:5000/api/payslip/history/${employeeId}`
         );
-    
+  
         console.log("API Response:", response.data);
-        setPayslip(response.data.payslip || []);
-
+        setPayslip(response.data?.payslip ?? []);
       } catch (err) {
         console.error("Error fetching payslip:", err);
         setError("Failed to load payslip.");
@@ -35,11 +39,11 @@ const PayslipHistoryModal
         setLoading(false);
       }
     };
-    
-
+  
     fetchPayslip();
   }, [isOpen, employeeId]);
-
+  
+  
 
 
   const downloadPDF = () => {
@@ -73,7 +77,7 @@ const PayslipHistoryModal
   </Button>
   </Modal.Header>
   <Modal.Body>
-    {loading ? (
+      {loading ? (
       <p>Loading payslip...</p>
     ) : error ? (
       <p className="error-message">{error}</p>

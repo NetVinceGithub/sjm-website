@@ -52,8 +52,17 @@ export const saveAttendanceSummary = async (req, res) => {
       return res.status(400).json({ message: "Invalid data format. Expecting an array." });
     }
 
+    // Ensure `daysPresent` is included in each record
+    const formattedData = attendanceSummaryRecords.map(record => ({
+      ecode: record.ecode,
+      totalTardiness: record.totalTardiness,
+      totalHours: record.totalHours,
+      totalOvertime: record.totalOvertime,
+      daysPresent: record.daysPresent, // ✅ Store days present
+    }));
+
     // Bulk insert using Sequelize
-    const result = await AttendanceSummary.bulkCreate(attendanceSummaryRecords);
+    const result = await AttendanceSummary.bulkCreate(formattedData);
 
     res.status(201).json({
       message: "Attendance Summary data saved successfully",
@@ -65,6 +74,7 @@ export const saveAttendanceSummary = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 export const getAttendance = async (req, res) => {
   try {

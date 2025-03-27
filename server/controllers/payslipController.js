@@ -125,9 +125,10 @@ export const sendPayslips = async (req, res) => {
                           </tr>
                           <tr>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">No. of Days</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.no_of_days || "0"
-                            }</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">
+                              ${parseInt(payslip.no_of_days, 10) || "0"}
+                            </td>
+
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">SSS</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
                               payslip.sss || "0.00"
@@ -146,7 +147,7 @@ export const sendPayslips = async (req, res) => {
                           <tr>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Overtime Hours</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.overtime_hours
+                              payslip.total_overtime
                             }</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">HDMF</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
@@ -170,7 +171,7 @@ export const sendPayslips = async (req, res) => {
                             }</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Tardiness</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.tardiness
+                              payslip.total_tardiness
                             }</td>
                           </tr>
                           <tr>
@@ -211,7 +212,9 @@ export const sendPayslips = async (req, res) => {
                             <td style="border: 3px solid #AA396F; text-align: left" colspan="2">
                               NETPAY: ₱${payslip.net_pay || "0.00"}
                             </td>
-                            <td style="border: 3px solid #AA396F;" colspan="2"></td>
+                            <td style="border: 3px solid #AA396F;" colspan="2">
+                              ₱${payslip.total_deductions || "0.00"}
+                            </td>
                           </tr>
                         </tbody>
                       </table>
@@ -414,22 +417,33 @@ export const getPayslipsHistory = async (req, res) => {
 };
 
 // 🔹 Fetch Payslip History by Employee Code
+
 export const getPayslipByEmployeeId = async (req, res) => {
-  const { employeeId } = req.params;
-  console.log("Searching for payslip with employeeId:", employeeId);
+  let { employeeId } = req.params;
+
+  // Extract numeric part (Remove 'M' prefix)
+  const numericEmployeeId = parseInt(employeeId.replace(/\D/g, ""), 10);
+  console.log("🔍 Searching for payslip with numericEmployeeId:", numericEmployeeId);
 
   try {
-    const payslip = await PayslipHistory.find({ employeeId });
+    const payslip = await PayslipHistory.findAll({
+      where: { employeeId: numericEmployeeId }, // Now matching the integer ID
+    });
 
-    if (!payslip) {
+    if (!payslip || payslip.length === 0) {
+      console.log("❌ No payslip found for Employee ID:", numericEmployeeId);
       return res.status(404).json({ success: false, message: "Payslip not found" });
     }
+
     res.status(200).json({ success: true, payslip });
   } catch (error) {
-    console.error("Database error:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("🔥 Database error:", error);
+    res.status(500).json({ success: false, message: "Server error", error: error.message });
   }
 };
+
+
+
 
 
 
@@ -466,6 +480,7 @@ export const generatePayroll = async (req, res) => {
       const employeePayrollInfo =
         payrollInformations.find((info) => info.ecode === employee.ecode) || {};
 
+      const no_of_days = employeeAttendance.daysPresent || 0;
       const totalHours = Number(employeeAttendance?.totalHours) || 0;
       const holidayHours = Number(employeeAttendance?.holiday) || 0;
       const hourlyRate = employeePayrollInfo.hourly_rate || 0;
@@ -508,7 +523,7 @@ export const generatePayroll = async (req, res) => {
         cutoffDate,
         dailyrate: dailyRate.toFixed(2),
         basicPay: basicPay.toFixed(2),
-        noOfDays: 0,
+        noOfDays: no_of_days,
         overtimePay: overtimePay.toFixed(2),
         totalOvertime: totalOvertime, // ✅ Shows 0 if not selected
         holidayPay: holidayPay.toFixed(2),

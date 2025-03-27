@@ -28,10 +28,35 @@ const PayrollSummary = () => {
   const [employees, setEmployeeList] = useState("");
   const [selectedOvertime, setSelectedOvertime] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredEmployeesOvertime, setFilteredEmployeesOvertime] = useState([]);
+
   
 
   const navigate = useNavigate();
-  
+    
+
+
+  // Function to filter employees based on search term
+  const filterEmployeesForOvertime = () => {
+    if (!searchTerm) {
+      // If no search term, return all filtered employees
+      setFilteredEmployeesOvertime(filteredEmployees);
+    } else {
+      // Filter employees by name or ecode, case-insensitive
+      const filtered = filteredEmployees.filter((employee) => 
+        employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        employee.ecode.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredEmployeesOvertime(filtered);
+    }
+  };
+
+  // Use effect to run filtering when search term or filtered employees change
+  useEffect(() => {
+    filterEmployeesForOvertime();
+  }, [searchTerm, filteredEmployees]);
+
 
   useEffect(() => {
     const fetchAttendanceAndFilterEmployees = async () => {
@@ -282,7 +307,14 @@ const PayrollSummary = () => {
     }
   };
   
+  const selectAll = () => {
+    setSelectedOvertime(filteredEmployees.map(employee => employee.ecode));
+  }
   
+  const deselectAll = () => {
+    setSelectedOvertime([]);
+  }
+
 
   // Define table columns
   const columns = [
@@ -446,51 +478,79 @@ const PayrollSummary = () => {
         <NoAttendanceModal isOpen={noAttendanceModalOpen} onClose={() => setNoAttendanceModalOpen(false)} />
 
         <Modal show={show} onHide={handleClose} centered size="xl" scrollable>
-      <Modal.Header closeButton>
-        <Modal.Title>Overtime Approval</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <div className="flex justify-center">
-          <div className="w-full max-w-3xl bg-white p-6 border border-gray-300 rounded-md shadow-md min-h-[500px]">
-            <h3 className="text-center text-lg font-bold mb-4">Overtime Approval</h3>
-            {filteredEmployees.length > 0 ? (
-              <ul className="list-none pl-0">
-                {filteredEmployees.map((employee) => (
-                  <li key={employee.ecode} className="flex items-center gap-3 text-lg mb-2">
-                    <input
-                      type="checkbox"
-                      className="w-5 h-5"
-                      checked={selectedOvertime.includes(employee.ecode)}
-                      onChange={() => handleCheckboxChange(employee.ecode)}
-                    />
-                    {employee.name}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-center text-gray-500">No employees available.</p>
-            )}
-          </div>
-        </div>
-      </Modal.Body>
-      <Modal.Footer>
-        <button
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          onClick={() => {
-            proceedWithPayroll(selectedOvertime);
-            handleClose(); // Automatically close modal after clicking "Approve Overtime"
-          }}
-        >
-          Approve Overtime
-        </button>
-        <button
-          className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-          onClick={handleClose}
-        >
-          Close
-        </button>
-      </Modal.Footer>
-    </Modal>
+  <Modal.Header closeButton>
+    <Modal.Title>Overtime Approval</Modal.Title>
+  </Modal.Header>
+  <Modal.Body>
+    <div className="flex flex-col items-center">
+      <input
+        type="text"
+        placeholder="Search employees by name or ID..."
+        className="mb-4 w-full max-w-3xl p-2 border border-gray-300 rounded-md"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+      <div className="w-full max-w-3xl bg-white p-6 border border-gray-300 rounded-md shadow-md min-h-[500px]">
+        {filteredEmployeesOvertime.length > 0 ? (
+          <>
+            <div className="flex justify-between mb-3">
+              <button
+                className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                onClick={() => setSelectedOvertime(filteredEmployeesOvertime.map(employee => employee.ecode))}
+              >
+                Select All
+              </button>
+              <button
+                className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                onClick={() => setSelectedOvertime([])}
+              >
+                Deselect All
+              </button>
+            </div>
+            <ul className="list-none pl-0">
+              {filteredEmployeesOvertime.map((employee) => (
+                <li key={employee.ecode} className="flex items-center gap-3 text-lg mb-2">
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5"
+                    checked={selectedOvertime.includes(employee.ecode)}
+                    onChange={() => handleCheckboxChange(employee.ecode)}
+                  />
+                  {employee.name} ({employee.ecode})
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="text-center text-gray-500">
+            {searchTerm 
+              ? "No employees found matching your search." 
+              : "No employees available."
+            }
+          </p>
+        )}
+      </div>
+    </div>
+  </Modal.Body>
+  <Modal.Footer>
+    <button
+      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      onClick={() => {
+        proceedWithPayroll(selectedOvertime);
+        handleClose();
+      }}
+    >
+      Approve Overtime
+    </button>
+    <button
+      className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+      onClick={handleClose}
+    >
+      Close
+    </button>
+  </Modal.Footer>
+</Modal>
+
 
       </div>
   );
