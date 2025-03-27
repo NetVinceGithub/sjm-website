@@ -7,8 +7,9 @@ const Requests = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [loadingPayroll, setLoadingPayroll] = useState(false); // New loading state
 
-  const [message, setMessage] = useState(""); // To store API response messages
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -26,33 +27,32 @@ const Requests = () => {
     fetchRequests();
   }, []);
 
-  // Function to release payroll (approve all pending payslips)
   const handleApprove = async () => {
     try {
+      setLoadingPayroll(true); // Show loading modal
       const response = await axios.post("http://localhost:5000/api/payslip/release-payroll");
   
       if (response.data.success) {
         setMessage(response.data.message);
         setRequests((prev) =>
-          prev.map((p) => ({ ...p, status: "approved" })) // Update UI
+          prev.map((p) => ({ ...p, status: "approved" })) 
         );
-        setShowSuccessModal(true); // Show success modal
-
+        setShowSuccessModal(true);
       } else {
         setMessage("Failed to release payroll.");
       }
     } catch (error) {
       console.error("Error approving payroll:", error);
       setMessage("Error processing payroll release.");
+    } finally {
+      setLoadingPayroll(false); // Hide loading modal after process
     }
   };
-  
 
-  // Function to delete all payslips (Reject)
   const handleDeleteAll = async () => {
     try {
       await axios.delete("http://localhost:5000/api/payslip");
-      setRequests([]); 
+      setRequests([]);
       setShowModal(false);
     } catch (error) {
       console.error("Error deleting payroll requests:", error);
@@ -62,7 +62,7 @@ const Requests = () => {
 
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
-    setRequests([]); // Reset requests after confirming
+    setRequests([]); 
   };
 
   const totalNetPay = requests.reduce((acc, curr) => acc + Number(curr.netPay || 0), 0);
@@ -74,21 +74,19 @@ const Requests = () => {
         Payroll Requests
       </h2>
 
-      {message && <p className="text-green-600">{message}</p>} {/* Show success/error message */}
+      {message && <p className="text-green-600">{message}</p>}
 
       {loading ? (
         <p className="text-gray-500">Loading payroll requests...</p>
       ) : requests.length > 0 ? (
         <div className="border p-4 rounded shadow-md">
           <p className="text-lg font-semibold mb-4">Total Payslips: {requests.length}</p>
-
           <p><strong>Amount:</strong> ₱ {totalNetPay}</p>
-
           <p><strong>Date Requested:</strong> {new Date(requests[0]?.date).toLocaleDateString()}</p>
 
           <div className="flex gap-2 mt-4">
             <button
-              onClick={handleApprove} // Call handleApprove function on click
+              onClick={handleApprove}
               className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
             >
               Approve
@@ -105,6 +103,19 @@ const Requests = () => {
         <p className="text-gray-500">No pending payroll requests.</p>
       )}
       
+      {/* Loading Modal */}
+      {loadingPayroll && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
+            <h3 className="text-lg font-semibold mb-4">Processing Payroll</h3>
+            <p>Payroll is being distributed.</p>
+            <div className="mt-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirmation Modal for Rejection */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
@@ -130,24 +141,20 @@ const Requests = () => {
         </div>
       )}
 
-       {/* Success Modal for Approval */}
-       {showSuccessModal && (
+      {/* Success Modal for Approval */}
+      {showSuccessModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
             <h3 className="text-lg font-semibold mb-4">Success!</h3>
             <p>Payroll has been successfully approved.</p>
 
             <div className="flex justify-end mt-6">
-            <button
-              onClick={() => {
-                setShowSuccessModal(false);
-                handleCloseSuccessModal();
-              }}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              Close
-            </button>
-
+              <button
+                onClick={handleCloseSuccessModal}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
