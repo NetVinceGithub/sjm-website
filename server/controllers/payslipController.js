@@ -118,7 +118,7 @@ export const sendPayslips = async (req, res) => {
                           <tr>
                             <td style="border-bottom: 0; border: 3px solid #AA396F; border-bottom-width: 0; text-align: left;">Basic Pay</td>
                             <td style="border: 3px solid #AA396F; border-bottom-width: 0;">${
-                              payslip.overtime_pay ? Number(payslip.overtime_pay).toLocaleString() : "0.00"
+                              payslip.basic_pay ? Number(payslip.basic_pay).toLocaleString() : "0.00"
                             }</td>
                             <td style="border: 3px solid #AA396F; border-bottom-width: 0; font-weight: bold; width: 280px; font-size: 9px; background-color: #AA396F; border-radius: 10px; padding: 1px; text-align: center;">GOVERNMENT CONTRIBUTIONS</td>
                             <td style="border: 3px solid #AA396F; border-bottom-width: 0;"></td>
