@@ -52,6 +52,12 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
 
   if (!isOpen) return null;
 
+  const formatNumber = (value, fallback = "0.00") => {
+    const num = Number(value);
+    return isNaN(num) ? fallback : num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  
+  
   return (
     <>
       <Modal show={isOpen} onHide={onClose} centered size="xl" scrollable>
@@ -93,7 +99,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                     <td className="bor">{payslip.ecode || "N/A"}</td>
                     <td className="bor name">{payslip.name || "N/A"}</td>
                     <td className="bor">{payslip.project || "N/A"}</td>
-                    <td className="bor">{payslip.dailyrate || "0.00"}</td>
+                    <td className="bor">{formatNumber(payslip.dailyrate)}</td>
                   </tr>
                   <tr>
                     <th className="cell bor align" colSpan={2}>
@@ -119,7 +125,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                   </tr>
                   <tr>
                     <td className="cell3 bor left">Basic Pay</td>
-                    <td className="cell3 bor">{payslip.dailyrate || "0.00"}</td>
+                    <td className="cell3 bor">{formatNumber(payslip.dailyrate)}</td>
                     <td className="cell3 bor GovCon">
                       GOVERNMENT CONTRIBUTIONS
                     </td>
@@ -129,15 +135,15 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                     <td className="cell4 bor left">No. of Days</td>
                     <td className="cell4 bor">{payslip.noOfDays || "0"}</td>
                     <td className="cell4 bor left">SSS</td>
-                    <td className="cell4 bor">{payslip.sss || "0.00"}</td>
+                    <td className="cell4 bor">{formatNumber(payslip.sss)}</td>
                   </tr>
                   <tr>
                     <td className="cell4 bor left">Overtime Pay</td>
                     <td className="cell4 bor">
-                      {payslip.overtimePay || "0.00"}
+                    {formatNumber(payslip.overtimePay)}
                     </td>
                     <td className="cell4 bor left">PHIC</td>
-                    <td className="cell4 bor">{payslip.phic || "0.00"}</td>
+                    <td className="cell4 bor">{formatNumber(payslip.phic)}</td>
                   </tr>
                   <tr>
                     <td className="cell4 bor left">Overtime Hours</td>
@@ -145,32 +151,32 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                       {payslip.totalOvertime || "0.00"}
                     </td>
                     <td className="cell4 bor left">HDMF</td>
-                    <td className="cell4 bor">{payslip.hdmf || "0.00"}</td>
+                    <td className="cell4 bor">{formatNumber(payslip.hdmf)}</td>
                   </tr>
                   <tr>
                     <td className="cell4 bor left">Holiday Pay</td>
                     <td className="cell4 bor">
-                      {payslip.holidayPay || "0.00"}
+                    {formatNumber(payslip.holidayPay)}
                     </td>
                     <td className="cell4 bor left">Cash Advance/Loan</td>
-                    <td className="cell4 bor">{payslip.loan || "0.00"}</td>
+                    <td className="cell4 bor">{formatNumber(payslip.loan)}</td>
                   </tr>
                   <tr>
                     <td className="cell4 bor left">Night Differential</td>
                     <td className="cell4 bor">
-                      {payslip.nightDifferential || "0.00"}
+                    {formatNumber(payslip.nightDifferential)}
                     </td>
                     <td className="cell4 bor left">Tardiness</td>
                     <td className="cell4 bor">
-                      {payslip.totalTardiness || "0.00"}
+                    {formatNumber(payslip.totalTardiness)}
                     </td>
                   </tr>
                   <tr>
                     <td className="cell4 bor left">Allowance</td>
-                    <td className="cell4 bor">{payslip.allowance || "0.00"}</td>
+                    <td className="cell4 bor">{formatNumber(payslip.allowance)}</td>
                     <td className="cell4 bor left">Other Deductions</td>
                     <td className="cell4 bor">
-                      {payslip.otherDeductions || "0.00"}
+                    {formatNumber(payslip.otherDeductions)}
                     </td>
                   </tr>
                   <tr>
@@ -178,9 +184,17 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                     <td className="cell4 bor"></td>
                     <td className="cell4 bor left">Total Deductions</td>
                     <td className="cell4 bor">
-                      {payslip.totalDeductions || "0.00"}
+                    {formatNumber(payslip.totalDeductions)}
                     </td>
+                    
                   </tr>
+                  <tr>
+                      <td className="cell4 bor left">Adjustments</td>
+                      <td className="cell4 bor">
+                      {formatNumber(payslip.adjusment)}
+                      </td>
+                  </tr>
+                      
                   <tr>
                     <th className="cell bor align" colSpan={2}>
                       NET PAY
@@ -191,10 +205,10 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                   </tr>
                   <tr className="cell5">
                     <td className="cell5 net" colSpan={2}>
-                      NETPAY: ₱{payslip.netPay || "0.00"}
+                      NETPAY: ₱{formatNumber(payslip.netPay)}
                     </td>
                     <td className="cell5" colSpan={2}>
-                      {payslip.totalDeductions || "0.00"}
+                     {formatNumber(payslip.totalDeductions)}
                     </td>
                   </tr>
                 </tbody>

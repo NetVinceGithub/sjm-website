@@ -63,6 +63,7 @@ const PayslipHistory = () => {
             totalDeductions: payslip.totalDeductions,
             netPay: payslip.netPay,
             allowance: payslip.allowance,
+            cutoffDate: payslip.cutoffDate,
           }));
 
           setPayslips(data);
@@ -117,15 +118,8 @@ const PayslipHistory = () => {
       width: "200px",
     },
     {
-      name: "Position",
-      selector: (row) => row.position || "N/A",
-      sortable: true,
-      center: true,
-      width: "200px",
-    },
-    {
-      name: "Project ",
-      selector: (row) => row.project || "N/A",
+      name: "Cut off Date ",
+      selector: (row) => row.cutoffDate || "N/A",
       sortable: true,
       center: true,
       width: "200px",
