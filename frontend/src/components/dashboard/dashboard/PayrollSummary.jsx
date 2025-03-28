@@ -31,6 +31,8 @@ const PayrollSummary = () => {
   const [filteredEmployeesOvertime, setFilteredEmployeesOvertime] = useState(
     []
   );
+  const [maxOvertime, setMaxOvertime] = useState('');
+
 
   const navigate = useNavigate();
 
@@ -173,37 +175,35 @@ const PayrollSummary = () => {
     if (!cutoffDate) {
       return;
     }
-
+  
     setMessage("");
     setLoading(true);
-
+  
     try {
       console.log("📩 Fetching attendance data...");
       const attendanceResponse = await axios.get(
         "http://localhost:5000/api/attendance/get-attendance"
       );
-
+  
       const attendanceData = attendanceResponse.data.attendance || [];
       console.log("📊 Fetched attendance data:", attendanceData);
-
+  
       if (!attendanceData.length) {
-        console.log(
-          "🚫 No attendance data found! Stopping payroll generation."
-        );
+        console.log("🚫 No attendance data found! Stopping payroll generation.");
         setNoAttendanceModalOpen(true);
         setLoading(false);
         return;
       }
-
+  
       console.log("📩 Sending payroll request with cutoffDate:", cutoffDate);
-
+  
       const updatedAttendanceData = attendanceData.map((record) => ({
         ...record,
         overtimeHours: selectedEmployees.includes(record.ecode)
-          ? record.overtimeHours
+          ? Math.min(record.overtimeHours, Number(maxOvertime)) // ✅ Apply max OT limit
           : 0, // Remove OT if not selected
       }));
-
+  
       // Step 2: Send only selected employees along with the filtered attendance data
       const response = await axios.post(
         "http://localhost:5000/api/payslip/generate",
@@ -211,11 +211,12 @@ const PayrollSummary = () => {
           cutoffDate: cutoffDate.trim(),
           selectedEmployees, // List of employees approved for overtime
           attendanceData: updatedAttendanceData, // Ensure overtime is only applied to selected ones
+          maxOvertime: Number(maxOvertime), // ✅ Include max OT in request
         }
       );
-
+  
       console.log("✅ Payroll response:", response.data);
-
+  
       if (response.data.success && Array.isArray(response.data.payslips)) {
         if (!response.data.payslips.length) {
           console.log("🚫 No payslips generated, opening modal.");
@@ -244,6 +245,7 @@ const PayrollSummary = () => {
       setLoading(false);
     }
   };
+  
 
   const handleApprovalModal = (message) => {
     setShow(true);
@@ -622,6 +624,18 @@ const PayrollSummary = () => {
                       </button>
                     </div>
                   </div>
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Maximum OT Hours per Employee
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full px-2 py-1 border rounded"
+                      placeholder="Enter max OT hours"
+                      value={maxOvertime}
+                      onChange={(e) => setMaxOvertime(e.target.value)}
+                    />
+                  </div>
                   <hr className="-mt-4" />
                   <ul className="list-none pl-0">
                     {filteredEmployeesOvertime.map((employee) => (
@@ -654,7 +668,7 @@ const PayrollSummary = () => {
           <button
             className="px-2 py-1 h-10 bg-brandPrimary text-white rounded hover:bg-neutralDGray"
             onClick={() => {
-              proceedWithPayroll(selectedOvertime);
+              proceedWithPayroll(selectedOvertime, maxOvertime);
               handleClose();
             }}
           >
@@ -668,6 +682,7 @@ const PayrollSummary = () => {
           </button>
         </Modal.Footer>
       </Modal>
+
     </div>
   );
 };
