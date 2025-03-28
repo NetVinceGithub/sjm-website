@@ -118,7 +118,7 @@ export const sendPayslips = async (req, res) => {
                           <tr>
                             <td style="border-bottom: 0; border: 3px solid #AA396F; border-bottom-width: 0; text-align: left;">Basic Pay</td>
                             <td style="border: 3px solid #AA396F; border-bottom-width: 0;">${
-                              payslip.dailyrate || "0.00"
+                              payslip.overtime_pay ? Number(payslip.overtime_pay).toLocaleString() : "0.00"
                             }</td>
                             <td style="border: 3px solid #AA396F; border-bottom-width: 0; font-weight: bold; width: 280px; font-size: 9px; background-color: #AA396F; border-radius: 10px; padding: 1px; text-align: center;">GOVERNMENT CONTRIBUTIONS</td>
                             <td style="border: 3px solid #AA396F; border-bottom-width: 0;"></td>
@@ -131,17 +131,17 @@ export const sendPayslips = async (req, res) => {
 
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">SSS</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.sss || "0.00"
+                              payslip.sss ? Number(payslip.sss).toLocaleString() : "0.00"
                             }</td>
                           </tr>
                           <tr>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Overtime Pay</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.overtime_pay || "0.00"
+                              payslip.overtime_pay ? Number(payslip.overtime_pay).toLocaleString() : "0.00"
                             }</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">PHIC</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.phic || "0.00"
+                              payslip.phic ? Number(payslip.phic).toLocaleString() : "0.00"
                             }</td>
                           </tr>
                           <tr>
@@ -151,37 +151,37 @@ export const sendPayslips = async (req, res) => {
                             }</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">HDMF</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.hdmf
+                              payslip.hdmf ? Number(payslip.hdmf).toLocaleString() : "0.00"
                             }</td>
                           </tr>
                           <tr>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Holiday Pay</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.holiday_pay
+                              payslip.holiday_pay ? Number(payslip.holiday_pay).toLocaleString() : "0.00"
                             }</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Cash Advance/Loan</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.loan
+                              payslip.loan ? Number(payslip.loan).toLocaleString() : "0.00"
                             }</td>
                           </tr>
                           <tr>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Night Differenctial</td>
+                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Night Differential</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.night_differential
+                              payslip.night_differential ? Number(payslip.night_differential).toLocaleString() : "0.00"
                             }</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Tardiness</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.total_tardiness
+                              payslip.total_tardiness ? Number(payslip.total_tardiness).toLocaleString() : "0.00"
                             }</td>
                           </tr>
                           <tr>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Allowance</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.allowance
+                              payslip.allowance ? Number(payslip.allowance).toLocaleString() : "0.00"
                             }</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Other Deductions</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.other_deductions
+                              payslip.other_deductions ? Number(payslip.other_deductions).toLocaleString() : "0.00"
                             }</td>
                           </tr>
                           <tr>
@@ -189,7 +189,9 @@ export const sendPayslips = async (req, res) => {
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;"></td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Total Deductions</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">
-                              ${payslip.total_deductions || "0.00"}
+                            ${
+                              payslip.total_deductions ? Number(payslip.total_deductions).toLocaleString() : "0.00"
+                            }
                             </td>
                           </tr>
                           <tr>
@@ -197,7 +199,7 @@ export const sendPayslips = async (req, res) => {
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;"></td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Adjustments</td>
                             <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.adjustment
+                              payslip.adjustment ? Number(payslip.adjustment).toLocaleString() : "0.00"
                             }</td>
                           </tr>
                           <tr>
@@ -210,10 +212,14 @@ export const sendPayslips = async (req, res) => {
                           </tr>
                           <tr style="border: 3px solid #AA396F;">
                             <td style="border: 3px solid #AA396F; text-align: left" colspan="2">
-                              NETPAY: ₱${payslip.net_pay || "0.00"}
+                              NETPAY: ₱${
+                                payslip.net_pay ? Number(payslip.net_pay).toLocaleString() : "0.00"
+                              }
                             </td>
                             <td style="border: 3px solid #AA396F;" colspan="2">
-                              ₱${payslip.total_deductions || "0.00"}
+                              ₱${
+                                payslip.total_deductions ? Number(payslip.total_deductions).toLocaleString() : "0.00"
+                              }
                             </td>
                           </tr>
                         </tbody>
@@ -443,13 +449,9 @@ export const getPayslipByEmployeeId = async (req, res) => {
 };
 
 
-
-
-
-
 export const generatePayroll = async (req, res) => {
   console.log("🔍 Incoming request body:", req.body);
-  const { cutoffDate, selectedEmployees = [] } = req.body;
+  const { cutoffDate, selectedEmployees = [], maxOvertime = 0 } = req.body; // ✅ Include maxOvertime
 
   if (!cutoffDate) {
     return res.status(400).json({ success: false, message: "cutoffDate is required" });
@@ -458,7 +460,6 @@ export const generatePayroll = async (req, res) => {
   try {
     console.log("🚀 Starting Payroll Generation for cutoffDate:", cutoffDate);
 
-    // Fetch data
     const employees = await Employee.findAll();
     const attendanceSummaries = await AttendanceSummary.findAll();
     const payrollInformations = await PayrollInformation.findAll();
@@ -496,8 +497,9 @@ export const generatePayroll = async (req, res) => {
       const otherDeductions = employeePayrollInfo.otherDeductions || 0;
       const adjustment = employeePayrollInfo.adjustment || 0;
 
+      // ✅ Apply max overtime limit
       const totalOvertime = selectedEmployees.includes(employee.ecode)
-        ? Number(employeeAttendance?.totalOvertime) || 0
+        ? Math.min(Number(employeeAttendance?.totalOvertime) || 0, Number(maxOvertime))
         : 0;
       
       console.log(
@@ -525,7 +527,7 @@ export const generatePayroll = async (req, res) => {
         basicPay: basicPay.toFixed(2),
         noOfDays: no_of_days,
         overtimePay: overtimePay.toFixed(2),
-        totalOvertime: totalOvertime, // ✅ Shows 0 if not selected
+        totalOvertime: totalOvertime, // ✅ Corrected total overtime
         holidayPay: holidayPay.toFixed(2),
         nightDifferential: nightDifferential.toFixed(2),
         allowance: allowance.toFixed(2),
@@ -568,6 +570,7 @@ export const generatePayroll = async (req, res) => {
     });
   }
 };
+
 
 
 export const requestPayrollRelease = async (req, res) => {

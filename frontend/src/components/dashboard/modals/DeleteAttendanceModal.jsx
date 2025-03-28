@@ -11,17 +11,18 @@ const DeleteAttendanceModal = ({ isOpen, onClose, onConfirm, employee }) => {
           Are you sure you want to delete attendance? <strong>{employee?.name}</strong>
         </p>
         <div className="mt-4 flex justify-center gap-4">
-          <button
-            onClick={onConfirm} // Calls function to toggle status
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-          >
-            Yes
-          </button>
+         
           <button
             onClick={onClose}
             className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
           >
             Cancel
+          </button>
+          <button
+            onClick={onConfirm} // Calls function to toggle status
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Yes
           </button>
         </div>
       </div>

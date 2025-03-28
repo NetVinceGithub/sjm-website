@@ -11,7 +11,7 @@ import {
   FaRegFilePdf,
   FaReceipt,
 } from "react-icons/fa6";
-import {Modal, Button} from "react-bootstrap";
+import { Modal, Button } from "react-bootstrap";
 import PayslipHistoryModal from "../payroll/PayslipHistoryModal";
 
 const PayslipHistory = () => {
@@ -23,14 +23,11 @@ const PayslipHistory = () => {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-
-
   const handleOpenModal = (employeeId) => {
     console.log("Opening modal for employee:", employeeId); // Debugging
     setSelectedEmployee(employeeId);
     setModalOpen(true);
   };
-  
 
   useEffect(() => {
     const fetchPayslipHistory = async () => {
@@ -66,6 +63,7 @@ const PayslipHistory = () => {
             totalDeductions: payslip.totalDeductions,
             netPay: payslip.netPay,
             allowance: payslip.allowance,
+            cutoffDate: payslip.cutoffDate,
           }));
 
           setPayslips(data);
@@ -117,56 +115,49 @@ const PayslipHistory = () => {
       selector: (row) => row.name || "N/A",
       sortable: true,
       center: true,
-      width: "200px"
+      width: "200px",
     },
     {
-      name: "Position",
-      selector: (row) => row.position || "N/A",
+      name: "Cut off Date ",
+      selector: (row) => row.cutoffDate || "N/A",
       sortable: true,
       center: true,
-      width: "200px"
-    },
-    {
-      name: "Project ",
-      selector: (row) => row.project || "N/A",
-      sortable: true,
-      center: true,
-      width: "200px"
+      width: "200px",
     },
     {
       name: "Basic Pay",
       selector: (row) => `₱${(row.basicPay ?? 0).toLocaleString()}`,
       sortable: true,
       center: true,
-      width: "130px"
+      width: "130px",
     },
     {
       name: "Overtime Pay",
       selector: (row) => `₱${(row.overtimePay ?? 0).toLocaleString()}`,
       sortable: true,
       center: true,
-      width: "130px"
+      width: "130px",
     },
     {
       name: "Holiday Pay",
       selector: (row) => `₱${(row.holidayPay ?? 0).toLocaleString()}`,
       sortable: true,
       center: true,
-      width: "130px"
+      width: "130px",
     },
     {
       name: "Allowance",
       selector: (row) => `₱${(row.allowance ?? 0).toLocaleString()}`,
       sortable: true,
       center: true,
-      width: "130px"
+      width: "130px",
     },
     {
       name: "Total Deductions",
       selector: (row) => `₱${(row.totalDeductions ?? 0).toLocaleString()}`,
       sortable: true,
       center: true,
-      width: "160px"
+      width: "160px",
     },
     {
       name: "Net Pay",
@@ -246,23 +237,21 @@ const PayslipHistory = () => {
                 </div>
               </div>
               <hr />
-              <div className="mt-3 border h-[31rem]  border-neutralDGray rounded overflow-x-auto">
-                <DataTable
-                  columns={columns}
-                  data={filteredPayslips}
-                />
+              <div className="mt-3 border h-[31rem] border-neutralDGray rounded overflow-auto">
+                <div className="w-full overflow-x-auto">
+                  <DataTable columns={columns} data={filteredPayslips} />
+                </div>
               </div>
             </div>
           )}
         </div>
       </>
 
-      <PayslipHistoryModal 
-        isOpen={modalOpen} 
-        onClose={() => setModalOpen(false)} 
-        employeeId={selectedEmployee} 
+      <PayslipHistoryModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        employeeId={selectedEmployee}
       />
-
     </div>
   );
 };

@@ -115,18 +115,15 @@ const Overview = () => {
       name: "Name",
       selector: (row) => row.name,
       width: "200px",
-      center: true,
     },
     {
       name: "Position",
       selector: (row) => row.positiontitle,
       width: "250px",
-      center: true,
     },
     {
       name: "Status",
       width: "100px",
-      center: true,
       cell: (row) => (
         <span className="flex items-center gap-2">
           <span
@@ -185,7 +182,7 @@ const Overview = () => {
             payslips={payslips}
             className="border border-neutralDGray"
           />
-          <div className="bg-white overflow-auto h-[261px] border border-neutralDGray rounded shadow-sm mt-3">
+          <div className="bg-white overflow-auto w-[550px] h-[205px] fixed border border-neutralDGray rounded shadow-sm mt-3">
             <div className="flex justify-between">
               <h6 className="p-3 mb-0 ml-1 text-neutralDGray">
                 <strong>Employee Status</strong>
@@ -206,7 +203,7 @@ const Overview = () => {
           </div>
         </div>
         <div className="w-[55%]">
-          <div className="p-3 border w-[659px] h-[331px] border-neutralDGray bg-white shadow-sm rounded">
+          <div className="p-3 border w-[668px] h-[331px] border-neutralDGray bg-white shadow-sm rounded">
             <CustomCalendar onDateChange={setCutoffDate} />
           </div>
           <div className="bg-white border-neutralDGray h-[180px] shadow-sm mt-3 rounded">
