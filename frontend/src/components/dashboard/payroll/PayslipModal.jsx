@@ -54,10 +54,14 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
 
   const formatNumber = (value, fallback = "0.00") => {
     const num = Number(value);
-    return isNaN(num) ? fallback : num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return isNaN(num)
+      ? fallback
+      : num.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
   };
-  
-  
+
   return (
     <>
       <Modal show={isOpen} onHide={onClose} centered size="xl" scrollable>
@@ -125,7 +129,9 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                   </tr>
                   <tr>
                     <td className="cell3 bor left">Basic Pay</td>
-                    <td className="cell3 bor">{formatNumber(payslip.dailyrate)}</td>
+                    <td className="cell3 bor">
+                      {formatNumber(payslip.dailyrate)}
+                    </td>
                     <td className="cell3 bor GovCon">
                       GOVERNMENT CONTRIBUTIONS
                     </td>
@@ -140,7 +146,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                   <tr>
                     <td className="cell4 bor left">Overtime Pay</td>
                     <td className="cell4 bor">
-                    {formatNumber(payslip.overtimePay)}
+                      {formatNumber(payslip.overtimePay)}
                     </td>
                     <td className="cell4 bor left">PHIC</td>
                     <td className="cell4 bor">{formatNumber(payslip.phic)}</td>
@@ -156,7 +162,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                   <tr>
                     <td className="cell4 bor left">Holiday Pay</td>
                     <td className="cell4 bor">
-                    {formatNumber(payslip.holidayPay)}
+                      {formatNumber(payslip.holidayPay)}
                     </td>
                     <td className="cell4 bor left">Cash Advance/Loan</td>
                     <td className="cell4 bor">{formatNumber(payslip.loan)}</td>
@@ -164,19 +170,21 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                   <tr>
                     <td className="cell4 bor left">Night Differential</td>
                     <td className="cell4 bor">
-                    {formatNumber(payslip.nightDifferential)}
+                      {formatNumber(payslip.nightDifferential)}
                     </td>
                     <td className="cell4 bor left">Tardiness</td>
                     <td className="cell4 bor">
-                    {formatNumber(payslip.totalTardiness)}
+                      {formatNumber(payslip.totalTardiness)}
                     </td>
                   </tr>
                   <tr>
                     <td className="cell4 bor left">Allowance</td>
-                    <td className="cell4 bor">{formatNumber(payslip.allowance)}</td>
+                    <td className="cell4 bor">
+                      {formatNumber(payslip.allowance)}
+                    </td>
                     <td className="cell4 bor left">Other Deductions</td>
                     <td className="cell4 bor">
-                    {formatNumber(payslip.otherDeductions)}
+                      {formatNumber(payslip.otherDeductions)}
                     </td>
                   </tr>
                   <tr>
@@ -184,17 +192,18 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                     <td className="cell4 bor"></td>
                     <td className="cell4 bor left">Total Deductions</td>
                     <td className="cell4 bor">
-                    {formatNumber(payslip.totalDeductions)}
+                      {formatNumber(payslip.totalDeductions)}
                     </td>
-                    
                   </tr>
                   <tr>
-                      <td className="cell4 bor left">Adjustments</td>
-                      <td className="cell4 bor">
+                    <td className="cell4 bor left"></td>
+                    <td className="cell4 bor"></td>
+                    <td className="cell4 bor left">Adjustments</td>
+                    <td className="cell4 bor">
                       {formatNumber(payslip.adjusment)}
-                      </td>
+                    </td>
                   </tr>
-                      
+
                   <tr>
                     <th className="cell bor align" colSpan={2}>
                       NET PAY
@@ -208,7 +217,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                       NETPAY: ₱{formatNumber(payslip.netPay)}
                     </td>
                     <td className="cell5" colSpan={2}>
-                     {formatNumber(payslip.totalDeductions)}
+                      {formatNumber(payslip.totalDeductions)}
                     </td>
                   </tr>
                 </tbody>
