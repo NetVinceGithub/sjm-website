@@ -14,28 +14,20 @@ const Login = () => {
   const {login} = useAuth()
   const navigate = useNavigate()
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => { 
     e.preventDefault();
     try {
       const response = await axios.post("http://localhost:5000/api/auth/login", { email, password });
   
       if (response.data.success) {
         login(response.data.user);
-        const { token, user } = response.data;
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("userRole", response.data.user.role);  // ✅ Store role in localStorage
   
-        // Check if 'Remember me' is checked
-        if (isChecked) {
-          localStorage.setItem("token", token);
-          localStorage.setItem("userRole", user.role);  // Store role in localStorage
-        } else {
-          sessionStorage.setItem("token", token);  // Store token in sessionStorage if 'Remember me' is not checked
-        }
-  
-        // Redirect based on user role
-        if (user.role === "admin") {
+        if (response.data.user.role === "admin") {
           navigate('/admin-dashboard');
         } else {
-          navigate('/admin-dashboard/employees'); // Redirect to employee dashboard
+          navigate('/admin-dashboard/employees'); // ✅ Redirect to employee dashboard instead
         }
       }
     } catch (error) {

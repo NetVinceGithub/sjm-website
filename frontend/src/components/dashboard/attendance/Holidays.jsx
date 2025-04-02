@@ -98,15 +98,15 @@ const Holidays = () => {
       </div>
 
       {/* List Holidays */}
-      <ul className="space-y-3 mt-6">
+      <ul className="space-y-3 mt-6 max-h-96 overflow-y-auto">
         {holidays.length > 0 ? (
           holidays.map((holiday) => (
             <li
               key={holiday.id}
-              className="flex justify-between items-center bg-gray-100 p-3 rounded-lg shadow-sm"
+              className="flex justify-between items-center bg-gray-100 p-4 rounded-lg shadow-sm hover:bg-gray-200 transition-all duration-200"
             >
-              <span className="font-medium">
-                {holiday.date} - {holiday.name}
+              <span className="font-medium text-gray-800">
+                {holiday.date} - <span className="text-blue-600">{holiday.name}</span>
               </span>
               <button
                 onClick={() => deleteHoliday(holiday.id)}
@@ -117,9 +117,10 @@ const Holidays = () => {
             </li>
           ))
         ) : (
-          <p className="text-center text-gray-500">No holidays available.</p>
+          <p className="text-center text-gray-500 font-medium">No holidays available.</p>
         )}
       </ul>
+
     </div>
   );
 };
