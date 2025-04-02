@@ -149,7 +149,7 @@ const AddAdmin = () => {
             className="w-[20%] bg-brandPrimary h-11 hover:bg-neutralDGray text-white py-1 px-3 rounded"
             disabled={loading}
           >
-            {loading ? "Adding..." : "Add Admin"}
+            {loading ? "Adding..." : "Add "}
           </button>
         </div>
       </form>

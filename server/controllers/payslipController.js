@@ -118,7 +118,7 @@ export const sendPayslips = async (req, res) => {
                           <tr>
                             <td style="border-bottom: 0; border: 3px solid #AA396F; border-bottom-width: 0; text-align: left;">Basic Pay</td>
                             <td style="border: 3px solid #AA396F; border-bottom-width: 0;">${
-                              payslip.overtime_pay ? Number(payslip.overtime_pay).toLocaleString() : "0.00"
+                              payslip.basic_pay ? Number(payslip.basic_pay).toLocaleString() : "0.00"
                             }</td>
                             <td style="border: 3px solid #AA396F; border-bottom-width: 0; font-weight: bold; width: 280px; font-size: 9px; background-color: #AA396F; border-radius: 10px; padding: 1px; text-align: center;">GOVERNMENT CONTRIBUTIONS</td>
                             <td style="border: 3px solid #AA396F; border-bottom-width: 0;"></td>
@@ -482,6 +482,8 @@ export const generatePayroll = async (req, res) => {
         payrollInformations.find((info) => info.ecode === employee.ecode) || {};
 
       const no_of_days = employeeAttendance.daysPresent || 0;
+      const holidayDays = employeeAttendance.holidayCount || 0;
+      const regularDays = employeeAttendance.regularDays || 0; // or employeeAttendance.regularDays if available
       const totalHours = Number(employeeAttendance?.totalHours) || 0;
       const holidayHours = Number(employeeAttendance?.holiday) || 0;
       const hourlyRate = employeePayrollInfo.hourly_rate || 0;
@@ -497,10 +499,12 @@ export const generatePayroll = async (req, res) => {
       const otherDeductions = employeePayrollInfo.otherDeductions || 0;
       const adjustment = employeePayrollInfo.adjustment || 0;
 
-      // ✅ Apply max overtime limit
       const totalOvertime = selectedEmployees.includes(employee.ecode)
         ? Math.min(Number(employeeAttendance?.totalOvertime) || 0, Number(maxOvertime))
         : 0;
+
+      const totalRegularHours = employeeAttendance.totalRegularHours;
+      const totalHolidayHours = employeeAttendance.totalHolidayHours;
       
       console.log(
         `Processing Payroll for: ${employee.name} (${employee.ecode}) | Overtime: ${totalOvertime} hours`
@@ -508,7 +512,7 @@ export const generatePayroll = async (req, res) => {
 
       const basicPay = totalHours * hourlyRate;
       const overtimePay = totalOvertime * overtimeRate;
-      const holidayPay = holidayHours * hourlyRate;
+      const holidayPay = totalHolidayHours * hourlyRate;
       const grossPay = basicPay + overtimePay + holidayPay + allowance;
       const totalEarnings = grossPay + adjustment;
       const totalDeductions = tardiness + sss + phic + hdmf + loan + otherDeductions;
@@ -526,8 +530,12 @@ export const generatePayroll = async (req, res) => {
         dailyrate: dailyRate.toFixed(2),
         basicPay: basicPay.toFixed(2),
         noOfDays: no_of_days,
+        holidayDays: holidayDays,
+        regularDays: regularDays,
         overtimePay: overtimePay.toFixed(2),
-        totalOvertime: totalOvertime, // ✅ Corrected total overtime
+        totalOvertime: totalOvertime, 
+        totalRegularHours: totalRegularHours,
+        totalHolidayHours: totalHolidayHours,
         holidayPay: holidayPay.toFixed(2),
         nightDifferential: nightDifferential.toFixed(2),
         allowance: allowance.toFixed(2),

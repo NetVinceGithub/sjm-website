@@ -624,19 +624,20 @@ const PayrollSummary = () => {
                       </button>
                     </div>
                   </div>
-                  <div className="mb-3">
+                  <div className="mb-3 -mt-3">
                     <label className="block text-sm font-medium text-gray-700">
-                      Maximum OT Hours per Employee
+                      Approved Overtime (hrs) per Employee:
                     </label>
                     <input
                       type="number"
-                      className="w-full px-2 py-1 border rounded"
-                      placeholder="Enter max OT hours"
+                      className="w-full mb-3 px-2 py-1 border rounded"
+                      placeholder="Enter approved overtime"
                       value={maxOvertime}
                       onChange={(e) => setMaxOvertime(e.target.value)}
                     />
                   </div>
                   <hr className="-mt-4" />
+                  <h5 className="text-neutralDGray -mt-1">List of Employees</h5>
                   <ul className="list-none pl-0">
                     {filteredEmployeesOvertime.map((employee) => (
                       <li

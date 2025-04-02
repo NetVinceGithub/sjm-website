@@ -56,6 +56,21 @@ const Attendance = sequelize.define("Attendance", {
     allowNull: false,
     defaultValue: 0.0,
   },
+  daysPresent: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0, // Tracks total attendance days
+  },
+  regularDays: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0, // Tracks number of regular working days
+  },
+  holidayDays: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0, // Tracks number of holidays
+  },
 }, {
   tableName: "attendances",
   timestamps: false,
@@ -63,4 +78,3 @@ const Attendance = sequelize.define("Attendance", {
 });
 
 export default Attendance;
-
