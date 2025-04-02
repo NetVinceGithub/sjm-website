@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -57,6 +57,14 @@ const PageTitleUpdater = () => {
   return null;
 };
 
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
+  );
+}
+
 function AppContent() {
   const publicRoutes = ["/", "/admin", "/faqs", "/careers", "/services-offered"];
   const location = useLocation().pathname;
@@ -102,7 +110,7 @@ function AppContent() {
           <Route path="create-payroll" element={<CreatePayroll />} />
           <Route path="employees/payroll-data/:id" element={<EmployeePayrollData />} />
           <Route path="payslip-history" element={<PayslipHistory />} />
-          <Route path="payroll-summary" element={<PayrollSummary />} />
+          <Route path="payroll-summary" element={<PayrollSummary/>}/>
           <Route path="employees/payslip/:id" element={<Payslip />} />
           <Route path="employees/payslip-history/:id" element={<EmployeePayslipHistory />} />
           <Route path="employees/allowance/:id" element={<Allowance />} />
@@ -116,7 +124,7 @@ function AppContent() {
           <Route path="add-rates" element={<AddRatesAndDeductions />} />
           <Route path="rates/edit/:id" element={<EditRatesAndDeductions />} />
           <Route path="payslip-history/send-payslip-trial" element={<PayslipSend />} />
-          <Route path="holidays" element={< Holidays />} />
+          <Route path="holidays" element={< Holidays/>} />
         </Route>
 
         {/* Employee Dashboard */}
@@ -128,10 +136,5 @@ function AppContent() {
   );
 }
 
-function App() {
-  return (
-    <AppContent />
-  );
-}
 
 export default App;

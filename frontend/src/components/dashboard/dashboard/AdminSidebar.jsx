@@ -54,8 +54,10 @@ const AdminSidebar = () => {
 
         {/* Sidebar Menu */}
         <div className="p-2">
-          {/* Dashboard */}
-          <div className="mb-1">
+
+        {/* Dashboard */}
+        <div className="mb-1 -mt-2">
+          {isAdmin ? (
             <button
               onClick={() => toggleDropdown("dashboard")}
               className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition-all duration-300"
@@ -66,49 +68,60 @@ const AdminSidebar = () => {
               </span>
               {activeDropdown === "dashboard" ? <FaChevronUp /> : <FaChevronDown />}
             </button>
+          ) : (
+            <button
+              onClick={handleRestrictedAccess} 
+              className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
 
-            {/* Dashboard Submenu */}
-            {activeDropdown === "dashboard" && (
-              <div className="ml-6 mt-1 space-y-1">
-                {isAdmin ? (
-                  <>
-                    <NavLink
-                      to="/admin-dashboard/overview"
-                      end
-                      className={({ isActive }) =>
-                        `flex -mt-1 items-center text-white no-underline space-x-3 py-2 px-4 rounded-md ${
-                          isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
-                        }`
-                      }
-                    >
-                      <FaBookOpen />
-                      <span>Overview</span>
-                    </NavLink>
+              >
+                <FaTachometerAlt />
+                <span>Dashboard</span>
+            </button>
+          )}
 
-                    <NavLink
-                      to="/admin-dashboard/lounge"
-                      className={({ isActive }) =>
-                        `flex -mt-3 items-center space-x-3  text-white no-underline py-2 px-4 rounded-md ${
-                          isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
-                        }`
-                      }
-                    >
-                      <FaCogs  />
-                      <span>Admin Settings</span>
-                    </NavLink>
-                  </>
-                ) : (
-                  <button
-                    onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2 px-4 bg-red-600 hover:bg-red-700 rounded-md"
+          {/* Dashboard Submenu */}
+          {activeDropdown === "dashboard" && (
+            <div className="ml-6 mt-1 space-y-1">
+              {isAdmin ? (
+                <>
+                  <NavLink
+                    to="/admin-dashboard/overview"
+                    end
+                    className={({ isActive }) =>
+                      `flex -mt-1 items-center text-white no-underline space-x-3 py-2 px-4 rounded-md ${
+                        isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                      }`
+                    }
                   >
-                    <FaTachometerAlt />
-                    <span>Payroll Dashboard</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+                    <FaBookOpen />
+                    <span>Overview</span>
+                  </NavLink>
+
+                  <NavLink
+                    to="/admin-dashboard/lounge"
+                    className={({ isActive }) =>
+                      `flex -mt-3 items-center space-x-3 text-white no-underline py-2 px-4 rounded-md ${
+                        isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                      }`
+                    }
+                  >
+                    <FaCogs />
+                    <span>Admin Settings</span>
+                  </NavLink>
+                </>
+              ) : (
+                <button
+                  onClick={handleRestrictedAccess}
+                  className="flex items-center space-x-4 w-full text-left py-2 px-4 bg-red-600 hover:bg-red-700 rounded-md"
+                >
+                  <FaTachometerAlt />
+                  <span>Payroll Dashboard</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
 
           {/* Employees */}
           <div className="mb-1 -mt-2">
@@ -252,16 +265,26 @@ const AdminSidebar = () => {
 
           {/* Payroll */}
           <div className="mb-1 -mt-2">
-            <button
-              onClick={() => toggleDropdown("payroll")}
-              className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition-all duration-300"
-            >
-              <span className="flex items-center space-x-4">
-                <FaFileInvoiceDollar  />
+            {isAdmin ? (
+              <button
+                onClick={() => toggleDropdown("payroll")}
+                className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition-all duration-300"
+              >
+                <span className="flex items-center space-x-4">
+                  <FaFileInvoiceDollar />
+                  <span>Payroll</span>
+                </span>
+                {activeDropdown === "payroll" ? <FaChevronUp /> : <FaChevronDown />}
+              </button>
+            ) : (
+              <button
+                onClick={handleRestrictedAccess} // Add restriction to the main button as well
+                className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
+              >
+                <FaFileInvoiceDollar />
                 <span>Payroll</span>
-              </span>
-              {activeDropdown === "payroll" ? <FaChevronUp /> : <FaChevronDown />}
-            </button>
+              </button>
+            )}
 
             {/* Payroll Submenu */}
             {activeDropdown === "payroll" && (
@@ -277,7 +300,7 @@ const AdminSidebar = () => {
                       }
                       end
                     >
-                      <FaPoll  />
+                      <FaPoll />
                       <span>P. Information</span>
                     </NavLink>
 
@@ -290,7 +313,7 @@ const AdminSidebar = () => {
                       }
                       end
                     >
-                      <FaPrint  />
+                      <FaPrint />
                       <span>P. Generator</span>
                     </NavLink>
 
@@ -303,7 +326,7 @@ const AdminSidebar = () => {
                       }
                       end
                     >
-                      <FaFolderOpen  />
+                      <FaFolderOpen />
                       <span>P. History</span>
                     </NavLink>
                   </>
@@ -319,7 +342,8 @@ const AdminSidebar = () => {
               </div>
             )}
           </div>
-      
+
+
           {/* Invoice */}
           {isAdmin ? (
             <NavLink
