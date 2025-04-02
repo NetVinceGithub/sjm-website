@@ -92,7 +92,7 @@ import invoiceRouter from "./routes/invoice.js";
 import jobsRouter from "./routes/jobs.js";
 import attendanceRouter from "./routes/attendance.js";
 import connectRouter from "./routes/connect.js"; // ✅ Import connectRouter
-
+import holidaysRouter from "./routes/holidays.js"; // ✅ Correct import
 // Add logging middleware to log incoming requests
 app.use((req, res, next) => {
   console.log(`Request URL: ${req.url}, Method: ${req.method}`);
@@ -123,6 +123,7 @@ app.use("/api/invoice", invoiceRouter);
 app.use("/api/jobs", jobsRouter);
 app.use("/api/attendance", attendanceRouter);
 app.use("/api/connect", connectRouter); // Ensure this line is included
+app.use("/api/holidays", holidaysRouter)
 
 
 app.listen(PORT, () => {
