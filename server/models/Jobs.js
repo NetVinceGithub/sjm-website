@@ -12,7 +12,7 @@ const Jobs = sequelize.define('Jobs', {
     allowNull: false
   },
   description: {
-    type: DataTypes.TEXT, // Changed to TEXT to allow longer descriptions
+    type: DataTypes.TEXT,
     allowNull: false,
   },
   location: {
