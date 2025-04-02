@@ -482,6 +482,8 @@ export const generatePayroll = async (req, res) => {
         payrollInformations.find((info) => info.ecode === employee.ecode) || {};
 
       const no_of_days = employeeAttendance.daysPresent || 0;
+      const holidayDays = employeeAttendance.holidayCount || 0;
+      const regularDays = employeeAttendance.regularDays || 0; // or employeeAttendance.regularDays if available
       const totalHours = Number(employeeAttendance?.totalHours) || 0;
       const holidayHours = Number(employeeAttendance?.holiday) || 0;
       const hourlyRate = employeePayrollInfo.hourly_rate || 0;
@@ -497,10 +499,12 @@ export const generatePayroll = async (req, res) => {
       const otherDeductions = employeePayrollInfo.otherDeductions || 0;
       const adjustment = employeePayrollInfo.adjustment || 0;
 
-      // ✅ Apply max overtime limit
       const totalOvertime = selectedEmployees.includes(employee.ecode)
         ? Math.min(Number(employeeAttendance?.totalOvertime) || 0, Number(maxOvertime))
         : 0;
+
+      const totalRegularHours = employeeAttendance.totalRegularHours;
+      const totalHolidayHours = employeeAttendance.totalHolidayHours;
       
       console.log(
         `Processing Payroll for: ${employee.name} (${employee.ecode}) | Overtime: ${totalOvertime} hours`
@@ -508,7 +512,7 @@ export const generatePayroll = async (req, res) => {
 
       const basicPay = totalHours * hourlyRate;
       const overtimePay = totalOvertime * overtimeRate;
-      const holidayPay = holidayHours * hourlyRate;
+      const holidayPay = totalHolidayHours * hourlyRate;
       const grossPay = basicPay + overtimePay + holidayPay + allowance;
       const totalEarnings = grossPay + adjustment;
       const totalDeductions = tardiness + sss + phic + hdmf + loan + otherDeductions;
@@ -526,8 +530,12 @@ export const generatePayroll = async (req, res) => {
         dailyrate: dailyRate.toFixed(2),
         basicPay: basicPay.toFixed(2),
         noOfDays: no_of_days,
+        holidayDays: holidayDays,
+        regularDays: regularDays,
         overtimePay: overtimePay.toFixed(2),
-        totalOvertime: totalOvertime, // ✅ Corrected total overtime
+        totalOvertime: totalOvertime, 
+        totalRegularHours: totalRegularHours,
+        totalHolidayHours: totalHolidayHours,
         holidayPay: holidayPay.toFixed(2),
         nightDifferential: nightDifferential.toFixed(2),
         allowance: allowance.toFixed(2),
