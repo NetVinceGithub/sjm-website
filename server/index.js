@@ -81,11 +81,7 @@ export const upload = multer({
 
 // ✅ Now import routes (after `upload` is initialized)
 import authRouter from "./routes/auth.js";
-import departmentRouter from "./routes/department.js";
 import employeeRouter from "./routes/employee.js";
-import ratesRouter from "./routes/ratesAndDeductions.js";
-import projectRouter from "./routes/project.js";
-import allowanceRouter from "./routes/allowance.js";
 import payslipRouter from "./routes/payslip.js";
 import userRouter from "./routes/user.js";
 import invoiceRouter from "./routes/invoice.js";
@@ -112,11 +108,7 @@ app.listen(5000, () => console.log("Server running on port 5000"));
 
 // Your existing routes go here
 app.use("/api/auth", authRouter);
-app.use("/api/department", departmentRouter);
 app.use("/api/employee", employeeRouter);
-app.use("/api/rates", ratesRouter);
-app.use("/api/projects", projectRouter);
-app.use("/api/allowance", allowanceRouter);
 app.use("/api/payslip", payslipRouter);
 app.use("/api/users", userRouter);
 app.use("/api/invoice", invoiceRouter);
