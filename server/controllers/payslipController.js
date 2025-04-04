@@ -512,7 +512,7 @@ export const generatePayroll = async (req, res) => {
 
       const basicPay = totalHours * hourlyRate;
       const overtimePay = totalOvertime * overtimeRate;
-      const holidayPay = totalHolidayHours * hourlyRate;
+      const holidayPay = totalHolidayHours * (hourlyRate * 2  );
       const grossPay = basicPay + overtimePay + holidayPay + allowance;
       const totalEarnings = grossPay + adjustment;
       const totalDeductions = tardiness + sss + phic + hdmf + loan + otherDeductions;

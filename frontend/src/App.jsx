@@ -41,6 +41,7 @@ import PayrollSummary from "./components/dashboard/dashboard/PayrollSummary";
 import AttendanceForComputation from "./components/dashboard/attendance/AttendanceForComputation";
 import PayslipSend from "./components/dashboard/attendance/PayslipSend";
 import Holidays from "./components/dashboard/attendance/Holidays";
+import Conversion from "./components/dashboard/attendance/Conversion";
 
 const PageTitleUpdater = () => {
   const location = useLocation();
@@ -117,6 +118,7 @@ function AppContent() {
           <Route path="attendance" element={<Attendance />} />
           <Route path="attendance-computation" element={<AttendanceForComputation />} />
           <Route path="attendance/history" element={<History />} />
+          <Route path="attendance-conversion" element={<Conversion />} />
           <Route path="invoice-list" element={<InvoiceList />} />
           <Route path="projects" element={<Projects />} />
           <Route path="add-project" element={<AddProject />} />

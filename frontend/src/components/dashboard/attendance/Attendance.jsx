@@ -429,7 +429,7 @@ const handleFileUpload = async (event) => {
         <div className="overflow-auto h-[458px] rounded border bg-white shadow-sm p-2">
           <h2 className="text-lg font-semibold text-neutralDGray mb-2">Detailed Attendance</h2>
           {attendanceData.length > 0 ? (
-            <DataTable columns={attendanceColumns} data={attendanceData} pagination highlightOnHover />
+            <DataTable columns={attendanceColumns} data={attendanceData} highlightOnHover />
           ) : (
             <p className="text-center text-gray-500">No attendance data available.</p>
           )}
