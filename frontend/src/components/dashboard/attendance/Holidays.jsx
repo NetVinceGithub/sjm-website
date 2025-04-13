@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Calendar from 'react-calendar';
-import 'react-calendar/dist/Calendar.css'; // Import default calendar styles
-import './CalendarStyles.css'; // Custom styles
+import 'react-calendar/dist/Calendar.css';
+import './CalendarStyles.css'; // Add custom styling here
 
 const Holidays = () => {
   const [holidays, setHolidays] = useState([]);
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
+  const [type, setType] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedHoliday, setSelectedHoliday] = useState("");
+  const [selectedHoliday, setSelectedHoliday] = useState('');
 
   useEffect(() => {
     fetchHolidays();
@@ -17,22 +18,23 @@ const Holidays = () => {
 
   const fetchHolidays = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/holidays");
+      const response = await axios.get('http://localhost:5000/api/holidays');
       setHolidays(response.data.holidays || []);
     } catch (error) {
-      console.error("Error fetching holidays:", error);
+      console.error('Error fetching holidays:', error);
       setHolidays([]);
     }
   };
 
   const addHoliday = async () => {
     try {
-      await axios.post("http://localhost:5000/api/holidays/add", { name, date });
+      await axios.post('http://localhost:5000/api/holidays/add', { name, date, type });
       fetchHolidays();
       setName('');
       setDate('');
+      setType('');
     } catch (error) {
-      console.error("Error adding holiday:", error);
+      console.error('Error adding holiday:', error);
     }
   };
 
@@ -41,20 +43,22 @@ const Holidays = () => {
       await axios.delete(`http://localhost:5000/api/holidays/delete/${id}`);
       fetchHolidays();
     } catch (error) {
-      console.error("Error deleting holiday:", error);
+      console.error('Error deleting holiday:', error);
     }
   };
 
   const handleDateClick = (date) => {
     setSelectedDate(date);
     const holiday = holidays.find((h) => new Date(h.date).toDateString() === date.toDateString());
-    setSelectedHoliday(holiday ? holiday.name : "No holiday");
+    setSelectedHoliday(holiday ? `${holiday.name} (${holiday.type})` : 'No holiday');
   };
 
   const tileClassName = ({ date }) => {
-    return holidays.some((h) => new Date(h.date).toDateString() === date.toDateString())
-      ? "holiday-highlight"
-      : "";
+    const holiday = holidays.find(h => new Date(h.date).toDateString() === date.toDateString());
+    if (holiday) {
+      return holiday.type === 'Regular' ? 'holiday-regular' : 'holiday-special';
+    }
+    return '';
   };
 
   return (
@@ -89,6 +93,15 @@ const Holidays = () => {
           onChange={(e) => setDate(e.target.value)}
           className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
+          <option value="">Select Type</option>
+          <option value="Regular">Regular Holiday</option>
+          <option value="Special">Special Holiday</option>
+        </select>
         <button
           onClick={addHoliday}
           className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-200"
@@ -106,7 +119,8 @@ const Holidays = () => {
               className="flex justify-between items-center bg-gray-100 p-4 rounded-lg shadow-sm hover:bg-gray-200 transition-all duration-200"
             >
               <span className="font-medium text-gray-800">
-                {holiday.date} - <span className="text-blue-600">{holiday.name}</span>
+                {holiday.date} - <span className="text-blue-600">{holiday.name}</span> 
+                <span className="ml-2 text-sm text-gray-500">({holiday.type})</span>
               </span>
               <button
                 onClick={() => deleteHoliday(holiday.id)}
@@ -120,7 +134,6 @@ const Holidays = () => {
           <p className="text-center text-gray-500 font-medium">No holidays available.</p>
         )}
       </ul>
-
     </div>
   );
 };

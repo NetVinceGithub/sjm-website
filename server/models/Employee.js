@@ -1,6 +1,115 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../db/db.js";
 
+// First, define the PayrollInformation model
+const PayrollInformation = sequelize.define("PayrollInformation", {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+  },
+  employee_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  ecode: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  positiontitle: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  area_section: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+  designation: {
+    type: DataTypes.ENUM('Team Leader', 'Regular'),
+    defaultValue: 'Regular',
+  },
+  daily_rate: {
+    type: DataTypes.FLOAT,
+    defaultValue: 500,
+  },
+  hourly_rate: {
+    type: DataTypes.FLOAT,
+    defaultValue: 65,
+  },
+  ot_hourly_rate: {
+    type: DataTypes.FLOAT,
+    defaultValue: 81.25,
+  },
+  ot_rate_sp_holiday: {
+    type: DataTypes.FLOAT,
+    defaultValue: 109.85,
+  },
+  ot_rate_reg_holiday: {
+    type: DataTypes.FLOAT,
+    defaultValue: 109.85,
+  },
+  special_hol_rate: {
+    type: DataTypes.FLOAT,
+    defaultValue: 156,
+  },
+  regular_hol_ot_rate: {
+    type: DataTypes.FLOAT,
+    defaultValue: 156,
+  },
+  overtime_pay: {
+    type: DataTypes.FLOAT,
+    defaultValue: 100,
+  },
+  holiday_pay: {
+    type: DataTypes.FLOAT,
+    defaultValue: 200,
+  },
+  night_differential: {
+    type: DataTypes.FLOAT,
+    defaultValue: 6.50,
+  },
+  allowance: {
+    type: DataTypes.FLOAT,
+    defaultValue: 104,
+  },
+  tardiness: {
+    type: DataTypes.FLOAT,
+    defaultValue: 1.08,
+  },
+  tax_deduction: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0,
+  },
+  sss_contribution: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0,
+  },
+  pagibig_contribution: {
+    type: DataTypes.FLOAT,
+    defaultValue: 200,
+  },
+  philhealth_contribution: {
+    type: DataTypes.FLOAT,
+    defaultValue: 338,
+  },
+  loan: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0,
+  },
+  otherDeductions: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0,
+  },
+  adjustment: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0,
+  },
+}, { timestamps: false });
+
 const Employee = sequelize.define("Employee", {
   id: {
     type: DataTypes.INTEGER,
@@ -145,42 +254,25 @@ Employee.afterCreate(async (employee) => {
   console.log(`🔥 Hook Triggered for Employee: ${employee.ecode}`);
 
   await PayrollInformation.create({
-    employee_id: employee.id, // ✅ Ensure employee_id is correctly assigned
+    employee_id: employee.id, 
     ecode: employee.ecode,
     name: employee.name,
     positiontitle: employee.positiontitle || "N/A",
     area_section: employee.department || "N/A",
-    daily_rate: 500,
-    hourly_rate: 65,
-    ot_hourly_rate: 81.25,
-    ot_rate_sp_holiday: 109.85,
-    ot_rate_reg_holiday: 109.85,
-    special_hol_rate: 156,
-    regular_hol_ot_rate: 156,
-    overtime_pay: 100,
-    holiday_pay: 200,
-    night_differential: 6.50,
-    allowance: 104,
-    tardiness: 1.08,
-    tax_deduction: 0,
-    sss_contribution: 0,
-    pagibig_contribution: 200,
-    philhealth_contribution: 338,
-    loan: 0,
-    otherDeductions: 0,
-    adjustment: 0,
+    designation: 'Regular' // Default designation is Regular
   });
 
   console.log(`✅ Payroll Information Created for ${employee.ecode}`);
 });
 
+// Define the relationship
+Employee.hasOne(PayrollInformation, {
+  foreignKey: 'employee_id',
+  as: 'payrollInfo'
+});
+PayrollInformation.belongsTo(Employee, {
+  foreignKey: 'employee_id'
+});
 
-
-
-
-
-
-
-
-
+export { Employee, PayrollInformation };
 export default Employee;
