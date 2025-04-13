@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../db/db.js"; // Ensure correct path to your database config
+import sequelize from "../db/db.js";
 
-const Holidays = sequelize.define("holidays", { // Table name will be 'holidays'
+const Holidays = sequelize.define("holidays", {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
@@ -15,8 +15,13 @@ const Holidays = sequelize.define("holidays", { // Table name will be 'holidays'
     type: DataTypes.DATEONLY,
     allowNull: false,
   },
+  type: {
+    type: DataTypes.ENUM("Regular", "Special"),
+    allowNull: false,
+    defaultValue: "Regular"
+  }
 }, {
-  timestamps: false, // Optional: Remove `createdAt` and `updatedAt` columns
+  timestamps: false,
 });
 
 export default Holidays;
