@@ -14,3 +14,15 @@
   padding: 10px;
   border-radius: 10px;
 }
+
+.holiday-regular {
+  background-color: #3b82f6 !important; /* blue */
+  color: white !important;
+  border-radius: 50%;
+}
+
+.holiday-special {
+  background-color: #f59e0b !important; /* amber */
+  color: white !important;
+  border-radius: 50%;
+}
