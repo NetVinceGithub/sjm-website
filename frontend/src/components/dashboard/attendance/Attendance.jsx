@@ -13,7 +13,7 @@ const Attendance = () => {
   const [holidays, setHolidays] = useState([]);
   const navigate = useNavigate();
 
-  const requiredColumns = ["ecode", "ea_txndte", "schedin", "schedout", "timein", "timeout2"];
+  const requiredColumns = ["ecode", "date", "schedin", "schedout", "timein", "timeout2"];
 
 
   console.log("attendance for summary" ,summaryData);
