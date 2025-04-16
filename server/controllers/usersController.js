@@ -39,3 +39,61 @@ export const getUsers = async (req, res) => {
     res.status(500).json({ success: false, message: "Users not found" });
   }
 };
+
+export const blockUser = async (req, res) => {
+  const {userId} = req.body;
+  try {
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({success: false, message: "No user found"});
+    } 
+    user.isBlocked = true;
+
+    await user.save();
+
+    res.json({success: true, message: "user is blocked"});
+
+  } catch (error) {
+    res.status(500).json({success: false, message: error});
+  }
+}
+
+export const unblockUser = async (req, res) => {
+  const {userId} = req.body;
+
+  try {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({success: false, message: "No user found"});
+    }
+    user.isBlocked = false;
+    await user.save();
+
+    res.json({success: true, message: "user is unblocked"})
+
+  } catch (error) {
+    res.status(500).json({success:false, message: "Error unblocking employee"});
+  }
+}
+
+export const editUser = async (req, res) => {
+  try {
+    const { name, email, role } = req.body;
+    const user = await User.findByPk(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    user.name = name;
+    user.email = email;
+    user.role = role;
+
+    await user.save();
+
+    res.json({ success: true, user });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

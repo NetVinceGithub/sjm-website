@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React, { useState } from 'react'; 
+import React, { useState, useEffect } from 'react'; 
 import { useAuth } from '../context/authContext';
 import { useNavigate } from 'react-router-dom';
 import BG from '../assets/bg.png';
@@ -8,26 +8,47 @@ const Login = () => {
   const [isChecked, setIsChecked] = useState(false);
   const [isEmailFocused, setIsEmailFocused] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-  const [email, setEmail] = useState('');  
-  const [password, setPassword] = useState(''); 
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
-  const {login} = useAuth()
-  const navigate = useNavigate()
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if user has 'Remember me' set in localStorage
+    const savedEmail = localStorage.getItem('email');
+    const savedChecked = localStorage.getItem('rememberMe') === 'true';
+    
+    if (savedEmail && savedChecked) {
+      setEmail(savedEmail);
+      setIsChecked(true);
+    }
+  }, []);
 
   const handleSubmit = async (e) => { 
     e.preventDefault();
     try {
       const response = await axios.post("http://localhost:5000/api/auth/login", { email, password });
-  
+
       if (response.data.success) {
         login(response.data.user);
         localStorage.setItem("token", response.data.token);
-        localStorage.setItem("userRole", response.data.user.role);  // ✅ Store role in localStorage
-  
+        localStorage.setItem("userRole", response.data.user.role);
+
+        // If "Remember me" is checked, save email to localStorage
+        if (isChecked) {
+          localStorage.setItem('email', email);
+          localStorage.setItem('rememberMe', 'true');
+        } else {
+          localStorage.removeItem('email');
+          localStorage.removeItem('rememberMe');
+        }
+
+        // Redirect to dashboard based on user role
         if (response.data.user.role === "admin") {
           navigate('/admin-dashboard');
         } else {
-          navigate('/admin-dashboard/employees'); // ✅ Redirect to employee dashboard instead
+          navigate('/admin-dashboard/employees'); 
         }
       }
     } catch (error) {
@@ -38,7 +59,10 @@ const Login = () => {
       }
     }
   };
-  
+
+  const handleForgotPassword = () => {
+    navigate('/forgot-password'); // You can create a new route for this
+  };
 
   return (
     <div
@@ -71,6 +95,7 @@ const Login = () => {
               onFocus={() => setIsEmailFocused(true)}
               onBlur={() => setIsEmailFocused(false)}
               onChange={(e) => setEmail(e.target.value)}
+              value={email}
               required
               autoComplete="email"
             />
@@ -94,23 +119,24 @@ const Login = () => {
 
           <div className="mb-5 flex items-center justify-between">
             <label className="inline-flex items-center">
-            <input
-              type="checkbox"
-              className="form-checkbox accent-neutralDGray checked:accent-brandPrimary"
-              checked={isChecked}
-              onChange={() => setIsChecked(!isChecked)}
-            />
-            <span
-              className={`ml-2 text-sm transition-colors ${
-                isChecked ? "text-brandPrimary" : "text-neutralGray"
-              }`}
-            >
-              Remember me
-            </span>
+              <input
+                type="checkbox"
+                className="form-checkbox accent-neutralDGray checked:accent-brandPrimary"
+                checked={isChecked}
+                onChange={() => setIsChecked(!isChecked)}
+              />
+              <span
+                className={`ml-2 text-sm transition-colors ${
+                  isChecked ? "text-brandPrimary" : "text-neutralGray"
+                }`}
+              >
+                Remember me
+              </span>
             </label>
             <a
               href="#"
-              className="text-brandPrimary text-sm hover:text-neautralDGray no-underline hover:underline"
+              onClick={handleForgotPassword} // Handle forgot password link
+              className="text-brandPrimary text-sm hover:text-neutralDGray no-underline hover:underline"
             >
               Forgot password?
             </a>
@@ -125,8 +151,7 @@ const Login = () => {
         </form>
       </div>
     </div>
-
-  )
-}
+  );
+};
 
 export default Login;

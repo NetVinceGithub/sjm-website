@@ -26,6 +26,10 @@ const User = sequelize.define('User', {
   profileImage: {
     type: DataTypes.STRING
   },
+  resetToken: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
@@ -33,7 +37,17 @@ const User = sequelize.define('User', {
   updatedAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
-  }
+  },
+  resetCode: {
+    type: DataTypes.STRING, // or INTEGER
+    allowNull: true,
+  },
+  isBlocked: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  
+  
 }, {
   tableName: 'users',
   timestamps: true  // Automatically manages createdAt and updatedAt
