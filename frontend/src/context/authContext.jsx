@@ -1,48 +1,43 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'; // Fixed imports
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios'
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 
-// Create a context
 const UserContext = createContext();
 
 const AuthContext = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Initially set loading to true
 
-  useEffect(() =>{
+  useEffect(() => {
     const verifyUser = async () => {
-      try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const response = await axios.get('http://localhost:5000/api/auth/verify', {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
-        const token = localStorage.getItem('token')
-        if (token) {
-        const response = await axios.get('http://localhost:5000/api/auth/verify', {
-          headers:{
-            "Authorization" : `Bearer ${token}` 
-          },
-        })
-        
-        console.log(response)
-
-        if(response.data.success){
-          setUser(response.data.user)
+          if (response.data.success) {
+            setUser(response.data.user); // Update state when the user is verified
+          } else {
+            setUser(null); // Set to null if verification fails
+          }
+        } catch (error) {
+          console.error(error);
+          setUser(null); // Set to null if there's an error in verification
         }
       } else {
-         setUser(null)
-         setLoading(false)
+        setUser(null); // Set to null if no token is found
       }
-      } catch (error) {
-        console.log(error)
-        if(error.response && !error.response.data.success) {
-          setUser(null)
-        } 
-      } finally {
-        setLoading(false)
-      }
-    }
-    verifyUser()
-  }, [])
+      setLoading(false); // Set loading to false after the check is done
+    };
+
+    verifyUser();
+  }, []); // Run once when the component mounts
 
   const login = (userData) => {
+    localStorage.setItem("token", userData.token);
     setUser(userData);
   };
 
@@ -58,10 +53,6 @@ const AuthContext = ({ children }) => {
   );
 };
 
-// Custom hook to use the context
 export const useAuth = () => useContext(UserContext);
 
 export default AuthContext;
-
-
-
