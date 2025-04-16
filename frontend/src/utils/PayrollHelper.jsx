@@ -91,6 +91,7 @@ export const PayrollButtons = ({ Id, refreshData }) => {
               </label>
 
               {[
+                { label: "Designation", key: "designation" },
                 { label: "Daily Rate", key: "daily_rate" },
                 { label: "Overtime Pay", key: "overtime_pay" },
                 { label: "Holiday Pay", key: "holiday_pay" },
@@ -106,16 +107,30 @@ export const PayrollButtons = ({ Id, refreshData }) => {
                   <label className="text-sm text-left mb-1 font-medium text-gray-700">
                     {label}:
                   </label>
-                  <input
-                    type="text"
-                    value={payrollData[key] || 0}
-                    onChange={(e) =>
-                      setPayrollData({ ...payrollData, [key]: e.target.value })
-                    }
-                    className="w-72 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  />
+                  {key === "designation" ? (
+                    <select
+                      value={payrollData[key]}
+                      onChange={(e) =>
+                        setPayrollData({ ...payrollData, [key]: e.target.value })
+                      }
+                      className="w-72 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    >
+                      <option value="Regular">Regular</option>
+                      <option value="Team Leader">Team Leader</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={payrollData[key] || 0}
+                      onChange={(e) =>
+                        setPayrollData({ ...payrollData, [key]: e.target.value })
+                      }
+                      className="w-72 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  )}
                 </div>
               ))}
+
             </div>
 
             {/* Buttons */}
