@@ -249,9 +249,7 @@ const Employee = sequelize.define("Employee", {
   },
 }, { timestamps: false });
 
-// 🔥 Hook: Automatically create PayrollInformation when an Employee is created
 Employee.afterCreate(async (employee) => {
-  console.log(`🔥 Hook Triggered for Employee: ${employee.ecode}`);
 
   await PayrollInformation.create({
     employee_id: employee.id, 
@@ -259,10 +257,9 @@ Employee.afterCreate(async (employee) => {
     name: employee.name,
     positiontitle: employee.positiontitle || "N/A",
     area_section: employee.department || "N/A",
-    designation: 'Regular' // Default designation is Regular
+    designation: 'Regular' 
   });
 
-  console.log(`✅ Payroll Information Created for ${employee.ecode}`);
 });
 
 // Define the relationship
