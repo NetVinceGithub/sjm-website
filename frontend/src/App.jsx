@@ -42,6 +42,8 @@ import AttendanceForComputation from "./components/dashboard/attendance/Attendan
 import PayslipSend from "./components/dashboard/attendance/PayslipSend";
 import Holidays from "./components/dashboard/attendance/Holidays";
 import Conversion from "./components/dashboard/attendance/Conversion";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 const PageTitleUpdater = () => {
   const location = useLocation();
@@ -77,6 +79,9 @@ function AppContent() {
       <Routes>
         {/* Public Routes */}
         <Route path="/payroll-management-login" element={<Login />} />
+        <Route path="/forgot-password" element ={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+
 
         {/* Redirect "/" to the admin dashboard */}
         <Route path="/" element={<Navigate to="/admin-dashboard" />} />
