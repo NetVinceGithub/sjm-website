@@ -123,6 +123,7 @@ const EmployeePayrollInformationsList = () => {
                 columns={[
                   { name: "Ecode", selector: (row) => row.ecode, sortable: true, center:true },
                   { name: "Name", selector: (row) => row.name, sortable: true, center:true, width: "200px" },
+                  { name: "Position", selector: (row) => row.designation, sortable: true, center: true},
                   { name: "Daily Rate", selector: (row) => row.daily_rate, sortable: true, center:true, width:"120px" },
                   { name: "Holiday Pay", selector: (row) => row.holiday_pay || "0", sortable: true, center:true, width: "150px" },
                   { name: "Night Differential", selector: (row) => row.night_differential || "0", sortable: true, center:true, width:"200px" },
@@ -135,7 +136,6 @@ const EmployeePayrollInformationsList = () => {
                   { name: "Options", cell: (row) => <PayrollButtons Id={row.employeeId || row.id} refreshData={fetchPayrollInformations} /> }
                 ]}
                 data={filteredEmployees}
-                pagination
                 progressPending={loading}
               />
             </div>

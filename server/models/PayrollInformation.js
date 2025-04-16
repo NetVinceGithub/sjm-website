@@ -1,4 +1,3 @@
-
 import { DataTypes } from "sequelize";
 import sequelize from "../db/db.js";
 import Employee from "./Employee.js"; // Ensure Employee is imported
@@ -28,11 +27,15 @@ const PayrollInformation = sequelize.define("PayrollInformation", {
   },
   positiontitle: {
     type: DataTypes.STRING,
-    allowNull: false,
+    defaultValue: "N/A",
   },
   area_section: {
     type: DataTypes.STRING,
-    allowNull: false,
+    defaultValue: "N/A",
+  },
+  designation: {
+    type: DataTypes.ENUM('Team Leader', 'Regular'),
+    defaultValue: 'Regular',
   },
   daily_rate: {
     type: DataTypes.FLOAT,
@@ -61,7 +64,7 @@ const PayrollInformation = sequelize.define("PayrollInformation", {
   regular_hol_ot_rate: {
     type: DataTypes.FLOAT,
     defaultValue: 156,
-  }, 
+  },
   overtime_pay: {
     type: DataTypes.FLOAT,
     defaultValue: 100,
@@ -112,7 +115,6 @@ const PayrollInformation = sequelize.define("PayrollInformation", {
   },
 }, { timestamps: false });
 
-// **Recreate Foreign Key**
 PayrollInformation.belongsTo(Employee, {
   foreignKey: "employee_id",
   onDelete: "CASCADE",
