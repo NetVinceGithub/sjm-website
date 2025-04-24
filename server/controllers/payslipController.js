@@ -471,7 +471,7 @@ export const generatePayroll = async (req, res) => {
     let generatedPayslips = [];
 
     for (const employee of employees) {
-      if (employee.status === "inactive") {
+      if (employee.status === "Inactive") {
         console.log(`⏭️ Skipping inactive employee: ${employee.name} (${employee.ecode})`);
         continue;
       }
