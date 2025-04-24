@@ -89,13 +89,13 @@ const List = () => {
         // Update employee status in state
         setEmployees((prevEmployees) =>
           prevEmployees.map((emp) =>
-            emp.id === employeeToBlock.id ? { ...emp, status: "inactive" } : emp
+            emp.id === employeeToBlock.id ? { ...emp, status: "Inactive" } : emp
           )
         );
 
         setFilteredEmployees((prevFiltered) =>
           prevFiltered.map((emp) =>
-            emp.id === employeeToBlock.id ? { ...emp, status: "inactive" } : emp
+            emp.id === employeeToBlock.id ? { ...emp, status: "Inactive" } : emp
           )
         );
 
@@ -131,7 +131,7 @@ const List = () => {
 
     if (!employee) return;
 
-    if (currentStatus === "inactive") {
+    if (currentStatus === "Inactive") {
       setEmployeeToBlock(employee);
       setIsUnBlockModalOpen(true); // Open Unblock Modal if the employee is inactive
     } else {
@@ -388,7 +388,7 @@ const List = () => {
                           </button>
                           <button
                             className={`w-20 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${
-                              row.status === "active"
+                              row.status === "Active"
                                 ? "bg-green-500 text-white"
                                 : "bg-red-500 text-white"
                             }`}

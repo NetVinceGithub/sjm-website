@@ -31,7 +31,10 @@ const NavBar = ({ toggleSidebar }) => {
   }, []);
 
   return (
-    <nav className="flex fixed top-0 items-center w-[84%] text-white justify-between h-11 bg-[#5f2e3d] px-6">
+    <nav 
+    className="flex fixed z-50 top-0 items-center w-screen text-white justify-between h-11 bg-[#5f2e3d] px-6 mx-auto left-[16rem] right-0"
+    style={{ width: "calc(100% - 16rem)" }} 
+    >
       {/* Hamburger Button (visible on small screens) */}
       <button 
         className="text-white text-2xl md:hidden focus:outline-none" 

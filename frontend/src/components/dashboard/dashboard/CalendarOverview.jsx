@@ -58,7 +58,7 @@ export default function CustomCalendar({ onDateChange }) {
   };
 
   return (
-    <div className="flex flex-col-reverse w-full mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+    <div className="flex flex-col-reverse w-[50%] mx-auto bg-white rounded-lg shadow-md overflow-hidden">
       {/* Top Panel - Calendar */}
       <div className="w-full border border-neutralDGray p-2">
         <Calendar
@@ -72,11 +72,11 @@ export default function CustomCalendar({ onDateChange }) {
       </div>
 
       {/* Bottom Panel - Notice */}
-      <div className="w-full bg-brandPrimary text-white p-4">
-        <div className="flex items-center">
+      <div className="w-full bg-brandPrimary text-white p-2">
+        <div className="flex items-center ml-3">
           <div className="text-center mr-3">
-            <h1 className="text-5xl font-bold">{selectedDate.getDate()}</h1>
-            <p className="text-lg uppercase">
+            <h1 className="text-4xl laptop:text-2xl font-bold">{selectedDate.getDate()}</h1>
+            <p className="text-md laptop:text-sm uppercase">
               {selectedDate.toLocaleDateString("en-US", { weekday: "long" })}
             </p>
           </div>
@@ -85,13 +85,13 @@ export default function CustomCalendar({ onDateChange }) {
           <div className="w-px bg-gray-200 opacity-60 h-28 mx-3"></div>
 
           <div className="flex-1">
-            <strong className="text-lg">Notice!</strong>
-            <ul className="space-y-2 mt-1">
+            <strong className="text-md laptop:text-xs">Notice!</strong>
+            <ul className="space-y-1 mt-1">
               <li className="list-disc text-sm">
-                <p className="m-0">{notice1}</p>
+                <p className="m-0 text-[12px]">{notice1}</p>
               </li>
               {(notice2 || notice3) && (
-                <li className="list-disc ml-5 text-sm">
+                <li className="list-disc ml-2 text-sm">
                   <p className="m-0">{notice2 || notice3}</p>
                 </li>
               )}
