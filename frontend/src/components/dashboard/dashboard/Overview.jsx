@@ -24,6 +24,7 @@ const Overview = () => {
   const [newTitle, setNewTitle] = useState("");
   const [showTitleInput, setShowTitleInput] = useState(false);
   const [editingIndex, setEditingIndex] = useState(-1);
+  const [holidaySummary, setHolidaySummary] = useState([]);
 
   useEffect(() => {
     const fetchPayslips = async () => {
@@ -52,6 +53,23 @@ const Overview = () => {
     };
     fetchEmployees();
   }, []);
+
+  useEffect (()=> {
+    const fetchHolidays = async () => {
+
+    try{
+      const response = await axios.get('http://localhost:5000/api/holidays');
+        console.log(response.data);
+        setHolidaySummary(response.data.holidays);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  fetchHolidays();
+  }, []);
+  
+
+    
 
   const totalGrossSalary = payslips.reduce(
     (acc, p) => acc + (p.gross_pay || 0),
@@ -148,6 +166,17 @@ const Overview = () => {
     },
   ]);
 
+  useEffect(() => {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.setDate(now.getDate() - 7));
+
+    const filtered = notes.filter((note) => {
+      if (!note.createdAt) return true;
+      return new Date(note.createdAt) >= sevenDaysAgo;
+    });
+
+    setNotes(filtered);
+  }, []);
   const handleAddNote = () => {
     if (!showTitleInput) {
       setShowTitleInput(true);
@@ -155,7 +184,14 @@ const Overview = () => {
     }
 
     if (newTitle.trim() && newNote.trim()) {
-      setNotes([...notes, { title: newTitle, content: newNote }]);
+      setNotes([
+        ...notes,
+        {
+          title: newTitle,
+          content: newNote,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
       setNewNote("");
       setNewTitle("");
       setShowTitleInput(false);
@@ -172,7 +208,11 @@ const Overview = () => {
   const saveEdit = () => {
     if (editingIndex >= 0 && newTitle.trim() && newNote.trim()) {
       const updatedNotes = [...notes];
-      updatedNotes[editingIndex] = { title: newTitle, content: newNote };
+      updatedNotes[editingIndex] = {
+        ...updatedNotes[editingIndex],
+        title: newTitle,
+        content: newNote,
+      };
       setNotes(updatedNotes);
       cancelEdit();
     }
@@ -184,6 +224,14 @@ const Overview = () => {
     setNewNote("");
     setShowTitleInput(false);
   };
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const validNotes = notes.filter((note) => {
+    if (!note.createdAt) return true;
+    return new Date(note.createdAt) >= sevenDaysAgo;
+  });
 
   const columns = [
     {
@@ -463,34 +511,27 @@ const Overview = () => {
                 Holiday Summary
               </h6>
               <ul className="space-y-2 text-sm">
-                <li className="flex justify-between items-center">
+              {holidaySummary.map((holiday, index) => (
+                <li key={index} className="flex justify-between items-center">
                   <div>
                     <p className="font-medium text-gray-700">
-                      April 1–15, 2025
+                      {holiday.date}
                     </p>
                     <p className="text-xs -mt-3 text-gray-500">
-                      Release: April 20, 2025
+                      {holiday.name}
                     </p>
                   </div>
-                  <span className="bg-yellow-100 text-yellow-600 text-xs px-3 py-1 rounded-full">
-                    Pending
+                  <span className="bg-green-100 text-green-600 text-xs px-3 py-1 rounded-full">
+                    {holiday.type}
                   </span>
                 </li>
-                <li className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      April 16–30, 2025
-                    </p>
-                    <p className="text-xs -mt-3 text-gray-500">
-                      Release: May 5, 2025
-                    </p>
-                  </div>
-                  <span className="bg-blue-100 text-blue-600 text-xs px-3 py-1 rounded-full">
-                    In Progress
-                  </span>
-                </li>
+              ))}
+
+
+               
               </ul>
             </div>
+
           </div>
         </div>
       </div>
