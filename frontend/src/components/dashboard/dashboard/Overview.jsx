@@ -15,6 +15,8 @@ import { FaSearch, FaSyncAlt } from "react-icons/fa";
 import PayrollLineChart from "./PayrollLineChart";
 import { LineChart } from "recharts";
 import CalendarOverview from "./CalendarOverview";
+import { format } from "date-fns";
+
 
 const Overview = () => {
   const [payslips, setPayslips] = useState([]);
@@ -69,6 +71,33 @@ const Overview = () => {
   }, []);
   
 
+  // Utility to generate payroll cutoffs
+  const getPayrollCutoffs = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0-indexed
+  
+    const firstCutoff = {
+      start: new Date(year, month, 1),
+      end: new Date(year, month, 15),
+      release: new Date(year, month, 20),
+      status: "1st cutoff",
+      badge: "bg-yellow-100 text-yellow-600",
+    };
+  
+    const secondCutoff = {
+      start: new Date(year, month, 16),
+      end: new Date(year, month + 1, 0), // Last day of the current month
+      release: new Date(year, month + 1, 5),
+      status: "2nd cutoff",
+      badge: "bg-blue-100 text-blue-600",
+    };
+  
+    return [firstCutoff, secondCutoff];
+  };
+  
+  const payrollCutoffs = getPayrollCutoffs();
+  
     
 
   const totalGrossSalary = payslips.reduce(
@@ -452,34 +481,26 @@ const Overview = () => {
                 Payroll Cutoff Status
               </h6>
               <ul className="space-y-2 text-sm">
-                <li className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      April 1–15, 2025
-                    </p>
-                    <p className="text-xs -mt-3 text-gray-500">
-                      Release: April 20, 2025
-                    </p>
-                  </div>
-                  <span className="bg-yellow-100 text-yellow-600 text-xs px-3 py-1 rounded-full">
-                    Pending
-                  </span>
-                </li>
-                <li className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      April 16–30, 2025
-                    </p>
-                    <p className="text-xs -mt-3 text-gray-500">
-                      Release: May 5, 2025
-                    </p>
-                  </div>
-                  <span className="bg-blue-100 text-blue-600 text-xs px-3 py-1 rounded-full">
-                    In Progress
-                  </span>
-                </li>
+                {payrollCutoffs.map((cutoff, idx) => (
+                  <li key={idx} className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium text-gray-700">
+                        {format(cutoff.start, "MMMM d")}–{format(cutoff.end, "d, yyyy")}
+                      </p>
+                      <p className="text-xs -mt-3 text-gray-500">
+                        Releases: {format(cutoff.release, "MMMM d, yyyy")}
+                      </p>
+                    </div>
+                    <span
+                      className={`${cutoff.badge} text-xs px-3 py-1 rounded-full`}
+                    >
+                      {cutoff.status}
+                    </span>
+                  </li>
+                ))}
               </ul>
             </div>
+
 
             <div className="bg-white rounded shadow-sm p-2 lg:p-3 border border-neutralDGray">
               <h6 className="text-lg font-semibold text-neutralDGray mb-2">
