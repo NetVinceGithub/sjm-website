@@ -7,7 +7,8 @@ import {
   pendingRequests,
   getPayslipById,
   deleteAllPayslips, 
-  getPayslipByEmployeeId
+  getPayslipByEmployeeId,
+  releasePayrollByProject 
 } from "../controllers/payslipController.js";
 import { sequelize } from "../db/db.js"; // Ensure correct path
 import { QueryTypes } from "sequelize";
@@ -33,5 +34,7 @@ router.post("/", addPayslip);
 router.get("/:id", getPayslipById);
 
 router.delete("/", deleteAllPayslips); // Add this line
+router.post("/release-payroll/project", releasePayrollByProject);
+
 
 export default router;

@@ -8,23 +8,25 @@ import ConnectMessages from "./ConnectMessages";
 
 const AdminLounge = () => {
   return (
-    <div className="fixed p-6 pt-16">
-      <Breadcrumb
-        items={[
-          { label: "Dashboard", href: "" },
-          { label: "Payroll Overview", href: "/admin-dashboard" },
-          { label: "Admin Settings", href: "" },
-        ]}
-      />
+    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-white p-6 pt-16">
+      <div className="flex flex-col h-full">
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", href: "" },
+            { label: "Payroll Overview", href: "/admin-dashboard" },
+            { label: "Admin Settings", href: "" },
+          ]}
+        />
 
-      <Tab
-        tabs={[
-          { label: "Payroll Requests", content: <Requests /> },
-          { label: "User Management", content: <AddAdmin /> },
-          { label: "Jobs", content: <Job /> },
-          {label: "Messages", content: <ConnectMessages />}
-        ]}
-      />
+        <Tab
+          tabs={[
+            { label: "Payroll Requests", content: <Requests /> },
+            { label: "User Management", content: <AddAdmin /> },
+            { label: "Jobs", content: <Job /> },
+            { label: "Messages", content: <ConnectMessages /> },
+          ]}
+        />
+      </div>
     </div>
   );
 };

@@ -76,7 +76,7 @@ const EmployeePayrollInformationsList = () => {
   };
 
   return (
-    <div className="fixed p-6 pt-16">
+    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
       <Breadcrumb
         items={[
           { label: "Payroll", href: "" },
@@ -115,7 +115,7 @@ const EmployeePayrollInformationsList = () => {
 
         {/* Containing the table list */}
         <div className="mt-4 overflow-x-auto">
-          <div className="w-full max-w-[75rem]">
+          <div className="w-full ">
             {/* Scrollable Table Wrapper */}
             <div className="max-h-[35rem] overflow-y-auto text-neutralDGray border rounded-md">
               <DataTable

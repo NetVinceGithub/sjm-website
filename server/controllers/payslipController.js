@@ -598,61 +598,63 @@ export const requestPayrollRelease = async (req, res) => {
 };
 
 export const releasePayroll = async (req, res) => {
+  const { project } = req.body;
+
+  if (!project) {
+    return res.status(400).json({ success: false, message: "Project is required." });
+  }
+
   try {
     const [results, metadata] = await sequelize.query(
-      "UPDATE payslips SET status = 'released' WHERE status = 'pending';",
-      { type: QueryTypes.RAW }
+      "UPDATE payslips SET status = 'released' WHERE status = 'pending' AND project = :project;",
+      {
+        replacements: { project },
+        type: QueryTypes.UPDATE
+      }
     );
 
-    console.log("✅ Payroll release successful.");
-    console.log("🔹 Rows affected:", metadata.affectedRows);
-
-    if (metadata.affectedRows > 0) {
-      // 🔍 Fetch all approved payslips
+    if (metadata.affectedRows > 0 || metadata.rowCount > 0) {
       const payslips = await sequelize.query(
-        "SELECT * FROM payslips WHERE status = 'released';", // Change 'approved' to 'released'
-        { type: QueryTypes.SELECT }
+        "SELECT * FROM payslips WHERE status = 'released' AND project = :project;",
+        {
+          replacements: { project },
+          type: QueryTypes.SELECT
+        }
       );
 
-      console.log("📄 Approved Payslips:", payslips); // ✅ Log fetched payslips
-
       if (payslips.length > 0) {
-        console.log("📤 Triggering payslip email API...");
-
         try {
           const emailResponse = await axios.post(
             "http://localhost:5000/api/payslip/send-payslip",
             { payslips }
           );
 
-          console.log("📩 Email API Response:", emailResponse.data);
-
-          res.json({
+          return res.json({
             success: true,
             message: "Payroll successfully released and payslips sent!",
           });
         } catch (emailError) {
-          console.error("❌ Error sending emails:", emailError);
-          res.json({
+          console.error("Error sending emails:", emailError);
+          return res.json({
             success: true,
             message: "Payroll released, but failed to send emails.",
           });
         }
       } else {
-        console.log("⚠️ No approved payslips found to send.");
-        res.json({
+        return res.json({
           success: true,
-          message: "Payroll released, but no approved payslips found to send.",
+          message: "Payroll released, but no payslips found to send.",
         });
       }
     } else {
-      res.json({ success: false, message: "No pending payroll found." });
+      return res.json({ success: false, message: "No pending payroll found for this project." });
     }
   } catch (error) {
-    console.error("❌ Error releasing payroll:", error);
+    console.error("Error releasing payroll:", error);
     res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 };
+
 
 export const pendingRequests = async (req, res) => {
   try {
@@ -710,5 +712,53 @@ export const deleteAllPayslips = async (req, res) => {
   } catch (error) {
     console.error("Error deleting all payslips:", error);
     res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+
+export const releasePayrollByProject = async (req, res) => {
+  const { project } = req.body;
+
+  if (!project) {
+    return res.status(400).json({ success: false, message: "Project is required." });
+  }
+
+  try {
+    const [results, metadata] = await sequelize.query(
+      "UPDATE payslips SET status = 'released' WHERE status = 'pending' AND project = :project",
+      {
+        replacements: { project },
+        type: QueryTypes.UPDATE
+      }
+    );
+
+    if (metadata > 0) {
+      const payslips = await sequelize.query(
+        "SELECT * FROM payslips WHERE status = 'released' AND project = :project",
+        {
+          replacements: { project },
+          type: QueryTypes.SELECT
+        }
+      );
+
+      try {
+        await axios.post("http://localhost:5000/api/payslip/send-payslip", { payslips });
+        return res.json({
+          success: true,
+          message: `Payroll for '${project}' successfully released and payslips sent.`,
+        });
+      } catch (emailError) {
+        console.error("Error sending emails:", emailError);
+        return res.json({
+          success: true,
+          message: `Payroll released for '${project}', but failed to send emails.`,
+        });
+      }
+    } else {
+      return res.json({ success: false, message: "No pending payslips found for this project." });
+    }
+  } catch (error) {
+    console.error("Error releasing project-specific payroll:", error);
+    return res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 };
