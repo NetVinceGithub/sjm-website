@@ -228,7 +228,7 @@ export const toggleEmployeeStatus = async (req, res) => {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    const newStatus = employee.status === "active" ? "inactive" : "active";
+    const newStatus = employee.status === "Active" ? "Inactive" : "Active";
     await employee.update({ status: newStatus });
 
     console.log(`Employee ${id} status changed to ${newStatus}`);

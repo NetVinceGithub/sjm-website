@@ -80,15 +80,15 @@ const ConnectMessages = () => {
 
   return (
     
-    <div className="p-6 bg-white rounded shadow-sm">
+    <div className="p-6">
       <div className="text-center">
-        <h3 className="text-2xl font-bold">Website Inquiry Messages</h3>
+        <h3 className="text-lg font-semibold">Website Inquiry Messages</h3>
       </div>
       <div className="flex justify-end items-center gap-3">
         <div className="flex rounded items-center">
           <input
             type="text"
-            placeholder="Search Surname"
+            placeholder="Search"
             onChange={handleFilter}
             className="px-2 rounded py-0.5 border"
           />
