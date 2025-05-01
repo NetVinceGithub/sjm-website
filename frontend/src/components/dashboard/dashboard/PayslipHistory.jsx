@@ -182,7 +182,7 @@ const PayslipHistory = () => {
   ];
 
   return (
-    <div className="fixed p-6 pt-16">
+    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
       <>
         <Breadcrumb
           items={[
@@ -195,7 +195,7 @@ const PayslipHistory = () => {
             { label: "Payroll History", href: "/admin-dashboard/employees" },
           ]}
         />
-        <div className="bg-white p-3 w-[77rem] h-[37rem] rounded shadow-sm border -mt-3">
+        <div className="bg-white p-3  rounded shadow-sm border -mt-3">
           {loading ? (
             <div>Loading...</div>
           ) : (
