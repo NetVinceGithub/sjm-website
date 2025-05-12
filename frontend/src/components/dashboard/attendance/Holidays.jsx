@@ -67,7 +67,16 @@ const Holidays = () => {
       (h) => new Date(h.date).toDateString() === date.toDateString()
     );
     if (holiday) {
-      return holiday.type === "Regular" ? "holiday-regular" : "holiday-special";
+      switch(holiday.type) {
+        case "Regular":
+          return "holiday-regular";
+        case "Special":
+          return "holiday-special";
+        case "Special Non-Working":
+          return "holiday-special-non-working";
+        default:
+          return "";
+      }
     }
     return "";
   };
@@ -135,7 +144,9 @@ const Holidays = () => {
               <option value="">Select Type</option>
               <option value="Regular">Regular Holiday</option>
               <option value="Special">Special Holiday</option>
+              <option value="Special Non-Working">Special Non-Working Holiday</option>
             </select>
+
             <button
               onClick={addHoliday}
               className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-200"
@@ -238,6 +249,7 @@ const Holidays = () => {
                 <option value="">Select Type</option>
                 <option value="Regular">Regular Holiday</option>
                 <option value="Special">Special Holiday</option>
+                <option value="Special Non-Working">Special Non-Working Holiday</option>
               </select>
               <button
                 onClick={addHoliday}
