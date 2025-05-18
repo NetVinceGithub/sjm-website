@@ -8,8 +8,7 @@ import { fileURLToPath } from "url";
 import sequelize from "./db/db.js";
 import Employee from "./models/Employee.js";
 import PayrollInformation from "./models/PayrollInformation.js";
-
-
+import setupAssociations from "./models/associations.js";
 
 dotenv.config();
 
@@ -79,6 +78,9 @@ export const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
+setupAssociations();
+
+
 // ✅ Now import routes (after `upload` is initialized)
 import authRouter from "./routes/auth.js";
 import employeeRouter from "./routes/employee.js";
@@ -89,6 +91,7 @@ import jobsRouter from "./routes/jobs.js";
 import attendanceRouter from "./routes/attendance.js";
 import connectRouter from "./routes/connect.js"; // ✅ Import connectRouter
 import holidaysRouter from "./routes/holidays.js"; // ✅ Correct import
+import loginRouter from './routes/login.js';
 // Add logging middleware to log incoming requests
 app.use((req, res, next) => {
   console.log(`Request URL: ${req.url}, Method: ${req.method}`);
@@ -109,8 +112,8 @@ app.use("/api/invoice", invoiceRouter);
 app.use("/api/jobs", jobsRouter);
 app.use("/api/attendance", attendanceRouter);
 app.use("/api/connect", connectRouter); // Ensure this line is included
-app.use("/api/holidays", holidaysRouter)
-
+app.use("/api/holidays", holidaysRouter);
+app.use('/api/login', loginRouter);
 app.use(express.static(path.join(__dirname, "../frontend/dist")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
