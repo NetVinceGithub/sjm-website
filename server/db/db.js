@@ -9,8 +9,8 @@ const sequelize = new Sequelize(
   process.env.DB_PASS,
   {
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    dialect: process.env.DB_DIALECT,
+    port: process.env.DB_PORT || 3306,
+    dialect: process.env.DB_DIALECT || "mysql",
     logging: false,
   }
 );
@@ -27,12 +27,16 @@ const connectToDatabase = async () => {
   }
 };
 
-// Ensure database exists
+// Remove this block or replace with a proper CREATE DATABASE command only if needed
+// Sequelize expects the database to already exist
+// You can't run CREATE DATABASE IF NOT EXISTS in most shared hosting environments
+/*
 sequelize
-  .query(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME};`)
+  .query(CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME}\;`)
   .then(() => {
     console.log("✅ Database checked/created successfully.");
   })
   .catch((err) => console.error("❌ Error creating database:", err));
+*/
 
 export { sequelize, connectToDatabase };
