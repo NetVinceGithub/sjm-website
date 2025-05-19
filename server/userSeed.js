@@ -27,7 +27,7 @@ const userRegister = async () => {
   } catch (error) {
     console.error("❌ Error inserting admin user:", error);
   } finally {
-    await sequelize.close();
+    // await sequelize.close();
   }
 };
 
