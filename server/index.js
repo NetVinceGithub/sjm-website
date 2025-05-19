@@ -126,4 +126,4 @@ app.listen(PORT, () => {
 export { Employee, PayrollInformation };
 
 
-import './userSeed.js'; // ✅ Temporarily run the admin seed on deployment
+// import './userSeed.js'; // ✅ Temporarily run the admin seed on deployment
