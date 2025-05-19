@@ -6,7 +6,7 @@ dotenv.config();
 const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
-  process.env.DB_PASS,
+  process.env.DB_PASSWORD, // ✅ this should match your .env
   {
     host: process.env.DB_HOST,
     port: process.env.DB_PORT || 3306,
@@ -14,6 +14,7 @@ const sequelize = new Sequelize(
     logging: false,
   }
 );
+
 
 
 console.log('nag bago sa .env')
