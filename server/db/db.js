@@ -15,6 +15,9 @@ const sequelize = new Sequelize(
   }
 );
 
+
+console.log('nag bago sa .env')
+
 export default sequelize;
 
 const connectToDatabase = async () => {
