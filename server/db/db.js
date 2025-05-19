@@ -39,4 +39,6 @@ sequelize
   .catch((err) => console.error("❌ Error creating database:", err));
 */
 
+console.log("nag ayos sa node modules");
+
 export { sequelize, connectToDatabase };
