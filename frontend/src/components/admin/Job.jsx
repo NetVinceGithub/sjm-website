@@ -17,7 +17,7 @@ import { Button } from "flowbite-react";
 import { FaArrowUp } from "react-icons/fa";
 import axios from "axios"; // Make sure to install axios
 
-const API_URL = "http://localhost:5000/api/jobs"; // Replace with your actual API endpoint
+const API_URL = `${import.meta.env.VITE_API_URL}/api/jobs`; // Replace with your actual API endpoint
 
 const Modal = ({ showModal, setShowModal, job }) => (
   <div
