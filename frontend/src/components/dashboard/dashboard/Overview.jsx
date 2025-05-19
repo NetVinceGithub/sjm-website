@@ -347,7 +347,7 @@ const Overview = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <CalendarOverview
                 onDateChange={setCutoffDate}
-                className="w-full sm:w-1/2 h-64"
+                className="w-full sm:w-1/2 h-60"
               />
 
               <div className="relative bg-white border w-full sm:w-1/2 border-neutralDGray shadow-sm rounded p-2 lg:p-3 h-full">

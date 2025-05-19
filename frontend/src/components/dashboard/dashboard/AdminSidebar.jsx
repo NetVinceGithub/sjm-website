@@ -44,7 +44,7 @@ const AdminSidebar = () => {
         <div className="h-20 flex flex-row items-center justify-center gap-1 px-4">
           <img src={Logo} alt="Company Logo" className="w-12 h-12" />
           <h3
-            style={{ fontFamily: ["AR Julian", "sans-serif"].join(", ") }}
+            style={{ fontFamily: ['"AR Julian", sans-serif'].join(", ") }}
             className="text-white text-[18px] font-bold text-sm mt-2 leading-tight"
           >
             St. John Majore <br />

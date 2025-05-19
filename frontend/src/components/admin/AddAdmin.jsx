@@ -27,7 +27,7 @@ const AddAdmin = () => {
       setLoading(true);
       try {
         const response = await axios.get(
-          "http://localhost:5000/api/users/get-users"
+          `${import.meta.env.VITE_API_URL}/api/users/get-users`,
         );
         if (response.data.success) {
           setUsers(response.data.users);
@@ -57,7 +57,7 @@ const AddAdmin = () => {
     setLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/users/add",
+        `${import.meta.env.VITE_API_URL}/api/users/add`,
         formData
       );
       if (response.data.success) {
@@ -74,7 +74,7 @@ const AddAdmin = () => {
   const handleBlock = async (userId) => {
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/users/block",
+        `${import.meta.env.VITE_API_URL}/api/users/block`,
         {
           userId,
         }
@@ -94,7 +94,7 @@ const AddAdmin = () => {
   const handleUnblock = async (userId) => {
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/users/unblock",
+        `${import.meta.env.VITE_API_URL}/api/users/unblock`,
         {
           userId,
         }
@@ -129,7 +129,7 @@ const AddAdmin = () => {
     e.preventDefault();
     try {
       const response = await axios.put(
-        `http://localhost:5000/api/users/${editingUser}`,
+        `${import.meta.env.VITE_API_URL}/api/users/${editingUser}`,
         editFormData
       );
       if (response.data.success) {
