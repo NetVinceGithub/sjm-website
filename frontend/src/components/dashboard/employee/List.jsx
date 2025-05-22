@@ -369,13 +369,13 @@ const List = () => {
                     },
                                         {
                       name: "Attended Training and Seminar",
-                      selector: (row) => row.attended_training_and_seminar,
+                      selector: (row) => row.attendedtrainingandseminar,
                       sortable: true,
                       width: "350px",
                     },
                                         {
                       name: "Date of Separation",
-                      selector: (row) => row.date_of_separation,
+                      selector: (row) => row.dateofseparation,
                       sortable: true,
                       width: "350px",
                     },
