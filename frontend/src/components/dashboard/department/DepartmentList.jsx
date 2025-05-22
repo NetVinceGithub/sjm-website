@@ -19,7 +19,7 @@ const DepartmentList = () => {
     const fetchDepartments = async () => {
       setDepLoading(true);
       try {
-        const response = await axios.get('http://localhost:5000/api/department', {
+        const response = await axios.get('${import.meta.env.VITE_API_URL}/api/department', {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },

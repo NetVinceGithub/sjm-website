@@ -247,6 +247,15 @@ const Employee = sequelize.define("Employee", {
     type: DataTypes.STRING,
     defaultValue: "active",
   },
+  attended_training_and_seminar: {
+    type: DataTypes.STRING,
+  },
+  date_of_separation: {
+    type: DataTypes.DATE,
+  },
+    medical: {
+    type: DataTypes.STRING,
+  },
 }, { timestamps: false });
 
 Employee.afterCreate(async (employee) => {

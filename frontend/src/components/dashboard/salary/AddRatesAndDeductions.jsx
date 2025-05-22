@@ -53,7 +53,7 @@ const AddRatesAndDeductions = ({ employeeId }) => {
     };
 
     try {
-      const response = await axios.post('http://localhost:5000/api/rates/add', rateData);
+      const response = await axios.post('${import.meta.env.VITE_API_URL}/api/rates/add', rateData);
       console.log('Rate added successfully:', response.data);
     } catch (error) {
       console.error('Error adding rate:', error.response?.data || error.message);

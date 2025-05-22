@@ -22,7 +22,7 @@ export const PayrollButtons = ({ Id, refreshData }) => {
   const fetchPayrollInformationsById = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/employee/payroll-informations/${Id}`
+        `${import.meta.env.VITE_API_URL}/api/employee/payroll-informations/${Id}`
       );
 
       if (response.data.success && response.data.payrollInformation) {
@@ -38,7 +38,7 @@ export const PayrollButtons = ({ Id, refreshData }) => {
   const handleSave = async () => {
     try {
       const response = await axios.put(
-        `http://localhost:5000/api/employee/payroll-informations/${Id}`,
+        `${import.meta.env.VITE_API_URL}/api/employee/payroll-informations/${Id}`,
         payrollData
       );
 

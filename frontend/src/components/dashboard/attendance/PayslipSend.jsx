@@ -13,7 +13,7 @@ const PayslipSend = () => {
 
     const fetchPayslip = async() =>{
         try{
-            const response = await axios.get("http://localhost:5000/api/payslip");
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
             console.log(response.data);
         } catch (error) {
             console.log(error);

@@ -17,7 +17,7 @@ const EditProject = () => {
   useEffect(() => {
     const fetchProject = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/projects/${id}`, {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/projects/${id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
@@ -48,7 +48,7 @@ const EditProject = () => {
     e.preventDefault();
 
     try {
-      const response = await axios.put(`http://localhost:5000/api/projects/${id}`, project, {
+      const response = await axios.put(`${import.meta.env.VITE_API_URL}/api/projects/${id}`, project, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },

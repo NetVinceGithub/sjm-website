@@ -61,7 +61,7 @@ const PayrollSummary = () => {
       try {
         console.log("📩 Fetching attendance data...");
         const attendanceResponse = await axios.get(
-          "http://localhost:5000/api/attendance/get-attendance"
+          `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`
         );
 
         const attendanceData = attendanceResponse.data.attendance || [];
@@ -106,7 +106,7 @@ const PayrollSummary = () => {
   const fetchPayslips = async () => {
     try {
       setLoading(true); // Ensure loading state is set
-      const response = await axios.get("http://localhost:5000/api/payslip");
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
       setPayslips([...response.data]); // Force a new reference to trigger re-render
     } catch (error) {
       console.error("Error fetching payslips:", error);
@@ -139,7 +139,7 @@ const PayrollSummary = () => {
     try {
       console.log("📩 Fetching employee data...");
       const employeeResponse = await axios.get(
-        "http://localhost:5000/api/employee"
+        `${import.meta.env.VITE_API_URL}/api/employee`
       );
 
       const employeeData = employeeResponse.data.employees || [];
@@ -181,7 +181,7 @@ const PayrollSummary = () => {
     try {
       console.log("📩 Fetching attendance data...");
       const attendanceResponse = await axios.get(
-        "http://localhost:5000/api/attendance/get-attendance"
+        `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`
       );
 
       const attendanceData = attendanceResponse.data.attendance || [];
@@ -207,7 +207,7 @@ const PayrollSummary = () => {
 
       // Step 2: Send only selected employees along with the filtered attendance data
       const response = await axios.post(
-        "http://localhost:5000/api/payslip/generate",
+        `${import.meta.env.VITE_API_URL}/api/payslip/generate`,
         {
           cutoffDate: cutoffDate.trim(),
           selectedEmployees, // List of employees approved for overtime
@@ -267,7 +267,7 @@ const PayrollSummary = () => {
       // Get requester (you might use the logged-in user)
 
       const response = await axios.post(
-        "http://localhost:5000/api/payslip/request-release",
+        `${import.meta.env.VITE_API_URL}/api/payslip/request-release`,
         {
           requestedBy,
         }
@@ -321,7 +321,7 @@ const PayrollSummary = () => {
 
   const handleDeletePayroll = async () => {
     try {
-      const response = await axios.delete("http://localhost:5000/api/payslip");
+      const response = await axios.delete(`${import.meta.env.VITE_API_URL}/api/payslip`);
       if (response.data.success) {
         setPayslips([]);
       }

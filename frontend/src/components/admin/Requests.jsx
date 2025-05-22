@@ -22,7 +22,7 @@ const Requests = () => {
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/payslip");
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
         console.log(response.data);
         setRequests(response.data);
       } catch (error) {
@@ -39,7 +39,7 @@ const Requests = () => {
     try {
       setLoadingPayroll(true); // Show loading modal
       const response = await axios.post(
-        "http://localhost:5000/api/payslip/release-payroll"
+        `${import.meta.env.VITE_API_URL}/api/payslip/release-payroll`
       );
 
       if (response.data.success) {
@@ -59,7 +59,7 @@ const Requests = () => {
 
   const handleDeleteAll = async () => {
     try {
-      await axios.delete("http://localhost:5000/api/payslip");
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/payslip`);
       setRequests([]);
       setShowModal(false);
     } catch (error) {
@@ -73,10 +73,13 @@ const Requests = () => {
     setRequests([]);
   };
 
-  const totalNetPay = requests.reduce(
-    (acc, curr) => acc + Number(curr.netPay || 0),
-    0
-  );
+const safeRequests = Array.isArray(requests) ? requests : [];
+
+const totalNetPay = safeRequests.reduce(
+  (acc, curr) => acc + Number(curr.netPay || 0),
+  0
+);
+
 
   return (
     <div className="flex flex-row gap-8 p-4 overflow-auto h-[450px]">

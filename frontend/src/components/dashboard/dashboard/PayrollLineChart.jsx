@@ -23,7 +23,7 @@ export default function PayrollLineChart() {
   useEffect(() => {
     const fetchPayslips = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/payslip");
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
         const payslipData = response.data;
 
         // Calculate total payroll, gross salary, and benefits
