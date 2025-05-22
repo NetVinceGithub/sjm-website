@@ -247,13 +247,14 @@ const Employee = sequelize.define("Employee", {
     type: DataTypes.STRING,
     defaultValue: "active",
   },
- attended_training_and_seminar: {
+ attendedtrainingandseminar: {
     type: DataTypes.STRING,
-    allowNull: true,
+    defaultValue: "N/A",
   },
-  date_of_separation: {
+ 
+  dateofseparation: {
     type: DataTypes.STRING,
-    allowNull: true,
+    defaultValue: "N/A",
   },
     medical: {
     type: DataTypes.STRING,
