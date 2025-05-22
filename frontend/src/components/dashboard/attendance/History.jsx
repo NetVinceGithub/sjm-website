@@ -14,7 +14,7 @@ const History = () => {
     const fetchAttendance = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:5000/api/attendance/get-history"
+          `${import.meta.env.VITE_API_URL}/api/attendance/get-history`
         );
         console.log("Fetched Attendance Data:", response.data);
 

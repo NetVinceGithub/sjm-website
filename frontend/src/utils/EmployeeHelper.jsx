@@ -8,7 +8,7 @@ Modal.setAppElement("#root"); // Required for accessibility
 
 export const fetchDepartments = async () => {
   try {
-    const response = await axios.get("http://localhost:5000/api/department", {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/department`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
@@ -25,7 +25,7 @@ export const fetchDepartments = async () => {
 
 export const fetchProjects = async () => {
   try {
-    const response = await axios.get("http://localhost:5000/api/projects", {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/projects`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },

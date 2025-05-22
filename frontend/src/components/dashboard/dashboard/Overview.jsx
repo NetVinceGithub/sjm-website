@@ -31,10 +31,12 @@ const Overview = () => {
   useEffect(() => {
     const fetchPayslips = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/payslip");
-        setPayslips(response.data);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
+        // Ensure we always set an array
+        setPayslips(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         console.error("Error fetching payslips:", error);
+        setPayslips([]); // Set empty array on error
       }
     };
 
@@ -45,29 +47,30 @@ const Overview = () => {
     const fetchEmployees = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:5000/api/employee/status"
+          `${import.meta.env.VITE_API_URL}/api/employee/status`
         );
         console.log(response.data);
-        setEmployees(response.data);
+        setEmployees(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         console.log("Error fetching active employees", error);
+        setEmployees([]); // Set empty array on error
       }
     };
     fetchEmployees();
   }, []);
 
-  useEffect (()=> {
+  useEffect(() => {
     const fetchHolidays = async () => {
-
-    try{
-      const response = await axios.get('http://localhost:5000/api/holidays');
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`);
         console.log(response.data);
-        setHolidaySummary(response.data.holidays);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-  fetchHolidays();
+        setHolidaySummary(Array.isArray(response.data.holidays) ? response.data.holidays : []);
+      } catch (error) {
+        console.error(error);
+        setHolidaySummary([]); // Set empty array on error
+      }
+    };
+    fetchHolidays();
   }, []);
   
 
@@ -100,15 +103,22 @@ const Overview = () => {
   
     
 
-  const totalGrossSalary = payslips.reduce(
-    (acc, p) => acc + (p.gross_pay || 0),
-    0
-  );
-  const totalBenefits = payslips.reduce(
-    (acc, p) => acc + (p.allowance || 0),
-    0
-  );
-  const totalPayroll = payslips.reduce((acc, p) => acc + (p.netPay || 0), 0);
+// Defensive assignment - ensure payslips is always an array
+const safePayslips = Array.isArray(payslips) ? payslips : [];
+
+const totalGrossSalary = safePayslips.reduce(
+  (acc, p) => acc + (p.gross_pay || 0),
+  0
+);
+const totalBenefits = safePayslips.reduce(
+  (acc, p) => acc + (p.allowance || 0),
+  0
+);
+const totalPayroll = safePayslips.reduce(
+  (acc, p) => acc + (p.netPay || 0),
+  0
+);
+
 
   const handleCreatePayroll = async () => {
     if (!cutoffDate) {
@@ -119,7 +129,7 @@ const Overview = () => {
     try {
       setMessage("");
       const response = await axios.post(
-        "http://localhost:5000/api/payslip/generate",
+        `${import.meta.env.VITE_API_URL}/api/payslip/generate`,
         { cutoffDate }
       );
 
@@ -144,7 +154,7 @@ const Overview = () => {
   };
 
   const handleReleaseRequest = async () => {
-    if (!payslips.length) {
+    if (!safePayslips.length) {
       alert("No payslips available!");
       return;
     }
@@ -153,7 +163,7 @@ const Overview = () => {
     setMessage("");
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/payslip/request-release",
+        `${import.meta.env.VITE_API_URL}/api/payslip/request-release`,
         { status: "pending" }
       );
 
@@ -206,6 +216,7 @@ const Overview = () => {
 
     setNotes(filtered);
   }, []);
+  
   const handleAddNote = () => {
     if (!showTitleInput) {
       setShowTitleInput(true);
@@ -301,36 +312,36 @@ const Overview = () => {
           ]}
         />
 
-        {/* Summary Cards */}
+        {/* Summary Cards - Using safePayslips consistently */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mt-3">
           <SummaryCard
             icon={<FaCashRegister />}
             title="Total Payroll"
-            number={`₱${payslips
-              .reduce((acc, p) => acc + parseFloat(p.netPay), 0)
+            number={`₱${safePayslips
+              .reduce((acc, p) => acc + parseFloat(p.netPay || 0), 0)
               .toLocaleString()}`}
             color="bg-blue-400"
           />
           <SummaryCard
             icon={<FaHandHoldingUsd />}
             title="Gross Salary"
-            number={`₱${payslips
-              .reduce((acc, p) => acc + parseFloat(p.gross_pay), 0)
+            number={`₱${safePayslips
+              .reduce((acc, p) => acc + parseFloat(p.gross_pay || 0), 0)
               .toLocaleString()}`}
             color="bg-green-400"
           />
           <SummaryCard
             icon={<FaChartPie />}
             title="Total Employee Benefits"
-            number={`₱${payslips
-              .reduce((acc, p) => acc + parseFloat(p.allowance), 0)
+            number={`₱${safePayslips
+              .reduce((acc, p) => acc + parseFloat(p.allowance || 0), 0)
               .toLocaleString()}`}
             color="bg-pink-400"
           />
           <SummaryCard
             icon={<FaUsers />}
             title="Total Headcount"
-            number={payslips.length}
+            number={safePayslips.length}
             color="bg-yellow-400"
           />
         </div>
@@ -340,14 +351,14 @@ const Overview = () => {
           {/* Left - Chart + Notes */}
           <div className="laptop:col-span-5 flex flex-col gap-3 overflow-auto">
             <PayrollLineChart
-              payslips={payslips}
+              payslips={safePayslips}
               className="border border-neutralDGray"
             />
 
             <div className="flex flex-col sm:flex-row gap-3">
               <CalendarOverview
                 onDateChange={setCutoffDate}
-                className="w-full sm:w-1/2 h-64"
+                className="w-full sm:w-1/2 h-60"
               />
 
               <div className="relative bg-white border w-full sm:w-1/2 border-neutralDGray shadow-sm rounded p-2 lg:p-3 h-full">
@@ -547,9 +558,6 @@ const Overview = () => {
                   </span>
                 </li>
               ))}
-
-
-               
               </ul>
             </div>
 

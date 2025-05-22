@@ -19,7 +19,7 @@ const AddDepartment = () => {
       e.preventDefault();
       try {
         console.log('Sending request with data:', department); // Debug the request payload
-        const response = await axios.post('http://localhost:5000/api/department/add', department, {
+        const response = await axios.post('${import.meta.env.VITE_API_URL}/api/department/add', department, {
           headers: {
             "Authorization": `Bearer ${localStorage.getItem('token')}`,
           },

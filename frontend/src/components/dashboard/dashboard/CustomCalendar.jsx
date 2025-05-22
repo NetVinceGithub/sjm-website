@@ -84,19 +84,11 @@ export default function CustomCalendar({ onDateChange }) {
           {/* Vertical divider */}
           <div className="w-px bg-gray-200 opacity-60 h-28 mx-3"></div>
 
-          <div className="flex-1">
-            <strong className="text-lg">Notice!</strong>
-            <ul className="space-y-2 mt-1">
-              <li className="list-disc text-sm">
-                <p className="m-0">{notice1}</p>
-              </li>
-              {(notice2 || notice3) && (
-                <li className="list-disc ml-5 text-sm">
-                  <p className="m-0">{notice2 || notice3}</p>
-                </li>
-              )}
-            </ul>
-          </div>
+          <ul className="notice-list">
+            {notice1 && <li><p>{notice1}</p></li>}
+            {notice2 && <li><p>{notice2}</p></li>}
+            {notice3 && <li><p>{notice3}</p></li>}
+          </ul>
         </div>
       </div>
     </div>

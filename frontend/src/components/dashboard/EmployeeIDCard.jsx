@@ -30,7 +30,7 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
 
     const fetchEmployee = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/employee/${employeeId}`, {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee/${employeeId}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
 
@@ -117,7 +117,7 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
       }
   
       const response = await axios.put(
-        `http://localhost:5000/api/employee/update-details/${employeeId}`,
+        `${import.meta.env.VITE_API_URL}/api/employee/update-details/${employeeId}`,
         formDataObj,
         {
           headers: { 
@@ -160,7 +160,7 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
     if (!imagePath || imagePath === "N/A") {
       return defaultProfile; // Use default profile picture
     }
-    return `http://localhost:5000/uploads/${imagePath}`;
+    return `${import.meta.env.VITE_API_URL}/uploads/${imagePath}`;
   };
   
 

@@ -36,7 +36,7 @@ const List = () => {
   const fetchEmployees = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/employee");
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee`);
       if (response.data.success) {
         setEmployees(response.data.employees);
         setFilteredEmployees(response.data.employees);
@@ -51,7 +51,7 @@ const List = () => {
   const syncEmployees = async () => {
     setSyncing(true);
     try {
-      await axios.get("http://localhost:5000/api/employee/import");
+      await axios.get(`${import.meta.env.VITE_API_URL}/api/employee/import`);
       fetchEmployees(); // Refresh the employee list after syncing
       setModalOpen(true);
     } catch (error) {
@@ -83,7 +83,7 @@ const List = () => {
     if (employeeToBlock) {
       try {
         await axios.put(
-          `http://localhost:5000/api/employee/toggle-status/${employeeToBlock.id}`
+          `${import.meta.env.VITE_API_URL}/api/employee/toggle-status/${employeeToBlock.id}`
         );
 
         // Update employee status in state
@@ -112,7 +112,7 @@ const List = () => {
     if (employeeToBlock) {
       try {
         await axios.put(
-          `http://localhost:5000/api/employee/toggle-status/${employeeToBlock.id}`
+          `${import.meta.env.VITE_API_URL}/api/employee/toggle-status/${employeeToBlock.id}`
         );
 
         await fetchEmployees(); // Force refresh from the backend
@@ -334,7 +334,7 @@ const List = () => {
                       name: "Image",
                       cell: (row) => (
                         <img
-                          src={`http://localhost:5000/uploads/${row.profileImage}`}
+                          src={`${import.meta.env.VITE_API_URL}/uploads/${row.profileImage}`}
                           alt="Profile"
                           className="w-10 h-10 rounded-full object-cover"
                           onError={(e) => (e.target.src = defaultProfile)} // Fallback image

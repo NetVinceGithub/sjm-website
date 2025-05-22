@@ -9,10 +9,9 @@ const Logins = () => {
   useEffect(() => {
     const fetchLoginRecords = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/login/login-history');
-        console.log('API response:', response.data); // helpful log
-        
-        // Transform the data to match the previous component's structure
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/login/login-history`);
+        console.log('API response:', response.data);
+
         const transformedRecords = response.data.data.map(record => ({
           id: record.id,
           userName: record.User.name,
@@ -20,7 +19,7 @@ const Logins = () => {
           role: record.User.name === 'Admin' ? 'Admin' : 'User', // Adjust role logic as needed
           loginTime: record.loginTime,
           ipAddress: record.ipAddress,
-          device: parseUserAgent(record.userAgent)
+          device: parseUserAgent(record.userAgent),
         }));
 
         setLoginRecords(transformedRecords);
@@ -35,7 +34,6 @@ const Logins = () => {
     fetchLoginRecords();
   }, []);
 
-  // Helper function to extract device information from user agent
   const parseUserAgent = (userAgent) => {
     if (userAgent.includes('Windows')) return 'Windows';
     if (userAgent.includes('Macintosh')) return 'Mac';
@@ -62,59 +60,68 @@ const Logins = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">Website Access Log</h1>
-      
+    <div className="p-6 h-full">
+      <div className="flex justify-between items-center -mt-3 mb-8">
+        <h1 className="text-neutralDGray text-lg font-semibold">Website Access Log</h1>
+      </div>
+  
       {loginRecords.length === 0 ? (
-        <div className="text-center text-gray-500">
-          No login records found.
-        </div>
+        <div className="text-center text-gray-500">No login records found.</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
+        <div
+          className="-mt-5 h-[70vh] mr-5 overflow-y-auto flex justify-center"
+        >
+          <table
+            className="bg-white shadow-md rounded-lg overflow-hidden table-fixed w-full" // fixed table width matching container
+          >
             <thead className="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
               <tr>
-                <th className="py-3 px-6 text-left">User</th>
-                <th className="py-3 px-6 text-left">Email</th>
-                <th className="py-3 px-6 text-left">Role</th>
-                <th className="py-3 px-6 text-left">Login Time</th>
-                <th className="py-3 px-6 text-left">IP Address</th>
-                <th className="py-3 px-6 text-left">Device</th>
+                <th className="py-3 px-4 text-left" style={{ width: '15%' }}>User</th>
+                <th className="py-3 px-4 text-left" style={{ width: '20%' }}>Email</th> {/* Adjusted */}
+                <th className="py-3 px-4 text-left" style={{width: '20%'}}>Activity Type</th>
+                <th className="py-3 px-4 text-left" style={{ width: '15%' }}>Role</th>
+                <th className="py-3 px-4 text-left" style={{ width: '20%' }}>Timestamp</th> {/* Adjusted */}
+                <th className="py-3 px-4 text-left" style={{ width: '10%' }}>Device</th>
               </tr>
             </thead>
+  
             <tbody className="text-gray-600 text-sm font-light">
               {loginRecords.map((record) => (
-                <tr 
-                  key={record.id} 
+                <tr
+                  key={record.id}
                   className="border-b border-gray-200 hover:bg-gray-100 transition duration-200"
                 >
-                  <td className="py-3 px-6 text-left whitespace-nowrap">
-                    <div className="flex items-center">
-                      <span className="font-medium">{record.userName}</span>
-                    </div>
+                  <td
+                    className="py-3 px-4 text-left whitespace-nowrap truncate"
+                    title={record.userName}
+                  >
+                    <span className="font-medium">{record.userName}</span>
                   </td>
-                  <td className="py-3 px-6 text-left">
+                  <td className="py-3 px-4 text-left truncate" title={record.email}>
                     <span>{record.email}</span>
                   </td>
-                  <td className="py-3 px-6 text-left">
-                    <span 
+                  <td className="py-3 px-4 text-left truncate">
+                      <span></span>
+                  </td>
+                  <td className="py-3 px-4 text-left">
+                    <span
                       className={`
                         px-3 py-1 rounded-full text-xs
-                        ${record.role === 'Admin' ? 'bg-green-200 text-green-800' : 
-                          record.role === 'User' ? 'bg-blue-200 text-blue-800' : 
+                        ${record.role === 'Admin' ? 'bg-green-200 text-green-800' :
+                          record.role === 'User' ? 'bg-blue-200 text-blue-800' :
                           'bg-gray-200 text-gray-800'}
                       `}
                     >
                       {record.role}
                     </span>
                   </td>
-                  <td className="py-3 px-6 text-left">
+                  <td
+                    className="py-3 px-4 text-left truncate"
+                    title={new Date(record.loginTime).toLocaleString()}
+                  >
                     <span>{new Date(record.loginTime).toLocaleString()}</span>
                   </td>
-                  <td className="py-3 px-6 text-left">
-                    <span>{record.ipAddress}</span>
-                  </td>
-                  <td className="py-3 px-6 text-left">
+                  <td className="py-3 px-4 text-left truncate" title={record.device}>
                     <span>{record.device}</span>
                   </td>
                 </tr>
@@ -125,6 +132,7 @@ const Logins = () => {
       )}
     </div>
   );
+  
 };
 
 export default Logins;

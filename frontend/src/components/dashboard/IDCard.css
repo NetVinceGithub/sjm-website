@@ -1,6 +1,15 @@
+@font-face {
+  font-family: "AR JULIAN";
+  src: url("/fonts/ARJULIAN.woff2") format("woff2"),
+    url("fonts/ARJULIAN.woff") format("woff");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
 .id-container {
   display: inline-flex;
-  justify-content: space-between;
+  justify-content: space-between; 
   align-items: flex-start;
   gap: 20px;
 }
