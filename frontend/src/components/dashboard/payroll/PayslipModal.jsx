@@ -20,7 +20,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
 
       try {
         const response = await axios.get(
-          `http://localhost:5000/api/payslip/${employeeId}`
+          `${import.meta.env.VITE_API_URL}/api/payslip/${employeeId}`
         );
         console.log(response.data);
         setPayslip(response.data);

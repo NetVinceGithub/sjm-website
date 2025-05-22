@@ -31,7 +31,7 @@ const InvoiceList = () => {
   useEffect(() => {
     const fetchInvoices = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/invoice");
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/invoice`);
         console.log(response.data);
         if (response.data.success && Array.isArray(response.data.invoice)) {
           setInvoices(response.data.invoice);

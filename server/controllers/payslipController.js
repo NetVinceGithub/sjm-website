@@ -625,7 +625,7 @@ export const releasePayroll = async (req, res) => {
       if (payslips.length > 0) {
         try {
           const emailResponse = await axios.post(
-            "http://localhost:5000/api/payslip/send-payslip",
+            `${import.meta.env.VITE_API_URL}/api/payslip/send-payslip`,
             { payslips }
           );
 
@@ -742,7 +742,7 @@ export const releasePayrollByProject = async (req, res) => {
       );
 
       try {
-        await axios.post("http://localhost:5000/api/payslip/send-payslip", { payslips });
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/payslip/send-payslip`, { payslips });
         return res.json({
           success: true,
           message: `Payroll for '${project}' successfully released and payslips sent.`,
