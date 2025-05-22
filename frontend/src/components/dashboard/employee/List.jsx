@@ -362,17 +362,30 @@ const List = () => {
                       width: "350px",
                     },
                     {
-                      name: "Department",
-                      selector: (row) => row.department || "N/A",
-                      sortable: true,
-                      width: "190px",
-                    },
-                    {
-                      name: "Project",
+                      name: "Project Site - Department Area",
                       selector: (row) => row['area/section'] || "N/A",
                       sortable: true,
                       width: "190px",
                     },
+                                        {
+                      name: "Attended Training and Seminar",
+                      selector: (row) => row.attended_training_and_seminar,
+                      sortable: true,
+                      width: "350px",
+                    },
+                                        {
+                      name: "Date of Separation",
+                      selector: (row) => row.date_of_separation,
+                      sortable: true,
+                      width: "350px",
+                    },
+                                        {
+                      name: "Medical",
+                      selector: (row) => row.medical,
+                      sortable: true,
+                      width: "350px",
+                    }
+,
                     {
                       name: "Options",
                       cell: (row) => (
