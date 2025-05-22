@@ -249,12 +249,10 @@ const Employee = sequelize.define("Employee", {
   },
  attended_training_and_seminar: {
     type: DataTypes.STRING,
-    field: "ATTENDED TRAINING AND SEMINAR",
     allowNull: true,
   },
   date_of_separation: {
     type: DataTypes.STRING,
-    field: "DATE OF SEPARATION",
     allowNull: true,
   },
     medical: {
