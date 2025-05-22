@@ -17,14 +17,23 @@ Employee.hasOne(PayrollInformation, { foreignKey: "employee_id", onDelete: "CASC
 PayrollInformation.belongsTo(Employee, { foreignKey: "employee_id" });
 
 // Sync Database
+// Sync Database
 sequelize.sync({ force: true })
-  .then(() => console.log("✅ MySQL Database Synced"))
-  .catch((err) => console.error("❌ MySQL Connection Error:", err));
+  .then(() => {
+    console.log("✅ MySQL Database Synced");
+    return userRegister(); // Call it here, after sync is done
+  })
+  .then(() => {
+    console.log("✅ Admin user ensured");
+  })
+  .catch((err) => {
+    console.error("❌ MySQL Connection Error:", err);
+  });
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-userRegister();
 // Get current directory using ES Module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
