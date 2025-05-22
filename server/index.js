@@ -24,7 +24,7 @@ sequelize.sync({ force: true })
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-
+userRegister();
 // Get current directory using ES Module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -92,6 +92,7 @@ import attendanceRouter from "./routes/attendance.js";
 import connectRouter from "./routes/connect.js"; // ✅ Import connectRouter
 import holidaysRouter from "./routes/holidays.js"; // ✅ Correct import
 import loginRouter from './routes/login.js';
+import { userRegister } from "./userSeed.js";
 // Add logging middleware to log incoming requests
 app.use((req, res, next) => {
   console.log(`Request URL: ${req.url}, Method: ${req.method}`);
