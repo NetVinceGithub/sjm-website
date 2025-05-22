@@ -2,7 +2,7 @@ import { sequelize, connectToDatabase } from './db/db.js';
 import User from './models/User.js';
 import bcrypt from 'bcryptjs';
 
-const userRegister = async () => {
+export const userRegister = async () => {
   await connectToDatabase();
 
   try {
