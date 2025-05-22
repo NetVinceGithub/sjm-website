@@ -30,7 +30,7 @@ const Attendance = () => {
 
   const fetchHolidays = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/holidays");
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/holidays`);
       if (!response.ok) throw new Error("Failed to fetch holidays");
       const data = await response.json();
 
@@ -349,7 +349,7 @@ const Attendance = () => {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/attendance/add-attendance",
+        `${import.meta.env.VITE_API_URL}/api/attendance/add-attendance`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -360,7 +360,7 @@ const Attendance = () => {
       if (!response.ok) throw new Error("Failed to save attendance");
 
       const summaryResponse = await fetch(
-        "http://localhost:5000/api/attendance/add-attendance-summary",
+        `${import.meta.env.VITE_API_URL}/api/attendance/add-attendance-summary`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

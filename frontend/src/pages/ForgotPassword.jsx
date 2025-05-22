@@ -18,7 +18,7 @@ const ForgotPassword = () => {
   const handleForgotPasswordSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/forgot-password', { email });
+      const res = await axios.post('${import.meta.env.VITE_API_URL}/api/auth/forgot-password', { email });
       if (res.data.success) {
         setSuccessMessage("A verification code has been sent to your email.");
         setIsCodeModalOpen(true);
@@ -33,7 +33,7 @@ const ForgotPassword = () => {
 
   const handleVerifyCode = async () => {
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/verify-code', { email, code });
+      const res = await axios.post('${import.meta.env.VITE_API_URL}/api/auth/verify-code', { email, code });
       if (res.data.success) {
         setIsCodeModalOpen(false);
         setIsPasswordModalOpen(true);

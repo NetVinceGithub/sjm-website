@@ -21,11 +21,11 @@ const AdminLounge = () => {
 
         <Tab
           tabs={[
-            { label: "Payroll Requests", content: <Requests /> },
+            { label: "Requests", content: <Requests /> },
             { label: "User Management", content: <AddAdmin /> },
             { label: "Jobs", content: <Job /> },
             { label: "Messages", content: <ConnectMessages /> },
-            { label: "Log ins", content: <Logins /> },
+            { label: "Activity Log", content: <Logins /> },
           ]}
         />
       </div>

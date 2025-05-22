@@ -19,7 +19,7 @@ const Holidays = () => {
 
   const fetchHolidays = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/holidays");
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`);
       setHolidays(response.data.holidays || []);
     } catch (error) {
       console.error("Error fetching holidays:", error);
@@ -29,7 +29,7 @@ const Holidays = () => {
 
   const addHoliday = async () => {
     try {
-      await axios.post("http://localhost:5000/api/holidays/add", {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/holidays/add`, {
         name,
         date,
         type,
@@ -45,7 +45,7 @@ const Holidays = () => {
 
   const deleteHoliday = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/holidays/delete/${id}`);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/holidays/delete/${id}`);
       fetchHolidays();
     } catch (error) {
       console.error("Error deleting holiday:", error);

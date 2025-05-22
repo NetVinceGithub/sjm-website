@@ -15,7 +15,7 @@ const AttendanceForComputation = () => {
   const fetchAttendance = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/attendance/get-attendance"
+        `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`
       );
       console.log("Fetched Attendance Data:", response.data);
 
@@ -34,7 +34,7 @@ const AttendanceForComputation = () => {
   const fetchSummary = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/attendance/get-summary"
+        `${import.meta.env.VITE_API_URL}/api/attendance/get-summary`
       );
       console.log("Fetched Summary Data:", response.data);
 
@@ -55,7 +55,7 @@ const AttendanceForComputation = () => {
   const deleteAllAttendance = async () => {
     try {
       const response = await fetch(
-        "http://localhost:5000/api/attendance/delete-all-attendance",
+        `${import.meta.env.VITE_API_URL}/api/attendance/delete-all-attendance`,
         { method: "DELETE" }
       );
       if (!response.ok) throw new Error("Failed to delete");

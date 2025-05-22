@@ -21,7 +21,7 @@ const EmployeePayrollInformationsList = () => {
   const fetchPayrollInformations = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/employee/payroll-informations");
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee/payroll-informations`);
       if (response.data.success) {
         console.log(response.data);
         setPayrollInformations(response.data.payrollInformations);

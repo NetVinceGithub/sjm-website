@@ -27,7 +27,7 @@ const PayslipHistoryModal
   
       try {
         const response = await axios.get(
-          `http://localhost:5000/api/payslip/history/${employeeId}`
+          `${import.meta.env.VITE_API_URL}/api/payslip/history/${employeeId}`
         );
   
         console.log("API Response:", response.data);

@@ -32,7 +32,7 @@ const AddProject = () => {
   
     try {
       const response = await axios.post(
-        'http://localhost:5000/api/projects/add-project',
+        '${import.meta.env.VITE_API_URL}/api/projects/add-project',
         projectData,
         {
           headers: {

@@ -37,7 +37,7 @@ const PayslipHistory = () => {
         console.log("Stored Token:", token);
 
         const response = await axios.get(
-          "http://localhost:5000/api/payslip/history",
+          `${import.meta.env.VITE_API_URL}/api/payslip/history`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
