@@ -17,7 +17,7 @@ Employee.hasOne(PayrollInformation, { foreignKey: "employee_id", onDelete: "CASC
 PayrollInformation.belongsTo(Employee, { foreignKey: "employee_id" });
 
 // Sync Database
-sequelize.sync({ force: false })
+sequelize.sync({ force: true })
   .then(() => console.log("✅ MySQL Database Synced"))
   .catch((err) => console.error("❌ MySQL Connection Error:", err));
 
