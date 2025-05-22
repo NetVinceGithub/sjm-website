@@ -252,7 +252,8 @@ const Employee = sequelize.define("Employee", {
     allowNull:true,
   },
   "date of separation": {
-    type: DataTypes.DATE,
+    type: DataTypes.STRING,
+    allowNull:true,
   },
     medical: {
     type: DataTypes.STRING,
