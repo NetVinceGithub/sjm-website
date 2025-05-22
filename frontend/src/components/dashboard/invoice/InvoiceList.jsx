@@ -195,8 +195,8 @@ const InvoiceList = () => {
     };
 
   return (
-    <div className="p-6 pt-20">
-      <div className="bg-white w-[77rem] -mt-3 py-3 p-2 rounded-lg shadow">
+    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
+      <div className="bg-white  -mt-3 py-3 p-2 rounded-lg shadow">
         <div className="flex -mt-3 justify-between">
           <h6 className="p-3 mb-0 ml-1 text-md text-neutralDGray">
             <strong>Invoice List</strong>

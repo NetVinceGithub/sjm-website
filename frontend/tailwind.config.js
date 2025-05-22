@@ -27,10 +27,8 @@ export default {
         'gray900': '#18191F'
       },
       screens: {
-        sm: '640px',
-        md: '768px',
-        lg: '1024px',
-        xl: '1280px',
+        'laptop': '1440px',   // Your 15.6" laptop
+        'desktop': '1920px',  // Your 23.8" desktop
       },
     },
   },

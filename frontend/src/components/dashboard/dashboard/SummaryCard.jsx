@@ -12,7 +12,7 @@ const SummaryCard = ({ icon, title, number, color }) => {
       {/* Right Section: Text */}
       <div className="pl-4 py-1 flex flex-col justify-between flex-grow">
         {title && <p className="text-neutralDGray text-md">{title}</p>}
-        <p className="-mt-1 text-2xl">{number}</p>
+        <p className="-mt-3 text-2xl">{number}</p>
       </div>
     </div>
 

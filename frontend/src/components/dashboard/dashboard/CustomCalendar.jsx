@@ -25,9 +25,11 @@ export default function CustomCalendar({ onDateChange }) {
 
     // Salary reminder notice
     if (date >= 2 && date <= 4) {
-      salaryNotice = "Salary day is approaching! Remember to create payroll for the 5th.";
+      salaryNotice =
+        "Salary day is approaching! Remember to create payroll for the 5th.";
     } else if (date >= 17 && date <= 19) {
-      salaryNotice = "Salary day is approaching! Remember to create payroll for the 20th.";
+      salaryNotice =
+        "Salary day is approaching! Remember to create payroll for the 20th.";
     }
 
     // Payroll day notice
@@ -56,29 +58,38 @@ export default function CustomCalendar({ onDateChange }) {
   };
 
   return (
-    <div className="flex max-w-2xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
-      {/* Left Panel */}
-      <div className="w-[45%] bg-brandPrimary text-white flex flex-col justify-center items-center p-2 h-65">
-        <h1 className="text-6xl font-bold">{selectedDate.getDate()}</h1>
-        <p className="text-xl uppercase">{selectedDate.toLocaleDateString("en-US", { weekday: "long" })}</p>
-        <hr className="w-full border-t border-gray-900 my-2" />
-        <div className="mt-2 ml-3">
-          <strong>Notice!</strong>
-          <ul className="space-y-1">
-            <li className="list-disc text-sm mb-2"><p className="m-0">{notice1}</p></li>
-            <li className="list-disc text-sm"><p className="m-0">{notice2 || notice3}</p></li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Right Panel */}
-      <div className="w-[55%] border h-65 border-neutralDGray p-2">
+    <div className="flex flex-col-reverse w-full mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+      {/* Top Panel - Calendar */}
+      <div className="w-full border border-neutralDGray p-2">
         <Calendar
           onClickDay={handleDateChange}
           tileClassName={({ date }) =>
-            selectedDate?.toDateString() === date.toDateString() ? "custom-calendar-tile" : ""
+            selectedDate?.toDateString() === date.toDateString()
+              ? "custom-calendar-tile"
+              : ""
           }
         />
+      </div>
+
+      {/* Bottom Panel - Notice */}
+      <div className="w-full bg-brandPrimary text-white p-4">
+        <div className="flex items-center">
+          <div className="text-center mr-3">
+            <h1 className="text-5xl font-bold">{selectedDate.getDate()}</h1>
+            <p className="text-lg uppercase">
+              {selectedDate.toLocaleDateString("en-US", { weekday: "long" })}
+            </p>
+          </div>
+
+          {/* Vertical divider */}
+          <div className="w-px bg-gray-200 opacity-60 h-28 mx-3"></div>
+
+          <ul className="notice-list">
+            {notice1 && <li><p>{notice1}</p></li>}
+            {notice2 && <li><p>{notice2}</p></li>}
+            {notice3 && <li><p>{notice3}</p></li>}
+          </ul>
+        </div>
       </div>
     </div>
   );

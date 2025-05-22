@@ -31,8 +31,7 @@ const PayrollSummary = () => {
   const [filteredEmployeesOvertime, setFilteredEmployeesOvertime] = useState(
     []
   );
-  const [maxOvertime, setMaxOvertime] = useState('');
-
+  const [maxOvertime, setMaxOvertime] = useState("");
 
   const navigate = useNavigate();
 
@@ -74,7 +73,7 @@ const PayrollSummary = () => {
 
         const filtered = employees.filter(
           (employee) =>
-            validEcodes.has(employee.ecode) && employee.status !== "inactive"
+            validEcodes.has(employee.ecode) && employee.status !== "Inactive"
         );
 
         setFilteredEmployees(filtered);
@@ -175,35 +174,37 @@ const PayrollSummary = () => {
     if (!cutoffDate) {
       return;
     }
-  
+
     setMessage("");
     setLoading(true);
-  
+
     try {
       console.log("📩 Fetching attendance data...");
       const attendanceResponse = await axios.get(
         "http://localhost:5000/api/attendance/get-attendance"
       );
-  
+
       const attendanceData = attendanceResponse.data.attendance || [];
       console.log("📊 Fetched attendance data:", attendanceData);
-  
+
       if (!attendanceData.length) {
-        console.log("🚫 No attendance data found! Stopping payroll generation.");
+        console.log(
+          "🚫 No attendance data found! Stopping payroll generation."
+        );
         setNoAttendanceModalOpen(true);
         setLoading(false);
         return;
       }
-  
+
       console.log("📩 Sending payroll request with cutoffDate:", cutoffDate);
-  
+
       const updatedAttendanceData = attendanceData.map((record) => ({
         ...record,
         overtimeHours: selectedEmployees.includes(record.ecode)
           ? Math.min(record.overtimeHours, Number(maxOvertime)) // ✅ Apply max OT limit
           : 0, // Remove OT if not selected
       }));
-  
+
       // Step 2: Send only selected employees along with the filtered attendance data
       const response = await axios.post(
         "http://localhost:5000/api/payslip/generate",
@@ -214,9 +215,9 @@ const PayrollSummary = () => {
           maxOvertime: Number(maxOvertime), // ✅ Include max OT in request
         }
       );
-  
+
       console.log("✅ Payroll response:", response.data);
-  
+
       if (response.data.success && Array.isArray(response.data.payslips)) {
         if (!response.data.payslips.length) {
           console.log("🚫 No payslips generated, opening modal.");
@@ -245,7 +246,6 @@ const PayrollSummary = () => {
       setLoading(false);
     }
   };
-  
 
   const handleApprovalModal = (message) => {
     setShow(true);
@@ -348,49 +348,42 @@ const PayrollSummary = () => {
       selector: (row) => row.ecode || "N/A",
       sortable: true,
       width: "120px",
-      center: true,
     },
     {
       name: "Employee Name",
       selector: (row) => row.name || "Unknown",
       sortable: true,
       width: "200px",
-      center: true,
     },
     {
       name: "Email",
       selector: (row) => row.email || "Unknown",
       sortable: true,
       width: "220px",
-      center: true,
     },
     {
       name: "Basic Pay",
       selector: (row) => `₱${(row.basicPay || 0).toLocaleString()}`,
       sortable: true,
       width: "120px",
-      center: true,
     },
     {
       name: "Gross Salary",
       selector: (row) => `₱${(row.gross_pay || 0).toLocaleString()}`,
       sortable: true,
       width: "140px",
-      center: true,
     },
     {
       name: "Deductions",
       selector: (row) => `₱${(row.totalDeductions || 0).toLocaleString()}`,
       sortable: true,
       width: "140px",
-      center: true,
     },
     {
       name: "Net Salary",
       selector: (row) => `₱${(row.netPay || 0).toLocaleString()}`,
       sortable: true,
       width: "140px",
-      center: true,
     },
     {
       name: "Payslip",
@@ -407,225 +400,238 @@ const PayrollSummary = () => {
   ];
 
   return (
-    <div className="fixed w-[80rem] h-screen p-6 pt-16">
-      {showConfirmModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-2xl w-72 relative">
-            <h3 className="text-lg  font-semibold mb-2">Confirm Deletion</h3>
-            <p className="text-justify">Are you sure you want to delete generated payroll?</p>
-
-            <div className="flex justify-end gap-2 mt-6">
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="px-2 py-1 h-10 bg-gray-400 text-white rounded hover:bg-gray-500"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeletePayroll}
-                className="px-2 py-1 h-10 bg-red-600 text-white rounded hover:bg-red-700"
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Breadcrumb Navigation */}
-      <Breadcrumb
-        items={[
-          { label: "Payroll", href: "" },
-          { label: "Payroll Information", href: "/admin-dashboard/employees" },
-          { label: "Payroll Generator", href: "/admin-dashboard/employees" },
-        ]}
-      />
-      <div className="flex gap-3 -mt-2">
-        {/* Left Section (Payroll Form) */}
-        <div className="w-[60%] bg-white rounded gap-2 shadow-sm p-3">
-          {/* Cutoff Date Input */}
-          <label className="block text-sm font-medium text-gray-700">
-            Cutoff Date:
-          </label>
-          <div className="flex items-center justify-between mt-2">
-            {/* Cutoff Date Input */}
-            <input
-              type="text"
-              value={cutoffDate}
-              readOnly
-              className="p-2 border rounded w-[60%] bg-gray-100 cursor-not-allowed"
-            />
-
-            {/* Button Section */}
-            <div className="flex space-x-2">
-              <button
-                onClick={handleCreatePayroll}
-                className={`px-2 py-1 ml-2 rounded w-36 h-10 text-white ${
-                  cutoffDate
-                    ? "bg-brandPrimary hover:bg-neutralDGray"
-                    : "bg-neutralGray cursor-not-allowed opacity-50"
-                }`}
-                disabled={loading || !cutoffDate}
-              >
-                {loading ? "Generating..." : "Create Payroll"}
-              </button>
-
-              <button
-                onClick={() =>
-                  navigate("/admin-dashboard/attendance-computation")
-                }
-                className="px-4 bg-brandPrimary py-1 rounded w-32 h-10 text-white hover:bg-neutralDGray disabled:opacity-50"
-              >
-                Attendance
-              </button>
-
-              <button
-                onClick={() => setShowConfirmModal(true)}
-                className="px-4 bg-brandPrimary py-1 rounded w-32 h-10 text-white hover:bg-neutralDGray disabled:opacity-50"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-
-          {/* Success/Error Message */}
-          {message && (
-            <p className="mt-4 text-center text-green-600">{message}</p>
-          )}
-
-          {/* Data Table */}
-          <div className="mt-3">
-            <h4 className="text-lg text-neutralDGray rounded font-semibold px-2 py-2 bg-gray-200 mb-2">
-              Payroll Details
-            </h4>
-            <div className="flex items-center justify-between">
-              {/* Button Group - Centered Vertically */}
-              <div className="inline-flex border border-neutralDGray rounded h-8">
+    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
+      <div className="flex flex-col h-full">
+        {/* Confirm Deletion Modal */}
+        {showConfirmModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
+              <h3 className="text-lg font-semibold mb-2">Confirm Deletion</h3>
+              <p className="text-justify">
+                Are you sure you want to delete generated payroll?
+              </p>
+              <div className="flex justify-end gap-2 mt-6">
                 <button
-                  onClick={handleDownloadExcel}
-                  className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
+                  onClick={() => setShowConfirmModal(false)}
+                  className="px-2 py-1 h-10 bg-gray-400 text-white rounded hover:bg-gray-500"
                 >
-                  <FaPrint
-                    title="Print"
-                    className="text-neutralDGray] transition-all duration-300"
-                  />
-                </button>
-
-                <button
-                  onClick={handleDownloadExcel}
-                  className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center"
-                >
-                  <FaRegFileExcel
-                    title="Export to Excel"
-                    className=" text-neutralDGray"
-                  />
+                  Cancel
                 </button>
                 <button
-                  onClick={handleDownloadExcel}
-                  className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center"
+                  onClick={handleDeletePayroll}
+                  className="px-2 py-1 h-10 bg-red-600 text-white rounded hover:bg-red-700"
                 >
-                  <FaRegFilePdf
-                    title="Export to PDF"
-                    className=" text-neutralDGray"
-                  />
+                  Confirm
                 </button>
               </div>
+            </div>
+          </div>
+        )}
 
-              {/* Search & Sync Section - Aligned with Buttons */}
-              <div className="flex items-center gap-3">
-                <div className="flex rounded items-center">
-                  <input
-                    type="text"
-                    placeholder="Search Employee"
-                    onChange={handleFilter}
-                    className="px-2 rounded py-0.5 border"
-                  />
-                  <FaSearch className="ml-[-20px] text-neutralDGray" />
+        {/* Breadcrumb Navigation */}
+        <Breadcrumb
+          items={[
+            { label: "Payroll", href: "" },
+            {
+              label: "Payroll Information",
+              href: "/admin-dashboard/employees",
+            },
+            { label: "Payroll Generator", href: "/admin-dashboard/employees" },
+          ]}
+        />
+
+        {/* Main Layout */}
+        <div className="flex  flex-wrap gap-4 -mt-1 flex-grow overflow-hidden">
+          {/* Left Section */}
+          <div className="w-full lg:w-[70%]  h-full bg-white rounded gap-2 shadow-sm p-3">
+            <label className="block text-sm font-medium text-gray-700">
+              Cutoff Date:
+            </label>
+
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mt-2 gap-3">
+              {/* Cutoff Input */}
+              <div className="w-full lg:w-auto flex-1">
+                <input
+                  type="text"
+                  value={cutoffDate}
+                  readOnly
+                  className="p-2 border h-8 rounded w-full bg-gray-100 cursor-not-allowed"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 flex-wrap lg:flex-nowrap w-full lg:w-auto">
+                <button
+                  onClick={handleCreatePayroll}
+                  className={`px-2 py-1 rounded w-full lg:w-36 h-8 text-white ${
+                    cutoffDate
+                      ? "bg-brandPrimary hover:bg-neutralDGray"
+                      : "bg-neutralGray cursor-not-allowed opacity-50"
+                  }`}
+                  disabled={loading || !cutoffDate}
+                >
+                  {loading ? "Generating..." : "Create Payroll"}
+                </button>
+                <button
+                  onClick={() =>
+                    navigate("/admin-dashboard/attendance-computation")
+                  }
+                  className="px-4 py-1 rounded w-full lg:w-32 h-8 bg-brandPrimary text-white hover:bg-neutralDGray"
+                >
+                  Attendance
+                </button>
+                <button
+                  onClick={() => setShowConfirmModal(true)}
+                  className="px-4 py-1 rounded w-full lg:w-32 h-8 bg-brandPrimary text-white hover:bg-neutralDGray"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+
+            {message && (
+              <p className="mt-4 text-center text-green-600">{message}</p>
+            )}
+
+            {/* Payroll Details */}
+            <div className="flex flex-col rounded-lg mt-3  h-full max-h-[80vh] min-h-[28rem]">
+              <div className="flex flex-col flex-1 rounded-lg overflow-hidden">
+                <h4 className="text-lg text-neutralDGray font-semibold px-2 py-1 bg-gray-200 mb-3 rounded">
+                  Payroll Details
+                </h4>
+
+                {/* Top Controls */}
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+                  {/* Export Buttons */}
+                  <div className="inline-flex border border-neutralDGray rounded h-8">
+                    <button
+                      onClick={handleDownloadExcel}
+                      className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
+                    >
+                      <FaPrint title="Print" className="text-neutralDGray" />
+                    </button>
+                    <button
+                      onClick={handleDownloadExcel}
+                      className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center"
+                    >
+                      <FaRegFileExcel
+                        title="Export to Excel"
+                        className="text-neutralDGray"
+                      />
+                    </button>
+                    <button
+                      onClick={handleDownloadExcel}
+                      className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center"
+                    >
+                      <FaRegFilePdf
+                        title="Export to PDF"
+                        className="text-neutralDGray"
+                      />
+                    </button>
+                  </div>
+
+                  {/* Search */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Search Employee"
+                      onChange={handleFilter}
+                      className="px-2 py-0.5 border rounded"
+                    />
+                    <FaSearch className="text-neutralDGray" />
+                  </div>
+                </div>
+
+                <hr className="my-3" />
+
+                {/* Table Section - Modified */}
+                {/* Table Section with both horizontal and vertical scrolling */}
+                <div className="flex-grow overflow-hidden flex flex-col">
+                  <div className="h-[63vh] w-full overflow-y-auto overflow-x-auto bg-white">
+                    {loading ? (
+                      <p className="mt-6 text-center text-gray-300">
+                        Loading payslips...
+                      </p>
+                    ) : payslips.length > 0 ? (
+                      <div className="min-w-full inline-block">
+                        <DataTable
+                          columns={columns}
+                          className="w-full -mt-3 text-sm"
+                          data={payslips}
+                          highlightOnHover
+                          striped
+                        />
+                      </div>
+                    ) : (
+                      <p className="mt-6 text-center text-gray-300">
+                        No payslip records available.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-            <hr className="mt-2" />
-            <div className="h-[22rem] overflow-auto">
-              {loading ? (
-                <p className="mt-6 text-center text-gray-600">
-                  Loading payslips...
-                </p>
-              ) : payslips.length > 0 ? (
-                <DataTable
-                  columns={columns}
-                  className="-mt-4"
-                  data={payslips}
-                  highlightOnHover
-                  striped
-                />
-              ) : (
-                <p className="mt-6 text-center text-gray-600">
-                  No payslip records available.
-                </p>
-              )}
-            </div>
+          </div>
+
+          {/* Calendar Section */}
+          <div className="w-full lg:w-[28%]">
+            <CustomCalendar onDateChange={setCutoffDate} />
           </div>
         </div>
 
-        {/* Right Section (Calendar) */}
-        <div className="w-[39%]">
-          <CustomCalendar onDateChange={setCutoffDate} />
-        </div>
-      </div>
-      {/* Payslip Modal */}
-      <PayslipModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        employeeId={selectedEmployee}
-      />
-      <NoAttendanceModal
-        isOpen={noAttendanceModalOpen}
-        onClose={() => setNoAttendanceModalOpen(false)}
-      />
+        {/* Modals */}
+        <PayslipModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          employeeId={selectedEmployee}
+        />
+        <NoAttendanceModal
+          isOpen={noAttendanceModalOpen}
+          onClose={() => setNoAttendanceModalOpen(false)}
+        />
 
-      <Modal show={show} onHide={handleClose} centered size="lg" scrollable>
-        <Modal.Header closeButton>
-          <Modal.Title>Overtime Approval Sheet</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="flex flex-col">
-            <div className="w-full max-w-3xl bg-white p-6 border border-gray-300 rounded-md shadow-md min-h-[500px]">
-              {filteredEmployeesOvertime.length > 0 ? (
-                <>
-                  <div className="flex justify-between -mt-3 -mr-3 mb-3">
-                    <div className="flex rounded items-center -ml-3 mb-3">
-                      <input
-                        type="text"
-                        placeholder="Search employee by name or ID"
-                        value={searchTerm}
-                        className="px-2 w-80 text-base font-normal rounded py-0.5 border"
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                      <FaSearch className="ml-[-20px] text-neutralDGray" />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        className="px-2 py-1 border h-8 w-36 text-sm text-neutralDGray rounded hover:bg-green-500 hover:text-white"
-                        onClick={() =>
-                          setSelectedOvertime(
-                            filteredEmployeesOvertime.map(
-                              (employee) => employee.ecode
+        {/* Overtime Approval Modal */}
+        <Modal show={show} onHide={handleClose} centered size="lg" scrollable>
+          <Modal.Header closeButton>
+            <Modal.Title>Overtime Approval Sheet</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div className="flex flex-col">
+              <div className="w-full max-w-3xl bg-white p-6 border border-gray-300 rounded-md shadow-md min-h-[500px]">
+                {filteredEmployeesOvertime.length > 0 ? (
+                  <>
+                    <div className="flex justify-between mb-3">
+                      <div className="flex rounded items-center">
+                        <input
+                          type="text"
+                          placeholder="Search employee by name or ID"
+                          value={searchTerm}
+                          className="px-2 w-80 text-base font-normal rounded py-0.5 border"
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <FaSearch className="ml-[-20px] text-neutralDGray" />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          className="px-2 py-1 border h-8 w-36 text-sm text-neutralDGray rounded hover:bg-green-500 hover:text-white"
+                          onClick={() =>
+                            setSelectedOvertime(
+                              filteredEmployeesOvertime.map((e) => e.ecode)
                             )
-                          )
-                        }
-                      >
-                        Select All
-                      </button>
-                      <button
-                        className="px-2 text-sm py-1 border h-8 w-36 text-neutralDGray rounded hover:bg-red-500 hover:text-white"
-                        onClick={() => setSelectedOvertime([])}
-                      >
-                        Deselect All
-                      </button>
+                          }
+                        >
+                          Select All
+                        </button>
+                        <button
+                          className="px-2 text-sm py-1 border h-8 w-36 text-neutralDGray rounded hover:bg-red-500 hover:text-white"
+                          onClick={() => setSelectedOvertime([])}
+                        >
+                          Deselect All
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="mb-3 -mt-3">
-                    <label className="block text-sm font-medium text-gray-700">
+
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Approved Overtime (hrs) per Employee:
                     </label>
                     <input
@@ -635,55 +641,58 @@ const PayrollSummary = () => {
                       value={maxOvertime}
                       onChange={(e) => setMaxOvertime(e.target.value)}
                     />
-                  </div>
-                  <hr className="-mt-4" />
-                  <h5 className="text-neutralDGray -mt-1">List of Employees</h5>
-                  <ul className="list-none pl-0">
-                    {filteredEmployeesOvertime.map((employee) => (
-                      <li
-                        key={employee.ecode}
-                        className="flex items-center gap-2 text-sm mb-2"
-                      >
-                        <input
-                          type="checkbox"
-                          className="w-3 h-3 rounded-sm"
-                          checked={selectedOvertime.includes(employee.ecode)}
-                          onChange={() => handleCheckboxChange(employee.ecode)}
-                        />
-                        {employee.name} ({employee.ecode})
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : (
-                <p className="text-center text-gray-500">
-                  {searchTerm
-                    ? "No employees found matching your search."
-                    : "No employees available."}
-                </p>
-              )}
-            </div>
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <button
-            className="px-2 py-1 h-10 bg-brandPrimary text-white rounded hover:bg-neutralDGray"
-            onClick={() => {
-              proceedWithPayroll(selectedOvertime, maxOvertime);
-              handleClose();
-            }}
-          >
-            Approve Overtime
-          </button>
-          <button
-            className="px-2 py-1 h-10 bg-neutralGray text-white rounded hover:bg-neutralDGray"
-            onClick={handleClose}
-          >
-            Close
-          </button>
-        </Modal.Footer>
-      </Modal>
 
+                    <h5 className="text-neutralDGray mt-2">
+                      List of Employees
+                    </h5>
+                    <ul className="list-none pl-0">
+                      {filteredEmployeesOvertime.map((employee) => (
+                        <li
+                          key={employee.ecode}
+                          className="flex items-center gap-2 text-sm mb-2"
+                        >
+                          <input
+                            type="checkbox"
+                            className="w-3 h-3 rounded-sm"
+                            checked={selectedOvertime.includes(employee.ecode)}
+                            onChange={() =>
+                              handleCheckboxChange(employee.ecode)
+                            }
+                          />
+                          {employee.name} ({employee.ecode})
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <p className="text-center text-gray-500">
+                    {searchTerm
+                      ? "No employees found matching your search."
+                      : "No employees available."}
+                  </p>
+                )}
+              </div>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <button
+              className="px-2 py-1 h-10 bg-brandPrimary text-white rounded hover:bg-neutralDGray"
+              onClick={() => {
+                proceedWithPayroll(selectedOvertime, maxOvertime);
+                handleClose();
+              }}
+            >
+              Approve Overtime
+            </button>
+            <button
+              className="px-2 py-1 h-10 bg-neutralGray text-white rounded hover:bg-neutralDGray"
+              onClick={handleClose}
+            >
+              Close
+            </button>
+          </Modal.Footer>
+        </Modal>
+      </div>
     </div>
   );
 };

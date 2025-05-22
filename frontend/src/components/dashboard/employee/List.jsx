@@ -36,7 +36,7 @@ const List = () => {
   const fetchEmployees = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("http://localhost:5000/api/employee");
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee`);
       if (response.data.success) {
         setEmployees(response.data.employees);
         setFilteredEmployees(response.data.employees);
@@ -51,7 +51,7 @@ const List = () => {
   const syncEmployees = async () => {
     setSyncing(true);
     try {
-      await axios.get("http://localhost:5000/api/employee/import");
+      await axios.get(`${import.meta.env.VITE_API_URL}/api/employee/import`);
       fetchEmployees(); // Refresh the employee list after syncing
       setModalOpen(true);
     } catch (error) {
@@ -83,19 +83,19 @@ const List = () => {
     if (employeeToBlock) {
       try {
         await axios.put(
-          `http://localhost:5000/api/employee/toggle-status/${employeeToBlock.id}`
+          `${import.meta.env.VITE_API_URL}/api/employee/toggle-status/${employeeToBlock.id}`
         );
 
         // Update employee status in state
         setEmployees((prevEmployees) =>
           prevEmployees.map((emp) =>
-            emp.id === employeeToBlock.id ? { ...emp, status: "inactive" } : emp
+            emp.id === employeeToBlock.id ? { ...emp, status: "Inactive" } : emp
           )
         );
 
         setFilteredEmployees((prevFiltered) =>
           prevFiltered.map((emp) =>
-            emp.id === employeeToBlock.id ? { ...emp, status: "inactive" } : emp
+            emp.id === employeeToBlock.id ? { ...emp, status: "Inactive" } : emp
           )
         );
 
@@ -112,7 +112,7 @@ const List = () => {
     if (employeeToBlock) {
       try {
         await axios.put(
-          `http://localhost:5000/api/employee/toggle-status/${employeeToBlock.id}`
+          `${import.meta.env.VITE_API_URL}/api/employee/toggle-status/${employeeToBlock.id}`
         );
 
         await fetchEmployees(); // Force refresh from the backend
@@ -131,7 +131,7 @@ const List = () => {
 
     if (!employee) return;
 
-    if (currentStatus === "inactive") {
+    if (currentStatus === "Inactive") {
       setEmployeeToBlock(employee);
       setIsUnBlockModalOpen(true); // Open Unblock Modal if the employee is inactive
     } else {
@@ -239,14 +239,14 @@ const List = () => {
   };
 
   return (
-    <div className="fixed p-6 pt-20">
+    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
       <Breadcrumb
         items={[
           { label: "Employee", href: "" },
           { label: "Masterlist", href: "/admin-dashboard/employees" },
         ]}
       />
-      <div className="bg-white w-[77rem] -mt-1 py-3 p-2 rounded-lg shadow">
+      <div className="bg-white w-full -mt-1 py-3 p-2 rounded-lg shadow">
         <div className="flex items-center justify-between">
           {/* Button Group - Centered Vertically */}
           <div className="inline-flex border border-neutralDGray rounded h-8">
@@ -323,9 +323,9 @@ const List = () => {
         </div>
 
         {/* Containing the table list */}
-        <div className="mt-3 overflow-x-auto">
-          <div className="w-full flex justify-center">
-            <div className="w-full max-w-[75rem]">
+        <div className="mt-3 w-full overflow-x-auto">
+          <div className="w-full flex">
+            <div className="w-full">
               <div className="border rounded-md">
                 <DataTable
                   customStyles={customStyles}
@@ -334,7 +334,7 @@ const List = () => {
                       name: "Image",
                       cell: (row) => (
                         <img
-                          src={`http://localhost:5000/uploads/${row.profileImage}`}
+                          src={`${import.meta.env.VITE_API_URL}/uploads/${row.profileImage}`}
                           alt="Profile"
                           className="w-10 h-10 rounded-full object-cover"
                           onError={(e) => (e.target.src = defaultProfile)} // Fallback image
@@ -368,6 +368,12 @@ const List = () => {
                       width: "190px",
                     },
                     {
+                      name: "Project",
+                      selector: (row) => row['area/section'] || "N/A",
+                      sortable: true,
+                      width: "190px",
+                    },
+                    {
                       name: "Options",
                       cell: (row) => (
                         <div className="flex justify-center items-center">
@@ -388,7 +394,7 @@ const List = () => {
                           </button>
                           <button
                             className={`w-20 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${
-                              row.status === "active"
+                              row.status === "Active"
                                 ? "bg-green-500 text-white"
                                 : "bg-red-500 text-white"
                             }`}

@@ -42,7 +42,7 @@ const History = () => {
   if (error) return <p style={{ color: "red" }}>{error}</p>;
 
   return (
-    <div className="fixed p-6 pt-16">
+    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
       <Breadcrumb
         items={[
           { label: "Attendance", href: "/admin-dashboard/attendance" },
@@ -54,7 +54,7 @@ const History = () => {
           { label: "History", href: "" },
         ]}
       />
-      <div className="-mt-2 bg-white w-[77rem] h-[36rem] p-3 py-3 rounded-lg shadow">
+      <div className="-mt-2 bg-white p-3 py-3 rounded-lg shadow">
         <div className="flex items-center justify-between">
           <div className="inline-flex border border-neutralDGray rounded h-8">
             <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center">
@@ -84,9 +84,9 @@ const History = () => {
           </div>
         </div>
         <div className="mt-4 overflow-x-auto">
-          <div className="w-full max-w-[75rem]">
-            <div className="h-[30rem] overflow-y-auto text-neutralDGray border rounded-md">
-              <table className="w-[70rem] border-collapse mb-[11px] overflow-hidden rounded-lg" border="1" cellPadding="5" cellSpacing="0">
+          <div className="">
+            <div className="h-[70vh] overflow-y-auto text-neutralDGray border rounded-md">
+              <table className="w-[90rem] border-collapse mb-[11px] overflow-hidden rounded-lg" border="1" cellPadding="5" cellSpacing="0">
                 <thead className="rounded">
                   <tr>
                     <th className="px-4 border text-center py-2 first:rounded-tl-lg last:rounded-tr-lg">Ecode</th>

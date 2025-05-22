@@ -14,15 +14,29 @@ export const addHoliday = async (req, res) => {
   try {
     const { name, date, type } = req.body;
 
+    console.log('Received holiday data:', { name, date, type }); // Detailed logging
+
     if (!name || !date || !type) {
-      return res.status(400).json({ success: false, message: "Name, date, and type are required" });
+      return res.status(400).json({ 
+        success: false, 
+        message: "Name, date, and type are required",
+        receivedData: { name, date, type }
+      });
     }
 
     const newHoliday = await Holidays.create({ name, date, type });
     res.status(201).json({ success: true, message: "Holiday added successfully", newHoliday });
   } catch (error) {
-    console.error("Error adding holiday:", error.message);
-    res.status(500).json({ success: false, error: error.message });
+    console.error("Detailed error adding holiday:", {
+      message: error.message,
+      stack: error.stack,
+      errors: error.errors // Sequelize validation errors
+    });
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      details: error.errors // Send more error details
+    });
   }
 };
 

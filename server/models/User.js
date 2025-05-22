@@ -1,5 +1,7 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../db/db.js';
+import LoginHistory from './LoginHistory.js';
+
 const User = sequelize.define('User', {
   id: {
     type: DataTypes.INTEGER,
@@ -52,5 +54,8 @@ const User = sequelize.define('User', {
   tableName: 'users',
   timestamps: true  // Automatically manages createdAt and updatedAt
 });
+
+
+
 
 export default User;

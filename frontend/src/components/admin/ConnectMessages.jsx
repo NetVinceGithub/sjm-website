@@ -18,7 +18,7 @@ const ConnectMessages = () => {
       setLoading(true);
       try {
         const response = await axios.get(
-          "http://localhost:5000/api/connect/messages"
+          `${import.meta.env.VITE_API_URL}/api/connect/messages`
         );
         console.log("Full response data:", response);
 
@@ -80,15 +80,15 @@ const ConnectMessages = () => {
 
   return (
     
-    <div className="p-6 bg-white rounded shadow-sm">
+    <div className="p-6">
       <div className="text-center">
-        <h3 className="text-2xl font-bold">Website Inquiry Messages</h3>
+        <h3 className="text-lg -mt-4 font-semibold">Website Inquiry Messages</h3>
       </div>
-      <div className="flex justify-end items-center gap-3">
+      <div className="flex justify-end items-center -mt-3 gap-3">
         <div className="flex rounded items-center">
           <input
             type="text"
-            placeholder="Search Surname"
+            placeholder="Search"
             onChange={handleFilter}
             className="px-2 rounded py-0.5 border"
           />
@@ -138,25 +138,26 @@ const ConnectMessages = () => {
       </div>
       <Modal show={show} onHide={handleClose} centered size="xl" scrollable>
         <Modal.Header closeButton>
-          <Modal.Title>Message</Modal.Title>
+          <Modal.Title>Inquiry Message</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <div className="flex justify-center">
             <div className="w-full max-w-3xl bg-white p-6 border border-gray-300 rounded-md shadow-md min-h-[500px]">
-              <h3 className="text-center text-lg font-bold mb-4">Inquiry Message</h3>
-              <p className="text-justify whitespace-pre-wrap">
+              <p className="text-left text-md font-bold mb-4">Sender Details:</p>
+              <p className="-mt-5 text-sm ml-5 text-neutralDGray"><span className="font-semibold">Name:</span> {selectedMessage?.firstname} {selectedMessage?.surname}</p>
+              <p className="-mt-4 text-sm ml-5 text-neutralDGray"><span className="font-semibold">Sender Type:</span> {selectedMessage?.type}</p>
+              <p className="-mt-4 text-sm ml-5 text-neutralDGray"><span className="font-semibold">Email:</span> {selectedMessage?.email}</p>
+              <p className="-mt-4 text-sm ml-5 text-neutralDGray"><span className="font-semibold">Phone:</span> {selectedMessage?.phone}</p>
+              <p className="-mt-4 text-sm ml-5 text-neutralDGray"><span className="font-semibold">Inquired About:</span>: {selectedMessage?.services}</p>
+              <hr/>
+              <p className="mt-3 font-semibold">Message</p>
+              <p className="text-justify ml-5 -mt-3 text-neutralDGray text-sm whitespace-pre-wrap">
                 {selectedMessage?.message || "No message available"}
               </p>
             </div>
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <button
-            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-            onClick={handleClose}
-          >
-            Close
-          </button>
         </Modal.Footer>
       </Modal>
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import Breadcrumb from '../dashboard/Breadcrumb';
 
 const Conversion = () => {
   const [rows, setRows] = useState([]);
@@ -70,7 +71,20 @@ const Conversion = () => {
   };
 
   return (
-    <div className="p-4">
+    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
+      <Breadcrumb
+          items={[
+            { label: "Attendance", href: "/admin-dashboard/attendance" },
+            { label: "Add Attendance", href: "/admin-dashboard/employees" },
+            {
+              label: "Attendance Computation",
+              href: "/admin-dashboard/attendance-computation",
+            },
+            { label: "History", href: "/admin-dashboard/attendance/history" },
+            { label: "Holidays", href: "/admin-dashboard/holidays" },
+            { label: "Conversion", href: "" },
+          ]}
+        />
       <h2 className="text-xl font-bold mb-4">Convert .dat to Excel</h2>
 
       <input type="file" accept=".dat" onChange={handleFileChange} className="mb-4" />

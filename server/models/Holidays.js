@@ -16,10 +16,10 @@ const Holidays = sequelize.define("holidays", {
     allowNull: false,
   },
   type: {
-    type: DataTypes.ENUM("Regular", "Special"),
+    type: DataTypes.ENUM("Regular", "Special", "Special Non-Working"),
     allowNull: false,
     defaultValue: "Regular"
-  }
+  }  
 }, {
   timestamps: false,
 });

@@ -9,20 +9,22 @@
 .custom-calendar {
   border: none;
   width: 100%;
+  height: 100%;
   max-width: 100%;
   font-family: Arial, sans-serif;
   padding: 10px;
   border-radius: 10px;
+  align-items: center;
 }
 
 .holiday-regular {
   background-color: #3b82f6 !important; /* blue */
   color: white !important;
-  border-radius: 50%;
+  border-radius: 10% !important;
 }
 
 .holiday-special {
   background-color: #f59e0b !important; /* amber */
   color: white !important;
-  border-radius: 50%;
+  border-radius: 10% !important;
 }
