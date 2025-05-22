@@ -42,6 +42,32 @@ const EmployeePayrollInformationsList = () => {
     setFilteredEmployees(records);
   };
 
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      // Add your sync logic here if needed
+      await fetchPayrollInformations();
+    } catch (error) {
+      console.error("Error syncing data:", error);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExportExcel = () => {
+    // Implement Excel export functionality
+    console.log("Export to Excel");
+  };
+
+  const handleExportPDF = () => {
+    // Implement PDF export functionality
+    console.log("Export to PDF");
+  };
+
   const customStyles = {
     table: {
       style: {
@@ -59,21 +85,116 @@ const EmployeePayrollInformationsList = () => {
         color: "#333",
         textAlign: "center",
         fontWeight: "bold",
-        justifyContent: "center", // Centers content horizontally
-        display: "flex", // Required for justifyContent to work
-        alignItems: "center", // Centers content vertically
+        justifyContent: "center",
+        display: "flex",
+        alignItems: "center",
       },
     },
     cells: {
       style: {
         padding: "8px",
-        textAlign: "center", // Centers text
-        justifyContent: "center", // Centers content horizontally
-        display: "flex", // Needed for flex properties to work
-        alignItems: "center", // Centers content vertically
+        textAlign: "center",
+        justifyContent: "center",
+        display: "flex",
+        alignItems: "center",
       },
     },
   };
+
+  const columns = [
+    { 
+      name: "Ecode", 
+      selector: (row) => row.ecode, 
+      sortable: true, 
+      center: true 
+    },
+    { 
+      name: "Name", 
+      selector: (row) => row.name, 
+      sortable: true, 
+      center: true, 
+      width: "200px" 
+    },
+    { 
+      name: "Position", 
+      selector: (row) => row.designation, 
+      sortable: true, 
+      center: true 
+    },
+    { 
+      name: "Daily Rate", 
+      selector: (row) => `₱${parseFloat(row.daily_rate || 0).toLocaleString()}`, 
+      sortable: true, 
+      center: true, 
+      width: "120px" 
+    },
+    { 
+      name: "Holiday Pay", 
+      selector: (row) => `₱${parseFloat(row.holiday_pay || 0).toLocaleString()}`, 
+      sortable: true, 
+      center: true, 
+      width: "150px" 
+    },
+    { 
+      name: "Night Differential", 
+      selector: (row) => `₱${parseFloat(row.night_differential || 0).toLocaleString()}`, 
+      sortable: true, 
+      center: true, 
+      width: "200px" 
+    },
+    { 
+      name: "Allowance", 
+      selector: (row) => `₱${parseFloat(row.allowance || 0).toLocaleString()}`, 
+      sortable: true, 
+      center: true, 
+      width: "120px" 
+    },
+    { 
+      name: "Tax", 
+      selector: (row) => `₱${parseFloat(row.tax_deduction || 0).toLocaleString()}`, 
+      sortable: true, 
+      center: true 
+    },
+    { 
+      name: "SSS", 
+      selector: (row) => `₱${parseFloat(row.sss_contribution || 0).toLocaleString()}`, 
+      sortable: true, 
+      center: true 
+    },
+    { 
+      name: "Pagibig", 
+      selector: (row) => `₱${parseFloat(row.pagibig_contribution || 0).toLocaleString()}`, 
+      sortable: true, 
+      center: true 
+    },
+    { 
+      name: "PhilHealth", 
+      selector: (row) => `₱${parseFloat(row.philhealth_contribution || 0).toLocaleString()}`, 
+      sortable: true, 
+      center: true, 
+      width: "120px" 
+    },
+    { 
+      name: "Loan", 
+      selector: (row) => `₱${parseFloat(row.loan || 0).toLocaleString()}`, 
+      sortable: true, 
+      center: true 
+    },
+    { 
+      name: "Options", 
+      cell: (row) => (
+        <PayrollButtons 
+          Id={row.employeeId || row.id} 
+          employee={row}
+          refreshData={fetchPayrollInformations} 
+        />
+      ),
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+      width: "150px"
+    }
+  ];
 
   return (
     <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
@@ -85,21 +206,31 @@ const EmployeePayrollInformationsList = () => {
       />
       <div className="-mt-2 bg-white p-3 py-3 rounded-lg shadow">
         <div className="flex items-center justify-between">
-          {/* Button Group - Centered Vertically */}
+          {/* Button Group */}
           <div className="inline-flex border border-neutralDGray rounded h-8">
-            <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center">
-              <FaPrint title="Print" className="text-neutralDGray] transition-all duration-300" />
+            <button 
+              onClick={handlePrint}
+              className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
+            >
+              <FaPrint title="Print" className="text-neutralDGray transition-all duration-300" />
             </button>
   
-            <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center">
-              <FaRegFileExcel title="Export to Excel" className=" text-neutralDGray" />
+            <button 
+              onClick={handleExportExcel}
+              className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center"
+            >
+              <FaRegFileExcel title="Export to Excel" className="text-neutralDGray" />
             </button>
-            <button className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center">
-              <FaRegFilePdf title="Export to PDF" className=" text-neutralDGray" />
+            
+            <button 
+              onClick={handleExportPDF}
+              className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center"
+            >
+              <FaRegFilePdf title="Export to PDF" className="text-neutralDGray" />
             </button>
           </div>
   
-          {/* Search & Sync Section - Aligned with Buttons */}
+          {/* Search & Sync Section */}
           <div className="flex items-center gap-3">
             <div className="flex rounded items-center">
               <input
@@ -110,41 +241,38 @@ const EmployeePayrollInformationsList = () => {
               />
               <FaSearch className="ml-[-20px] text-neutralDGray" />
             </div>
+            
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="p-2 text-neutralDGray hover:bg-neutralSilver rounded transition-all duration-300 disabled:opacity-50"
+              title="Sync Data"
+            >
+              <FaSyncAlt className={syncing ? 'animate-spin' : ''} />
+            </button>
           </div>
         </div>
 
-        {/* Containing the table list */}
+        {/* Table Container */}
         <div className="mt-4 overflow-x-auto">
-          <div className="w-full ">
-            {/* Scrollable Table Wrapper */}
+          <div className="w-full">
             <div className="max-h-[35rem] overflow-y-auto text-neutralDGray border rounded-md">
               <DataTable
                 customStyles={customStyles}
-                columns={[
-                  { name: "Ecode", selector: (row) => row.ecode, sortable: true, center:true },
-                  { name: "Name", selector: (row) => row.name, sortable: true, center:true, width: "200px" },
-                  { name: "Position", selector: (row) => row.designation, sortable: true, center: true},
-                  { name: "Daily Rate", selector: (row) => row.daily_rate, sortable: true, center:true, width:"120px" },
-                  { name: "Holiday Pay", selector: (row) => row.holiday_pay || "0", sortable: true, center:true, width: "150px" },
-                  { name: "Night Differential", selector: (row) => row.night_differential || "0", sortable: true, center:true, width:"200px" },
-                  { name: "Allowance", selector: (row) => row.allowance || "0", sortable: true, center:true, width:"120px" },
-                  { name: "Tax", selector: (row) => row.tax_deduction || "0", sortable: true, center:true },
-                  { name: "SSS", selector: (row) => row.sss_contribution || "0", sortable: true, center:true },
-                  { name: "Pagibig", selector: (row) => row.pagibig_contribution || "0", sortable: true, center:true },
-                  { name: "PhilHealth", selector: (row) => row.philhealth_contribution || "0", sortable: true, center:true, width:"120px" },
-                  { name: "Loan", selector: (row) => row.loan || "0", sortable: true, center:true },
-                  { name: "Options", cell: (row) => <PayrollButtons Id={row.employeeId || row.id} refreshData={fetchPayrollInformations} /> }
-                ]}
+                columns={columns}
                 data={filteredEmployees}
                 progressPending={loading}
+                pagination
+                paginationPerPage={10}
+                paginationRowsPerPageOptions={[10, 20, 30, 50]}
+                highlightOnHover
+                pointerOnHover
               />
             </div>
           </div>
         </div>
-
       </div>
     </div>
-
   );
 };
 

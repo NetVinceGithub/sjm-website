@@ -18,7 +18,7 @@ PayrollInformation.belongsTo(Employee, { foreignKey: "employee_id" });
 
 // Sync Database
 // Sync Database
-sequelize.sync({ force: true })
+sequelize.sync({ force: false })
   .then(() => {
     console.log("✅ MySQL Database Synced");
     return userRegister(); // Call it here, after sync is done
@@ -101,6 +101,7 @@ import attendanceRouter from "./routes/attendance.js";
 import connectRouter from "./routes/connect.js"; // ✅ Import connectRouter
 import holidaysRouter from "./routes/holidays.js"; // ✅ Correct import
 import loginRouter from './routes/login.js';
+import changeRequestRouter from './routes/changeRequest.js';
 import { userRegister } from "./userSeed.js";
 // Add logging middleware to log incoming requests
 app.use((req, res, next) => {
@@ -124,6 +125,7 @@ app.use("/api/attendance", attendanceRouter);
 app.use("/api/connect", connectRouter); // Ensure this line is included
 app.use("/api/holidays", holidaysRouter);
 app.use('/api/login', loginRouter);
+app.use('/api/change-requests', changeRequestRouter);
 app.use(express.static(path.join(__dirname, "../frontend/dist")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
