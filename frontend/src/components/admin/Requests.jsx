@@ -35,12 +35,19 @@ const Requests = () => {
     const fetchChangeRequests = async () => {
       try {
         setChangesLoading(true);
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/change-requests/pending`);
+        // Updated to use your new API endpoint
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee/payroll-change-requests`);
+        console.log("Change requests response:", response.data);
+        
         if (response.data.success) {
-          setChangesRequests(response.data.requests);
+          setChangesRequests(response.data.data || []);
+        } else {
+          console.error("Failed to fetch change requests:", response.data);
+          setChangesRequests([]);
         }
       } catch (error) {
         console.error("Error fetching change requests:", error);
+        setChangesRequests([]);
       } finally {
         setChangesLoading(false);
       }
@@ -50,28 +57,44 @@ const Requests = () => {
     fetchChangeRequests();
   }, []);
 
-  // Payroll request handlers
+  // Function to get changed fields from the changes object
+  const getChangedFields = (changes) => {
+    if (!changes || typeof changes !== 'object') return [];
+    
+    // Convert changes object to array of changed fields
+    return Object.entries(changes).map(([field, value]) => ({
+      field,
+      value,
+      displayName: formatFieldName(field)
+    }));
+  };
+
   const handleApprove = async () => {
     try {
       setLoadingPayroll(true);
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/payslip/release-payroll`
-      );
-
+      // Send the entire list of requests in one POST request
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/payslip/send-payslip`, {
+        payslips: requests,
+      });
+  
       if (response.data.success) {
-        setMessage(response.data.message);
-        setRequests((prev) => prev.map((p) => ({ ...p, status: "approved" })));
-        setShowSuccessModal(true);
+        setMessage("Payroll approved successfully.");
       } else {
-        setMessage("Failed to release payroll.");
+        setMessage("Failed to approve payroll.");
       }
+      setShowSuccessModal(true);
     } catch (error) {
       console.error("Error approving payroll:", error);
-      setMessage("Error processing payroll release.");
+      setMessage("Error approving payroll.");
+      setShowSuccessModal(true);
     } finally {
       setLoadingPayroll(false);
     }
   };
+  
+  
+  
+  
 
   const handleDeleteAll = async () => {
     try {
@@ -89,22 +112,19 @@ const Requests = () => {
     setRequests([]);
   };
 
-  // Change request handlers
+  // Change request handlers - Updated for new API structure
   const handleApproveChanges = async () => {
     try {
       setLoadingChanges(true);
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/change-requests/approve-all`,
-        { reviewed_by: 1 } // Replace with actual admin ID
+      // You'll need to implement a bulk approve endpoint or loop through individual requests
+      const promises = changesRequests.map(request => 
+        axios.post(`${import.meta.env.VITE_API_URL}/api/employee/approve-payroll-change/${request.id}`)
       );
-
-      if (response.data.success) {
-        setChangesMessage(response.data.message);
-        setChangesRequests([]);
-        setTimeout(() => setChangesMessage(''), 3000);
-      } else {
-        setChangesMessage("Failed to approve changes.");
-      }
+      
+      await Promise.all(promises);
+      setChangesMessage("All change requests approved successfully");
+      setChangesRequests([]);
+      setTimeout(() => setChangesMessage(''), 3000);
     } catch (error) {
       console.error("Error approving changes:", error);
       setChangesMessage("Error processing change approval.");
@@ -116,19 +136,16 @@ const Requests = () => {
   const handleRejectAllChanges = async () => {
     try {
       setLoadingChanges(true);
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/change-requests/reject-all`,
-        { reviewed_by: 1 } // Replace with actual admin ID
+      // You'll need to implement a bulk reject endpoint or loop through individual requests
+      const promises = changesRequests.map(request => 
+        axios.post(`${import.meta.env.VITE_API_URL}/api/employee/reject-payroll-change/${request.id}`)
       );
-
-      if (response.data.success) {
-        setChangesMessage(response.data.message);
-        setChangesRequests([]);
-        setShowChangesModal(false);
-        setTimeout(() => setChangesMessage(''), 3000);
-      } else {
-        setChangesMessage("Failed to reject changes.");
-      }
+      
+      await Promise.all(promises);
+      setChangesMessage("All change requests rejected successfully");
+      setChangesRequests([]);
+      setShowChangesModal(false);
+      setTimeout(() => setChangesMessage(''), 3000);
     } catch (error) {
       console.error("Error rejecting changes:", error);
       setChangesMessage("Error processing change rejection.");
@@ -140,8 +157,7 @@ const Requests = () => {
   const handleApproveIndividualChange = async (requestId) => {
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/change-requests/approve/${requestId}`,
-        { reviewed_by: 1 } // Replace with actual admin ID
+        `${import.meta.env.VITE_API_URL}/api/employee/approve-payroll-change/${requestId}`
       );
 
       if (response.data.success) {
@@ -159,8 +175,7 @@ const Requests = () => {
   const handleRejectIndividualChange = async (requestId) => {
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/change-requests/reject/${requestId}`,
-        { reviewed_by: 1 } // Replace with actual admin ID
+        `${import.meta.env.VITE_API_URL}/api/employee/reject-payroll-change/${requestId}`
       );
 
       if (response.data.success) {
@@ -178,6 +193,7 @@ const Requests = () => {
   const formatFieldName = (fieldName) => {
     const fieldMap = {
       'daily_rate': 'Daily Rate',
+      'overtime_pay': 'Overtime Pay',
       'holiday_pay': 'Holiday Pay',
       'night_differential': 'Night Differential',
       'allowance': 'Allowance',
@@ -189,7 +205,7 @@ const Requests = () => {
       'name': 'Name',
       'designation': 'Position'
     };
-    return fieldMap[fieldName] || fieldName;
+    return fieldMap[fieldName] || fieldName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const safeRequests = Array.isArray(requests) ? requests : [];
@@ -199,7 +215,7 @@ const Requests = () => {
   );
 
   return (
-    <div className="flex flex-row gap-8 p-4 overflow-auto h-[450px]">
+    <div className="flex flex-row gap-8 p-4 overflow-auto h-[calc(100vh-150px)]">
       {/* Payroll Requests Section */}
       <section className="flex-1 flex flex-col">
         <h2 className="text-neutralDGray text-lg font-semibold -mt-3 mb-3 flex items-center gap-2">
@@ -315,74 +331,85 @@ const Requests = () => {
           {changesLoading ? (
             <p className="text-gray-500">Loading change requests...</p>
           ) : changesRequests.length > 0 ? (
-            <div className="space-y-3">
-              <div className="border p-3 rounded shadow-md">
-                <p className="text-lg font-semibold mb-1">
-                  Total Changes: <span className="font-normal">{changesRequests.length}</span>
-                </p>
-                <hr className="mb-2 mt-1" />
-                
-                <div className="flex gap-2 mt-2 mb-3">
-                  <button
-                    onClick={handleApproveChanges}
-                    disabled={loadingChanges}
-                    className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-900 disabled:opacity-50"
-                  >
-                    {loadingChanges ? 'Processing...' : 'Approve All'}
-                  </button>
-                  <button
-                    onClick={() => setShowChangesModal(true)}
-                    disabled={loadingChanges}
-                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-900 disabled:opacity-50"
-                  >
-                    Reject All
-                  </button>
-                </div>
-              </div>
-
-              {/* Individual Change Requests */}
-              <div className="space-y-2">
-                {changesRequests.map((request) => (
-                  <div key={request.id} className="border p-3 rounded shadow-sm bg-gray-50">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="font-semibold text-sm">{request.employee_name}</p>
-                        <p className="text-xs text-gray-600">
-                          {formatFieldName(request.field_name)}: {request.old_value} → {request.new_value}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(request.requested_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => {
-                            setSelectedChangeRequest(request);
-                            setShowChangeDetailModal(true);
-                          }}
-                          className="p-1 text-blue-500 hover:bg-blue-100 rounded"
-                          title="View Details"
-                        >
-                          <FaEye size={12} />
-                        </button>
-                        <button
-                          onClick={() => handleApproveIndividualChange(request.id)}
-                          className="p-1 text-green-500 hover:bg-green-100 rounded"
-                          title="Approve"
-                        >
-                          <FaCheck size={12} />
-                        </button>
-                        <button
-                          onClick={() => handleRejectIndividualChange(request.id)}
-                          className="p-1 text-red-500 hover:bg-red-100 rounded"
-                          title="Reject"
-                        >
-                          <FaTimes size={12} />
-                        </button>
+            <div className="border p-3 rounded shadow-md">
+              <p className="text-lg font-semibold mb-1">
+                Total Changes: <span className="font-normal">{changesRequests.length}</span>
+              </p>
+              <hr className="mb-2 mt-1" />
+              
+              {/* Individual Change Requests - Now inside the total changes div */}
+              <div className="space-y-2 mb-3">
+                {changesRequests.map((request) => {
+                  const changedFields = getChangedFields(request.changes);
+                  return (
+                    <div key={request.id} className="border p-3 rounded shadow-sm bg-gray-50">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">Request ID: {request.id}</p>
+                          <p className="text-xs text-gray-600">
+                            Requested by: {request.requested_by}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Status: <span className={`font-semibold ${request.status === 'Pending' ? 'text-orange-600' : 'text-green-600'}`}>
+                              {request.status}
+                            </span>
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Created at: {new Date(request.createdAt).toLocaleDateString()} at {new Date(request.createdAt).toLocaleTimeString()}
+                          </p>
+                        </div>
+                        <div className="flex gap-1 items-center justify-end">
+                          <button
+                            onClick={() => {
+                              setSelectedChangeRequest(request);
+                              setShowChangeDetailModal(true);
+                            }}
+                            className="p-2 text-blue-500 hover:bg-blue-100 rounded flex items-center justify-center"
+                            title="View Details"
+                          >
+                            <FaEye size={14} />
+                          </button>
+                          {request.status === 'Pending' && (
+                            <>
+                              <button
+                                onClick={() => handleApproveIndividualChange(request.id)}
+                                className="p-2 text-green-500 hover:bg-green-100 rounded flex items-center justify-center"
+                                title="Approve"
+                              >
+                                <FaCheck size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleRejectIndividualChange(request.id)}
+                                className="p-2 text-red-500 hover:bg-red-100 rounded flex items-center justify-center"
+                                title="Reject"
+                              >
+                                <FaTimes size={14} />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+              </div>
+              
+              {/* Approve All and Reject All buttons - Now at the bottom */}
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={handleApproveChanges}
+                  disabled={loadingChanges}
+                  className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-900 disabled:opacity-50"
+                >
+                  {loadingChanges ? 'Processing...' : 'Approve All'}
+                </button>
+                <button
+                  onClick={() => setShowChangesModal(true)}
+                  disabled={loadingChanges}
+                  className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-900 disabled:opacity-50"
+                >
+                  Reject All
+                </button>
               </div>
             </div>
           ) : (
@@ -417,40 +444,55 @@ const Requests = () => {
           {/* Change Detail Modal */}
           {showChangeDetailModal && selectedChangeRequest && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg w-96 max-w-lg">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-96 max-w-lg max-h-[80vh] overflow-y-auto">
                 <h3 className="text-lg font-semibold mb-4">Change Request Details</h3>
                 
                 <div className="space-y-3">
                   <div>
-                    <p className="font-semibold">Employee:</p>
-                    <p className="text-gray-700">{selectedChangeRequest.employee_name}</p>
+                    <p className="font-semibold">Request ID:</p>
+                    <p className="text-gray-700">{selectedChangeRequest.id}</p>
                   </div>
                   
                   <div>
-                    <p className="font-semibold">Field:</p>
-                    <p className="text-gray-700">{formatFieldName(selectedChangeRequest.field_name)}</p>
+                    <p className="font-semibold">Payroll Info ID:</p>
+                    <p className="text-gray-700">{selectedChangeRequest.payroll_info_id}</p>
                   </div>
                   
                   <div>
-                    <p className="font-semibold">Change:</p>
-                    <p className="text-gray-700">
-                      <span className="line-through text-red-500">{selectedChangeRequest.old_value}</span>
-                      {' → '}
-                      <span className="text-green-600">{selectedChangeRequest.new_value}</span>
+                    <p className="font-semibold">Requested By:</p>
+                    <p className="text-gray-700">{selectedChangeRequest.requested_by}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="font-semibold">Status:</p>
+                    <p className={`font-semibold ${selectedChangeRequest.status === 'Pending' ? 'text-orange-600' : 'text-green-600'}`}>
+                      {selectedChangeRequest.status}
                     </p>
                   </div>
                   
-                  {selectedChangeRequest.reason && (
-                    <div>
-                      <p className="font-semibold">Reason:</p>
-                      <p className="text-gray-700">{selectedChangeRequest.reason}</p>
+                  <div>
+                    <p className="font-semibold">Requested Changes:</p>
+                    <div className="bg-gray-50 p-3 rounded mt-1 space-y-2">
+                      {getChangedFields(selectedChangeRequest.changes).map(({field, value, displayName}) => (
+                        <div key={field} className="text-sm">
+                          <span className="font-medium">{displayName}:</span>
+                          <span className="text-green-600 ml-2">{value}</span>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
                   
                   <div>
-                    <p className="font-semibold">Requested:</p>
+                    <p className="font-semibold">Created:</p>
                     <p className="text-gray-700">
-                      {new Date(selectedChangeRequest.requested_at).toLocaleString()}
+                      {new Date(selectedChangeRequest.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold">Last Updated:</p>
+                    <p className="text-gray-700">
+                      {new Date(selectedChangeRequest.updatedAt).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -462,18 +504,22 @@ const Requests = () => {
                   >
                     Close
                   </button>
-                  <button
-                    onClick={() => handleRejectIndividualChange(selectedChangeRequest.id)}
-                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    onClick={() => handleApproveIndividualChange(selectedChangeRequest.id)}
-                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                  >
-                    Approve
-                  </button>
+                  {selectedChangeRequest.status === 'Pending' && (
+                    <>
+                      <button
+                        onClick={() => handleRejectIndividualChange(selectedChangeRequest.id)}
+                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                      >
+                        Reject
+                      </button>
+                      <button
+                        onClick={() => handleApproveIndividualChange(selectedChangeRequest.id)}
+                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                      >
+                        Approve
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

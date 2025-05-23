@@ -189,14 +189,13 @@ export const reviewPayrollChange = async (req, res) => {
 
   try {
     const requests = await PayrollChangeRequest.findAll();
+    console.log("📊 Found requests:", requests.length); // Add this log
     res.status(200).json({ success: true, data: requests });
   } catch (error) {
     console.error("🔥 Error fetching payroll change requests:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-
 
 
 export const updateIDDetails = async (req, res) => {
@@ -279,3 +278,167 @@ export const toggleEmployeeStatus = async (req, res) => {
   }
 };
 
+
+
+// Add these functions to your employeeController.js
+
+export const approvePayrollChange = async (req, res) => {
+  const { id } = req.params;
+  const { reviewed_by } = req.body; // Optional: track who approved it
+
+  try {
+    console.log(`💡 Approving payroll change request ${id}`);
+
+    // Find the change request
+    const changeRequest = await PayrollChangeRequest.findByPk(id);
+    if (!changeRequest) {
+      return res.status(404).json({ success: false, message: "Change request not found" });
+    }
+
+    // Check if already processed
+    if (changeRequest.status !== 'Pending') {
+      return res.status(400).json({ success: false, message: "Change request already processed" });
+    }
+
+    // Update the actual payroll information with the requested changes
+    const payrollInfo = await PayrollInformation.findByPk(changeRequest.payroll_info_id);
+    if (!payrollInfo) {
+      return res.status(404).json({ success: false, message: "Payroll information not found" });
+    }
+
+    // Apply the changes
+    await payrollInfo.update(changeRequest.changes);
+
+    // Update the change request status
+    await changeRequest.update({
+      status: 'Approved',
+      reviewed_by: reviewed_by || 'Admin',
+      reviewed_at: new Date()
+    });
+
+    console.log(`✅ Payroll change request ${id} approved and applied`);
+    res.status(200).json({ success: true, message: "Change request approved successfully" });
+
+  } catch (error) {
+    console.error("❌ Error approving payroll change:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const rejectPayrollChange = async (req, res) => {
+  const { id } = req.params;
+  const { reviewed_by, rejection_reason } = req.body; // Optional: track who rejected it and why
+
+  try {
+    console.log(`💡 Rejecting payroll change request ${id}`);
+
+    // Find the change request
+    const changeRequest = await PayrollChangeRequest.findByPk(id);
+    if (!changeRequest) {
+      return res.status(404).json({ success: false, message: "Change request not found" });
+    }
+
+    // Check if already processed
+    if (changeRequest.status !== 'Pending') {
+      return res.status(400).json({ success: false, message: "Change request already processed" });
+    }
+
+    // Update the change request status
+    await changeRequest.update({
+      status: 'Rejected',
+      reviewed_by: reviewed_by || 'Admin',
+      reviewed_at: new Date(),
+      rejection_reason: rejection_reason || 'No reason provided'
+    });
+
+    console.log(`✅ Payroll change request ${id} rejected`);
+    res.status(200).json({ success: true, message: "Change request rejected successfully" });
+
+  } catch (error) {
+    console.error("❌ Error rejecting payroll change:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const bulkApprovePayrollChanges = async (req, res) => {
+  const { reviewed_by } = req.body;
+
+  try {
+    console.log("💡 Bulk approving all pending payroll change requests");
+
+    // Get all pending requests
+    const pendingRequests = await PayrollChangeRequest.findAll({
+      where: { status: 'Pending' }
+    });
+
+    if (pendingRequests.length === 0) {
+      return res.status(200).json({ success: true, message: "No pending requests to approve" });
+    }
+
+    // Process each request
+    for (const request of pendingRequests) {
+      // Update the actual payroll information
+      const payrollInfo = await PayrollInformation.findByPk(request.payroll_info_id);
+      if (payrollInfo) {
+        await payrollInfo.update(request.changes);
+      }
+
+      // Update the request status
+      await request.update({
+        status: 'Approved',
+        reviewed_by: reviewed_by || 'Admin',
+        reviewed_at: new Date()
+      });
+    }
+
+    console.log(`✅ Bulk approved ${pendingRequests.length} payroll change requests`);
+    res.status(200).json({ 
+      success: true, 
+      message: `Successfully approved ${pendingRequests.length} change requests` 
+    });
+
+  } catch (error) {
+    console.error("❌ Error bulk approving payroll changes:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const bulkRejectPayrollChanges = async (req, res) => {
+  const { reviewed_by, rejection_reason } = req.body;
+
+  try {
+    console.log("💡 Bulk rejecting all pending payroll change requests");
+
+    // Get all pending requests
+    const pendingRequests = await PayrollChangeRequest.findAll({
+      where: { status: 'Pending' }
+    });
+
+    if (pendingRequests.length === 0) {
+      return res.status(200).json({ success: true, message: "No pending requests to reject" });
+    }
+
+    // Update all pending requests to rejected
+    await PayrollChangeRequest.update(
+      {
+        status: 'Rejected',
+        reviewed_by: reviewed_by || 'Admin',
+        reviewed_at: new Date(),
+        rejection_reason: rejection_reason || 'Bulk rejection'
+      },
+      {
+        where: { status: 'Pending' }
+      }
+    );
+
+    console.log(`✅ Bulk rejected ${pendingRequests.length} payroll change requests`);
+    res.status(200).json({ 
+      success: true, 
+      message: `Successfully rejected ${pendingRequests.length} change requests` 
+    });
+
+  } catch (error) {
+    console.error("❌ Error bulk rejecting payroll changes:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

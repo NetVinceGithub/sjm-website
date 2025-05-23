@@ -225,18 +225,119 @@ const List = () => {
         backgroundColor: "#fff",
         color: "#333",
         fontWeight: "bold",
-        justifyContent: "center", // Centers content horizontally
-        display: "flex", // Required for justifyContent to work
-        alignItems: "center", // Centers content vertically
+        justifyContent: "center",
+        display: "flex",
+        alignItems: "center",
       },
     },
     cells: {
       style: {
         padding: "8px",
-        display: "flex", // Needed for flex properties to work
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
       },
     },
   };
+
+  // Define columns with sticky positioning for Options column
+  const columns = [
+    {
+      name: "Image",
+      cell: (row) => (
+        <img
+          src={`${import.meta.env.VITE_API_URL}/uploads/${row.profileImage}`}
+          alt="Profile"
+          className="w-10 h-10 rounded-full object-cover"
+          onError={(e) => (e.target.src = defaultProfile)}
+        />
+      ),
+      width: "80px",
+      center: true,
+    },
+    {
+      name: "Ecode",
+      selector: (row) => row.ecode,
+      sortable: true,
+      width: "110px",
+    },
+    {
+      name: "Name",
+      selector: (row) => row.name,
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Position",
+      selector: (row) => row.positiontitle,
+      sortable: true,
+      width: "350px",
+    },
+    {
+      name: "Project Site - Department Area",
+      selector: (row) => row['area/section'] || "N/A",
+      sortable: true,
+      width: "190px",
+    },
+    {
+      name: "Attended Training and Seminar",
+      selector: (row) => row.attendedtrainingandseminar,
+      sortable: true,
+      width: "350px",
+    },
+    {
+      name: "Date of Separation",
+      selector: (row) => row.dateofseparation,
+      sortable: true,
+      width: "350px",
+    },
+    {
+      name: "Medical",
+      selector: (row) => row.medical,
+      sortable: true,
+      width: "350px",
+    },
+    {
+      name: "Options",
+      cell: (row) => (
+        <div className="flex justify-center items-center sticky-actions">
+          <button
+            onClick={() => openModal(row.employeeId || row.id)}
+            className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center"
+          >
+            <FaIdCard
+              title="View ID"
+              className=" text-neutralDGray w-5 h-5"
+            />
+          </button>
+          <button className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center">
+            <FaEnvelope
+              title="Message"
+              className=" text-neutralDGray w-5 h-5"
+            />
+          </button>
+          <button
+            className={`w-20 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${
+              row.status === "Active"
+                ? "bg-green-500 text-white"
+                : "bg-red-500 text-white"
+              }`}
+            onClick={() =>
+              handleToggleStatus(row.id, row.status)
+            }
+          >
+            <FaMinusSquare
+              title="Toggle Status"
+              className="w-5 h-5"
+            />
+          </button>
+        </div>
+      ),
+      width: "260px",
+      right: true,
+      center: true,p // This makes the column stick to the right
+    },
+  ];
 
   return (
     <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
@@ -327,104 +428,43 @@ const List = () => {
           <div className="w-full flex">
             <div className="w-full">
               <div className="border rounded-md">
+                <style jsx>{`
+                  .sticky-actions {
+                    position: sticky !important;
+                    right: 0 !important;
+                    background: white !important;
+                    z-index: 10 !important;
+                    box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+                  }
+                  
+                  /* Override react-data-table-component styles for sticky column */
+                  .rdt_TableCol:last-child {
+                    position: sticky !important;
+                    right: 0 !important;
+                    background: white !important;
+                    z-index: 10 !important;
+                    box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+                  }
+                  
+                  .rdt_TableHeadRow .rdt_TableCol:last-child {
+                    position: sticky !important;
+                    right: 0 !important;
+                    background: white !important;
+                    z-index: 11 !important;
+                    box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+                  }
+                  
+                  .rdt_TableRow .rdt_TableCell:last-child {
+                    position: sticky !important;
+                    right: 0 !important;
+                    background: white !important;
+                    z-index: 10 !important;
+                    box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+                  }
+                `}</style>
                 <DataTable
                   customStyles={customStyles}
-                  columns={[
-                    {
-                      name: "Image",
-                      cell: (row) => (
-                        <img
-                          src={`${import.meta.env.VITE_API_URL}/uploads/${row.profileImage}`}
-                          alt="Profile"
-                          className="w-10 h-10 rounded-full object-cover"
-                          onError={(e) => (e.target.src = defaultProfile)} // Fallback image
-                        />
-                      ),
-                      width: "80px",
-                      center: true,
-                    },
-                    {
-                      name: "Ecode",
-                      selector: (row) => row.ecode,
-                      sortable: true,
-                      width: "110px",
-                    },
-                    {
-                      name: "Name",
-                      selector: (row) => row.name,
-                      sortable: true,
-                      width: "200px",
-                    },
-                    {
-                      name: "Position",
-                      selector: (row) => row.positiontitle,
-                      sortable: true,
-                      width: "350px",
-                    },
-                    {
-                      name: "Project Site - Department Area",
-                      selector: (row) => row['area/section'] || "N/A",
-                      sortable: true,
-                      width: "190px",
-                    },
-                                        {
-                      name: "Attended Training and Seminar",
-                      selector: (row) => row.attendedtrainingandseminar,
-                      sortable: true,
-                      width: "350px",
-                    },
-                                        {
-                      name: "Date of Separation",
-                      selector: (row) => row.dateofseparation,
-                      sortable: true,
-                      width: "350px",
-                    },
-                                        {
-                      name: "Medical",
-                      selector: (row) => row.medical,
-                      sortable: true,
-                      width: "350px",
-                    }
-,
-                    {
-                      name: "Options",
-                      cell: (row) => (
-                        <div className="flex justify-center items-center">
-                          <button
-                            onClick={() => openModal(row.employeeId || row.id)}
-                            className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center"
-                          >
-                            <FaIdCard
-                              title="View ID"
-                              className=" text-neutralDGray w-5 h-5"
-                            />
-                          </button>
-                          <button className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center">
-                            <FaEnvelope
-                              title="Message"
-                              className=" text-neutralDGray w-5 h-5"
-                            />
-                          </button>
-                          <button
-                            className={`w-20 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${
-                              row.status === "Active"
-                                ? "bg-green-500 text-white"
-                                : "bg-red-500 text-white"
-                            }`}
-                            onClick={() =>
-                              handleToggleStatus(row.id, row.status)
-                            }
-                          >
-                            <FaMinusSquare
-                              title="Toggle Status"
-                              className="w-5 h-5"
-                            />
-                          </button>
-                        </div>
-                      ),
-                      width: "240px",
-                    },
-                  ]}
+                  columns={columns}
                   data={filteredEmployees}
                   progressPending={loading}
                 />
