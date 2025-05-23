@@ -335,7 +335,7 @@ const List = () => {
       ),
       width: "260px",
       right: true,
-      center: true,p // This makes the column stick to the right
+      center: true, // This makes the column stick to the right
     },
   ];
 
