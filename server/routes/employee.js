@@ -11,7 +11,9 @@ import {
   updatePayrollInformation,
   updateIDDetails,
   getEmployeeStatus,
-  toggleEmployeeStatus
+  toggleEmployeeStatus,
+  requestPayrollChange,
+  reviewPayrollChange
 } from "../controllers/employeeController.js";
 
 const router = express.Router();
@@ -59,5 +61,6 @@ router.put("/update-details/:id", upload.fields([
 ]), updateIDDetails);
 router.get("/payroll-informations", getPayrollInformations);
 router.get("/:id", getEmployee);
-
+router.post("/payroll-change-requests", requestPayrollChange);
+router.get("/all-payroll-change-requests", reviewPayrollChange);
 export default router;

@@ -155,7 +155,7 @@ const AdminSidebar = () => {
                       <span>Masterlist</span>
                     </NavLink>
 
-                    <NavLink
+                    {/* <NavLink
                       to="/admin-dashboard/add-employee"
                       className={({ isActive }) =>
                         `flex -mt-3 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition-all duration-300 ${
@@ -166,7 +166,7 @@ const AdminSidebar = () => {
                     >
                       <FaUserPlus />
                       <span>Add New</span>
-                    </NavLink>
+                    </NavLink> */}
                   </>
                 ) : (
                   <button

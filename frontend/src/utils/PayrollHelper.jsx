@@ -36,29 +36,59 @@ export const PayrollButtons = ({ Id, refreshData }) => {
   };
 
   const handleSave = async () => {
+    // Only include fields that the backend expects to store
+    const {
+      daily_rate,
+      overtime_pay,
+      holiday_pay,
+      night_differential,
+      allowance,
+      tax_deduction,
+      sss_contribution,
+      pagibig_contribution,
+      philhealth_contribution,
+      loan,
+      designation,
+    } = payrollData;
+  
+    const filteredChanges = {
+      daily_rate,
+      overtime_pay,
+      holiday_pay,
+      night_differential,
+      allowance,
+      tax_deduction,
+      sss_contribution,
+      pagibig_contribution,
+      philhealth_contribution,
+      loan,
+      designation,
+    };
+  
     try {
-      const response = await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/employee/payroll-informations/${Id}`,
-        payrollData
-      );
-
-      if (response.data.success) {
-        console.log("Payroll updated successfully:", response.data);
-
-        // Close the modal
-        setIsModalOpen(false);
-
-        // Refresh parent data
-        if (refreshData) {
-          refreshData();
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/employee/payroll-change-requests`,
+        {
+          payroll_info_id: Id,
+          changes: filteredChanges,
+          requested_by: "current_user_name_or_id", // Replace with actual username or ID
         }
+      );
+  
+      if (response.data.success) {
+        setIsModalOpen(false);
+        alert("Payroll change request submitted for approval.");
+        refreshData(); // Refresh data if needed
       } else {
-        console.warn("Failed to update payroll:", response.data.message);
+        console.warn("Request submission failed:", response.data.message);
       }
     } catch (error) {
-      console.error("Error updating payroll data:", error);
+      console.error("Error submitting change request:", error);
+      alert("Error submitting request. Please try again.");
     }
   };
+  
+  
 
   return (
     <div className="flex gap-2 justify-center items-center flex-nowrap">
@@ -145,7 +175,7 @@ export const PayrollButtons = ({ Id, refreshData }) => {
                 className="px-4 py-2 border text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                 onClick={handleSave}
               >
-                Save
+                Request
               </button>
             </div>
           </div>
