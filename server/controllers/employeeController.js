@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import cron from "node-cron";
 import Employee from "../models/Employee.js"; // Employee Sequelize model
 import PayrollInformation from "../models/PayrollInformation.js"; // Payroll Sequelize model
+import PayrollChangeRequest from "../models/PayrollChangeRequest.js";
+
 import sequelize from "../db/db.js";
 import { QueryTypes } from "sequelize";
 
@@ -158,6 +160,44 @@ export const updatePayrollInformation = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const requestPayrollChange = async (req, res) => {
+  const { payroll_info_id, changes, requested_by } = req.body;
+
+  console.log("Received data:", req.body);
+
+  try {
+    if (!payroll_info_id || !changes || !requested_by) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    const result = await PayrollChangeRequest.create({
+      payroll_info_id,
+      changes,
+      requested_by,
+    });
+
+    res.status(200).json({ success: true, message: "Request submitted" });
+  } catch (error) {
+    console.error("Error saving payroll change request:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const reviewPayrollChange = async (req, res) => {
+  console.log("💡 Hit reviewPayrollChange route");
+
+  try {
+    const requests = await PayrollChangeRequest.findAll();
+    res.status(200).json({ success: true, data: requests });
+  } catch (error) {
+    console.error("🔥 Error fetching payroll change requests:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+
 
 export const updateIDDetails = async (req, res) => {
   console.log("Received Files:", req.files); // Log all uploaded files
