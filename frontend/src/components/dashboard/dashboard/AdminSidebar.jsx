@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { FaTachometerAlt, FaUsers, FaCogs, FaMoneyBillWave, FaSignOutAlt, FaRegCalendarAlt , FaPoll, FaScroll, FaPrint, FaFolderOpen, FaChevronDown, FaChevronUp, FaBookOpen,
   FaClipboardList, FaUserPlus, FaCalendarPlus , FaCalendarCheck, FaFileInvoiceDollar, FaCalculator 
  } from 'react-icons/fa';
+ import { FaCalendarXmark } from "react-icons/fa6";
 import { useAuth } from '../../../context/authContext';
 import Logo from '/public/logo-rembg.png';
 
@@ -246,7 +247,7 @@ const AdminSidebar = () => {
                       }
                       end
                     >
-                      <FaRegCalendarAlt />
+                      <FaCalendarXmark />
                       <span>Holidays</span>
                     </NavLink>
 
@@ -259,7 +260,7 @@ const AdminSidebar = () => {
                       }
                       end
                     >
-                      <FaRegCalendarAlt />
+                      <FaCalculator />
                       <span>Conversion</span>
                     </NavLink>
                   </>

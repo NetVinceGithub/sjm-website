@@ -13,7 +13,9 @@ import {
   getEmployeeStatus,
   toggleEmployeeStatus,
   requestPayrollChange,
-  reviewPayrollChange
+  reviewPayrollChange,
+  rejectPayrollChange,
+  approvePayrollChange
 } from "../controllers/employeeController.js";
 
 const router = express.Router();
@@ -48,19 +50,34 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-// Employee Routes
+// Employee Routes - ORDER MATTERS!
+// Put specific routes BEFORE parameterized routes
+
+// Import and basic employee routes
 router.get("/import", importEmployeesFromGoogleSheet);
 router.get("/", getEmployees);
 router.get("/status", getEmployeeStatus);
-router.put("/toggle-status/:id", toggleEmployeeStatus);
+
+// Payroll information routes
+router.get("/payroll-informations", getPayrollInformations);
 router.get("/payroll-informations/:id", getPayrollInformationsById);
 router.put("/payroll-informations/:id", updatePayrollInformation);
+
+// Payroll change request routes - MOVED BEFORE /:id route
+router.post("/payroll-change-requests", requestPayrollChange);
+router.get("/payroll-change-requests", reviewPayrollChange); // Changed from /all-payroll-change-requests
+
+// Employee status and update routes
+router.put("/toggle-status/:id", toggleEmployeeStatus);
 router.put("/update-details/:id", upload.fields([
   { name: "profileImage", maxCount: 1 },
   { name: "esignature", maxCount: 1 }
 ]), updateIDDetails);
-router.get("/payroll-informations", getPayrollInformations);
+
+// Generic employee by ID route - MUST BE LAST
 router.get("/:id", getEmployee);
-router.post("/payroll-change-requests", requestPayrollChange);
-router.get("/all-payroll-change-requests", reviewPayrollChange);
+
+router.post("/reject-payroll-change/:id", rejectPayrollChange);
+router.post("/approve-payroll-change/:id", approvePayrollChange);
+
 export default router;

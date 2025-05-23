@@ -71,7 +71,7 @@ export const PayrollButtons = ({ Id, refreshData }) => {
         {
           payroll_info_id: Id,
           changes: filteredChanges,
-          requested_by: "current_user_name_or_id", // Replace with actual username or ID
+          requested_by: "name of request", // Replace with actual username or ID
         }
       );
   
