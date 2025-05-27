@@ -4,6 +4,7 @@ import { FaClipboardCheck, FaCheck, FaTimes, FaEye } from "react-icons/fa";
 import { FaPenRuler } from "react-icons/fa6";
 import { notifyPayrollRequests } from "../../utils/toastHelpers"
 import { notifyChangeRequests } from "../../utils/toastHelper2"
+import { toast } from 'react-toastify';
 
 const Requests = () => {
   const [requests, setRequests] = useState([]);
@@ -87,14 +88,50 @@ const Requests = () => {
       });
 
       if (response.data.success) {
-        setMessage("Payroll approved successfully.");
+        toast.success(
+          <div style={{ fontSize: '0.9rem'}}>
+           Payroll approved successfully.
+          </div>,
+          {
+            autoClose: 3000,        // auto close after 3 seconds
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",  // position of the toast
+          }
+        );
       } else {
-        setMessage("Failed to approve payroll.");
+        toast.error(
+          <div style={{ fontSize: '0.9rem'}}>
+           Failed to approve payroll.
+          </div>,
+          {
+            autoClose: 3000,        // auto close after 3 seconds
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",  // position of the toast
+          }
+        );
       }
       setShowSuccessModal(true);
     } catch (error) {
       console.error("Error approving payroll:", error);
-      setMessage("Error approving payroll.");
+      toast.error(
+        <div style={{ fontSize: '0.9rem'}}>
+         Error approving payroll.
+        </div>,
+        {
+          autoClose: 3000,        // auto close after 3 seconds
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          closeButton: false,
+          position: "top-right",  // position of the toast
+        }
+      );
       setShowSuccessModal(true);
     } finally {
       setLoadingPayroll(false);
@@ -114,7 +151,19 @@ const Requests = () => {
       setShowModal(false);
     } catch (error) {
       console.error("Error deleting payroll requests:", error);
-      alert("Failed to delete payslips.");
+      toast.error(
+        <div style={{ fontSize: '0.9rem'}}>
+          Failed to delete payslips.
+        </div>,
+        {
+          autoClose: 3000,        // auto close after 3 seconds
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          closeButton: false,
+          position: "top-right",  // position of the toast
+        }
+      );
     }
   };
 
@@ -173,13 +222,37 @@ const Requests = () => {
 
       if (response.data.success) {
         setChangesRequests(prev => prev.filter(req => req.id !== requestId));
-        setChangesMessage("Change request approved successfully");
+        toast.success(
+          <div style={{ fontSize: '0.9rem'}}>
+           Change request approved successfully.
+          </div>,
+          {
+            autoClose: 3000,        // auto close after 3 seconds
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",  // position of the toast
+          }
+        );
         setShowChangeDetailModal(false);
         setTimeout(() => setChangesMessage(''), 3000);
       }
     } catch (error) {
       console.error("Error approving individual change:", error);
-      setChangesMessage("Error approving change request");
+      toast.error(
+        <div style={{ fontSize: '0.9rem'}}>
+         Error approving change request.
+        </div>,
+        {
+          autoClose: 3000,        // auto close after 3 seconds
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          closeButton: false,
+          position: "top-right",  // position of the toast
+        }
+      );
     }
   };
 
@@ -191,13 +264,37 @@ const Requests = () => {
 
       if (response.data.success) {
         setChangesRequests(prev => prev.filter(req => req.id !== requestId));
-        setChangesMessage("Change request rejected successfully");
+        toast.success(
+          <div style={{ fontSize: '0.9rem'}}>
+           Change request rejected successfully.
+          </div>,
+          {
+            autoClose: 3000,        // auto close after 3 seconds
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",  // position of the toast
+          }
+        );
         setShowChangeDetailModal(false);
         setTimeout(() => setChangesMessage(''), 3000);
       }
     } catch (error) {
       console.error("Error rejecting individual change:", error);
-      setChangesMessage("Error rejecting change request");
+      toast.error(
+        <div style={{ fontSize: '0.9rem'}}>
+         Error rejecting change request.
+        </div>,
+        {
+          autoClose: 3000,        // auto close after 3 seconds
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          closeButton: false,
+          position: "top-right",  // position of the toast
+        }
+      );
     }
   };
 
@@ -288,20 +385,20 @@ const Requests = () => {
           {/* Confirmation Modal for Rejection */}
           {showModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-                <h3 className="text-lg font-semibold mb-4">Confirm Rejection</h3>
-                <p>Are you sure you want to reject the request?</p>
+              <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
+                <h3 className="text-base mb-2 text-red-500">Confirm Rejection</h3>
+                <p className="text-justify text-sm">Are you sure you want to reject the request?</p>
 
                 <div className="flex justify-end gap-3 mt-6">
                   <button
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+                    className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleDeleteAll}
-                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                    className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center  text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                   >
                     Confirm
                   </button>

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { FaRegPenToSquare, FaXmark } from "react-icons/fa6";
 import { useAuth } from '.././context/authContext'
 import ModalPortal from "../utils/ModalPortal";
+import { toast } from 'react-toastify';
 
 export const PayrollButtons = ({ Id, refreshData }) => {
   const { user } = useAuth();
@@ -101,7 +102,19 @@ export const PayrollButtons = ({ Id, refreshData }) => {
 
       if (response.data.success) {
         setIsReasonModalOpen(false);
-        alert("Payroll change request submitted for approval.");
+        toast.success(
+          <div style={{ fontSize: '0.9rem'}}>
+            Payroll change request submitted for approval.
+          </div>,
+          {
+            autoClose: 3000,        // auto close after 3 seconds
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",  // position of the toast
+          }
+        );
         refreshData();
       } else {
         alert(`Request submission failed: ${response.data.message}`);
