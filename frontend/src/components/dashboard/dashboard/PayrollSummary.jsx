@@ -170,7 +170,8 @@ const PayrollSummary = () => {
       // Fetch both datasets at once
       const [employeeResponse, attendanceResponse] = await Promise.all([
         axios.get(`${import.meta.env.VITE_API_URL}/api/employee`),
-        axios.get(`${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`)
+        axios.get(`${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`),
+        axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`)
       ]);
 
       const employeeData = employeeResponse.data.employees || [];
