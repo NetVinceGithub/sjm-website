@@ -281,31 +281,39 @@ export const toggleEmployeeStatus = async (req, res) => {
 
 
 
-// Add these functions to your employeeController.js
-
 export const approvePayrollChange = async (req, res) => {
   const { id } = req.params;
-  const { reviewed_by } = req.body; // Optional: track who approved it
+  const { reviewed_by } = req.body;
 
   try {
     console.log(`💡 Approving payroll change request ${id}`);
+    console.log('Request body:', req.body); // Add this for debugging
+    console.log('Request params:', req.params); // Add this for debugging
 
     // Find the change request
     const changeRequest = await PayrollChangeRequest.findByPk(id);
     if (!changeRequest) {
+      console.log(`❌ Change request ${id} not found`);
       return res.status(404).json({ success: false, message: "Change request not found" });
     }
 
+    console.log('Found change request:', changeRequest.toJSON()); // Add this for debugging
+
     // Check if already processed
     if (changeRequest.status !== 'Pending') {
+      console.log(`❌ Change request ${id} already processed with status: ${changeRequest.status}`);
       return res.status(400).json({ success: false, message: "Change request already processed" });
     }
 
     // Update the actual payroll information with the requested changes
     const payrollInfo = await PayrollInformation.findByPk(changeRequest.payroll_info_id);
     if (!payrollInfo) {
+      console.log(`❌ Payroll information not found for ID: ${changeRequest.payroll_info_id}`);
       return res.status(404).json({ success: false, message: "Payroll information not found" });
     }
+
+    console.log('Current payroll info:', payrollInfo.toJSON()); // Add this for debugging
+    console.log('Changes to apply:', changeRequest.changes); // Add this for debugging
 
     // Apply the changes
     await payrollInfo.update(changeRequest.changes);
@@ -322,25 +330,29 @@ export const approvePayrollChange = async (req, res) => {
 
   } catch (error) {
     console.error("❌ Error approving payroll change:", error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("❌ Error stack:", error.stack); // Add full stack trace
+    res.status(500).json({ success: false, message: error.message, error: error.stack });
   }
 };
 
 export const rejectPayrollChange = async (req, res) => {
   const { id } = req.params;
-  const { reviewed_by, rejection_reason } = req.body; // Optional: track who rejected it and why
+  const { reviewed_by, rejection_reason } = req.body;
 
   try {
     console.log(`💡 Rejecting payroll change request ${id}`);
+    console.log('Request body:', req.body); // Add this for debugging
 
     // Find the change request
     const changeRequest = await PayrollChangeRequest.findByPk(id);
     if (!changeRequest) {
+      console.log(`❌ Change request ${id} not found`);
       return res.status(404).json({ success: false, message: "Change request not found" });
     }
 
     // Check if already processed
     if (changeRequest.status !== 'Pending') {
+      console.log(`❌ Change request ${id} already processed with status: ${changeRequest.status}`);
       return res.status(400).json({ success: false, message: "Change request already processed" });
     }
 
@@ -357,7 +369,8 @@ export const rejectPayrollChange = async (req, res) => {
 
   } catch (error) {
     console.error("❌ Error rejecting payroll change:", error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("❌ Error stack:", error.stack); // Add full stack trace
+    res.status(500).json({ success: false, message: error.message, error: error.stack });
   }
 };
 
