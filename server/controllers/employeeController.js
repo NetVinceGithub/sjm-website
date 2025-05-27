@@ -312,14 +312,16 @@ export const toggleEmployeeStatus = async (req, res) => {
   }
 };
 
+
+
 export const approvePayrollChange = async (req, res) => {
   const { id } = req.params;
   const { reviewed_by } = req.body;
 
   try {
     console.log(`💡 Approving payroll change request ${id}`);
-    console.log('Request body:', req.body); // Add this for debugging
-    console.log('Request params:', req.params); // Add this for debugging
+    console.log('Request body:', req.body);
+    console.log('Request params:', req.params);
 
     // Find the change request
     const changeRequest = await PayrollChangeRequest.findByPk(id);
@@ -328,7 +330,7 @@ export const approvePayrollChange = async (req, res) => {
       return res.status(404).json({ success: false, message: "Change request not found" });
     }
 
-    console.log('Found change request:', changeRequest.toJSON()); // Add this for debugging
+    console.log('Found change request:', changeRequest.toJSON());
 
     // Check if already processed
     if (changeRequest.status !== 'Pending') {
@@ -336,20 +338,39 @@ export const approvePayrollChange = async (req, res) => {
       return res.status(400).json({ success: false, message: "Change request already processed" });
     }
 
-    // Update the actual payroll information with the requested changes
+    // Get the current payroll info
     const payrollInfo = await PayrollInformation.findByPk(changeRequest.payroll_info_id);
     if (!payrollInfo) {
       console.log(`❌ Payroll information not found for ID: ${changeRequest.payroll_info_id}`);
       return res.status(404).json({ success: false, message: "Payroll information not found" });
     }
 
-    console.log('Current payroll info:', payrollInfo.toJSON()); // Add this for debugging
-    console.log('Changes to apply:', changeRequest.changes); // Add this for debugging
+    console.log('Current payroll info (before):', payrollInfo.toJSON());
+    console.log('Requested changes:', changeRequest.changes);
+
+    // Filter only valid fields from changes
+    const allowedFields = [
+      "positiontitle", "area_section", "designation", "daily_rate", "hourly_rate",
+      "ot_hourly_rate", "ot_rate_sp_holiday", "ot_rate_reg_holiday", "special_hol_rate",
+      "regular_hol_ot_rate", "overtime_pay", "holiday_pay", "night_differential",
+      "allowance", "tardiness", "tax_deduction", "sss_contribution",
+      "pagibig_contribution", "philhealth_contribution", "loan",
+      "otherDeductions", "adjustment"
+    ];
+
+    const filteredChanges = {};
+    for (const key of allowedFields) {
+      if (changeRequest.changes.hasOwnProperty(key)) {
+        filteredChanges[key] = changeRequest.changes[key];
+      }
+    }
 
     // Apply the changes
-    await payrollInfo.update(changeRequest.changes);
+    await payrollInfo.update(filteredChanges, { logging: console.log });
+    await payrollInfo.reload(); // reload from DB to get updated state
+    console.log('Payroll info (after):', payrollInfo.toJSON());
 
-    // Update the change request status
+    // Mark the change request as approved
     await changeRequest.update({
       status: 'Approved',
       reviewed_by: reviewed_by || 'Admin',
@@ -361,10 +382,10 @@ export const approvePayrollChange = async (req, res) => {
 
   } catch (error) {
     console.error("❌ Error approving payroll change:", error);
-    console.error("❌ Error stack:", error.stack); // Add full stack trace
     res.status(500).json({ success: false, message: error.message, error: error.stack });
   }
 };
+
 
 export const rejectPayrollChange = async (req, res) => {
   const { id } = req.params;
