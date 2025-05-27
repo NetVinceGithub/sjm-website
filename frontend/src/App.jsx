@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import EmployeeDashboard from "./pages/EmloyeeDashboard";
@@ -137,6 +139,7 @@ function AppContent() {
         <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
       </Routes>
 
+      <ToastContainer position="top-right" autoClose={5000} />
       {/* Show footer only in public routes */}
     </>
   );

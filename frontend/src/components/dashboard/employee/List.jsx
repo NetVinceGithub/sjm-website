@@ -251,7 +251,7 @@ const List = () => {
       },
     },
   };
-  
+
 
   // Define columns with sticky positioning for Options column
   const columns = [
@@ -302,79 +302,93 @@ const List = () => {
       name: "Position Title",
       selector: (row) => row.positiontitle,
       sortable: true,
-      width: "350px",
+      width: "310px",
     },
     {
       name: "Department",
       selector: (row) => row.department,
       sortable: true,
-      width: "190px",
+      width: "120px",
     },
     {
       name: "Area/Section",
       selector: (row) => row['area/section'] || "N/A",
       sortable: true,
-      width: "200px",
+      width: "120px",
     },
     {
       name: "Date of Hire",
       selector: (row) => row.dateofhire,
       sortable: true,
-      width: "200px",
+      width: "120px",
     },
     {
       name: "Tenurity to Client",
       selector: (row) => row['tenuritytoclient(inmonths)'] || "N/A",
       sortable: true,
-      width: "200px",
+      width: "140px",
     },
     {
       name: "Employment Status",
       selector: (row) => row.employmentstatus,
       sortable: true,
-      width: "200px",
+      width: "180px",
     },
     {
       name: "Civil Status",
       selector: (row) => row.civilstatus,
       sortable: true,
-      width: "200px",
+      width: "120px",
     },
     {
       name: "Sex",
       selector: (row) => row.gender,
       sortable: true,
-      width: "200px",
+      width: "100px",
     },
     {
       name: "Birthdate",
       selector: (row) => row.birthdate,
       sortable: true,
-      width: "200px",
+      width: "120px",
+      cell: (row) => {
+        const approaching = isBirthdayApproaching(row.birthdate);
+        return (
+          <div style={{
+            backgroundColor: approaching ? "#ffcc00" : "transparent",
+            padding: "4px",
+            borderRadius: "4px",
+            color: approaching ? "white" : "inherit"
+          }}>
+            {row.birthdate}{" "}
+            {approaching && <span style={{ color: "orange" }}>🎉</span>}
+          </div>
+        );
+      },
     },
     {
       name: "Age",
       sortable: true,
       selector: (row) => row.age,
-      width: "200px",
+      width: "80px",
     },
     {
       name: "Contact No.",
       selector: (row) => row.contactno,
       sortable: true,
-      width: "100px",
+      width: "130px",
     },
     {
       name: "Permanent Address",
       selector: (row) => row.permanentaddress || "N/A",
       sortable: true,
-      width: "200px",
+      width: "400px",
     },
     {
       name: "Current Address",
       selector: (row) => row.address || "N/A",
       sortable: true,
-      width: "200px",
+      width: "400px",
     },
     {
       name: "Email Address",
@@ -385,21 +399,54 @@ const List = () => {
     },
     {
       name: "Last Attended (T/S)",
-      selector: (row) => row.attendedtrainingandseminar,
+      selector: (row) => row.attendedtrainingandseminar || "N/A",
       sortable: true,
       width: "160px",
-    },
+      cell: (row) => {
+        const dateStr = row.attendedtrainingandseminar;
+        const expiring = isTrainingExpiringSoon(dateStr);
+    
+        return (
+          <div style={{
+            backgroundColor: expiring ? "#ff5e58" : "transparent",
+            padding: "4px",
+            borderRadius: "4px",
+            color: expiring ? "#333" : "inherit",
+            fontWeight: expiring ? "bold" : "normal",
+          }}>
+            {dateStr || "N/A"}{" "}
+            {expiring && <span style={{ color: "#b36b00" }}>⚠️</span>}
+          </div>
+        );
+      },
+    },    
     {
       name: "Date of Separation",
-      selector: (row) => row.dateofseparation,
+      selector: (row) => row.dateofseparation || "N/A",
       sortable: true,
       width: "150px",
     },
     {
       name: "Medical",
-      selector: (row) => row.medical,
+      selector: (row) => row.medical || "N/A",
       sortable: true,
-      width: "150px",
+      width: "120px",
+      cell: (row) => {
+        const medStr = row.medical;
+        const expiringMed = isMedicalExpiringSoon(medStr);
+        return (
+          <div style={{
+            backgroundColor: expiringMed ? "#B2FBA5" : "transparent",
+            padding: "4px",
+            borderRadius: "4px",
+            color: expiringMed ? "#333" : "inherit",
+            fontWeight: expiringMed ? "bold" : "normal",
+          }}>
+          {medStr || "N/A"}{""}
+          {expiringMed && <span style={{ color: "red"}}>⚕️</span>}
+          </div>
+        )
+      }
     },
     {
       name: "Options",
@@ -443,6 +490,43 @@ const List = () => {
     },
   ];
 
+  // Alerts!!!
+  const isBirthdayApproaching = (birthdate, daysAhead = 7) => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+  
+    const birthdayThisYear = new Date(birthdate);
+    birthdayThisYear.setFullYear(currentYear);
+  
+    const diff = (birthdayThisYear - today) / (1000 * 60 * 60 * 24);
+  
+    return diff >= 0 && diff <= daysAhead;
+  };
+    
+  const isTrainingExpiringSoon = (attendedtrainingandseminar, daysAhead = 30) => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+
+    const attendedDate = new Date(attendedtrainingandseminar); 
+    attendedDate.setFullYear(currentYear);
+  
+    const diff = (attendedDate - today) / (1000 * 60 * 60 * 24);
+  
+    return diff >= 0 && diff <= daysAhead;
+  };
+
+  const isMedicalExpiringSoon = (medical, daysAhead = 30) => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+
+    const medicalDate = new Date(medical);
+    medicalDate.setFullYear(currentYear);
+
+    const diff = (medicalDate - today) / (1000 * 60 * 60 * 24);
+
+    return diff >= 0 && diff <= daysAhead;
+  };
+  
   return (
     <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
       <Breadcrumb

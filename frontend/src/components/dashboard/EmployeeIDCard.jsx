@@ -116,12 +116,12 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
       });
   
       // ID card dimensions in inches
-      const idCardWidth = 3.34;
+      const idCardWidth = 3.28;
       const idCardHeight = 2.25;
   
       // Position (in inches from top-left of page)
-      const xPosition = 1;
-      const yPosition = 1;
+      const xPosition = 0.5;
+      const yPosition = 0.5;
   
       // Add the high-res image
       pdf.addImage(dataUrl, "PNG", xPosition, yPosition, idCardWidth, idCardHeight);

@@ -51,14 +51,14 @@ export const EmployeeButtons = ({ Id }) => {
   return (
     <div className="grid grid-cols-3 gap-x-2 place-items-center">
       <div className="inline-flex border border-neutralDGray rounded h-8">
-        <button className="w-20 h-full border-r border-neutralDGray rounded-l flex items-center justify-center">
-          <FaIdCard title="View ID" className="text-neutralDGray w-5 h-5" />
+        <button className="w-20 h-8 border-r border-neutralDGray rounded-l flex items-center justify-center">
+          <FaIdCard title="View ID" className="text-neutralDGray" />
         </button>
-        <button className="w-20 h-full border-r border-neutralDGray flex items-center justify-center">
-          <FaEnvelope title="Message" className="text-neutralDGray w-5 h-5" />
+        <button className="w-20 h-8 border-r border-neutralDGray flex items-center justify-center">
+          <FaEnvelope title="Message" className="text-neutralDGray" />
         </button>
-        <button className="w-20 h-full rounded-r flex items-center justify-center">
-          <FaMinusSquare title="Block" className="text-neutralDGray w-5 h-5" />
+        <button className="w-20 h-8 rounded-r flex items-center justify-center">
+          <FaMinusSquare title="Block" className="text-neutralDGray" />
         </button>
       </div>
     </div>
