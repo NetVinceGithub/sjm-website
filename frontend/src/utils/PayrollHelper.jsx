@@ -225,7 +225,7 @@ export const PayrollButtons = ({ Id, refreshData }) => {
 
               {/* Textarea */}
               <textarea
-                className="w-full -mt-3 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-y"
+                className="w-full text-sm -mt-3 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-y"
                 rows={5}
                 value={changeReason}
                 onChange={(e) => setChangeReason(e.target.value)}
@@ -233,20 +233,20 @@ export const PayrollButtons = ({ Id, refreshData }) => {
                 maxLength={200}
               />
 
-              <div className="text-xs text-gray-300 mt-1">
+              <div className="text-xs text-center text-gray-300 mt-1">
                 Maximum of {changeReason.length}/200 Characters
             </div>
 
               {/* Buttons */}
               <div className="flex justify-end gap-3 mt-3">
                 <button
-                  className="px-4 py-2 w-24 h-8 border text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+                  className="px-4 py-2 w-24 h-8 border flex text-center justify-center text-sm items-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
                   onClick={() => setIsReasonModalOpen(false)}
                 >
                   Cancel
               </button>
                 <button
-                  className="px-4 py-2 w-24 h-8 border text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+                  className="px-4 py-2 w-24 h-8 flex text-center justify-center items-center text-sm border text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                   onClick={submitChangeRequest}
                 >
                   Submit
