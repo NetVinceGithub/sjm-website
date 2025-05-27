@@ -34,13 +34,17 @@ const Requests = () => {
 
     const fetchChangeRequests = async () => {
       try {
-        setChangesLoading(true);
-        // Updated to use your new API endpoint
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee/payroll-change-requests`);
+        setLoadingChanges(true);
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/employee/payroll-change-requests`
+        );
         console.log("Change requests response:", response.data);
-        
+
         if (response.data.success) {
-          setChangesRequests(response.data.data || []);
+          const filteredRequests = (response.data.data || []).filter(
+            (req) => !["approved", "rejected"].includes(req.status.toLowerCase())
+          );
+          setChangesRequests(filteredRequests);
         } else {
           console.error("Failed to fetch change requests:", response.data);
           setChangesRequests([]);
@@ -49,9 +53,10 @@ const Requests = () => {
         console.error("Error fetching change requests:", error);
         setChangesRequests([]);
       } finally {
-        setChangesLoading(false);
+        setLoadingChanges(false);
       }
     };
+
 
     fetchRequests();
     fetchChangeRequests();
@@ -60,7 +65,7 @@ const Requests = () => {
   // Function to get changed fields from the changes object
   const getChangedFields = (changes) => {
     if (!changes || typeof changes !== 'object') return [];
-    
+
     // Convert changes object to array of changed fields
     return Object.entries(changes).map(([field, value]) => ({
       field,
@@ -76,7 +81,7 @@ const Requests = () => {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/payslip/send-payslip`, {
         payslips: requests,
       });
-  
+
       if (response.data.success) {
         setMessage("Payroll approved successfully.");
       } else {
@@ -91,10 +96,12 @@ const Requests = () => {
       setLoadingPayroll(false);
     }
   };
-  
-  
-  
-  
+
+  const formatRequestId = (id) => {
+    const prefix = "SJM-C";
+    const paddedNumber = id.toString().padStart(4, "0"); // pads with leading zeros to 4 digits
+    return `${prefix}${paddedNumber}`;
+  };
 
   const handleDeleteAll = async () => {
     try {
@@ -117,10 +124,10 @@ const Requests = () => {
     try {
       setLoadingChanges(true);
       // You'll need to implement a bulk approve endpoint or loop through individual requests
-      const promises = changesRequests.map(request => 
+      const promises = changesRequests.map(request =>
         axios.post(`${import.meta.env.VITE_API_URL}/api/employee/approve-payroll-change/${request.id}`)
       );
-      
+
       await Promise.all(promises);
       setChangesMessage("All change requests approved successfully");
       setChangesRequests([]);
@@ -137,10 +144,10 @@ const Requests = () => {
     try {
       setLoadingChanges(true);
       // You'll need to implement a bulk reject endpoint or loop through individual requests
-      const promises = changesRequests.map(request => 
+      const promises = changesRequests.map(request =>
         axios.post(`${import.meta.env.VITE_API_URL}/api/employee/reject-payroll-change/${request.id}`)
       );
-      
+
       await Promise.all(promises);
       setChangesMessage("All change requests rejected successfully");
       setChangesRequests([]);
@@ -217,8 +224,8 @@ const Requests = () => {
   return (
     <div className="flex flex-row gap-8 p-4 overflow-auto h-[calc(100vh-150px)]">
       {/* Payroll Requests Section */}
-      <section className="flex-1 flex flex-col">
-        <h2 className="text-neutralDGray text-lg font-semibold -mt-3 mb-3 flex items-center gap-2">
+      <section className="flex-1 flex flex-col rounded-lg border p-2">
+        <h2 className="text-neutralDGray text-lg font-semibold mb-3 flex items-center gap-2">
           <FaClipboardCheck className="h-8 w-8 text-lg text-neutralDGray" />
           Payroll Requests
         </h2>
@@ -230,34 +237,36 @@ const Requests = () => {
             <p className="text-gray-500">Loading payroll requests...</p>
           ) : requests.length > 0 ? (
             <div className="border p-3 rounded shadow-md">
-              <p className="text-lg font-semibold mb-1">
-                Total Payslips: <span className="font-normal">{requests.length}</span>
+              <p className="text-md mb-1 italic">
+                Total Payslips: <span className="font-normal text-red-500">{requests.length}</span>
               </p>
-              <hr className="mb-2 mt-1" />
-              <p><strong>Amount:</strong> ₱ {totalNetPay.toLocaleString()}</p>
-              <p>
-                <strong>Date Requested:</strong>{" "}
-                {new Date(requests[0]?.date).toLocaleDateString()}
-              </p>
+              <div className="mb-2">
+                <hr className="mb-2 mt-1" />
+                <p><strong>Amount:</strong> ₱ {totalNetPay.toLocaleString()}</p>
+                <p>
+                  <strong>Date Requested:</strong>{" "}
+                  {new Date(requests[0] ?.date).toLocaleDateString()}
+                </p>
 
-              <div className="flex gap-2 mt-2">
-                <button
-                  onClick={handleApprove}
-                  className="bg-green-500 text-white w-20 px-2 py-1 rounded hover:bg-green-900"
-                >
-                  Approve
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={handleApprove}
+                    className="bg-green-500 text-white w-20 px-2 py-1 rounded hover:bg-green-900"
+                  >
+                    Approve
                 </button>
-                <button
-                  onClick={() => setShowModal(true)}
-                  className="bg-red-500 text-white w-20 px-2 py-1 rounded hover:bg-red-900"
-                >
-                  Reject
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="bg-red-500 text-white w-20 px-2 py-1 rounded hover:bg-red-900"
+                  >
+                    Reject
                 </button>
+                </div>
               </div>
             </div>
           ) : (
-            <p className="text-gray-500">No pending payroll requests.</p>
-          )}
+                <p className="text-gray-500">No pending payroll requests.</p>
+              )}
 
           {/* Loading Modal */}
           {loadingPayroll && (
@@ -301,13 +310,13 @@ const Requests = () => {
           {showSuccessModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-                <h3 className="text-lg font-semibold mb-4">Success!</h3>
-                <p>Payroll has been successfully approved.</p>
+                <h3 className="text-base mb-2 text-green-500">Success!</h3>
+                <p className="text-justify text-sm">Payroll has been successfully approved.</p>
 
                 <div className="flex justify-end mt-6">
                   <button
                     onClick={handleCloseSuccessModal}
-                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                    className="-mt-3 px-2 py-2 w-20 h-8 flex justify-center text-center items-center border border-neutralDGray text-neutralDGray rounded hover:bg-green-400"
                   >
                     Close
                   </button>
@@ -319,8 +328,8 @@ const Requests = () => {
       </section>
 
       {/* Changes Requests Section */}
-      <section className="flex-1 flex flex-col">
-        <h2 className="text-neutralDGray text-lg font-semibold -mt-3 mb-3 flex items-center gap-2">
+      <section className="flex-1 flex flex-col rounded-lg border p-2">
+        <h2 className="text-neutralDGray text-lg font-semibold mb-3 flex items-center gap-2">
           <FaPenRuler className="h-8 w-8 text-lg text-neutralDGray" />
           Change Requests
         </h2>
@@ -332,39 +341,47 @@ const Requests = () => {
             <p className="text-gray-500">Loading change requests...</p>
           ) : changesRequests.length > 0 ? (
             <div className="border p-3 rounded shadow-md">
-              <p className="text-lg font-semibold mb-1">
-                Total Changes: <span className="font-normal">{changesRequests.length}</span>
+              <p className="text-md mb-1 italic">
+                Total Changes: <span className="font-normal text-red-500">{changesRequests.length}</span>
               </p>
               <hr className="mb-2 mt-1" />
-              
+
               {/* Individual Change Requests - Now inside the total changes div */}
-              <div className="space-y-2 mb-3">
+              <div className="mb-2">
                 {changesRequests.map((request) => {
                   const changedFields = getChangedFields(request.changes);
                   return (
-                    <div key={request.id} className="border p-3 rounded shadow-sm bg-gray-50">
+                    <div key={request.id} className="border p-2 h-[100px] rounded shadow-sm bg-gray-50 mb-2">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <p className="font-semibold text-sm">Request ID: {request.id}</p>
-                          <p className="text-xs text-gray-600">
+                          <p className="font-semibold text-sm">Request ID: {formatRequestId(request.id)}</p>
+                          <p className="text-xs -mt-3 text-gray-600">
                             Requested by: {request.requested_by}
                           </p>
-                          <p className="text-xs text-gray-500">
-                            Status: <span className={`font-semibold ${request.status === 'Pending' ? 'text-orange-600' : 'text-green-600'}`}>
+                          <p className="text-xs -mt-3 text-gray-500">
+                            Status: <span
+                              className={`font-semibold ${
+                                request.status === 'Pending'
+                                  ? 'text-orange-500'
+                                  : request.status === 'Rejected'
+                                    ? 'text-red-600'
+                                    : 'text-green-600'
+                                }`}
+                            >
                               {request.status}
                             </span>
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs -mt-3 text-gray-500">
                             Created at: {new Date(request.createdAt).toLocaleDateString()} at {new Date(request.createdAt).toLocaleTimeString()}
                           </p>
                         </div>
-                        <div className="flex gap-1 items-center justify-end">
+                        <div className="flex gap-1 items-center border h-8 w-32 rounded justify-end">
                           <button
                             onClick={() => {
                               setSelectedChangeRequest(request);
                               setShowChangeDetailModal(true);
                             }}
-                            className="p-2 text-blue-500 hover:bg-blue-100 rounded flex items-center justify-center"
+                            className="p-2 text-neutralDGray hover:text-blue-600 rounded flex items-center justify-center"
                             title="View Details"
                           >
                             <FaEye size={14} />
@@ -373,14 +390,14 @@ const Requests = () => {
                             <>
                               <button
                                 onClick={() => handleApproveIndividualChange(request.id)}
-                                className="p-2 text-green-500 hover:bg-green-100 rounded flex items-center justify-center"
+                                className="p-2 text-neutralDGray hover:text-green-600 rounded flex items-center justify-center"
                                 title="Approve"
                               >
                                 <FaCheck size={14} />
                               </button>
                               <button
                                 onClick={() => handleRejectIndividualChange(request.id)}
-                                className="p-2 text-red-500 hover:bg-red-100 rounded flex items-center justify-center"
+                                className="p-2 text-neutralDGray hover:text-red-100 rounded flex items-center justify-center"
                                 title="Reject"
                               >
                                 <FaTimes size={14} />
@@ -393,28 +410,28 @@ const Requests = () => {
                   );
                 })}
               </div>
-              
+
               {/* Approve All and Reject All buttons - Now at the bottom */}
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={handleApproveChanges}
                   disabled={loadingChanges}
-                  className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-900 disabled:opacity-50"
+                  className="bg-green-500 text-white w-32 h-8 text-sm px-3 py-1 rounded hover:bg-green-900 disabled:opacity-50"
                 >
                   {loadingChanges ? 'Processing...' : 'Approve All'}
                 </button>
                 <button
                   onClick={() => setShowChangesModal(true)}
                   disabled={loadingChanges}
-                  className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-900 disabled:opacity-50"
+                  className="bg-red-500 text-white px-3 py-1 w-32 h-8 text-sm  rounded hover:bg-red-900 disabled:opacity-50"
                 >
                   Reject All
                 </button>
               </div>
             </div>
           ) : (
-            <p className="text-gray-500">No pending change requests.</p>
-          )}
+                <p className="text-gray-500">No pending change requests.</p>
+              )}
 
           {/* Confirmation Modal for Rejecting All Changes */}
           {showChangesModal && (
@@ -445,78 +462,76 @@ const Requests = () => {
           {showChangeDetailModal && selectedChangeRequest && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-lg w-96 max-w-lg max-h-[80vh] overflow-y-auto">
-                <h3 className="text-lg font-semibold mb-4">Change Request Details</h3>
-                
+                <h3 className="text-[18px] mb-3">Change Request Details</h3>
+                <hr />
                 <div className="space-y-3">
                   <div>
-                    <p className="font-semibold">Request ID:</p>
-                    <p className="text-gray-700">{selectedChangeRequest.id}</p>
+                    <p className="text-sm">Request ID: {formatRequestId(selectedChangeRequest.id)}</p>
                   </div>
-                  
                   <div>
-                    <p className="font-semibold">Payroll Info ID:</p>
-                    <p className="text-gray-700">{selectedChangeRequest.payroll_info_id}</p>
+                    <p className="text-sm">Requested By: {selectedChangeRequest.requested_by}</p>
                   </div>
-                  
                   <div>
-                    <p className="font-semibold">Requested By:</p>
-                    <p className="text-gray-700">{selectedChangeRequest.requested_by}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="font-semibold">Status:</p>
-                    <p className={`font-semibold ${selectedChangeRequest.status === 'Pending' ? 'text-orange-600' : 'text-green-600'}`}>
-                      {selectedChangeRequest.status}
+                    <p className="text-sm">
+                      Status:{" "}
+                      <span
+                        className={`font-semibold ${
+                          selectedChangeRequest.status === "Pending"
+                            ? "text-orange-500"
+                            : selectedChangeRequest.status === "Rejected"
+                              ? "text-red-600"
+                              : "text-green-600"
+                          }`}
+                      >
+                        {selectedChangeRequest.status}
+                      </span>
                     </p>
                   </div>
-                  
                   <div>
-                    <p className="font-semibold">Requested Changes:</p>
-                    <div className="bg-gray-50 p-3 rounded mt-1 space-y-2">
-                      {getChangedFields(selectedChangeRequest.changes).map(({field, value, displayName}) => (
-                        <div key={field} className="text-sm">
-                          <span className="font-medium">{displayName}:</span>
-                          <span className="text-green-600 ml-2">{value}</span>
+                    <div className="bg-gray-100 p-2 rounded space-y-2">
+                    <p className="text-sm italic mb-1 ">Requested Changes:</p>
+                      {getChangedFields(selectedChangeRequest.changes).map((change, index) => (
+                        <div key={index} className="text-sm">
+                          <p>
+                            <span className="font-medium">{change.displayName}:</span>{" "}
+                            {String(change.value)}
+                          </p>
                         </div>
                       ))}
+                       <p className="text-sm italic mb-1 ">Reason for Changes: </p>
+                       <p className="text-sm">{selectedChangeRequest.reasons}</p>
+
                     </div>
                   </div>
-                  
                   <div>
-                    <p className="font-semibold">Created:</p>
-                    <p className="text-gray-700">
-                      {new Date(selectedChangeRequest.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="font-semibold">Last Updated:</p>
-                    <p className="text-gray-700">
-                      {new Date(selectedChangeRequest.updatedAt).toLocaleString()}
-                    </p>
+                    <p className="text-sm">Created at: {new Date(selectedChangeRequest.createdAt).toLocaleString()}</p>
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 mt-6">
+                <div className="flex justify-end gap-2 mt-6">
                   <button
                     onClick={() => setShowChangeDetailModal(false)}
-                    className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+                    className="flex items-center justify-center px-4 py-2 w-32 h-8 text-sm text-center bg-gray-600 text-white rounded hover:bg-neutralDGray"
+
                   >
                     Close
                   </button>
-                  {selectedChangeRequest.status === 'Pending' && (
+
+                  {selectedChangeRequest.status === "Pending" && (
                     <>
                       <button
-                        onClick={() => handleRejectIndividualChange(selectedChangeRequest.id)}
-                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                      >
-                        Reject
-                      </button>
-                      <button
                         onClick={() => handleApproveIndividualChange(selectedChangeRequest.id)}
-                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                        className="flex items-center justify-center px-4 py-2 w-32 h-8 text-sm text-center bg-green-600 text-white rounded hover:bg-neutralDGray"
+
                       >
                         Approve
+                      </button>
+                      <button
+                        onClick={() => handleRejectIndividualChange(selectedChangeRequest.id)}
+                        className="flex items-center justify-center px-4 py-2 w-32 h-8 text-sm text-center bg-red-600 text-white rounded hover:bg-neutralDGray"
+
+                      >
+                        Reject
                       </button>
                     </>
                   )}
@@ -524,6 +539,7 @@ const Requests = () => {
               </div>
             </div>
           )}
+
         </div>
       </section>
     </div>

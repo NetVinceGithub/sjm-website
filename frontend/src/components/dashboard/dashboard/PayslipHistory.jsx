@@ -239,7 +239,7 @@ const PayslipHistory = () => {
               <hr />
               <div className="mt-3 border h-[31rem] border-neutralDGray rounded overflow-auto">
                 <div className="w-full overflow-x-auto">
-                  <DataTable columns={columns} data={filteredPayslips} />
+                  <DataTable columns={columns} data={filteredPayslips} pagination />
                 </div>
               </div>
             </div>

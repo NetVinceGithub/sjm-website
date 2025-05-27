@@ -220,25 +220,40 @@ const List = () => {
         margin: "0 auto",
       },
     },
+    headRow: {
+      style: {
+        height: "40px", // consistent height
+      },
+    },
+    rows: {
+      style: {
+        height: "40px", // consistent row height
+      },
+    },
     headCells: {
       style: {
         backgroundColor: "#fff",
         color: "#333",
         fontWeight: "bold",
+        fontSize: "14px", // text-sm
         justifyContent: "center",
         display: "flex",
         alignItems: "center",
+        padding: "4px 8px",
       },
     },
     cells: {
       style: {
-        padding: "8px",
+        fontSize: "14px", // text-sm
+        padding: "4px 8px",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        height: "100%", // ensures it fills the row height
       },
     },
   };
+  
 
   // Define columns with sticky positioning for Options column
   const columns = [
@@ -303,21 +318,21 @@ const List = () => {
         <div className="flex justify-center items-center sticky-actions">
           <button
             onClick={() => openModal(row.employeeId || row.id)}
-            className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center"
+            className="w-14 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center"
           >
             <FaIdCard
               title="View ID"
               className=" text-neutralDGray w-5 h-5"
             />
           </button>
-          <button className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center">
+          <button className="w-14 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center">
             <FaEnvelope
               title="Message"
               className=" text-neutralDGray w-5 h-5"
             />
           </button>
           <button
-            className={`w-20 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${
+            className={`w-14 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${
               row.status === "Active"
                 ? "bg-green-500 text-white"
                 : "bg-red-500 text-white"
@@ -333,7 +348,7 @@ const List = () => {
           </button>
         </div>
       ),
-      width: "260px",
+      width: "200px",
       right: true,
       center: true, // This makes the column stick to the right
     },
@@ -347,7 +362,7 @@ const List = () => {
           { label: "Masterlist", href: "/admin-dashboard/employees" },
         ]}
       />
-      <div className="bg-white w-full -mt-1 py-3 p-2 rounded-lg shadow">
+      <div className="bg-white  h-[calc(100vh-120px)] w-full -mt-1 py-3 p-2 rounded-lg shadow">
         <div className="flex items-center justify-between">
           {/* Button Group - Centered Vertically */}
           <div className="inline-flex border border-neutralDGray rounded h-8">
@@ -403,20 +418,22 @@ const List = () => {
             </button>
 
             {modalOpen && (
-              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-                  <h2 className="text-xl font-bold text-green-600">
-                    Sync Successful
-                  </h2>
-                  <p className="text-gray-700 mt-2">
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
+                  <h3 className="text-base mb-2 text-green-500">
+                    Sync Successful!
+                  </h3>
+                  <p className="text-justify text-sm">
                     Employees have been successfully synchronized.
                   </p>
-                  <button
-                    onClick={() => setModalOpen(false)}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                  >
-                    Close
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setModalOpen(false)}
+                      className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+                    >
+                      Close
                   </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -467,6 +484,7 @@ const List = () => {
                   columns={columns}
                   data={filteredEmployees}
                   progressPending={loading}
+                  pagination
                 />
               </div>
             </div>

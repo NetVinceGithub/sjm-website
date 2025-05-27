@@ -532,20 +532,20 @@ const Attendance = () => {
             onHide={() => setShowModal(false)}
             style={{ position: "fixed", top: "28%", left: "5%" }}
           >
-            <Modal.Header closeButton>
-              <Modal.Title>Success!</Modal.Title>
+            <Modal.Header className="py-2 px-3 text-sm">
+              <Modal.Title as="h6" className="text-base text-green-500">Success!</Modal.Title>
             </Modal.Header>
-            <Modal.Body>Attendance saved successfully!</Modal.Body>
+            <Modal.Body as="h6" className="text-sm p-2 text-justify ml-2 -mb-0">Attendance saved successfully!</Modal.Body>
             <Modal.Footer>
-              <Button variant="secondary" onClick={() => setShowModal(false)}>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 w-24 h-8 text-sm border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all">
                 Close
-              </Button>
-              <Button
-                variant="primary"
+              </button>
+              <button
                 onClick={() => navigate("/admin-dashboard/payroll-summary")}
+                className="px-4 py-2 w-36 h-8 border flex justify-center text-sm items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
               >
-                Go to Payroll
-              </Button>
+                Create Payroll
+              </button>
             </Modal.Footer>
           </Modal>
         </div>

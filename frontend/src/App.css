@@ -49,3 +49,8 @@ header {
     z-index: 1;
     overflow: hidden;
   }
+
+  .recharts-default-legend text {
+    font-size: 0.5rem; /* Tailwind's text-sm size */
+  }
+  

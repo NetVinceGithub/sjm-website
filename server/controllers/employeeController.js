@@ -162,7 +162,7 @@ export const updatePayrollInformation = async (req, res) => {
 };
 
 export const requestPayrollChange = async (req, res) => {
-  const { payroll_info_id, changes, requested_by } = req.body;
+  const { payroll_info_id, changes, reason, requested_by } = req.body;
 
   console.log("Received data:", req.body);
 
@@ -174,7 +174,8 @@ export const requestPayrollChange = async (req, res) => {
     const result = await PayrollChangeRequest.create({
       payroll_info_id,
       changes,
-      requested_by,
+      reasons: reason,
+      requested_by
     });
 
     res.status(200).json({ success: true, message: "Request submitted" });
