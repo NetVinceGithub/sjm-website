@@ -21,7 +21,7 @@ const ChangeRequest = sequelize.define('change_request', {
   },
   old_value: DataTypes.TEXT,
   new_value: DataTypes.TEXT,
-  reason: DataTypes.TEXT,
+
   status: {
     type: DataTypes.ENUM('pending', 'approved', 'rejected'),
     defaultValue: 'pending',

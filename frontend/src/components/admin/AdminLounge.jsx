@@ -6,6 +6,7 @@ import AddAdmin from "./AddAdmin"; // ✅ Import AddAdmin
 import Job from "./Job";
 import ConnectMessages from "./ConnectMessages";
 import Logins from "./Logins";
+import Contributions from "./Contributions"
 
 const AdminLounge = () => {
   return (
@@ -23,6 +24,7 @@ const AdminLounge = () => {
           tabs={[
             { label: "Requests", content: <Requests /> },
             { label: "User Management", content: <AddAdmin /> },
+            { label: "Contributions", content: <Contributions /> },
             { label: "Jobs", content: <Job /> },
             { label: "Messages", content: <ConnectMessages /> },
             { label: "Activity Log", content: <Logins /> },

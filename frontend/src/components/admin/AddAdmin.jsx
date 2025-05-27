@@ -3,6 +3,7 @@ import { FaUserPlus } from "react-icons/fa";
 import axios from "axios";
 import { MdBlock } from "react-icons/md";
 
+
 const AddAdmin = () => {
   const [formData, setFormData] = useState({
     name: "",
@@ -65,7 +66,7 @@ const AddAdmin = () => {
         setUsers((prevUsers) => [...prevUsers, response.data.user]);
       }
     } catch (error) {
-      console.error("Error saving user:", error.response?.data || error);
+      console.error("Error saving user:", error.response ?.data || error);
     } finally {
       setLoading(false);
     }
@@ -141,201 +142,214 @@ const AddAdmin = () => {
         cancelEdit();
       }
     } catch (error) {
-      console.error("Error updating user:", error.response?.data || error);
+      console.error("Error updating user:", error.response ?.data || error);
     }
   };
 
   return (
-    <div className="p-6 h-full ">
-      <h3 className="text-neutralDGray text-lg font-semibold -mt-3">
-        User Management
-      </h3>
+    <div className="p-6  h-[calc(100vh-150px)]">
+      <div className="flex h-[calc(100vh-220px)] flex-col">
+        <div className="border rounded p-2 ">
+          <h2 className="text-lg font-bold mb-3 flex text-neutralDGray items-center gap-2">
+            <FaUserPlus className="h-6 w-6 text-neutralDGray" /> Add Employee Access
+          </h2>
+          <form className="space-y-3" onSubmit={handleSubmit}>
+            <div>
+              <label className="block text-sm -mt-1 font-medium text-neutralDGray">
+                Employee Name
+            </label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="mt-1 p-1 w-full border rounded-md text-sm"
+                placeholder="e.g., Jane Smith"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutralDGray">
+                Company Email
+            </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="mt-1 p-1 w-full border rounded-md text-sm"
+                placeholder="e.g., jane.smith@company.com"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutralDGray">
+                Password
+            </label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="mt-1 p-1 w-full border rounded-md text-sm"
+                placeholder="Create a password"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutralDGray">
+                Role
+            </label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="mt-1 mb-1 p-1 w-full border rounded-md text-sm"
+              >
+                <option value="" disabled>Select a Role</option>
+                <option value="admin">Admin</option>
+                <option value="employee">Employee</option>
+              </select>
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                className="w-32 text-md bg-brandPrimary h-10 hover:bg-neutralDGray text-white py-1 px-2 rounded"
+                disabled={loading}
+              >
+                {loading ? "Adding..." : "Add Employee"}
+              </button>
+            </div>
+          </form>
+        </div>
 
-      <div className="flex h-[70vh] flex-col overflow-y-auto ">
-        {loading ? (
-          <p>Loading users...</p>
-        ) : users.length > 0 ? (
-          <>
-            {/* Active Users */}
-            <h4 className="font-semibold text-[15px] mt-1 text-brandPrimary">
-              Active Users
-            </h4>
-            <ul className="border rounded-md p-1 mb-1">
-              {users
-                .filter((user) => !user.isBlocked)
-                .map((user, index) => (
-                  <li
-                    key={index}
-                    className="py-1 border-b last:border-b-0 px-2"
-                  >
-                    {editingUser === user.id ? (
-                      <form
-                        onSubmit={handleEditSubmit}
-                        className="flex flex-col gap-2"
+        <div className="flex flex-row gap-5 mt-3">
+          {loading ? (
+            <p>Loading users...</p>
+          ) : users.length > 0 ? (
+            <>
+              <div className="w-1/2">
+                {/* Active Users */}
+                <h4 className="text-[14px] mt-1 text-brandPrimary italic">
+                  Active Users
+              </h4>
+                <ul className="border rounded-md p-1 mb-1 overflow-auto">
+                  {users
+                    .filter((user) => !user.isBlocked)
+                    .map((user, index) => (
+                      <li
+                        key={index}
+                        className="border-b text-[13px] last:border-b-0 px-2"
                       >
-                        <input
-                          type="text"
-                          name="name"
-                          value={editFormData.name}
-                          onChange={handleEditChange}
-                          className="border p-1 rounded"
-                        />
-                        <input
-                          type="email"
-                          name="email"
-                          value={editFormData.email}
-                          onChange={handleEditChange}
-                          className="border p-1 rounded"
-                        />
-                        <select
-                          name="role"
-                          value={editFormData.role}
-                          onChange={handleEditChange}
-                          className="border p-1 rounded"
-                        >
-                          <option value="admin">Admin</option>
-                          <option value="employee">Employee</option>
-                        </select>
-                        <div className="flex gap-2">
-                          <button
-                            type="submit"
-                            className="bg-green-500 w-32 h-10 hover:bg-green-900 text-white px-3 py-1 rounded"
-                          >
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            onClick={cancelEdit}
-                            className="bg-gray-300 hover:bg-neutralGray w-32 h-10 text-black px-3 py-1 rounded"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <div className="flex justify-between items-center">
-                        <div className="text-center">
-                          <span className="font-bold">{user.name}</span> -{" "}
-                          {user.email}
-                        </div>
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => startEdit(user)}
-                            className="bg-green-500 hover:bg-green-900 border w-20 h-10 text-white px-3 rounded"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleBlock(user.id)}
-                            className="bg-red-500 hover:bg-red-900 border text-white w-20 h-10 px-3 rounded flex items-center justify-center"
-                          >
-                            <MdBlock size={20} />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </li>
-                ))}
-            </ul>
+                        {editingUser === user.id ? (
+                          <div className="bg-gray-200/60 p-1 rounded">
+                            <h6 className="text-sm text-neutralDGray font-semibold">Edit User</h6>
+                            <form
+                              onSubmit={handleEditSubmit}
+                              className="flex flex-col gap-1 -mt-1"
+                            >
+                              <input
+                                type="text"
+                                name="name"
+                                value={editFormData.name}
+                                onChange={handleEditChange}
+                                className="border p-1 rounded text-sm text-neutralDGray"
+                              />
+                              <input
+                                type="email"
+                                name="email"
+                                value={editFormData.email}
+                                onChange={handleEditChange}
+                                className="border p-1 rounded text-sm text-neutralDGray"
+                              />
+                              <select
+                                name="role"
+                                value={editFormData.role}
+                                onChange={handleEditChange}
+                                className="border p-1 rounded text-sm text-neutralDGray"
+                              >
+                                <option value="admin">Admin</option>
+                                <option value="employee">Employee</option>
+                              </select>
+                              <div className="flex gap-2 text-center">
+                                <button
+                                  type="submit"
+                                  className="bg-brandPrimary w-14 h-8 hover:bg-green-500 text-white px-3 py-1 rounded flex items-center justify-center text-[13px]"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={cancelEdit}
+                                  className="bg-gray-300 hover:bg-neutralGray w-14 h-8 text-black px-3 py-1 rounded flex items-center justify-center text-[13px]"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
 
-            {/* Blocked Users */}
-            <h4 className="font-semibold mt-2 text-[15px] text-red-600">Blocked Users</h4>
-            <ul className="border rounded-md bg-red-50">
-              {users
-                .filter((user) => user.isBlocked)
-                .map((user, index) => (
-                  <li
-                    key={index}
-                    className="py-2 px-2 border-b last:border-b-0 flex justify-between items-center text-red-600"
-                  >
-                    <div className="text-neutralDGray">
-                      <span className="text-neutralDGray font-bold">{user.name}</span> -{" "}
-                      {user.email}
-                    </div>
-                    <button
-                      onClick={() => handleUnblock(user.id)}
-                      className="text-sm bg-white h-10 w-32 text-neutralDGray hover:bg-red-500 border border-red-300 px-3 py-1 rounded"
-                    >
-                      Unblock
-                    </button>
-                  </li>
-                ))}
-            </ul>
-          </>
-        ) : (
-          <p>No users found.</p>
-        )}
+                            </form>
+                          </div>
+                        ) : (
+                            <div className="flex justify-between items-center">
+                              <div className="text-center">
+                                <span className="font-bold">{user.name}</span> → {user.email}
+                              </div>
 
-        <h2 className="text-lg font-bold mb-3 mt-2 flex text-neutralDGray items-center gap-2">
-          <FaUserPlus className="h-6 w-6 text-neutralDGray" /> Add Admin
-        </h2>
-        <form className="space-y-3" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-sm -mt-1 font-medium text-neutralDGray">
-              Employee Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="mt-1 p-2 w-full border rounded-md"
-              placeholder="Enter name"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-neutralDGray">
-              Company Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="mt-1 p-2 w-full border rounded-md"
-              placeholder="Enter email"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-neutralDGray">
-              Password
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="mt-1 p-2 w-full border rounded-md"
-              placeholder="Enter password"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-neutralDGray">
-              Role
-            </label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="mt-1 mb-1 p-2 w-full border rounded-md"
-            >
-              <option value="admin">Admin</option>
-              <option value="employee">Employee</option>
-            </select>
-          </div>
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="w-[20%] bg-brandPrimary h-11 hover:bg-neutralDGray text-white py-1 px-3 rounded"
-              disabled={loading}
-            >
-              {loading ? "Adding..." : "Add "}
-            </button>
-          </div>
-        </form>
+                              <div className="flex gap-1 items-center">
+                                <button
+                                  onClick={() => startEdit(user)}
+                                  className="bg-green-500 hover:bg-green-900 border w-14 h-8 text-white px-3 rounded flex items-center justify-center"
+                                >
+                                  Edit
+                              </button>
+
+                                <button
+                                  onClick={() => handleBlock(user.id)}
+                                  className="bg-red-500 hover:bg-red-900 border text-white w-14 h-8 px-3 rounded flex items-center justify-center"
+                                >
+                                  <MdBlock size={15} />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+
+              <div className="w-1/2">
+                {/* Blocked Users */}
+                <h4 className="mt-2 text-[14px] text-red-500 italic">Blocked Users</h4>
+                <ul className="border rounded-md bg-red-50 overflow-auto">
+                  {users
+                    .filter((user) => user.isBlocked)
+                    .map((user, index) => (
+                      <li
+                        key={index}
+                        className="py-1 px-2 text-[12px] border-b last:border-b-0 flex justify-between items-center text-red-600"
+                      >
+                        <div className="text-neutralDGray text-[12px]">
+                          <span className="font-bold">{user.name}</span> → {user.email}
+                        </div>
+
+                        <div className="items-center">
+                          <button
+                            onClick={() => handleUnblock(user.id)}
+                            className="bg-white h-8 w-20 text-[12px] text-neutralDGray hover:bg-red-500 hover:text-white border border-red-300 rounded flex items-center justify-center transition-colors duration-200"
+                          >
+                            Unblock
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                </ul>
+
+              </div>
+            </>
+          ) : (
+                <p>No users found.</p>
+              )}
+        </div>
       </div>
     </div>
   );

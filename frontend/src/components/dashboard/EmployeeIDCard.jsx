@@ -47,39 +47,86 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
     fetchEmployee();
   }, [employeeId]);
 
+  const handleImageWithBackgroundRemoval = (e, setImage) => {
+    const file = e.target.files[0];
+    if (!file) return;
+  
+    const img = new Image();
+    img.crossOrigin = "anonymous"; // for canvas usage
+    img.onload = () => {
+      // Step 1: Remove background on full image
+      const tempCanvas = document.createElement("canvas");
+      const tempCtx = tempCanvas.getContext("2d");
+      tempCanvas.width = img.width;
+      tempCanvas.height = img.height;
+      tempCtx.drawImage(img, 0, 0);
+  
+      const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      const data = imageData.data;
+  
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+  
+        // Remove light/white background pixels
+        if (r > 230 && g > 230 && b > 230) {
+          data[i + 3] = 0; // Set alpha to 0 (transparent)
+        }
+      }
+  
+      tempCtx.putImageData(imageData, 0, 0);
+  
+      // Step 2: Scale to 192x192 px (2in x 2in @ 96dpi)
+      const scaleSize = 192;
+      const scaleCanvas = document.createElement("canvas");
+      const scaleCtx = scaleCanvas.getContext("2d");
+      scaleCanvas.width = scaleSize;
+      scaleCanvas.height = scaleSize;
+  
+      // Clear and draw scaled image on the scaleCanvas
+      scaleCtx.clearRect(0, 0, scaleSize, scaleSize);
+      scaleCtx.drawImage(tempCanvas, 0, 0, img.width, img.height, 0, 0, scaleSize, scaleSize);
+  
+      // Convert scaled canvas to blob then file
+      scaleCanvas.toBlob((blob) => {
+        const bgRemovedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".png"), { type: "image/png" });
+        setImage(bgRemovedFile);
+      }, "image/png");
+    };
+  
+    img.src = URL.createObjectURL(file);
+  };
+  
+
   const handleDownload = async () => {
     if (!employee || !idCardRef.current) return;
   
-    console.log("Generating PDF for:", employee);
-    console.log("Profile Image URL:", profileImage);
-    console.log("Signature URL:", signature);
-  
     try {
-      const dataUrl = await toPng(idCardRef.current, { cacheBust: true });
-  
-      // Initialize PDF with Legal size (8.5 x 14 inches)
-      const pdf = new jsPDF({
-        orientation: "portrait", // Use "landscape" if needed
-        unit: "in", // Set to inches
-        format: "legal" // Legal paper size (8.5 x 14 inches)
+      // Increase pixelRatio for higher resolution capture
+      const dataUrl = await toPng(idCardRef.current, {
+        cacheBust: true,
+        pixelRatio: 3 // Higher = better quality (2–4 is common)
       });
   
-      // Get PDF dimensions (Legal size: 8.5 x 14 inches)
-      const pdfWidth = pdf.internal.pageSize.getWidth(); // 8.5 inches
-      const pdfHeight = pdf.internal.pageSize.getHeight(); // 14 inches
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "in",
+        format: "letter", // 8.5 x 11 inches
+      });
   
-      // Define ID card size in inches (8.48 cm x 5.72 cm)
-      const idCardWidth = 3.34; // 8.48 cm converted to inches
-      const idCardHeight = 2.25; // 5.72 cm converted to inches
+      // ID card dimensions in inches
+      const idCardWidth = 3.34;
+      const idCardHeight = 2.25;
   
-      // Positioning the ID card in the center of the page
-      const xPosition = (pdfWidth - idCardWidth) / 2; // Center horizontally
-      const yPosition = (pdfHeight - idCardHeight) / 2; // Center vertically
+      // Position (in inches from top-left of page)
+      const xPosition = 1;
+      const yPosition = 1;
   
-      // Add image to the PDF at a fixed size
+      // Add the high-res image
       pdf.addImage(dataUrl, "PNG", xPosition, yPosition, idCardWidth, idCardHeight);
   
-      // Save the PDF
+      // Save with filename
       pdf.save(`${employee?.name || "employee-id"}.pdf`);
     } catch (error) {
       console.error("Error generating PDF:", error);
@@ -87,7 +134,7 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
     }
   };
   
-  
+
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -97,12 +144,12 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
     e.preventDefault();
     try {
       const formDataObj = new FormData();
-  
+
       // Append text fields
       Object.keys(formData).forEach((key) => {
         formDataObj.append(key, formData[key]);
       });
-  
+
       // Append images
       if (image1) {
         formDataObj.append("profileImage", image1);
@@ -110,23 +157,23 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
       if (image2) {
         formDataObj.append("esignature", image2);
       }
-  
+
       // Debugging: Log FormData
       for (let [key, value] of formDataObj.entries()) {
         console.log(`${key}:`, value);
       }
-  
+
       const response = await axios.put(
         `${import.meta.env.VITE_API_URL}/api/employee/update-details/${employeeId}`,
         formDataObj,
         {
-          headers: { 
+          headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
             "Content-Type": "multipart/form-data"
           },
         }
       );
-  
+
       if (response.data.success) {
         setEmployee((prev) => ({ ...prev, ...response.data.employee }));
 
@@ -162,102 +209,102 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
     }
     return `${import.meta.env.VITE_API_URL}/uploads/${imagePath}`;
   };
-  
+
 
   const profileImage = getProfileImageUrl(employee.profileImage);
   const signature = getProfileImageUrl(employee.esignature);
-  
+
 
   return (
     <>
-      <Modal show={show} onHide={handleClose} centered size="xl" scrollable>
-        <Modal.Header closeButton>
-          <Modal.Title>Employee ID Card</Modal.Title>
+      <Modal show={show} onHide={handleClose} centered size="lg" scrollable>
+        <Modal.Header className="py-2 px-3 text-[12px]" closeButton>
+          <Modal.Title as="h6" className="text-lg">Employee ID Card</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <div className="id-container"  ref={idCardRef}>
+          <div className="id-container" ref={idCardRef}>
             <div className="id-front">
-                <div className="id-header">
-                    <div className="id-header-left">
-                        <img src={logo} alt="logo" className="id-logo" />
-                    </div>
-                    <div className="id-header-right">
-                        <h1 className="id-title">St.JohnMajore</h1>
-                        <p className="id-subtitle">#8 De Villa St., Poblacion, San Juan, Batangas</p>
-                    </div>
+              <div className="id-header">
+                <div className="id-header-left">
+                  <img src={logo} alt="logo" className="id-logo" />
                 </div>
-                <div className="id-content">
-                    <div className="user-img">
-                        <img src={profileImage} alt="user" className="user-img" />
-                    </div>
-                    <div className="user-info">
-                        <p className="user-id">ID NO. {employee.ecode}</p>
-                        <p className="user-name">{employee.name || "No Name Available"}</p>
-                        <p className="user-position">{employee.positiontitle}</p>
-                    </div>
-                    <div className="user-signature">
-                        <img src={signature} alt="user" className="user-img" />
-                    </div>
-                    <div className="user-signature">Signature</div>
+                <div className="id-header-right">
+                  <h1 className="id-title">St.JohnMajore</h1>
+                  <p className="id-subtitle">#8 De Villa St., Poblacion, San Juan, Batangas</p>
                 </div>
+              </div>
+              <div className="id-content">
+                <div className="user-img">
+                  <img src={profileImage} alt="user" className="user-img" />
+                </div>
+                <div className="user-info">
+                  <p className="user-id">ID NO. {employee.ecode}</p>
+                  <p className="user-name">{employee.name || "No Name Available"}</p>
+                  <p className="user-position">{employee.positiontitle}</p>
+                </div>
+                <div>
+                  <img src={signature} alt="user" className="user-sig" />
+                </div>
+                <div className="user-signature">Signature</div>
+              </div>
             </div>
 
             <div className="id-back">
-                <div className="id-content-back">
-                    <div className="user-info-back">
-                        <p className="address">{employee.address}</p>
-                        <p className="sss">SSS: {employee.sss}</p>
-                        <p className="tin">TIN: {employee.tin}</p>
-                        <p className="philhealth">PHILHEALTH: {employee.philhealth}</p>
-                        <p className="pagibig">PAGIBIG: {employee.pagibig}</p>
-                        <p className="bday">DATE OF BIRTH: {formattedDOB}</p>
-                    </div>
-                    <div className="emergency">
-                        <p className="emergency-title">In case of emergency, please notify:</p>
-                        <p className="emergency-name">{employee.contact_name || "No name available"}</p>
-                        <p className="emergency-contact">{employee.contact_number || "No contact available"}</p>
-                        <p className="emergency-address">{employee.contact_address || "No address avaible"}</p>
-                    </div>
-                    <div className="hr">
-                      <img src={hr_signature} alt="HR Signature" className="hr-signature" />
-                      <p className="hr-name">MIA MARY SORA</p>
-                      <p className="hr-title">Human Resources Department Head</p>
-                    </div>
+              <div className="id-content-back">
+                <div className="user-info-back">
+                  <p className="address">{employee.address}</p>
+                  <p className="sss">SSS: {employee.sss}</p>
+                  <p className="tin">TIN: {employee.tin}</p>
+                  <p className="philhealth">PHILHEALTH: {employee.philhealth}</p>
+                  <p className="pagibig">PAGIBIG: {employee.pagibig}</p>
+                  <p className="bday">DATE OF BIRTH: {formattedDOB}</p>
                 </div>
-                <div className="id-footer">
-                    <div className="id-footer-left">
-                        <img src={logo} alt="logo" className="footer-logo" />
-                    </div>
-                    <div className="id-footer-right">
-                        <p className="footer-title">St.JohnMajore Services Company Inc.</p>
-                        <p className="footer-subtitle">#8 De Villa St., Poblacion, San Juan, Batangas</p>
-                        <p className="contact">+043 5755675 | 0917 1851909</p>
-                        <p className="email">sjmajore@gmail.com</p>
-                    </div>
+                <div className="emergency">
+                  <p className="emergency-title">In case of emergency, please notify:</p>
+                  <p className="emergency-name">{employee.contact_name || "No name available"}</p>
+                  <p className="emergency-contact">{employee.contact_number || "No contact available"}</p>
+                  <p className="emergency-address">{employee.contact_address || "No address avaible"}</p>
                 </div>
+                <div className="hr">
+                  <img src={hr_signature} alt="HR Signature" className="hr-signature" />
+                  <p className="hr-name">MIA MARY SORA</p>
+                  <p className="hr-title">Human Resources Department Head</p>
+                </div>
+              </div>
+              <div className="id-footer">
+                <div className="id-footer-left">
+                  <img src={logo} alt="logo" className="footer-logo" />
+                </div>
+                <div className="id-footer-right">
+                  <p className="footer-title">St.JohnMajore Services Company Inc.</p>
+                  <p className="footer-subtitle">#8 De Villa St., Poblacion, San Juan, Batangas</p>
+                  <p className="contact">+043 5755675 | 0917 1851909</p>
+                  <p className="email">sjmajore@gmail.com</p>
+                </div>
+              </div>
             </div>
-        </div>
+          </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleClose}>Close</Button>
-          <Button variant="primary" onClick={handleDownload}>Download PDF</Button>
-          <Button
+          <button variant="primary" className="px-4 py-2 w-40 h-8 border flex justify-center text-sm items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all" onClick={handleDownload}>Download PDF</button>
+          <button
+            className="px-4 py-2 w-36 h-8 border flex justify-center text-sm items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
             variant="primary"
             onClick={() => {
               setFormData({
-                sss: employee?.sss || "",
-                tin: employee?.tin || "",
-                philhealth: employee?.philhealth || "",
-                pagibig: employee?.pagibig || "",
-                contact_name: employee?.contact_name || "",
-                contact_number: employee?.contact_number || "",
-                contact_address: employee?.contact_address || "",
+                sss: employee ?.sss || "",
+                tin: employee ?.tin || "",
+                philhealth: employee ?.philhealth || "",
+                pagibig: employee ?.pagibig || "",
+                contact_name: employee ?.contact_name || "",
+                contact_number: employee ?.contact_number || "",
+                contact_address: employee ?.contact_address || "",
               });
               setShowDetailsModal(true);
             }}
           >
             Edit Details
-          </Button>
+          </button>
 
         </Modal.Footer>
       </Modal>
@@ -299,22 +346,32 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
             </Form.Group>
             <Form.Group>
               <Form.Label>Profile Image</Form.Label>
-              <Form.Control type="file" accept="image/*" onChange={(e) => handleImageChange(e, setImage1)} />
+              <Form.Control
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageWithBackgroundRemoval(e, setImage1)}
+              />
+
             </Form.Group>
             <Form.Group>
               <Form.Label>E signature</Form.Label>
-              <Form.Control type="file" accept="image/*" onChange={(e) => handleImageChange(e, setImage2)} />
+              <Form.Control
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageWithBackgroundRemoval(e, setImage2)}
+              />
+
             </Form.Group>
             {image1 && <img src={URL.createObjectURL(image1)} alt="Preview" className="preview-image" />}
             {image2 && <img src={URL.createObjectURL(image2)} alt="Preview" className="preview-image" />}
           </Form>
-       
+
 
 
         </Modal.Body>
         <Modal.Footer>
           <Button variant="primary" type="submit" onClick={handleSubmit}>
-              Save Changes
+            Save Changes
             </Button>
           <Button variant="secondary" onClick={() => setShowDetailsModal(false)}>Cancel</Button>
         </Modal.Footer>

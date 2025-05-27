@@ -3,7 +3,7 @@ import axios from "axios";
 import DataTable from "react-data-table-component";
 import { FaSearch } from "react-icons/fa";
 import { FaUpRightFromSquare } from "react-icons/fa6";
-import {Modal, Button} from "react-bootstrap";
+import { Modal, Button } from "react-bootstrap";
 
 const ConnectMessages = () => {
   const [messages, setMessages] = useState([]);
@@ -11,7 +11,6 @@ const ConnectMessages = () => {
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
-
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -70,21 +69,45 @@ const ConnectMessages = () => {
     setSelectedMessage(message); // Store the entire message object
     setShow(true);
   };
-  
+
 
   const handleClose = () => {
     setShow(false);
     setSelectedMessage(null);
   };
 
+  const customStyles = {
+    headCells: {
+      style: {
+        backgroundColor: '#f9fafb',
+        fontSize: '13px',
+        fontWeight: '600',
+        color: '#374151',
+        padding: '8px',
+      },
+    },
+    rows: {
+      style: {
+        fontSize: '13px',
+        color: '#4B5563',
+        minHeight: '40px',
+        borderBottom: '1px solid #e5e7eb',
+      },
+    },
+    cells: {
+      style: {
+        padding: '8px',
+      },
+    },
+  };
 
   return (
-    
+
     <div className="p-6">
       <div className="text-center">
         <h3 className="text-lg -mt-4 font-semibold">Website Inquiry Messages</h3>
       </div>
-      <div className="flex justify-end items-center -mt-3 gap-3">
+      <div className="flex justify-end items-center -mt-5 gap-3">
         <div className="flex rounded items-center">
           <input
             type="text"
@@ -95,8 +118,8 @@ const ConnectMessages = () => {
           <FaSearch className="ml-[-20px] text-neutralDGray" />
         </div>
       </div>
-      <hr className="mt-3" />
-      <div className="mt-2 overflow-auto">
+      <hr className="mt-2" />
+      <div className="mt-2 overflow-auto rounded-md border">
         <DataTable
           columns={[
             {
@@ -120,45 +143,64 @@ const ConnectMessages = () => {
             { name: "Time sent", selector: (row) => row.createdAt },
             {
               name: "Action",
+              width: '60px',
               cell: (row) => (
                 <button
-                  onClick={() => handleOpenModal(row)} // Pass the full row object
+                  onClick={() => handleOpenModal(row)}
                   title="View Inquiry"
-                  className="px-3 py-0.5 w-auto h-8 border text-neutralDGray hover:bg-neutralSilver rounded flex items-center disabled:opacity-50"
+                  className="px-2 py-1 h-8 border text-neutralDGray hover:bg-neutralSilver rounded flex items-center justify-center disabled:opacity-50"
                 >
                   <FaUpRightFromSquare />
                 </button>
               ),
-            },
-            
+            }
           ]}
           data={messages}
-          progressPending={loading} // To show loading indicator
+          progressPending={loading}
+          customStyles={customStyles}
+          pagination
+          responsive
+          highlightOnHover
+          striped
         />
       </div>
-      <Modal show={show} onHide={handleClose} centered size="xl" scrollable>
-        <Modal.Header closeButton>
-          <Modal.Title>Inquiry Message</Modal.Title>
+      <Modal show={show} onHide={handleClose} centered size="lg" scrollable>
+        <Modal.Header className="py-2 px-3 text-[12px]" closeButton>
+          <Modal.Title as="h6" className="text-lg">
+            Inquiry Message
+        </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+
+        <Modal.Body className="pt-3 pb-4 px-4">
           <div className="flex justify-center">
-            <div className="w-full max-w-3xl bg-white p-6 border border-gray-300 rounded-md shadow-md min-h-[500px]">
-              <p className="text-left text-md font-bold mb-4">Sender Details:</p>
-              <p className="-mt-5 text-sm ml-5 text-neutralDGray"><span className="font-semibold">Name:</span> {selectedMessage?.firstname} {selectedMessage?.surname}</p>
-              <p className="-mt-4 text-sm ml-5 text-neutralDGray"><span className="font-semibold">Sender Type:</span> {selectedMessage?.type}</p>
-              <p className="-mt-4 text-sm ml-5 text-neutralDGray"><span className="font-semibold">Email:</span> {selectedMessage?.email}</p>
-              <p className="-mt-4 text-sm ml-5 text-neutralDGray"><span className="font-semibold">Phone:</span> {selectedMessage?.phone}</p>
-              <p className="-mt-4 text-sm ml-5 text-neutralDGray"><span className="font-semibold">Inquired About:</span>: {selectedMessage?.services}</p>
-              <hr/>
-              <p className="mt-3 font-semibold">Message</p>
-              <p className="text-justify ml-5 -mt-3 text-neutralDGray text-sm whitespace-pre-wrap">
-                {selectedMessage?.message || "No message available"}
-              </p>
+            <div className="w-full max-w-3xl bg-white p-6 border border-gray-300 rounded-md shadow-md min-h-[500px] flex flex-col">
+              {/* Sender Details */}
+              <div>
+                <p className="text-left text-base mb-4">Sender Details:</p>
+                <p className="-mt-5 text-sm ml-5 text-neutralDGray">
+                  <span >Name:</span> {selectedMessage ?.firstname}{" "}
+                  {selectedMessage ?.surname}
+                </p>
+                <p className="-mt-4 text-sm ml-5 text-neutralDGray">
+                  <span >Sender Type:</span> {selectedMessage ?.type}
+                </p>
+                <p className="-mt-4 text-sm ml-5 text-neutralDGray">
+                  <span >Email:</span> {selectedMessage ?.email}
+                </p>
+                <p className="-mt-4 text-sm ml-5 text-neutralDGray">
+                  <span >Phone:</span> {selectedMessage ?.phone}
+                </p>
+                <p className="-mt-4 text-sm ml-5 text-neutralDGray">
+                  <span >Inquired About:</span> {selectedMessage ?.services}
+                </p>
+                <hr />
+                <p className="text-justify ml-5 mt-3 text-neutralDGray text-sm whitespace-pre-wrap">
+                  {selectedMessage ?.message || "No message available"}
+                </p>
+              </div>
             </div>
           </div>
         </Modal.Body>
-        <Modal.Footer>
-        </Modal.Footer>
       </Modal>
 
     </div>
