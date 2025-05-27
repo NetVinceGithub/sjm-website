@@ -15,7 +15,7 @@ import {
   requestPayrollChange,
   reviewPayrollChange,
   rejectPayrollChange,
-  approvePayrollChange
+  approvePayrollChange,
 } from "../controllers/employeeController.js";
 
 const router = express.Router();
@@ -26,7 +26,7 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure Multer (Define upload inside employee.js)
+// Configure Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "uploads/");
@@ -50,12 +50,10 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-// Employee Routes - ORDER MATTERS!
-// Put specific routes BEFORE parameterized routes
+// SPECIFIC ROUTES FIRST (most specific to least specific)
 
 // Import and basic employee routes
 router.get("/import", importEmployeesFromGoogleSheet);
-router.get("/", getEmployees);
 router.get("/status", getEmployeeStatus);
 
 // Payroll information routes
@@ -63,9 +61,17 @@ router.get("/payroll-informations", getPayrollInformations);
 router.get("/payroll-informations/:id", getPayrollInformationsById);
 router.put("/payroll-informations/:id", updatePayrollInformation);
 
-// Payroll change request routes - MOVED BEFORE /:id route
+// Payroll change request routes - VERY SPECIFIC ROUTES FIRST
 router.post("/payroll-change-requests", requestPayrollChange);
-router.get("/payroll-change-requests", reviewPayrollChange); // Changed from /all-payroll-change-requests
+router.get("/payroll-change-requests", reviewPayrollChange);
+
+// Approval/Rejection routes - THESE NEED TO BE BEFORE /:id
+router.post("/approve-payroll-change/:id", approvePayrollChange);
+router.post("/reject-payroll-change/:id", rejectPayrollChange);
+
+// Bulk operations (if you have them)
+// router.post("/bulk-approve-payroll-changes", bulkApprovePayrollChanges);
+// router.post("/bulk-reject-payroll-changes", bulkRejectPayrollChanges);
 
 // Employee status and update routes
 router.put("/toggle-status/:id", toggleEmployeeStatus);
@@ -74,10 +80,8 @@ router.put("/update-details/:id", upload.fields([
   { name: "esignature", maxCount: 1 }
 ]), updateIDDetails);
 
-// Generic employee by ID route - MUST BE LAST
-router.get("/:id", getEmployee);
-
-router.post("/reject-payroll-change/:id", rejectPayrollChange);
-router.post("/approve-payroll-change/:id", approvePayrollChange);
+// GENERIC ROUTES LAST
+router.get("/", getEmployees); // This should be after specific routes
+router.get("/:id", getEmployee); // This MUST be the very last route
 
 export default router;
