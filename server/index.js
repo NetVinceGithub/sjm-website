@@ -18,7 +18,7 @@ PayrollInformation.belongsTo(Employee, { foreignKey: "employee_id" });
 
 // Sync Database
 // Sync Database
-sequelize.sync({ force: true })
+sequelize.sync({ alter: true })
   .then(() => {
     console.log("✅ MySQL Database Synced");
     return userRegister(); // Call it here, after sync is done
