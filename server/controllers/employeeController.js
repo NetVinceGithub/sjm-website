@@ -279,8 +279,6 @@ export const toggleEmployeeStatus = async (req, res) => {
   }
 };
 
-
-
 export const approvePayrollChange = async (req, res) => {
   const { id } = req.params;
   const { reviewed_by } = req.body;
