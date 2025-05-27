@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FaClipboardCheck, FaCheck, FaTimes, FaEye } from "react-icons/fa";
 import { FaPenRuler } from "react-icons/fa6";
+import { notifyPayrollRequests } from "../../utils/toastHelpers"
+import { notifyChangeRequests } from "../../utils/toastHelper2"
 
 const Requests = () => {
   const [requests, setRequests] = useState([]);
@@ -25,6 +27,7 @@ const Requests = () => {
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
         console.log(response.data);
         setRequests(response.data);
+        notifyPayrollRequests(response.data);
       } catch (error) {
         console.error("Error fetching payroll requests:", error);
       } finally {
@@ -45,6 +48,7 @@ const Requests = () => {
             (req) => !["approved", "rejected"].includes(req.status.toLowerCase())
           );
           setChangesRequests(filteredRequests);
+          notifyChangeRequests(filteredRequests);
         } else {
           console.error("Failed to fetch change requests:", response.data);
           setChangesRequests([]);

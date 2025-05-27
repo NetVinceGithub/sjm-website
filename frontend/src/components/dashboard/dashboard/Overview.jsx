@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import DataTable from "react-data-table-component";
+import { notifyPayrollRequests } from '../../../utils/toastHelpers';
+import { notifyChangeRequests } from '../../../utils/toastHelper2';
 import {
   FaUsers,
   FaCashRegister,
@@ -27,6 +29,49 @@ const Overview = () => {
   const [showTitleInput, setShowTitleInput] = useState(false);
   const [editingIndex, setEditingIndex] = useState(-1);
   const [holidaySummary, setHolidaySummary] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [changesRequests, setChangesRequests] = useState([]);
+  const [loadingChanges, setLoadingChanges] = useState(false);
+
+  const fetchRequests = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
+      console.log(response.data);
+      setRequests(response.data);
+      notifyPayrollRequests(response.data);
+    } catch (error) {
+      console.error("Error fetching payroll requests:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchChangeRequests = async () => {
+    try {
+      setLoadingChanges(true);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/employee/payroll-change-requests`
+      );
+      console.log("Change requests response:", response.data);
+
+      if (response.data.success) {
+        const filteredRequests = (response.data.data || []).filter(
+          (req) => !["approved", "rejected"].includes(req.status.toLowerCase())
+        );
+        setChangesRequests(filteredRequests);
+        notifyChangeRequests(filteredRequests);
+      } else {
+        console.error("Failed to fetch change requests:", response.data);
+        setChangesRequests([]);
+      }
+    } catch (error) {
+      console.error("Error fetching change requests:", error);
+      setChangesRequests([]);
+    } finally {
+      setLoadingChanges(false);
+    }
+  };
 
   useEffect(() => {
     const fetchPayslips = async () => {
@@ -40,6 +85,8 @@ const Overview = () => {
       }
     };
 
+    fetchChangeRequests();
+    fetchRequests();
     fetchPayslips();
   }, []);
 
