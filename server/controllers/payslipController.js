@@ -227,7 +227,7 @@ export const sendPayslips = async (req, res) => {
                         <div style="min-height: 100px; width: auto; background-color: #bbe394; padding: 10px;">
                           <div style="display: block;">
                             <h6 style="font-weight: bold; font-size: 14px; text-align: center; margin-bottom: 2px;">
-                              Mia Mary Sora
+                              Pat Pineda
                             </h6>
                             <p style="margin-top: 0; font-size: 12px; text-align: center;">
                               Human Resource Head

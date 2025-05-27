@@ -235,8 +235,7 @@ const List = () => {
         backgroundColor: "#fff",
         color: "#333",
         fontWeight: "bold",
-        fontSize: "14px", // text-sm
-        justifyContent: "center",
+        fontSize: "13px", // text-sm
         display: "flex",
         alignItems: "center",
         padding: "4px 8px",
@@ -244,11 +243,10 @@ const List = () => {
     },
     cells: {
       style: {
-        fontSize: "14px", // text-sm
+        fontSize: "12px", // text-sm
         padding: "4px 8px",
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
         height: "100%", // ensures it fills the row height
       },
     },
@@ -267,50 +265,141 @@ const List = () => {
           onError={(e) => (e.target.src = defaultProfile)}
         />
       ),
-      width: "80px",
+      width: "60px",
       center: true,
     },
     {
       name: "Ecode",
       selector: (row) => row.ecode,
       sortable: true,
-      width: "110px",
+      width: "80px",
     },
     {
       name: "Name",
       selector: (row) => row.name,
       sortable: true,
-      width: "200px",
+      width: "190px",
     },
     {
-      name: "Position",
+      name: "Last Name",
+      selector: (row) => row.lastname,
+      sortable: true,
+      width: "100px",
+    },
+    {
+      name: "First Name",
+      selector: (row) => row.firstname,
+      sortable: true,
+      width: "110px",
+    },
+    {
+      name: "Middle Name",
+      selector: (row) => row.middlename,
+      sortable: true,
+      width: "120px",
+    },
+    {
+      name: "Position Title",
       selector: (row) => row.positiontitle,
       sortable: true,
       width: "350px",
     },
     {
-      name: "Project Site - Department Area",
-      selector: (row) => row['area/section'] || "N/A",
+      name: "Department",
+      selector: (row) => row.department,
       sortable: true,
       width: "190px",
     },
     {
-      name: "Attended Training and Seminar",
+      name: "Area/Section",
+      selector: (row) => row['area/section'] || "N/A",
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Date of Hire",
+      selector: (row) => row.dateofhire,
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Tenurity to Client",
+      selector: (row) => row['tenuritytoclient(inmonths)'] || "N/A",
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Employment Status",
+      selector: (row) => row.employmentstatus,
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Civil Status",
+      selector: (row) => row.civilstatus,
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Sex",
+      selector: (row) => row.gender,
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Birthdate",
+      selector: (row) => row.birthdate,
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Age",
+      sortable: true,
+      selector: (row) => row.age,
+      width: "200px",
+    },
+    {
+      name: "Contact No.",
+      selector: (row) => row.contactno,
+      sortable: true,
+      width: "100px",
+    },
+    {
+      name: "Permanent Address",
+      selector: (row) => row.permanentaddress || "N/A",
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Current Address",
+      selector: (row) => row.address || "N/A",
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Email Address",
+      selector: (row) => row.emailaddress || "N/A",
+
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Last Attended (T/S)",
       selector: (row) => row.attendedtrainingandseminar,
       sortable: true,
-      width: "350px",
+      width: "160px",
     },
     {
       name: "Date of Separation",
       selector: (row) => row.dateofseparation,
       sortable: true,
-      width: "350px",
+      width: "150px",
     },
     {
       name: "Medical",
       selector: (row) => row.medical,
       sortable: true,
-      width: "350px",
+      width: "150px",
     },
     {
       name: "Options",

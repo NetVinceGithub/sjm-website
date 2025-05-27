@@ -267,7 +267,7 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
                 </div>
                 <div className="hr">
                   <img src={hr_signature} alt="HR Signature" className="hr-signature" />
-                  <p className="hr-name">MIA MARY SORA</p>
+                  <p className="hr-name">PAT PINEDA</p>
                   <p className="hr-title">Human Resources Department Head</p>
                 </div>
               </div>

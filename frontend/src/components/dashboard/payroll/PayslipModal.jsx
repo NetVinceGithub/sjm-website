@@ -226,7 +226,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
               <div className="footer">
                 <div className="block">
                   <h6 className="font-bold text-[14px] text-center">
-                    Mia Mary Sora
+                    Pat Pineda
                   </h6>
                   <p className="-mt-3 text-[12px] text-center">
                     Human Resource Head
