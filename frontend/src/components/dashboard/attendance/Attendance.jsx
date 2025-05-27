@@ -4,6 +4,7 @@ import Breadcrumb from "../dashboard/Breadcrumb";
 import DataTable from "react-data-table-component";
 import { Modal, Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { toast } from 'react-toastify';
 
 const Attendance = () => {
   const [attendanceData, setAttendanceData] = useState([]);
@@ -148,7 +149,19 @@ const Attendance = () => {
       const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
       if (jsonData.length <= 1) {
-        alert("The file is empty or improperly formatted.");
+        toast.error(
+          <div style={{ fontSize: '0.9rem'}}>
+           The file is empty or improperly formatted.
+          </div>,
+          {
+            autoClose: 3000,        // auto close after 3 seconds
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",  // position of the toast
+          }
+        );
         return;
       }
 

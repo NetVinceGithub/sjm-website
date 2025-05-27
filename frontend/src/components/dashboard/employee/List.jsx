@@ -5,7 +5,6 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import defaultProfile from "../../../../src/assets/default-profile.png"; // Adjust path as needed
-
 // import { EmployeeButtons } from "../../../utils/EmployeeHelper";
 import { FaSearch, FaSyncAlt, FaIdCard } from "react-icons/fa";
 import EmployeeIDCard from "../EmployeeIDCard";
@@ -14,6 +13,7 @@ import { FaPrint, FaRegFileExcel, FaRegFilePdf } from "react-icons/fa6";
 import { FaEnvelope, FaMinusSquare } from "react-icons/fa";
 import BlockEmployeeModal from "../modals/BlockEmployeeModal";
 import UnBlockEmployeeModal from "../modals/UnblockEmployeeModal";
+import { toast } from 'react-toastify';
 
 const List = () => {
   const [employees, setEmployees] = useState([]);
@@ -39,6 +39,9 @@ const List = () => {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee`);
       if (response.data.success) {
         setEmployees(response.data.employees);
+        notifyBirthdays(response.data.employees);
+        notifyTrainingExpiring(response.data.employees);
+        notifyMedicalExpiring(response.data.employees);
         setFilteredEmployees(response.data.employees);
       }
     } catch (error) {
@@ -405,7 +408,7 @@ const List = () => {
       cell: (row) => {
         const dateStr = row.attendedtrainingandseminar;
         const expiring = isTrainingExpiringSoon(dateStr);
-    
+
         return (
           <div style={{
             backgroundColor: expiring ? "#ff5e58" : "transparent",
@@ -419,7 +422,7 @@ const List = () => {
           </div>
         );
       },
-    },    
+    },
     {
       name: "Date of Separation",
       selector: (row) => row.dateofseparation || "N/A",
@@ -442,8 +445,8 @@ const List = () => {
             color: expiringMed ? "#333" : "inherit",
             fontWeight: expiringMed ? "bold" : "normal",
           }}>
-          {medStr || "N/A"}{""}
-          {expiringMed && <span style={{ color: "red"}}>⚕️</span>}
+            {medStr || "N/A"}{""}
+            {expiringMed && <span style={{ color: "red" }}>⚕️</span>}
           </div>
         )
       }
@@ -494,24 +497,24 @@ const List = () => {
   const isBirthdayApproaching = (birthdate, daysAhead = 7) => {
     const today = new Date();
     const currentYear = today.getFullYear();
-  
+
     const birthdayThisYear = new Date(birthdate);
     birthdayThisYear.setFullYear(currentYear);
-  
+
     const diff = (birthdayThisYear - today) / (1000 * 60 * 60 * 24);
-  
+
     return diff >= 0 && diff <= daysAhead;
   };
-    
+
   const isTrainingExpiringSoon = (attendedtrainingandseminar, daysAhead = 30) => {
     const today = new Date();
     const currentYear = today.getFullYear();
 
-    const attendedDate = new Date(attendedtrainingandseminar); 
+    const attendedDate = new Date(attendedtrainingandseminar);
     attendedDate.setFullYear(currentYear);
-  
+
     const diff = (attendedDate - today) / (1000 * 60 * 60 * 24);
-  
+
     return diff >= 0 && diff <= daysAhead;
   };
 
@@ -526,7 +529,59 @@ const List = () => {
 
     return diff >= 0 && diff <= daysAhead;
   };
-  
+
+  // Toast notification functions
+  const notifyBirthdays = (people) => {
+    const count = people.filter(p => isBirthdayApproaching(p.birthdate)).length;
+    if (count > 0) {
+      toast.info(
+        <div style={{ fontSize: '0.9rem' }}>
+           {count} {count > 1 ? 'people have' : 'person has'} their birthday{count > 1 ? 's' : ''} approaching soon. 
+        </div>,
+        {
+          autoClose: 5000,
+          closeButton: false,
+          position: 'top-right',
+        }
+      );
+      
+    }
+  };
+
+  const notifyTrainingExpiring = (people) => {
+    const count = people.filter(p => isTrainingExpiringSoon(p.attendedtrainingandseminar)).length;
+    if (count > 0) {
+      toast.warning(
+        <div style={{ fontSize: '0.9rem' }}>
+          {count} training{count > 1 ? 's are' : ' is'} expiring soon.
+        </div>,
+        {
+          autoClose: 5000,
+          closeButton: false,
+          position: 'top-right',
+        }
+      );
+      
+    }
+  };
+
+  const notifyMedicalExpiring = (people) => {
+    const count = people.filter(p => isMedicalExpiringSoon(p.medical)).length;
+    if (count > 0) {
+      toast.error(
+        <div style={{ fontSize: '0.9rem' }}>
+           {count} medical{count > 1 ? 's are' : ' is'} expiring soon.
+        </div>,
+        {
+          autoClose: 5000,
+          closeButton: false,
+          position: 'top-right',
+        }
+      );
+      
+    }
+  };
+
   return (
     <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
       <Breadcrumb

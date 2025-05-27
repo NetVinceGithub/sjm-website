@@ -12,6 +12,7 @@ import PayslipModal from "../payroll/PayslipModal";
 import NoAttendanceModal from "../modals/NoAttendanceModal";
 import * as XLSX from "xlsx";
 import { Modal, Button } from "react-bootstrap";
+import { toast } from 'react-toastify';
 
 const PayrollSummary = () => {
   const [payslips, setPayslips] = useState([]);
@@ -262,23 +263,50 @@ const PayrollSummary = () => {
           setNoAttendanceModalOpen(true);
         } else {
           setPayslips(response.data.payslips);
-          setMessage("✅ Payroll successfully generated!");
+          toast.success(
+            <div style={{ fontSize: '0.9rem'}}>
+             Payroll successfully generated.
+            </div>,
+            {
+              autoClose: 3000,        // auto close after 3 seconds
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              closeButton: false,
+              position: "top-right",  // position of the toast
+            }
+          );
           setShow(false);
         }
       } else {
-        setMessage(
-          `❌ Failed to generate payroll: ${
-          response.data.message || "Unknown error"
-          }`
+        toast.error(
+          <div style={{ fontSize: '0.9rem'}}>
+           Failed to generate payroll: {response?.data?.message || "Unknown error"}
+          </div>,
+          {
+            autoClose: 3000,        // auto close after 3 seconds
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",  // position of the toast
+          }
         );
       }
     } catch (error) {
       console.error("❌ Full error response:", error.response ?.data || error);
-      setMessage(
-        `❌ ${
-        error.response ?.data ?.message ||
-          "An error occurred while generating payroll."
-        }`
+      toast.error(
+        <div style={{ fontSize: '0.9rem'}}>
+         {error?.response?.data?.message || "An error occurred while generating payroll."}
+        </div>,
+        {
+          autoClose: 3000,        // auto close after 3 seconds
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          closeButton: false,
+          position: "top-right",  // position of the toast
+        }
       );
     } finally {
       setLoading(false);
@@ -313,13 +341,49 @@ const PayrollSummary = () => {
       );
 
       if (response.data.success) {
-        setMessage("✅ Payroll release request sent to Admin!");
+        toast.success(
+          <div style={{ fontSize: '0.9rem'}}>
+           Payroll release request sent to Admin!
+          </div>,
+          {
+            autoClose: 3000,        // auto close after 3 seconds
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",  // position of the toast
+          }
+        );
       } else {
-        setMessage("❌ Failed to send request.");
+        toast.error(
+          <div style={{ fontSize: '0.9rem'}}>
+           Failed to send request.
+          </div>,
+          {
+            autoClose: 3000,        // auto close after 3 seconds
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",  // position of the toast
+          }
+        );
       }
     } catch (error) {
       console.error("Error sending request:", error);
-      setMessage("❌ An error occurred while sending the request.");
+      toast.error(
+        <div style={{ fontSize: '0.9rem'}}>
+         An error occurred while sending the request.
+        </div>,
+        {
+          autoClose: 3000,        // auto close after 3 seconds
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          closeButton: false,
+          position: "top-right",  // position of the toast
+        }
+      );
     } finally {
       setSending(false);
     }

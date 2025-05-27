@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import DataTable from "react-data-table-component";
 import { notifyPayrollRequests } from '../../../utils/toastHelpers';
 import { notifyChangeRequests } from '../../../utils/toastHelper2';
+import { toast } from 'react-toastify';
 import {
   FaUsers,
   FaCashRegister,
@@ -169,7 +170,19 @@ const Overview = () => {
 
   const handleCreatePayroll = async () => {
     if (!cutoffDate) {
-      alert("Please select a cutoff date!");
+      toast.info(
+        <div style={{ fontSize: '0.9rem'}}>
+          Please select a cutoff date.
+        </div>,
+        {
+          autoClose: 3000,        // auto close after 3 seconds
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          closeButton: false,
+          position: "top-right",  // position of the toast
+        }
+      );;
       return;
     }
 
