@@ -532,7 +532,7 @@ const Attendance = () => {
 
   return (
     <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
-      <div >
+      <div className=" h-[calc(100vh-150px)]">
         <Breadcrumb
           items={[
             { label: "Attendance", href: "" },
@@ -564,11 +564,11 @@ const Attendance = () => {
         </div>
 
         <div className="p-2 -mt-3 rounded border bg-white shadow-sm border-neutralDGray">
-          <h2 className="text-lg font-semibold text-neutralDGray mb-2">
+          <h2 className="text-base text-neutralDGray mb-2">
             Upload Attendance File
           </h2>
           <div className="flex items-center justify-between border border-neutralDGray rounded-md p-2 bg-slate-50">
-            <label className="px-4 py-2 bg-brandPrimary hover:bg-neutralDGray text-white rounded-md cursor-pointer">
+            <label className="px-4 text-sm py-2 bg-brandPrimary hover:bg-neutralDGray text-white rounded-md cursor-pointer">
               Upload File
               <input
                 type="file"
@@ -582,7 +582,7 @@ const Attendance = () => {
             </span>
             <button
               onClick={handleSubmit}
-              className="px-4 py-2 h-auto bg-brandPrimary hover:bg-neutralDGray cursor-pointer text-white rounded-md"
+              className="px-4 text-sm py-2 h-auto bg-brandPrimary hover:bg-neutralDGray cursor-pointer text-white rounded-md"
             >
               Save Attendance
             </button>
@@ -590,8 +590,8 @@ const Attendance = () => {
         </div>
         <div className="grid mt-3 grid-cols-2 gap-3">
           {/* Attendance Table */}
-          <div className="overflow-auto h-[458px] rounded border bg-white shadow-sm p-2">
-            <h2 className="text-lg font-semibold text-neutralDGray mb-2">
+          <div className="overflow-auto h-full rounded border bg-white shadow-sm p-2">
+            <h2 className="text-base italic text-neutralDGray mb-2">
               Detailed Attendance
             </h2>
             {attendanceData.length > 0 ? (
@@ -599,6 +599,7 @@ const Attendance = () => {
                 columns={attendanceColumns}
                 data={attendanceData}
                 highlightOnHover
+                pagination
               />
             ) : (
               <p className="text-center text-gray-500">
@@ -608,8 +609,8 @@ const Attendance = () => {
           </div>
 
           {/* Summary Table */}
-          <div className="overflow-auto h-[458px] rounded border bg-white shadow-sm p-2">
-            <h2 className="text-lg font-semibold text-neutralDGray mb-2">
+          <div className="overflow-auto h-full rounded border bg-white shadow-sm p-2">
+            <h2 className="text-base italic text-neutralDGray mb-2">
               Attendance Summary
             </h2>
             {summaryData.length > 0 ? (

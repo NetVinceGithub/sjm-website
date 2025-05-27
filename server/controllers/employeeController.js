@@ -15,8 +15,6 @@ const SHEET_URL = process.env.GOOGLE_SHEET_URL; // Store API Key securely in .en
 const fetchAndSaveEmployees = async () => {
   try {
     const response = await axios.get(SHEET_URL);
-    console.log("✅ Raw Google Sheets Data:", response.data);
-
     const rows = response.data.values;
     if (!rows || rows.length < 2) {
       console.log("⚠ No employee data found");
@@ -24,8 +22,6 @@ const fetchAndSaveEmployees = async () => {
     }
 
     const headers = rows[0].map(header => header.toLowerCase().replace(/\s+/g, ""));
-    console.log("✅ Headers:", headers);
-
     const validEmployees = rows.slice(1).map(row => {
       const employeeObj = {};
       headers.forEach((header, colIndex) => {
@@ -34,26 +30,43 @@ const fetchAndSaveEmployees = async () => {
       return employeeObj;
     });
 
-    console.log(`🔄 Processing ${validEmployees.length} employees...`);
+    // Get all current employee ids from your database
+    const existingEmployees = await Employee.findAll();
+    const existingEmployeeIds = existingEmployees.map(e => e.id);
 
-    // Save employees & create payroll information
+    // Track the IDs of employees in the sheet
+    const sheetEmployeeIds = [];
+
     for (const employee of validEmployees) {
-      const [savedEmployee, created] = await Employee.upsert(employee, { returning: true });
-      console.log(`✅ Employee Saved: ${savedEmployee.name || "Unknown Employee"}`);
-
-      // Check if payroll information already exists for this employee
+      // Upsert employee (insert or update)
+      // Remove duplicate upsert call here
+      await Employee.upsert(employee);
+    
+      // Then fetch employee by unique field
+      const savedEmployeeRecord = await Employee.findOne({ where: { ecode: employee.ecode } });
+      if (!savedEmployeeRecord) {
+        console.error("Failed to find employee after upsert:", employee.ecode);
+        continue; // skip this employee to avoid crash
+      }
+    
+      sheetEmployeeIds.push(savedEmployeeRecord.id);
+    
+      console.log(`✅ Employee Saved/Updated: ${savedEmployeeRecord.name || "Unknown Employee"}`);
+    
+      // Check payroll info
       const existingPayroll = await PayrollInformation.findOne({
-        where: { employee_id: savedEmployee.id }
+        where: { employee_id: savedEmployeeRecord.id }
       });
-
+    
       if (!existingPayroll) {
+        // Create payroll info if missing, including default payroll values
         await PayrollInformation.create({
-          employee_id: savedEmployee.id,
-          ecode: savedEmployee.ecode,
-          name: savedEmployee.name,
-          positiontitle: savedEmployee.positiontitle || "N/A",
-          area_section: savedEmployee.department || "N/A",
-          email: savedEmployee.emailaddress || "N/A",
+          employee_id: savedEmployeeRecord.id,
+          ecode: savedEmployeeRecord.ecode,
+          name: savedEmployeeRecord.name,
+          positiontitle: savedEmployeeRecord.positiontitle || "N/A",
+          area_section: savedEmployeeRecord.department || "N/A",
+          email: savedEmployeeRecord.emailaddress || "N/A",
           daily_rate: 520,
           overtime_pay: 81.25,
           holiday_pay: 520,
@@ -66,19 +79,39 @@ const fetchAndSaveEmployees = async () => {
           philhealth_contribution: 338,
           loan: 0,
         });
-
-        console.log(`✅ PayrollInformation Created for ${savedEmployee.ecode}`);
+      
+        console.log(`✅ PayrollInformation Created for ${savedEmployeeRecord.ecode}`);
       } else {
-        console.log(`⚠ PayrollInformation already exists for ${savedEmployee.ecode}`);
+        // Only update employee-identifying fields without resetting payroll numbers
+        await existingPayroll.update({
+          ecode: savedEmployeeRecord.ecode,
+          name: savedEmployeeRecord.name,
+          positiontitle: savedEmployeeRecord.positiontitle || "N/A",
+          area_section: savedEmployeeRecord.department || "N/A",
+          email: savedEmployeeRecord.emailaddress || "N/A",
+        });
+      
+        console.log(`🔄 PayrollInformation Updated for ${savedEmployeeRecord.ecode}`);
       }
+      
+    }
+    
+
+    // OPTIONAL: Remove employees not in the sheet anymore
+    const employeesToRemove = existingEmployees.filter(e => !sheetEmployeeIds.includes(e.id));
+    for (const emp of employeesToRemove) {
+      await PayrollInformation.destroy({ where: { employee_id: emp.id } });
+      await Employee.destroy({ where: { id: emp.id } });
+      console.log(`🗑 Employee and Payroll removed: ${emp.name || emp.id}`);
     }
 
-    console.log("🎉 All employees & payroll data have been imported successfully!");
+    console.log("🎉 All employees & payroll data have been imported and synced successfully!");
 
   } catch (error) {
     console.error("❌ Error fetching employees:", error);
   }
 };
+
 
 // API Endpoint
 export const importEmployeesFromGoogleSheet = async (req, res) => {
