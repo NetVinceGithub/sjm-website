@@ -206,10 +206,14 @@ const AddAdmin = () => {
                 onChange={handleChange}
                 className="mt-1 mb-1 p-1 w-full border rounded-md text-sm"
               >
-                <option value="" disabled>Select a Role</option>
+                <option value="default">
+                  Select a Role
+                </option>
+                <option value="approver">Approver</option>
+                <option value="hr">HR</option>
                 <option value="admin">Admin</option>
-                <option value="employee">Employee</option>
               </select>
+
             </div>
             <div className="flex justify-end">
               <button
@@ -268,8 +272,9 @@ const AddAdmin = () => {
                                 onChange={handleEditChange}
                                 className="border p-1 rounded text-sm text-neutralDGray"
                               >
-                                <option value="admin">Admin</option>
-                                <option value="employee">Employee</option>
+                                <option value="admin">Approver</option>
+                                <option value="admin">HR</option>
+                                <option value="employee">Admin</option>
                               </select>
                               <div className="flex gap-2 text-center">
                                 <button

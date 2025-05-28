@@ -535,12 +535,13 @@ const List = () => {
     const count = people.filter(p => isBirthdayApproaching(p.birthdate)).length;
     if (count > 0) {
       toast.info(
-        <div style={{ fontSize: '0.9rem' }}>
+        <div style={{ fontSize: '0.8rem' }}>
            {count} {count > 1 ? 'people have' : 'person has'} their birthday{count > 1 ? 's' : ''} approaching soon. 
         </div>,
         {
           autoClose: 5000,
           closeButton: false,
+          closeOnClick: true,
           position: 'top-right',
         }
       );
@@ -552,11 +553,12 @@ const List = () => {
     const count = people.filter(p => isTrainingExpiringSoon(p.attendedtrainingandseminar)).length;
     if (count > 0) {
       toast.warning(
-        <div style={{ fontSize: '0.9rem' }}>
+        <div style={{ fontSize: '0.8rem' }}>
           {count} training{count > 1 ? 's are' : ' is'} expiring soon.
         </div>,
         {
           autoClose: 5000,
+          closeOnClick: true,
           closeButton: false,
           position: 'top-right',
         }
@@ -569,11 +571,12 @@ const List = () => {
     const count = people.filter(p => isMedicalExpiringSoon(p.medical)).length;
     if (count > 0) {
       toast.error(
-        <div style={{ fontSize: '0.9rem' }}>
+        <div style={{ fontSize: '0.8rem' }}>
            {count} medical{count > 1 ? 's are' : ' is'} expiring soon.
         </div>,
         {
           autoClose: 5000,
+          closeOnClick: true,
           closeButton: false,
           position: 'top-right',
         }
