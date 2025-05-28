@@ -12,6 +12,7 @@ import {
   FaPen,
   FaTrash,
   FaPencil,
+  FaPlus,
 } from "react-icons/fa6";
 import { Button } from "flowbite-react";
 import { FaArrowUp } from "react-icons/fa";
@@ -460,7 +461,7 @@ const Job = () => {
   };
 
   return (
-    <div className="p-6 h-full">
+    <div className="p-6  h-[calc(100vh-180px)] border rounded-lg">
       <div className="flex justify-between items-center -mt-3 mb-8">
         <h2 className="text-neutralDGray text-lg font-semibold">
           Available Jobs
@@ -496,8 +497,8 @@ const Job = () => {
 
       {!isLoading && !error && jobs.length === 0 && (
         <div className="text-center py-10">
-          <p className="text-xl">No jobs available yet.</p>
-          <p className="mt-2">Click "Add Job" to post your first job!</p>
+          <p className="text-md">No jobs available yet.</p>
+          <p className="-mt-3 text-[12px] italic text-neutralDGray">Click "Add Job" to post your first job!</p>
         </div>
       )}
 

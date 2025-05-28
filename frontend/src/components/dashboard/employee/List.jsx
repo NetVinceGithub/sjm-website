@@ -5,7 +5,6 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import defaultProfile from "../../../../src/assets/default-profile.png"; // Adjust path as needed
-
 // import { EmployeeButtons } from "../../../utils/EmployeeHelper";
 import { FaSearch, FaSyncAlt, FaIdCard } from "react-icons/fa";
 import EmployeeIDCard from "../EmployeeIDCard";
@@ -14,6 +13,7 @@ import { FaPrint, FaRegFileExcel, FaRegFilePdf } from "react-icons/fa6";
 import { FaEnvelope, FaMinusSquare } from "react-icons/fa";
 import BlockEmployeeModal from "../modals/BlockEmployeeModal";
 import UnBlockEmployeeModal from "../modals/UnblockEmployeeModal";
+import { toast } from 'react-toastify';
 
 const List = () => {
   const [employees, setEmployees] = useState([]);
@@ -39,6 +39,9 @@ const List = () => {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee`);
       if (response.data.success) {
         setEmployees(response.data.employees);
+        notifyBirthdays(response.data.employees);
+        notifyTrainingExpiring(response.data.employees);
+        notifyMedicalExpiring(response.data.employees);
         setFilteredEmployees(response.data.employees);
       }
     } catch (error) {
@@ -220,22 +223,366 @@ const List = () => {
         margin: "0 auto",
       },
     },
+    headRow: {
+      style: {
+        height: "40px", // consistent height
+      },
+    },
+    rows: {
+      style: {
+        height: "40px", // consistent row height
+      },
+    },
     headCells: {
       style: {
         backgroundColor: "#fff",
         color: "#333",
         fontWeight: "bold",
-        justifyContent: "center", // Centers content horizontally
-        display: "flex", // Required for justifyContent to work
-        alignItems: "center", // Centers content vertically
+        fontSize: "13px", // text-sm
+        display: "flex",
+        alignItems: "center",
+        padding: "4px 8px",
       },
     },
     cells: {
       style: {
-        padding: "8px",
-        display: "flex", // Needed for flex properties to work
+        fontSize: "12px", // text-sm
+        padding: "4px 8px",
+        display: "flex",
+        alignItems: "center",
+        height: "100%", // ensures it fills the row height
       },
     },
+  };
+
+
+  // Define columns with sticky positioning for Options column
+  const columns = [
+    {
+      name: "Image",
+      cell: (row) => (
+        <img
+          src={`${import.meta.env.VITE_API_URL}/uploads/${row.profileImage}`}
+          alt="Profile"
+          className="w-10 h-10 rounded-full object-cover"
+          onError={(e) => (e.target.src = defaultProfile)}
+        />
+      ),
+      width: "60px",
+      center: true,
+    },
+    {
+      name: "Ecode",
+      selector: (row) => row.ecode,
+      sortable: true,
+      width: "80px",
+    },
+    {
+      name: "Name",
+      selector: (row) => row.name,
+      sortable: true,
+      width: "190px",
+    },
+    {
+      name: "Last Name",
+      selector: (row) => row.lastname,
+      sortable: true,
+      width: "100px",
+    },
+    {
+      name: "First Name",
+      selector: (row) => row.firstname,
+      sortable: true,
+      width: "110px",
+    },
+    {
+      name: "Middle Name",
+      selector: (row) => row.middlename,
+      sortable: true,
+      width: "120px",
+    },
+    {
+      name: "Position Title",
+      selector: (row) => row.positiontitle,
+      sortable: true,
+      width: "310px",
+    },
+    {
+      name: "Department",
+      selector: (row) => row.department,
+      sortable: true,
+      width: "120px",
+    },
+    {
+      name: "Area/Section",
+      selector: (row) => row['area/section'] || "N/A",
+      sortable: true,
+      width: "120px",
+    },
+    {
+      name: "Date of Hire",
+      selector: (row) => row.dateofhire,
+      sortable: true,
+      width: "120px",
+    },
+    {
+      name: "Tenurity to Client",
+      selector: (row) => row['tenuritytoclient(inmonths)'] || "N/A",
+      sortable: true,
+      width: "140px",
+    },
+    {
+      name: "Employment Status",
+      selector: (row) => row.employmentstatus,
+      sortable: true,
+      width: "180px",
+    },
+    {
+      name: "Civil Status",
+      selector: (row) => row.civilstatus,
+      sortable: true,
+      width: "120px",
+    },
+    {
+      name: "Sex",
+      selector: (row) => row.gender,
+      sortable: true,
+      width: "100px",
+    },
+    {
+      name: "Birthdate",
+      selector: (row) => row.birthdate,
+      sortable: true,
+      width: "120px",
+      cell: (row) => {
+        const approaching = isBirthdayApproaching(row.birthdate);
+        return (
+          <div style={{
+            backgroundColor: approaching ? "#ffcc00" : "transparent",
+            padding: "4px",
+            borderRadius: "4px",
+            color: approaching ? "white" : "inherit"
+          }}>
+            {row.birthdate}{" "}
+            {approaching && <span style={{ color: "orange" }}>🎉</span>}
+          </div>
+        );
+      },
+    },
+    {
+      name: "Age",
+      sortable: true,
+      selector: (row) => row.age,
+      width: "80px",
+    },
+    {
+      name: "Contact No.",
+      selector: (row) => row.contactno,
+      sortable: true,
+      width: "130px",
+    },
+    {
+      name: "Permanent Address",
+      selector: (row) => row.permanentaddress || "N/A",
+      sortable: true,
+      width: "400px",
+    },
+    {
+      name: "Current Address",
+      selector: (row) => row.address || "N/A",
+      sortable: true,
+      width: "400px",
+    },
+    {
+      name: "Email Address",
+      selector: (row) => row.emailaddress || "N/A",
+
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Last Attended (T/S)",
+      selector: (row) => row.attendedtrainingandseminar || "N/A",
+      sortable: true,
+      width: "160px",
+      cell: (row) => {
+        const dateStr = row.attendedtrainingandseminar;
+        const expiring = isTrainingExpiringSoon(dateStr);
+
+        return (
+          <div style={{
+            backgroundColor: expiring ? "#ff5e58" : "transparent",
+            padding: "4px",
+            borderRadius: "4px",
+            color: expiring ? "#333" : "inherit",
+            fontWeight: expiring ? "bold" : "normal",
+          }}>
+            {dateStr || "N/A"}{" "}
+            {expiring && <span style={{ color: "#b36b00" }}>⚠️</span>}
+          </div>
+        );
+      },
+    },
+    {
+      name: "Date of Separation",
+      selector: (row) => row.dateofseparation || "N/A",
+      sortable: true,
+      width: "150px",
+    },
+    {
+      name: "Medical",
+      selector: (row) => row.medical || "N/A",
+      sortable: true,
+      width: "120px",
+      cell: (row) => {
+        const medStr = row.medical;
+        const expiringMed = isMedicalExpiringSoon(medStr);
+        return (
+          <div style={{
+            backgroundColor: expiringMed ? "#B2FBA5" : "transparent",
+            padding: "4px",
+            borderRadius: "4px",
+            color: expiringMed ? "#333" : "inherit",
+            fontWeight: expiringMed ? "bold" : "normal",
+          }}>
+            {medStr || "N/A"}{""}
+            {expiringMed && <span style={{ color: "red" }}>⚕️</span>}
+          </div>
+        )
+      }
+    },
+    {
+      name: "Options",
+      cell: (row) => (
+        <div className="flex justify-center items-center sticky-actions">
+          <button
+            onClick={() => openModal(row.employeeId || row.id)}
+            className="w-14 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center"
+          >
+            <FaIdCard
+              title="View ID"
+              className=" text-neutralDGray w-5 h-5"
+            />
+          </button>
+          <button className="w-14 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center">
+            <FaEnvelope
+              title="Message"
+              className=" text-neutralDGray w-5 h-5"
+            />
+          </button>
+          <button
+            className={`w-14 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${
+              row.status === "Active"
+                ? "bg-green-500 text-white"
+                : "bg-red-500 text-white"
+              }`}
+            onClick={() =>
+              handleToggleStatus(row.id, row.status)
+            }
+          >
+            <FaMinusSquare
+              title="Toggle Status"
+              className="w-5 h-5"
+            />
+          </button>
+        </div>
+      ),
+      width: "200px",
+      right: true,
+      center: true, // This makes the column stick to the right
+    },
+  ];
+
+  // Alerts!!!
+  const isBirthdayApproaching = (birthdate, daysAhead = 7) => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+
+    const birthdayThisYear = new Date(birthdate);
+    birthdayThisYear.setFullYear(currentYear);
+
+    const diff = (birthdayThisYear - today) / (1000 * 60 * 60 * 24);
+
+    return diff >= 0 && diff <= daysAhead;
+  };
+
+  const isTrainingExpiringSoon = (attendedtrainingandseminar, daysAhead = 30) => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+
+    const attendedDate = new Date(attendedtrainingandseminar);
+    attendedDate.setFullYear(currentYear);
+
+    const diff = (attendedDate - today) / (1000 * 60 * 60 * 24);
+
+    return diff >= 0 && diff <= daysAhead;
+  };
+
+  const isMedicalExpiringSoon = (medical, daysAhead = 30) => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+
+    const medicalDate = new Date(medical);
+    medicalDate.setFullYear(currentYear);
+
+    const diff = (medicalDate - today) / (1000 * 60 * 60 * 24);
+
+    return diff >= 0 && diff <= daysAhead;
+  };
+
+  // Toast notification functions
+  const notifyBirthdays = (people) => {
+    const count = people.filter(p => isBirthdayApproaching(p.birthdate)).length;
+    if (count > 0) {
+      toast.info(
+        <div style={{ fontSize: '0.8rem' }}>
+           {count} {count > 1 ? 'people have' : 'person has'} their birthday{count > 1 ? 's' : ''} approaching soon. 
+        </div>,
+        {
+          autoClose: 5000,
+          closeButton: false,
+          closeOnClick: true,
+          position: 'top-right',
+        }
+      );
+      
+    }
+  };
+
+  const notifyTrainingExpiring = (people) => {
+    const count = people.filter(p => isTrainingExpiringSoon(p.attendedtrainingandseminar)).length;
+    if (count > 0) {
+      toast.warning(
+        <div style={{ fontSize: '0.8rem' }}>
+          {count} training{count > 1 ? 's are' : ' is'} expiring soon.
+        </div>,
+        {
+          autoClose: 5000,
+          closeOnClick: true,
+          closeButton: false,
+          position: 'top-right',
+        }
+      );
+      
+    }
+  };
+
+  const notifyMedicalExpiring = (people) => {
+    const count = people.filter(p => isMedicalExpiringSoon(p.medical)).length;
+    if (count > 0) {
+      toast.error(
+        <div style={{ fontSize: '0.8rem' }}>
+           {count} medical{count > 1 ? 's are' : ' is'} expiring soon.
+        </div>,
+        {
+          autoClose: 5000,
+          closeOnClick: true,
+          closeButton: false,
+          position: 'top-right',
+        }
+      );
+      
+    }
   };
 
   return (
@@ -246,7 +593,7 @@ const List = () => {
           { label: "Masterlist", href: "/admin-dashboard/employees" },
         ]}
       />
-      <div className="bg-white w-full -mt-1 py-3 p-2 rounded-lg shadow">
+      <div className="bg-white  h-[calc(100vh-120px)] w-full -mt-1 py-3 p-2 rounded-lg shadow">
         <div className="flex items-center justify-between">
           {/* Button Group - Centered Vertically */}
           <div className="inline-flex border border-neutralDGray rounded h-8">
@@ -302,20 +649,22 @@ const List = () => {
             </button>
 
             {modalOpen && (
-              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-                  <h2 className="text-xl font-bold text-green-600">
-                    Sync Successful
-                  </h2>
-                  <p className="text-gray-700 mt-2">
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
+                  <h3 className="text-base mb-2 text-green-500">
+                    Sync Successful!
+                  </h3>
+                  <p className="text-justify text-sm">
                     Employees have been successfully synchronized.
                   </p>
-                  <button
-                    onClick={() => setModalOpen(false)}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                  >
-                    Close
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setModalOpen(false)}
+                      className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+                    >
+                      Close
                   </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -327,106 +676,46 @@ const List = () => {
           <div className="w-full flex">
             <div className="w-full">
               <div className="border rounded-md">
+                <style jsx>{`
+                  .sticky-actions {
+                    position: sticky !important;
+                    right: 0 !important;
+                    background: white !important;
+                    z-index: 10 !important;
+                    box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+                  }
+                  
+                  /* Override react-data-table-component styles for sticky column */
+                  .rdt_TableCol:last-child {
+                    position: sticky !important;
+                    right: 0 !important;
+                    background: white !important;
+                    z-index: 10 !important;
+                    box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+                  }
+                  
+                  .rdt_TableHeadRow .rdt_TableCol:last-child {
+                    position: sticky !important;
+                    right: 0 !important;
+                    background: white !important;
+                    z-index: 11 !important;
+                    box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+                  }
+                  
+                  .rdt_TableRow .rdt_TableCell:last-child {
+                    position: sticky !important;
+                    right: 0 !important;
+                    background: white !important;
+                    z-index: 10 !important;
+                    box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+                  }
+                `}</style>
                 <DataTable
                   customStyles={customStyles}
-                  columns={[
-                    {
-                      name: "Image",
-                      cell: (row) => (
-                        <img
-                          src={`${import.meta.env.VITE_API_URL}/uploads/${row.profileImage}`}
-                          alt="Profile"
-                          className="w-10 h-10 rounded-full object-cover"
-                          onError={(e) => (e.target.src = defaultProfile)} // Fallback image
-                        />
-                      ),
-                      width: "80px",
-                      center: true,
-                    },
-                    {
-                      name: "Ecode",
-                      selector: (row) => row.ecode,
-                      sortable: true,
-                      width: "110px",
-                    },
-                    {
-                      name: "Name",
-                      selector: (row) => row.name,
-                      sortable: true,
-                      width: "200px",
-                    },
-                    {
-                      name: "Position",
-                      selector: (row) => row.positiontitle,
-                      sortable: true,
-                      width: "350px",
-                    },
-                    {
-                      name: "Project Site - Department Area",
-                      selector: (row) => row['area/section'] || "N/A",
-                      sortable: true,
-                      width: "190px",
-                    },
-                                        {
-                      name: "Attended Training and Seminar",
-                      selector: (row) => row.attendedtrainingandseminar,
-                      sortable: true,
-                      width: "350px",
-                    },
-                                        {
-                      name: "Date of Separation",
-                      selector: (row) => row.dateofseparation,
-                      sortable: true,
-                      width: "350px",
-                    },
-                                        {
-                      name: "Medical",
-                      selector: (row) => row.medical,
-                      sortable: true,
-                      width: "350px",
-                    }
-,
-                    {
-                      name: "Options",
-                      cell: (row) => (
-                        <div className="flex justify-center items-center">
-                          <button
-                            onClick={() => openModal(row.employeeId || row.id)}
-                            className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center"
-                          >
-                            <FaIdCard
-                              title="View ID"
-                              className=" text-neutralDGray w-5 h-5"
-                            />
-                          </button>
-                          <button className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center">
-                            <FaEnvelope
-                              title="Message"
-                              className=" text-neutralDGray w-5 h-5"
-                            />
-                          </button>
-                          <button
-                            className={`w-20 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${
-                              row.status === "Active"
-                                ? "bg-green-500 text-white"
-                                : "bg-red-500 text-white"
-                            }`}
-                            onClick={() =>
-                              handleToggleStatus(row.id, row.status)
-                            }
-                          >
-                            <FaMinusSquare
-                              title="Toggle Status"
-                              className="w-5 h-5"
-                            />
-                          </button>
-                        </div>
-                      ),
-                      width: "240px",
-                    },
-                  ]}
+                  columns={columns}
                   data={filteredEmployees}
                   progressPending={loading}
+                  pagination
                 />
               </div>
             </div>

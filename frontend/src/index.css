@@ -15,3 +15,7 @@
   font-style: normal;
   font-display: swap;
 }
+
+.recharts-default-legend text {
+  font-size: 0.5rem; /* Tailwind's text-sm size */
+}
