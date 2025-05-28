@@ -4,6 +4,7 @@ import Breadcrumb from "../dashboard/Breadcrumb";
 import DataTable from "react-data-table-component";
 import { Modal, Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { toast } from 'react-toastify';
 
 const Attendance = () => {
   const [attendanceData, setAttendanceData] = useState([]);
@@ -148,7 +149,19 @@ const Attendance = () => {
       const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
       if (jsonData.length <= 1) {
-        alert("The file is empty or improperly formatted.");
+        toast.error(
+          <div style={{ fontSize: '0.9rem'}}>
+           The file is empty or improperly formatted.
+          </div>,
+          {
+            autoClose: 3000,        // auto close after 3 seconds
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",  // position of the toast
+          }
+        );
         return;
       }
 
@@ -519,7 +532,7 @@ const Attendance = () => {
 
   return (
     <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
-      <div >
+      <div className=" h-[calc(100vh-150px)]">
         <Breadcrumb
           items={[
             { label: "Attendance", href: "" },
@@ -532,30 +545,30 @@ const Attendance = () => {
             onHide={() => setShowModal(false)}
             style={{ position: "fixed", top: "28%", left: "5%" }}
           >
-            <Modal.Header closeButton>
-              <Modal.Title>Success!</Modal.Title>
+            <Modal.Header className="py-2 px-3 text-sm">
+              <Modal.Title as="h6" className="text-base text-green-500">Success!</Modal.Title>
             </Modal.Header>
-            <Modal.Body>Attendance saved successfully!</Modal.Body>
+            <Modal.Body as="h6" className="text-sm p-2 text-justify ml-2 -mb-0">Attendance saved successfully!</Modal.Body>
             <Modal.Footer>
-              <Button variant="secondary" onClick={() => setShowModal(false)}>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 w-24 h-8 text-sm border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all">
                 Close
-              </Button>
-              <Button
-                variant="primary"
+              </button>
+              <button
                 onClick={() => navigate("/admin-dashboard/payroll-summary")}
+                className="px-4 py-2 w-36 h-8 border flex justify-center text-sm items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
               >
-                Go to Payroll
-              </Button>
+                Create Payroll
+              </button>
             </Modal.Footer>
           </Modal>
         </div>
 
         <div className="p-2 -mt-3 rounded border bg-white shadow-sm border-neutralDGray">
-          <h2 className="text-lg font-semibold text-neutralDGray mb-2">
+          <h2 className="text-base text-neutralDGray mb-2">
             Upload Attendance File
           </h2>
           <div className="flex items-center justify-between border border-neutralDGray rounded-md p-2 bg-slate-50">
-            <label className="px-4 py-2 bg-brandPrimary hover:bg-neutralDGray text-white rounded-md cursor-pointer">
+            <label className="px-4 text-sm py-2 bg-brandPrimary hover:bg-neutralDGray text-white rounded-md cursor-pointer">
               Upload File
               <input
                 type="file"
@@ -569,7 +582,7 @@ const Attendance = () => {
             </span>
             <button
               onClick={handleSubmit}
-              className="px-4 py-2 h-auto bg-brandPrimary hover:bg-neutralDGray cursor-pointer text-white rounded-md"
+              className="px-4 text-sm py-2 h-auto bg-brandPrimary hover:bg-neutralDGray cursor-pointer text-white rounded-md"
             >
               Save Attendance
             </button>
@@ -577,8 +590,8 @@ const Attendance = () => {
         </div>
         <div className="grid mt-3 grid-cols-2 gap-3">
           {/* Attendance Table */}
-          <div className="overflow-auto h-[458px] rounded border bg-white shadow-sm p-2">
-            <h2 className="text-lg font-semibold text-neutralDGray mb-2">
+          <div className="overflow-auto h-full rounded border bg-white shadow-sm p-2">
+            <h2 className="text-base italic text-neutralDGray mb-2">
               Detailed Attendance
             </h2>
             {attendanceData.length > 0 ? (
@@ -586,6 +599,7 @@ const Attendance = () => {
                 columns={attendanceColumns}
                 data={attendanceData}
                 highlightOnHover
+                pagination
               />
             ) : (
               <p className="text-center text-gray-500">
@@ -595,8 +609,8 @@ const Attendance = () => {
           </div>
 
           {/* Summary Table */}
-          <div className="overflow-auto h-[458px] rounded border bg-white shadow-sm p-2">
-            <h2 className="text-lg font-semibold text-neutralDGray mb-2">
+          <div className="overflow-auto h-full rounded border bg-white shadow-sm p-2">
+            <h2 className="text-base italic text-neutralDGray mb-2">
               Attendance Summary
             </h2>
             {summaryData.length > 0 ? (

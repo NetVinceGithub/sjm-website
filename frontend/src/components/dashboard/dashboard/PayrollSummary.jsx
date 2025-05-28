@@ -12,6 +12,7 @@ import PayslipModal from "../payroll/PayslipModal";
 import NoAttendanceModal from "../modals/NoAttendanceModal";
 import * as XLSX from "xlsx";
 import { Modal, Button } from "react-bootstrap";
+import { toast } from 'react-toastify';
 
 const PayrollSummary = () => {
   const [payslips, setPayslips] = useState([]);
@@ -24,10 +25,11 @@ const PayrollSummary = () => {
   const [noAttendanceModalOpen, setNoAttendanceModalOpen] = useState(false); // State for modal
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [show, setShow] = useState(false);
-  const [employees, setEmployeeList] = useState("");
+  const [employees, setEmployeeList] = useState([]);
   const [selectedOvertime, setSelectedOvertime] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [individualOvertime, setIndividualOvertime] = useState({});
   const [filteredEmployeesOvertime, setFilteredEmployeesOvertime] = useState(
     []
   );
@@ -53,8 +55,19 @@ const PayrollSummary = () => {
 
   // Use effect to run filtering when search term or filtered employees change
   useEffect(() => {
-    filterEmployeesForOvertime();
-  }, [searchTerm, filteredEmployees]);
+    if (show) {
+      // Pre-select all employees' ecode by default when the modal opens
+      const allEcodes = filteredEmployees.map((employee) => employee.ecode);
+      setSelectedOvertime(allEcodes);
+
+      // Initialize individual overtime values with default maxOvertime
+      const initialOvertime = {};
+      allEcodes.forEach(ecode => {
+        initialOvertime[ecode] = maxOvertime || '0';
+      });
+      setIndividualOvertime(initialOvertime);
+    }
+  }, [show, filteredEmployees, maxOvertime]);
 
   useEffect(() => {
     const fetchAttendanceAndFilterEmployees = async () => {
@@ -80,7 +93,7 @@ const PayrollSummary = () => {
       } catch (error) {
         console.error(
           "❌ Error fetching attendance:",
-          error.response?.data || error
+          error.response ?.data || error
         );
       }
     };
@@ -96,11 +109,26 @@ const PayrollSummary = () => {
   };
 
   const handleCheckboxChange = (ecode) => {
-    setSelectedOvertime((prevSelected) =>
-      prevSelected.includes(ecode)
-        ? prevSelected.filter((id) => id !== ecode)
-        : [...prevSelected, ecode]
-    );
+    setSelectedOvertime((prevSelected) => {
+      const isCurrentlySelected = prevSelected.includes(ecode);
+
+      if (isCurrentlySelected) {
+        // Remove from selection and clear their overtime value
+        setIndividualOvertime(prev => {
+          const updated = { ...prev };
+          delete updated[ecode];
+          return updated;
+        });
+        return prevSelected.filter((id) => id !== ecode);
+      } else {
+        // Add to selection and set default overtime value
+        setIndividualOvertime(prev => ({
+          ...prev,
+          [ecode]: maxOvertime || '0'
+        }));
+        return [...prevSelected, ecode];
+      }
+    });
   };
 
   const fetchPayslips = async () => {
@@ -137,36 +165,43 @@ const PayrollSummary = () => {
   // Compute and generate payslips
   const handleCreatePayroll = async () => {
     try {
-      console.log("📩 Fetching employee data...");
-      const employeeResponse = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/employee`
-      );
+      setMessage("Loading data...");
+
+      // Fetch both datasets at once
+      const [employeeResponse, attendanceResponse] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_API_URL}/api/employee`),
+        axios.get(`${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`),
+        axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`)
+      ]);
 
       const employeeData = employeeResponse.data.employees || [];
-      console.log("📊 Fetched employee data:", employeeData);
+      const attendanceData = attendanceResponse.data.attendance || [];
 
       if (!employeeData.length) {
-        console.log("🚫 No employees found!");
-        setMessage("No employees available for payroll.");
+        setMessage("No employees available.");
         return;
       }
 
-      // Step 1: Show modal for selecting employees for overtime approval
+      // Filter employees with attendance records
+      const validEcodes = new Set(attendanceData.map(record => record.ecode));
+      const availableEmployees = employeeData.filter(
+        employee => validEcodes.has(employee.ecode) && employee.status !== "Inactive"
+      );
+
+      if (!availableEmployees.length) {
+        setMessage("No employees with attendance records found.");
+        return;
+      }
+
+      // Set all data at once
+      setEmployeeList(employeeData);
+      setFilteredEmployees(availableEmployees);
+      setFilteredEmployeesOvertime(availableEmployees);
+      setMessage("");
       setShow(true);
-      console.log(employeeData);
-      setEmployeeList(employeeData); // Store employees in state to display in modal
+
     } catch (error) {
-      console.error("❌ Error fetching employees:", error);
-      console.error(
-        "🔴 Full error details:",
-        error.response?.status,
-        error.response?.data
-      );
-      setMessage(
-        `❌ Failed to fetch employees: ${
-          error.response?.data?.message || error.message
-        }`
-      );
+      setMessage("Failed to load data");
     }
   };
 
@@ -198,21 +233,26 @@ const PayrollSummary = () => {
 
       console.log("📩 Sending payroll request with cutoffDate:", cutoffDate);
 
-      const updatedAttendanceData = attendanceData.map((record) => ({
-        ...record,
-        overtimeHours: selectedEmployees.includes(record.ecode)
-          ? Math.min(record.overtimeHours, Number(maxOvertime)) // ✅ Apply max OT limit
-          : 0, // Remove OT if not selected
-      }));
+      // Apply individual overtime values for each employee
+      const updatedAttendanceData = attendanceData.map((record) => {
+        const employeeOvertime = selectedEmployees.includes(record.ecode)
+          ? Number(individualOvertime[record.ecode] || 0)
+          : 0;
 
-      // Step 2: Send only selected employees along with the filtered attendance data
+        return {
+          ...record,
+          overtimeHours: Math.min(record.overtimeHours, employeeOvertime) // Apply individual overtime limit
+        };
+      });
+
+      // Send request with individual overtime data
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/payslip/generate`,
         {
           cutoffDate: cutoffDate.trim(),
-          selectedEmployees, // List of employees approved for overtime
-          attendanceData: updatedAttendanceData, // Ensure overtime is only applied to selected ones
-          maxOvertime: Number(maxOvertime), // ✅ Include max OT in request
+          selectedEmployees,
+          attendanceData: updatedAttendanceData,
+          individualOvertime, // Send individual overtime values instead of maxOvertime
         }
       );
 
@@ -224,28 +264,56 @@ const PayrollSummary = () => {
           setNoAttendanceModalOpen(true);
         } else {
           setPayslips(response.data.payslips);
-          setMessage("✅ Payroll successfully generated!");
-          setShow(false); // ✅ Closes modal after approval
+          toast.success(
+            <div style={{ fontSize: '0.9rem'}}>
+             Payroll successfully generated.
+            </div>,
+            {
+              autoClose: 3000,        // auto close after 3 seconds
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              closeButton: false,
+              position: "top-right",  // position of the toast
+            }
+          );
+          setShow(false);
         }
       } else {
-        setMessage(
-          `❌ Failed to generate payroll: ${
-            response.data.message || "Unknown error"
-          }`
+        toast.error(
+          <div style={{ fontSize: '0.9rem'}}>
+           Failed to generate payroll: {response?.data?.message || "Unknown error"}
+          </div>,
+          {
+            autoClose: 3000,        // auto close after 3 seconds
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",  // position of the toast
+          }
         );
       }
     } catch (error) {
-      console.error("❌ Full error response:", error.response?.data || error);
-      setMessage(
-        `❌ ${
-          error.response?.data?.message ||
-          "An error occurred while generating payroll."
-        }`
+      console.error("❌ Full error response:", error.response ?.data || error);
+      toast.error(
+        <div style={{ fontSize: '0.9rem'}}>
+         {error?.response?.data?.message || "An error occurred while generating payroll."}
+        </div>,
+        {
+          autoClose: 3000,        // auto close after 3 seconds
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          closeButton: false,
+          position: "top-right",  // position of the toast
+        }
       );
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleApprovalModal = (message) => {
     setShow(true);
@@ -274,13 +342,49 @@ const PayrollSummary = () => {
       );
 
       if (response.data.success) {
-        setMessage("✅ Payroll release request sent to Admin!");
+        toast.success(
+          <div style={{ fontSize: '0.9rem'}}>
+           Payroll release request sent to Admin!
+          </div>,
+          {
+            autoClose: 3000,        // auto close after 3 seconds
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",  // position of the toast
+          }
+        );
       } else {
-        setMessage("❌ Failed to send request.");
+        toast.error(
+          <div style={{ fontSize: '0.9rem'}}>
+           Failed to send request.
+          </div>,
+          {
+            autoClose: 3000,        // auto close after 3 seconds
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",  // position of the toast
+          }
+        );
       }
     } catch (error) {
       console.error("Error sending request:", error);
-      setMessage("❌ An error occurred while sending the request.");
+      toast.error(
+        <div style={{ fontSize: '0.9rem'}}>
+         An error occurred while sending the request.
+        </div>,
+        {
+          autoClose: 3000,        // auto close after 3 seconds
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          closeButton: false,
+          position: "top-right",  // position of the toast
+        }
+      );
     } finally {
       setSending(false);
     }
@@ -399,27 +503,81 @@ const PayrollSummary = () => {
     },
   ];
 
+  const columns1 = [
+    {
+      name: '', // No header for the checkbox column
+      cell: (row) => (
+        <input
+          type="checkbox"
+          className="w-3 h-3 rounded-sm accent-teal-500"
+          checked={selectedOvertime.includes(row.ecode)}
+          onChange={() => handleCheckboxChange(row.ecode)}
+        />
+      ),
+      width: '60px',
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+    },
+    {
+      name: 'Name',
+      selector: (row) => row.name,
+      sortable: true,
+    },
+    {
+      name: 'Employee Code',
+      selector: (row) => row.ecode,
+      sortable: true,
+    },
+    {
+      name: 'Approved Overtime (hrs)',
+      cell: (row) => (
+        <input
+          type="number"
+          min="0"
+          step="0.5"
+          className="w-20 px-2 py-1 mt-1 mb-1 h-8 text-xs border rounded"
+          value={selectedOvertime.includes(row.ecode) ? (individualOvertime[row.ecode] || '0') : '0'}
+          disabled={!selectedOvertime.includes(row.ecode)}
+          onChange={(e) => {
+            if (selectedOvertime.includes(row.ecode)) {
+              setIndividualOvertime(prev => ({
+                ...prev,
+                [row.ecode]: e.target.value
+              }));
+            }
+          }}
+          placeholder="0"
+        />
+      ),
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+      width: '150px',
+    },
+  ];
+
   return (
     <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-[calc(100vh-90px)]">
         {/* Confirm Deletion Modal */}
         {showConfirmModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
-              <h3 className="text-lg font-semibold mb-2">Confirm Deletion</h3>
-              <p className="text-justify">
+              <h3 className="text-base mb-2 text-red-500">Confirm Deletion</h3>
+              <p className="text-justify text-sm">
                 Are you sure you want to delete generated payroll?
               </p>
-              <div className="flex justify-end gap-2 mt-6">
+              <div className="flex justify-end gap-2 mt-4">
                 <button
                   onClick={() => setShowConfirmModal(false)}
-                  className="px-2 py-1 h-10 bg-gray-400 text-white rounded hover:bg-gray-500"
+                  className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeletePayroll}
-                  className="px-2 py-1 h-10 bg-red-600 text-white rounded hover:bg-red-700"
+                  className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center  text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                 >
                   Confirm
                 </button>
@@ -443,7 +601,7 @@ const PayrollSummary = () => {
         {/* Main Layout */}
         <div className="flex  flex-wrap gap-4 -mt-1 flex-grow overflow-hidden">
           {/* Left Section */}
-          <div className="w-full lg:w-[70%]  h-full bg-white rounded gap-2 shadow-sm p-3">
+          <div className="w-full lg:w-[70%]  h-full bg-white border-gray-900 rounded gap-2 shadow-sm p-3">
             <label className="block text-sm font-medium text-gray-700">
               Cutoff Date:
             </label>
@@ -463,11 +621,11 @@ const PayrollSummary = () => {
               <div className="flex gap-2 flex-wrap lg:flex-nowrap w-full lg:w-auto">
                 <button
                   onClick={handleCreatePayroll}
-                  className={`px-2 py-1 rounded w-full lg:w-36 h-8 text-white ${
+                  className={`px-2 py-1 text-sm border rounded w-full lg:w-36 h-8 text-neutralDGray ${
                     cutoffDate
-                      ? "bg-brandPrimary hover:bg-neutralDGray"
+                      ? "hover:bg-green-400 hover:text-white"
                       : "bg-neutralGray cursor-not-allowed opacity-50"
-                  }`}
+                    }`}
                   disabled={loading || !cutoffDate}
                 >
                   {loading ? "Generating..." : "Create Payroll"}
@@ -476,13 +634,13 @@ const PayrollSummary = () => {
                   onClick={() =>
                     navigate("/admin-dashboard/attendance-computation")
                   }
-                  className="px-4 py-1 rounded w-full lg:w-32 h-8 bg-brandPrimary text-white hover:bg-neutralDGray"
+                  className="px-4 py-1 rounded text-sm w-full border lg:w-32 h-8 hover:bg-green-400 text-neutralDGray hover:text-neutralDGray"
                 >
                   Attendance
                 </button>
                 <button
                   onClick={() => setShowConfirmModal(true)}
-                  className="px-4 py-1 rounded w-full lg:w-32 h-8 bg-brandPrimary text-white hover:bg-neutralDGray"
+                  className="px-4 py-1 rounded w-full lg:w-32 h-8 border text-sm text-neutralDGray hover:bg-red-400 hover:text-white"
                 >
                   Delete
                 </button>
@@ -496,7 +654,7 @@ const PayrollSummary = () => {
             {/* Payroll Details */}
             <div className="flex flex-col rounded-lg mt-3  h-full max-h-[80vh] min-h-[28rem]">
               <div className="flex flex-col flex-1 rounded-lg overflow-hidden">
-                <h4 className="text-lg text-neutralDGray font-semibold px-2 py-1 bg-gray-200 mb-3 rounded">
+                <h4 className="text-base italic text-neutralDGray font-semibold px-2 py-1 bg-gray-200 mb-3 rounded">
                   Payroll Details
                 </h4>
 
@@ -506,14 +664,14 @@ const PayrollSummary = () => {
                   <div className="inline-flex border border-neutralDGray rounded h-8">
                     <button
                       onClick={handleDownloadExcel}
-                      className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
+                      className="px-3 w-20 h-full text-[13px] border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
                     >
                       <FaPrint title="Print" className="text-neutralDGray" />
                     </button>
                     <button
                       onClick={handleDownloadExcel}
-                      className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center"
-                    >
+                      className="px-3 w-20 h-full text-[13px]  border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center"
+                    > 
                       <FaRegFileExcel
                         title="Export to Excel"
                         className="text-neutralDGray"
@@ -521,7 +679,7 @@ const PayrollSummary = () => {
                     </button>
                     <button
                       onClick={handleDownloadExcel}
-                      className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center"
+                      className="px-3 w-20 text-[13px] h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center"
                     >
                       <FaRegFilePdf
                         title="Export to PDF"
@@ -536,7 +694,7 @@ const PayrollSummary = () => {
                       type="text"
                       placeholder="Search Employee"
                       onChange={handleFilter}
-                      className="px-2 py-0.5 border rounded"
+                      className="px-2 py-0.5 border h-8 text-xs w-64 rounded"
                     />
                     <FaSearch className="text-neutralDGray" />
                   </div>
@@ -546,29 +704,27 @@ const PayrollSummary = () => {
 
                 {/* Table Section - Modified */}
                 {/* Table Section with both horizontal and vertical scrolling */}
-                <div className="flex-grow overflow-hidden flex flex-col">
-                  <div className="h-[63vh] w-full overflow-y-auto overflow-x-auto bg-white">
-                    {loading ? (
-                      <p className="mt-6 text-center text-gray-300">
-                        Loading payslips...
-                      </p>
-                    ) : payslips.length > 0 ? (
-                      <div className="min-w-full inline-block">
-                        <DataTable
-                          columns={columns}
-                          className="w-full -mt-3 text-sm"
-                          data={payslips}
-                          highlightOnHover
-                          striped
-                        />
-                      </div>
-                    ) : (
-                      <p className="mt-6 text-center text-gray-300">
-                        No payslip records available.
-                      </p>
-                    )}
-                  </div>
+                <div className="h-[calc(100vh-350px)] w-full overflow-auto bg-white">
+                  {loading ? (
+                    <p className="mt-6 text-center text-gray-300">Loading payslips...</p>
+                  ) : payslips.length > 0 ? (
+                    <div className="inline-block"> {/* or larger width */}
+                      <DataTable
+                        columns={columns}
+                        className="w-full -mt-3 text-sm"
+                        data={payslips}
+                        pagination
+                        highlightOnHover
+                        striped
+                      />
+                    </div>
+                  ) : (
+                        <p className="mt-6 text-center text-gray-300">
+                          No payslip records available.
+                        </p>
+                      )}
                 </div>
+
               </div>
             </div>
           </div>
@@ -592,100 +748,114 @@ const PayrollSummary = () => {
 
         {/* Overtime Approval Modal */}
         <Modal show={show} onHide={handleClose} centered size="lg" scrollable>
-          <Modal.Header closeButton>
-            <Modal.Title>Overtime Approval Sheet</Modal.Title>
+          <Modal.Header className="py-2 px-3 text-[12px]" closeButton>
+            <Modal.Title as="h6" className="text-lg">Overtime Approval Sheet</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <div className="flex flex-col">
               <div className="w-full max-w-3xl bg-white p-6 border border-gray-300 rounded-md shadow-md min-h-[500px]">
                 {filteredEmployeesOvertime.length > 0 ? (
                   <>
-                    <div className="flex justify-between mb-3">
-                      <div className="flex rounded items-center">
+                     <div className="flex rounded justify-end items-center -mt-2">
                         <input
                           type="text"
                           placeholder="Search employee by name or ID"
                           value={searchTerm}
-                          className="px-2 w-80 text-base font-normal rounded py-0.5 border"
+                          className="px-2 text-sm h-8 w-80 text-base font-normal rounded py-0.5 border"
                           onChange={(e) => setSearchTerm(e.target.value)}
                         />
                         <FaSearch className="ml-[-20px] text-neutralDGray" />
                       </div>
-                      <div className="flex gap-2">
-                        <button
-                          className="px-2 py-1 border h-8 w-36 text-sm text-neutralDGray rounded hover:bg-green-500 hover:text-white"
-                          onClick={() =>
-                            setSelectedOvertime(
-                              filteredEmployeesOvertime.map((e) => e.ecode)
-                            )
-                          }
-                        >
-                          Select All
-                        </button>
-                        <button
-                          className="px-2 text-sm py-1 border h-8 w-36 text-neutralDGray rounded hover:bg-red-500 hover:text-white"
-                          onClick={() => setSelectedOvertime([])}
-                        >
-                          Deselect All
-                        </button>
-                      </div>
-                    </div>
 
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Approved Overtime (hrs) per Employee:
+                    <label className="block text-xs font-medium text-gray-500 mb-2">
+                      Set Default Overtime (hrs) for All Selected Employees:
                     </label>
-                    <input
-                      type="number"
-                      className="w-full mb-3 px-2 py-1 border rounded"
-                      placeholder="Enter approved overtime"
-                      value={maxOvertime}
-                      onChange={(e) => setMaxOvertime(e.target.value)}
-                    />
-
-                    <h5 className="text-neutralDGray mt-2">
-                      List of Employees
-                    </h5>
-                    <ul className="list-none pl-0">
-                      {filteredEmployeesOvertime.map((employee) => (
-                        <li
-                          key={employee.ecode}
-                          className="flex items-center gap-2 text-sm mb-2"
-                        >
-                          <input
-                            type="checkbox"
-                            className="w-3 h-3 rounded-sm"
-                            checked={selectedOvertime.includes(employee.ecode)}
-                            onChange={() =>
-                              handleCheckboxChange(employee.ecode)
+                    <div className="flex gap-2 mb-3">
+                      <input
+                        type="number"
+                        className="flex-1 h-8 text-sm px-2 py-1 border rounded"
+                        placeholder="Enter default overtime hours"
+                        value={maxOvertime}
+                        onChange={(e) => setMaxOvertime(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="px-3 py-1 h-8 text-xs border rounded text-neutralDGray hover:bg-green-400 hover:text-white"
+                        onClick={() => {
+                          const defaultValue = maxOvertime || '0';
+                          const newIndividualOvertime = { ...individualOvertime };
+                          selectedOvertime.forEach(ecode => {
+                            newIndividualOvertime[ecode] = defaultValue;
+                          });
+                          setIndividualOvertime(newIndividualOvertime);
+                        }}
+                      >
+                        Apply to Selected
+                      </button>
+                    </div>
+                    <p className="text-xs text-red-300 text-center italic">**Note: You can batch edit or you can edit overtime indivually.**</p>
+                    <div className="border border-neutralDGray rounded p-2  overflow-auto">
+                      <div className="flex justify-between mb-3 ">
+                        <div>
+                          <h5 className="text-neutralDGray text-base italic">
+                            List of Employees
+                          </h5>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            className="px-2 py-1 text-xs border h-8 w-36 text-sm text-neutralDGray rounded hover:bg-green-400 hover:text-white"
+                            onClick={() =>
+                              setSelectedOvertime(
+                                filteredEmployeesOvertime.map((e) => e.ecode)
+                              )
                             }
-                          />
-                          {employee.name} ({employee.ecode})
-                        </li>
-                      ))}
-                    </ul>
+                          >
+                            Select All
+                        </button>
+                          <button
+                            className="px-2 text-xs py-1 border h-8 w-36 text-neutralDGray rounded hover:bg-red-400 hover:text-white"
+                            onClick={() => setSelectedOvertime([])}
+                          >
+                            Deselect All
+                        </button>
+                        </div>
+                      </div>
+                      <DataTable
+                        title="List of Employees"
+                        columns={columns1}
+                        data={filteredEmployeesOvertime}
+                        dense
+                        pagination
+                        highlightOnHover
+                        selectableRows={false} // we're using custom checkboxes
+                        noHeader // hide the default header if you're using a custom title
+                      />
+
+
+                    </div>
                   </>
                 ) : (
-                  <p className="text-center text-gray-500">
-                    {searchTerm
-                      ? "No employees found matching your search."
-                      : "No employees available."}
-                  </p>
-                )}
+                    <p className="text-center text-gray-500">
+                      {searchTerm
+                        ? "No employees found matching your search."
+                        : "No employees available."}
+                    </p>
+                  )}
               </div>
             </div>
           </Modal.Body>
           <Modal.Footer>
             <button
-              className="px-2 py-1 h-10 bg-brandPrimary text-white rounded hover:bg-neutralDGray"
+              className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
               onClick={() => {
-                proceedWithPayroll(selectedOvertime, maxOvertime);
+                proceedWithPayroll(selectedOvertime); // Remove maxOvertime parameter
                 handleClose();
               }}
             >
               Approve Overtime
             </button>
             <button
-              className="px-2 py-1 h-10 bg-neutralGray text-white rounded hover:bg-neutralDGray"
+              className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
               onClick={handleClose}
             >
               Close

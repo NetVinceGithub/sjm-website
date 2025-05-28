@@ -12,7 +12,13 @@ import { QueryTypes } from "sequelize";
 import sequelize from "../db/db.js";
 import PayrollReleaseRequest from "../models/PayrollReleaseRequest.js"; // Ensure correct path
 import path from 'path';
+import fs from 'fs';
+import puppeteer from 'puppeteer';
+import { fileURLToPath } from 'url';
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configure Email Transporter once
 const transporter = nodemailer.createTransport({
@@ -31,6 +37,246 @@ transporter.verify((error, success) => {
     console.log("✅ SMTP Server Ready!");
   }
 });
+
+// Function to generate payslip image
+const generatePayslipImage = async (payslip) => {
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
+
+  const page = await browser.newPage();
+
+  await page.setViewport({
+    width: 900,
+    height: 1146,
+    deviceScaleFactor: 1
+  });
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body {
+          margin: 0;
+          padding: 0;
+          font-family: Arial, sans-serif;
+        }
+        .payslip-container {
+          width: 900px;
+          height: 1146px;
+          background-color: white;
+          margin: 0 auto;
+        }                     
+        .header {
+          background-color: #0093DD;
+          width: 180px;
+          height: 60px;
+          border: 2px solid #0093DD;
+          border-bottom-left-radius: 20px;
+          border-bottom-right-radius: 20px;
+          margin-left: 35px;
+          position: relative;
+        }
+        .header h1 {
+          color: white;
+          font-weight: bold;
+          font-size: 12px;
+          text-align: center;
+          margin: 8px 0;
+          padding-top: 5px;
+        }
+        .logo {
+          position: absolute;
+          top: -45px;
+          right: -200px;
+          width: 100px;
+          height: auto;
+        }
+        .payslip-no {
+          font-weight: bold;
+          margin: 15px 0 5px 0;
+          font-size: 9px;
+        }
+        table {
+          border-collapse: collapse;
+          width: 100%;
+          font-size: 6px;
+        }
+        th, td {
+          border: 1.5px solid #AA396F;
+          text-align: center;
+          padding: 2px;
+        }
+        .earnings-section {
+          text-align: left;
+          padding-left: 3px;
+        }
+        .govt-contributions {
+          font-weight: bold;
+          font-size: 5px;
+          background-color: #AA396F;
+          color: white;
+          border-radius: 5px;
+          padding: 1px;
+        }
+        .footer {
+          min-height: 50px;
+          background-color: #bbe394;
+          padding: 5px;
+          margin-top: 5px;
+          font-size: 6px;
+        }
+        .footer-content {
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+        }
+        .footer-section {
+          flex: 1;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="payslip-container">
+        <div class="header">
+          <h1>e-PAYROLL SLIP</h1>
+          <img src="https://drive.google.com/uc?export=view&id=1hthE-VT5Sk4Xp3tYW5l1_UEv0bCOkfmd" alt="Company Logo" class="logo" />  
+        </div>
+
+        <h2 class="payslip-no">Payslip No.:</h2>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>ECODE</th>
+              <th>EMPLOYEE NAME</th>
+              <th>PROJECT SITE</th>
+              <th>RATE</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="height: 25px;">
+              <td>${payslip.ecode || "N/A"}</td>
+              <td>${payslip.name || "N/A"}</td>
+              <td>${payslip.project || "N/A"}</td>
+              <td>${payslip.dailyrate || "0.00"}</td>
+            </tr>
+            <tr>
+              <th colspan="2">POSITION</th>
+              <th colspan="2">CUT-OFF DATE</th>
+            </tr>
+            <tr>
+              <td colspan="2" style="height: 25px;">${payslip.position || "N/A"}</td>
+              <td colspan="2" style="height: 25px;">${payslip.cutoff_date || "N/A"}</td>
+            </tr>
+            <tr>
+              <th>EARNINGS</th>
+              <th>FIGURES</th>
+              <th>DEDUCTIONS</th>
+              <th>FIGURES</th>
+            </tr>
+            <tr>
+              <td class="earnings-section">Basic Pay</td>
+              <td>${payslip.basic_pay ? Number(payslip.basic_pay).toLocaleString() : "0.00"}</td>
+              <td class="govt-contributions">GOVERNMENT CONTRIBUTIONS</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td class="earnings-section">No. of Days</td>
+              <td>${parseInt(payslip.no_of_days, 10) || "0"}</td>
+              <td class="earnings-section">SSS</td>
+              <td>${payslip.sss ? Number(payslip.sss).toLocaleString() : "0.00"}</td>
+            </tr>
+            <tr>
+              <td class="earnings-section">Overtime Pay</td>
+              <td>${payslip.overtime_pay ? Number(payslip.overtime_pay).toLocaleString() : "0.00"}</td>
+              <td class="earnings-section">PHIC</td>
+              <td>${payslip.phic ? Number(payslip.phic).toLocaleString() : "0.00"}</td>
+            </tr>
+            <tr>
+              <td class="earnings-section">Overtime Hours</td>
+              <td>${payslip.total_overtime}</td>
+              <td class="earnings-section">HDMF</td>
+              <td>${payslip.hdmf ? Number(payslip.hdmf).toLocaleString() : "0.00"}</td>
+            </tr>
+            <tr>
+              <td class="earnings-section">Holiday Pay</td>
+              <td>${payslip.holiday_pay ? Number(payslip.holiday_pay).toLocaleString() : "0.00"}</td>
+              <td class="earnings-section">Cash Advance/Loan</td>
+              <td>${payslip.loan ? Number(payslip.loan).toLocaleString() : "0.00"}</td>
+            </tr>
+            <tr>
+              <td class="earnings-section">Night Differential</td>
+              <td>${payslip.night_differential ? Number(payslip.night_differential).toLocaleString() : "0.00"}</td>
+              <td class="earnings-section">Tardiness</td>
+              <td>${payslip.total_tardiness ? Number(payslip.total_tardiness).toLocaleString() : "0.00"}</td>
+            </tr>
+            <tr>
+              <td class="earnings-section">Allowance</td>
+              <td>${payslip.allowance ? Number(payslip.allowance).toLocaleString() : "0.00"}</td>
+              <td class="earnings-section">Other Deductions</td>
+              <td>${payslip.other_deductions ? Number(payslip.other_deductions).toLocaleString() : "0.00"}</td>
+            </tr>
+            <tr>
+              <td></td>
+              <td></td>
+              <td class="earnings-section">Total Deductions</td>
+              <td>${payslip.total_deductions ? Number(payslip.total_deductions).toLocaleString() : "0.00"}</td>
+            </tr>
+            <tr>
+              <td></td>
+              <td></td>
+              <td class="earnings-section">Adjustments</td>
+              <td>${payslip.adjustment ? Number(payslip.adjustment).toLocaleString() : "0.00"}</td>
+            </tr>
+            <tr>
+              <th colspan="2">NET PAY</th>
+              <th colspan="2">AMOUNT</th>
+            </tr>
+            <tr>
+              <td colspan="2" class="earnings-section">NETPAY: ₱${payslip.net_pay ? Number(payslip.net_pay).toLocaleString() : "0.00"}</td>
+              <td colspan="2">₱${payslip.total_deductions ? Number(payslip.total_deductions).toLocaleString() : "0.00"}</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div class="footer">
+          <div class="footer-content">
+            <div class="footer-section">
+              <p><strong>Company:</strong> St. John Majore Services Company Inc.</p>
+              <p><strong>Email:</strong> sjmajore@gmail.com</p>
+              <p><strong>Web:</strong> N/A</p>
+            </div>
+            <div class="footer-section">
+              <p><strong>Address:</strong></p>
+              <p>8 Patron Central Plaza De Villa St., Poblacion<br />San Juan, Batangas</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+
+  // Take screenshot with high quality
+  // Or use this version instead:
+  const payslipElement = await page.$('.payslip-container');
+  const boundingBox = await payslipElement.boundingBox();
+  const screenshot = await page.screenshot({
+    type: 'jpeg',
+    quality: 100,
+    clip: boundingBox,
+    omitBackground: false
+  });
+
+  await browser.close();
+  return screenshot;
+};
 
 export const sendPayslips = async (req, res) => {
   try {
@@ -57,216 +303,80 @@ export const sendPayslips = async (req, res) => {
         continue;
       }
 
-      let mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: payslip.email,
-        subject: `Payslip for ${payslip.name}`,
-        html: `
-          <div style="background-color: white; align-items: center;">
-                      <div style="background-color: #0093DD; width: 200px; height: 100px; border: 2px solid #0093DD; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; margin-left: 45px;">
-                        <h1 style="color: white; font-weight: bold; font-size: 25px; text-align: center; margin-top: 10px;">e-PAYROLL SLIP</h1>
-                        <img src="https://drive.google.com/uc?export=view&id=1hthE-VT5Sk4Xp3tYW5l1_UEv0bCOkfmd" alt="Company Logo" style="margin-top: -65px; margin-left: 265px; width: 140px; height: auto;" />  
-                      </div>
-          
-                      <h2 style="font-weight: bold; margin-top: 30px; margin-left: 40px; font-size: 18px;">Payslip No.:</h2>
-                      <table style="border-collapse: collapse;">
-                        <thead>
-                          <tr style="border: 3px solid #AA396F;">
-                            <th style="border: 3px solid #AA396F; text-align: center;">ECODE</th>
-                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">EMPLOYEE NAME</th>
-                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">PROJECT SITE</th>
-                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">RATE</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr style="height: 45px;">
-                            <td style="border: 3px solid #AA396F; text-align: center;">${
-                              payslip.ecode || "N/A"
-                            }</td>
-                            <td style="border: 3px solid #AA396F; width: 290px; text-align: center;">${
-                              payslip.name || "N/A"
-                            }</td>
-                            <td style="border: 3px solid #AA396F; text-align: center;">${
-                              payslip.project || "N/A"
-                            }</td>
-                            <td style="border: 3px solid #AA396F; text-align: center;">${
-                              payslip.dailyrate || "0.00"
-                            }</td>
-                          </tr>
-                          <tr>
-                            <th style="border: 3px solid #AA396F; text-align: center;" colspan="2">
-                              POSITION
-                            </th>
-                            <th style="border: 3px solid #AA396F; text-align: center;" colspan="2">
-                              CUT-OFF DATE
-                            </th>
-                          </tr>
-                          <tr>
-                            <td style="height: 45px; border: 3px solid #AA396F; text-align: center;" colspan="2">
-                              ${payslip.position || "N/A"}
-                            </td>
-                            <td style="height: 45px; border: 3px solid #AA396F; text-align: center;" colspan="2">
-                              ${payslip.cutoff_date || "N/A"}
-                            </td>
-                          </tr>
-                          <tr>
-                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">EARNINGS</th>
-                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">FIGURES</th>
-                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">DEDUCTIONS</th>
-                            <th style="width: 200px; border: 3px solid #AA396F; text-align: center;">FIGURES</th>
-                          </tr>
-                          <tr>
-                            <td style="border-bottom: 0; border: 3px solid #AA396F; border-bottom-width: 0; text-align: left;">Basic Pay</td>
-                            <td style="border: 3px solid #AA396F; border-bottom-width: 0;">${
-                              payslip.basic_pay ? Number(payslip.basic_pay).toLocaleString() : "0.00"
-                            }</td>
-                            <td style="border: 3px solid #AA396F; border-bottom-width: 0; font-weight: bold; width: 280px; font-size: 9px; background-color: #AA396F; border-radius: 10px; padding: 1px; text-align: center;">GOVERNMENT CONTRIBUTIONS</td>
-                            <td style="border: 3px solid #AA396F; border-bottom-width: 0;"></td>
-                          </tr>
-                          <tr>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">No. of Days</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">
-                              ${parseInt(payslip.no_of_days, 10) || "0"}
-                            </td>
-
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">SSS</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.sss ? Number(payslip.sss).toLocaleString() : "0.00"
-                            }</td>
-                          </tr>
-                          <tr>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Overtime Pay</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.overtime_pay ? Number(payslip.overtime_pay).toLocaleString() : "0.00"
-                            }</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">PHIC</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.phic ? Number(payslip.phic).toLocaleString() : "0.00"
-                            }</td>
-                          </tr>
-                          <tr>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Overtime Hours</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.total_overtime
-                            }</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">HDMF</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.hdmf ? Number(payslip.hdmf).toLocaleString() : "0.00"
-                            }</td>
-                          </tr>
-                          <tr>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Holiday Pay</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.holiday_pay ? Number(payslip.holiday_pay).toLocaleString() : "0.00"
-                            }</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Cash Advance/Loan</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.loan ? Number(payslip.loan).toLocaleString() : "0.00"
-                            }</td>
-                          </tr>
-                          <tr>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Night Differential</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.night_differential ? Number(payslip.night_differential).toLocaleString() : "0.00"
-                            }</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Tardiness</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.total_tardiness ? Number(payslip.total_tardiness).toLocaleString() : "0.00"
-                            }</td>
-                          </tr>
-                          <tr>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Allowance</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.allowance ? Number(payslip.allowance).toLocaleString() : "0.00"
-                            }</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Other Deductions</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.other_deductions ? Number(payslip.other_deductions).toLocaleString() : "0.00"
-                            }</td>
-                          </tr>
-                          <tr>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;"></td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;"></td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Total Deductions</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">
-                            ${
-                              payslip.total_deductions ? Number(payslip.total_deductions).toLocaleString() : "0.00"
-                            }
-                            </td>
-                          </tr>
-                          <tr>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;"></td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;"></td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0; text-align: left;">Adjustments</td>
-                            <td style="border: 3px solid #AA396F; border-top: 0; border-bottom: 0;">${
-                              payslip.adjustment ? Number(payslip.adjustment).toLocaleString() : "0.00"
-                            }</td>
-                          </tr>
-                          <tr>
-                            <th style="border: 3px solid #AA396F; text-align: center;" colspan="2">
-                              NET PAY
-                            </th>
-                            <th style="border: 3px solid #AA396F; text-align: center;"  colspan="2">
-                              AMOUNT
-                            </th>
-                          </tr>
-                          <tr style="border: 3px solid #AA396F;">
-                            <td style="border: 3px solid #AA396F; text-align: left" colspan="2">
-                              NETPAY: ₱${
-                                payslip.net_pay ? Number(payslip.net_pay).toLocaleString() : "0.00"
-                              }
-                            </td>
-                            <td style="border: 3px solid #AA396F;" colspan="2">
-                              ₱${
-                                payslip.total_deductions ? Number(payslip.total_deductions).toLocaleString() : "0.00"
-                              }
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                        <div style="min-height: 100px; width: auto; background-color: #bbe394; padding: 10px;">
-                          <div style="display: block;">
-                            <h6 style="font-weight: bold; font-size: 14px; text-align: center; margin-bottom: 2px;">
-                              Mia Mary Sora
-                            </h6>
-                            <p style="margin-top: 0; font-size: 12px; text-align: center;">
-                              Human Resource Head
-                            </p>
-                          </div>
-                          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; font-size: 12px; margin-top: -4px; max-width: 100%;">
-                            <div>
-                            <p>
-                              <strong>Company:</strong> St. John Majore Services Company
-                              Inc.
-                            </p>
-                            <p>
-                              <strong>Email:</strong> sjmajore@gmail.com
-                            </p>
-                            <p>
-                              <strong>Web:</strong> N/A
-                            </p>
-                            </div>
-                                
-                            <div>
-                            <p>
-                              <strong>Address:</strong>
-                            </p>
-                            <p>
-                              8 Patron Central Plaza De Villa St., Poblacion <br />
-                              San Juan, Batangas
-                            </p>
-                          </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-        `
-      };
-
       try {
+        console.log(`🖼️ Generating payslip image for ${payslip.name}...`);
+
+        // Generate payslip image
+        const payslipImage = await generatePayslipImage(payslip);
+
+        // Create temporary file path
+        const tempDir = path.join(__dirname, '../temp');
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true });
+        }
+
+        const imagePath = path.join(tempDir, `payslip_${payslip.ecode}_${Date.now()}.jpg`);
+        fs.writeFileSync(imagePath, payslipImage);
+
+        // Generate unique Content-ID for the embedded image
+        const contentId = `payslip_${payslip.ecode}_${Date.now()}`;
+
+        let mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: payslip.email,
+          subject: `Payslip for ${payslip.name}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="background-color: #0093DD; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="margin: 0; font-size: 20px;">St. John Majore Services Company Inc.</h1>
+                <p style="margin: 10px 0 0 0; font-size: 16px; font-style: italic;">Electronic Payslip</p>
+              </div>
+              
+              <div style="background-color: #f8f9fa; padding: 20px; border: 1px solid #dee2e6;">
+                <h2 style="color: #0093DD; margin-top: 0;">Dear ${payslip.name},</h2>
+                <p>Please find your payslip below:</p>
+                <p><strong>Payroll Period:</strong> ${payslip.cutoff_date || "N/A"}</p>
+                <p><strong>Employee Code:</strong> ${payslip.ecode || "N/A"}</p>
+                <p><strong>Net Pay:</strong> ₱${payslip.net_pay ? Number(payslip.net_pay).toLocaleString() : "0.00"}</p>
+                
+                <!-- Embedded Payslip Image -->
+                <div style="text-align: center; margin: 20px 0; padding: 10px; background-color: white; border: 2px solid #0093DD; border-radius: 8px;">
+                <img src="cid:${contentId}" alt="Payslip" style="width: 288px; height: 367px; border-radius: 4px;" />
+                </div>
+              </div>
+              
+              <div style="background-color: #bbe394; padding: 15px; text-align: center; border-radius: 0 0 10px 10px;">
+                <p style="margin: 0; font-size: 12px; color: #666;">
+                  <strong>Contact Information:</strong><br>
+                  Email: sjmajore@gmail.com<br>
+                  Address: 8 Patron Central Plaza De Villa St., Poblacion, San Juan, Batangas
+                </p>
+              </div>
+              
+              <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px;">
+                <p style="margin: 0; font-size: 12px; color: #856404;">
+                  <strong>Note:</strong> This is an automated email. Please do not reply to this message. 
+                  If you have any questions regarding your payslip, please contact the HR department.
+                </p>
+              </div>
+            </div>
+          `,
+          attachments: [
+            {
+              filename: `payslip_${payslip.ecode}_${payslip.cutoff_date || 'latest'}.jpg`,
+              path: imagePath,
+              contentType: 'image/jpeg',
+              cid: contentId // This makes the image inline/embedded
+            }
+          ]
+        };
+
         await transporter.sendMail(mailOptions);
         console.log(`📩 Payslip sent to ${payslip.email}`);
         successfulEmails.push(payslip.email);
+
+        // Clean up temporary file
+        fs.unlinkSync(imagePath);
 
         // Save to payslip history
         await PayslipHistory.create({
@@ -304,6 +414,12 @@ export const sendPayslips = async (req, res) => {
       } catch (error) {
         console.error(`❌ Email failed to ${payslip.email}:`, error);
         failedEmails.push({ email: payslip.email, error: error.message });
+
+        // Clean up temporary file if it exists
+        const imagePath = path.join(__dirname, '../temp', `payslip_${payslip.ecode}_${Date.now()}.jpg`);
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+        }
       }
     }
 
@@ -484,8 +600,8 @@ export const generatePayroll = async (req, res) => {
       const no_of_days = employeeAttendance.daysPresent || 0;
       const holidayDays = employeeAttendance.holidayCount || 0;
       const regularDays = employeeAttendance.regularDays || 0; // or employeeAttendance.regularDays if available
-      const totalHours = Number(employeeAttendance?.totalHours) || 0;
-      const holidayHours = Number(employeeAttendance?.holiday) || 0;
+      const totalHours = Number(employeeAttendance ?.totalHours) || 0;
+      const holidayHours = Number(employeeAttendance ?.holiday) || 0;
       const hourlyRate = employeePayrollInfo.hourly_rate || 0;
       const overtimeRate = employeePayrollInfo.overtime_pay || 0;
       const dailyRate = employeePayrollInfo.daily_rate || 0;
@@ -493,26 +609,26 @@ export const generatePayroll = async (req, res) => {
       const sss = employeePayrollInfo.sss_contribution || 0;
       const phic = employeePayrollInfo.philhealth_contribution || 0;
       const hdmf = employeePayrollInfo.pagibig_contribution || 0;
-      const tardiness = (Number(employeeAttendance?.totalTardiness) || 0) * 1.08;
+      const tardiness = (Number(employeeAttendance ?.totalTardiness) || 0) * 1.08;
       const nightDifferential = employeePayrollInfo.night_differential || 0;
       const loan = employeePayrollInfo.loan || 0;
       const otherDeductions = employeePayrollInfo.otherDeductions || 0;
       const adjustment = employeePayrollInfo.adjustment || 0;
 
       const totalOvertime = selectedEmployees.includes(employee.ecode)
-        ? Math.min(Number(employeeAttendance?.totalOvertime) || 0, Number(maxOvertime))
+        ? Math.min(Number(employeeAttendance ?.totalOvertime) || 0, Number(maxOvertime))
         : 0;
 
       const totalRegularHours = employeeAttendance.totalRegularHours;
       const totalHolidayHours = employeeAttendance.totalHolidayHours;
-      
+
       console.log(
         `Processing Payroll for: ${employee.name} (${employee.ecode}) | Overtime: ${totalOvertime} hours`
       );
 
       const basicPay = totalHours * hourlyRate;
       const overtimePay = totalOvertime * overtimeRate;
-      const holidayPay = totalHolidayHours * (hourlyRate * 2  );
+      const holidayPay = totalHolidayHours * (hourlyRate * 2);
       const grossPay = basicPay + overtimePay + holidayPay + allowance;
       const totalEarnings = grossPay + adjustment;
       const totalDeductions = tardiness + sss + phic + hdmf + loan + otherDeductions;
@@ -533,7 +649,7 @@ export const generatePayroll = async (req, res) => {
         holidayDays: holidayDays,
         regularDays: regularDays,
         overtimePay: overtimePay.toFixed(2),
-        totalOvertime: totalOvertime, 
+        totalOvertime: totalOvertime,
         totalRegularHours: totalRegularHours,
         totalHolidayHours: totalHolidayHours,
         holidayPay: holidayPay.toFixed(2),
@@ -598,62 +714,32 @@ export const requestPayrollRelease = async (req, res) => {
 };
 
 export const releasePayroll = async (req, res) => {
-  const { project } = req.body;
-
-  if (!project) {
-    return res.status(400).json({ success: false, message: "Project is required." });
-  }
-
   try {
     const [results, metadata] = await sequelize.query(
-      "UPDATE payslips SET status = 'released' WHERE status = 'pending' AND project = :project;",
+      "UPDATE payslips SET status = 'released' WHERE status = 'pending';",
       {
-        replacements: { project },
-        type: QueryTypes.UPDATE
+        type: QueryTypes.UPDATE,
       }
     );
 
-    if (metadata.affectedRows > 0 || metadata.rowCount > 0) {
-      const payslips = await sequelize.query(
-        "SELECT * FROM payslips WHERE status = 'released' AND project = :project;",
-        {
-          replacements: { project },
-          type: QueryTypes.SELECT
-        }
-      );
-
-      if (payslips.length > 0) {
-        try {
-          const emailResponse = await axios.post(
-            `${import.meta.env.VITE_API_URL}/api/payslip/send-payslip`,
-            { payslips }
-          );
-
-          return res.json({
-            success: true,
-            message: "Payroll successfully released and payslips sent!",
-          });
-        } catch (emailError) {
-          console.error("Error sending emails:", emailError);
-          return res.json({
-            success: true,
-            message: "Payroll released, but failed to send emails.",
-          });
-        }
-      } else {
-        return res.json({
-          success: true,
-          message: "Payroll released, but no payslips found to send.",
-        });
+    console.log("Update metadata:", metadata); // 👈 LOG THIS
+    const payslips = await sequelize.query(
+      "SELECT * FROM payslips WHERE status = 'released';",
+      {
+        type: QueryTypes.SELECT,
       }
-    } else {
-      return res.json({ success: false, message: "No pending payroll found for this project." });
-    }
+    );
+
+    console.log("Payslips after release:", payslips);
+
+    return res.json({ success: true, message: "Payroll released", data: payslips });
   } catch (error) {
     console.error("Error releasing payroll:", error);
     res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 };
+
+
 
 
 export const pendingRequests = async (req, res) => {

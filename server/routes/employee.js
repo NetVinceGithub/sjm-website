@@ -11,7 +11,11 @@ import {
   updatePayrollInformation,
   updateIDDetails,
   getEmployeeStatus,
-  toggleEmployeeStatus
+  toggleEmployeeStatus,
+  requestPayrollChange,
+  reviewPayrollChange,
+  rejectPayrollChange,
+  approvePayrollChange,
 } from "../controllers/employeeController.js";
 
 const router = express.Router();
@@ -22,7 +26,7 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure Multer (Define upload inside employee.js)
+// Configure Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "uploads/");
@@ -46,18 +50,38 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-// Employee Routes
+// SPECIFIC ROUTES FIRST (most specific to least specific)
+
+// Import and basic employee routes
 router.get("/import", importEmployeesFromGoogleSheet);
-router.get("/", getEmployees);
 router.get("/status", getEmployeeStatus);
-router.put("/toggle-status/:id", toggleEmployeeStatus);
+
+// Payroll information routes
+router.get("/payroll-informations", getPayrollInformations);
 router.get("/payroll-informations/:id", getPayrollInformationsById);
 router.put("/payroll-informations/:id", updatePayrollInformation);
+
+// Payroll change request routes - VERY SPECIFIC ROUTES FIRST
+router.post("/payroll-change-requests", requestPayrollChange);
+router.get("/payroll-change-requests", reviewPayrollChange);
+
+// Approval/Rejection routes - THESE NEED TO BE BEFORE /:id
+router.post("/approve-payroll-change/:id", approvePayrollChange);
+router.post("/reject-payroll-change/:id", rejectPayrollChange);
+
+// Bulk operations (if you have them)
+// router.post("/bulk-approve-payroll-changes", bulkApprovePayrollChanges);
+// router.post("/bulk-reject-payroll-changes", bulkRejectPayrollChanges);
+
+// Employee status and update routes
+router.put("/toggle-status/:id", toggleEmployeeStatus);
 router.put("/update-details/:id", upload.fields([
   { name: "profileImage", maxCount: 1 },
   { name: "esignature", maxCount: 1 }
 ]), updateIDDetails);
-router.get("/payroll-informations", getPayrollInformations);
-router.get("/:id", getEmployee);
+
+// GENERIC ROUTES LAST
+router.get("/", getEmployees); // This should be after specific routes
+router.get("/:id", getEmployee); // This MUST be the very last route
 
 export default router;

@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
 import DataTable from "react-data-table-component";
+import { notifyPayrollRequests } from '../../../utils/toastHelpers';
+import { notifyChangeRequests } from '../../../utils/toastHelper2';
+import { toast } from 'react-toastify';
 import {
   FaUsers,
   FaCashRegister,
@@ -27,6 +30,54 @@ const Overview = () => {
   const [showTitleInput, setShowTitleInput] = useState(false);
   const [editingIndex, setEditingIndex] = useState(-1);
   const [holidaySummary, setHolidaySummary] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [changesRequests, setChangesRequests] = useState([]);
+  const [loadingChanges, setLoadingChanges] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+
+  
+
+  const fetchRequests = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
+      console.log(response.data);
+      setRequests(response.data);
+      notifyPayrollRequests(response.data);
+    } catch (error) {
+      console.error("Error fetching payroll requests:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchChangeRequests = async () => {
+    try {
+      setLoadingChanges(true);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/employee/payroll-change-requests`
+      );
+      console.log("Change requests response:", response.data);
+
+      if (response.data.success) {
+        const filteredRequests = (response.data.data || []).filter(
+          (req) => !["approved", "rejected"].includes(req.status.toLowerCase())
+        );
+        setChangesRequests(filteredRequests);
+        notifyChangeRequests(filteredRequests);
+      } else {
+        console.error("Failed to fetch change requests:", response.data);
+        setChangesRequests([]);
+      }
+    } catch (error) {
+      console.error("Error fetching change requests:", error);
+      setChangesRequests([]);
+    } finally {
+      setLoadingChanges(false);
+    }
+  };
 
   useEffect(() => {
     const fetchPayslips = async () => {
@@ -40,8 +91,57 @@ const Overview = () => {
       }
     };
 
+    fetchChangeRequests();
+    fetchRequests();
     fetchPayslips();
   }, []);
+
+  useEffect(() => {
+    const checkUserRole = async () => {
+      const token = localStorage.getItem("token"); // Make sure token is stored in localStorage
+      if (!token) {
+          console.log("cannot find token");
+        return;
+      }
+  
+      try {
+        const userResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/users/current`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`, 
+            },
+          }
+        );
+  
+        const currentUserRole = userResponse.data.user.role;
+        setUserRole(currentUserRole);
+        if (currentUserRole === "approver") {
+          setIsAuthorized(true);
+          // Fetch users here if needed
+        } else {
+          setIsAuthorized(false);
+        }
+
+      } catch (error) {
+        console.error("Error checking authorization:", error);
+        setIsAuthorized(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    checkUserRole();
+  }, []);
+
+  useEffect(() => {
+    if (isAuthorized && Array.isArray(changesRequests)) {
+      notifyChangeRequests(changesRequests);
+    }
+  }, [isAuthorized, changesRequests]);
+  
+  
+  
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -72,14 +172,14 @@ const Overview = () => {
     };
     fetchHolidays();
   }, []);
-  
+
 
   // Utility to generate payroll cutoffs
   const getPayrollCutoffs = () => {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth(); // 0-indexed
-  
+
     const firstCutoff = {
       start: new Date(year, month, 1),
       end: new Date(year, month, 15),
@@ -87,7 +187,7 @@ const Overview = () => {
       status: "1st cutoff",
       badge: "bg-yellow-100 text-yellow-600",
     };
-  
+
     const secondCutoff = {
       start: new Date(year, month, 16),
       end: new Date(year, month + 1, 0), // Last day of the current month
@@ -95,34 +195,46 @@ const Overview = () => {
       status: "2nd cutoff",
       badge: "bg-blue-100 text-blue-600",
     };
-  
+
     return [firstCutoff, secondCutoff];
   };
-  
+
   const payrollCutoffs = getPayrollCutoffs();
-  
-    
 
-// Defensive assignment - ensure payslips is always an array
-const safePayslips = Array.isArray(payslips) ? payslips : [];
 
-const totalGrossSalary = safePayslips.reduce(
-  (acc, p) => acc + (p.gross_pay || 0),
-  0
-);
-const totalBenefits = safePayslips.reduce(
-  (acc, p) => acc + (p.allowance || 0),
-  0
-);
-const totalPayroll = safePayslips.reduce(
-  (acc, p) => acc + (p.netPay || 0),
-  0
-);
+
+  // Defensive assignment - ensure payslips is always an array
+  const safePayslips = Array.isArray(payslips) ? payslips : [];
+
+  const totalGrossSalary = safePayslips.reduce(
+    (acc, p) => acc + (p.gross_pay || 0),
+    0
+  );
+  const totalBenefits = safePayslips.reduce(
+    (acc, p) => acc + (p.allowance || 0),
+    0
+  );
+  const totalPayroll = safePayslips.reduce(
+    (acc, p) => acc + (p.netPay || 0),
+    0
+  );
 
 
   const handleCreatePayroll = async () => {
     if (!cutoffDate) {
-      alert("Please select a cutoff date!");
+      toast.info(
+        <div style={{ fontSize: '0.9rem'}}>
+          Please select a cutoff date.
+        </div>,
+        {
+          autoClose: 3000,        // auto close after 3 seconds
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          closeButton: false,
+          position: "top-right",  // position of the toast
+        }
+      );;
       return;
     }
 
@@ -139,14 +251,14 @@ const totalPayroll = safePayslips.reduce(
       } else {
         setMessage(
           `❌ Failed to generate payroll: ${
-            response.data.message || "Unknown error"
+          response.data.message || "Unknown error"
           }`
         );
       }
     } catch (error) {
       setMessage(
         `❌ ${
-          error.response?.data?.message ||
+        error.response ?.data ?.message ||
           "An error occurred while generating payroll."
         }`
       );
@@ -216,7 +328,7 @@ const totalPayroll = safePayslips.reduce(
 
     setNotes(filtered);
   }, []);
-  
+
   const handleAddNote = () => {
     if (!showTitleInput) {
       setShowTitleInput(true);
@@ -294,7 +406,7 @@ const totalPayroll = safePayslips.reduce(
               row.status.toLowerCase() === "active"
                 ? "bg-green-500"
                 : "bg-red-500"
-            }`}
+              }`}
           ></span>
           {row.status}
         </span>
@@ -302,9 +414,11 @@ const totalPayroll = safePayslips.reduce(
     },
   ];
 
+
+
   return (
-    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
-      <div className="flex flex-col h-full">
+    <div className="fixed top-0 right-0 bottom-0 w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
+      <div className="flex flex-col h-[calc(100vh-80px)] overflow-auto">
         <Breadcrumb
           items={[
             { label: "Dashboard", href: "" },
@@ -347,9 +461,9 @@ const totalPayroll = safePayslips.reduce(
         </div>
 
         {/* Main Layout Grid */}
-        <div className="grid grid-cols-1 laptop:grid-cols-12 gap-3 mt-3 flex-1 overflow-hidden">
+        <div className="grid grid-cols-1 laptop:grid-cols-12 gap-3 mt-3 flex-1 ">
           {/* Left - Chart + Notes */}
-          <div className="laptop:col-span-5 flex flex-col gap-3 overflow-auto">
+          <div className="laptop:col-span-5 flex flex-col gap-3">
             <PayrollLineChart
               payslips={safePayslips}
               className="border border-neutralDGray"
@@ -362,10 +476,10 @@ const totalPayroll = safePayslips.reduce(
               />
 
               <div className="relative bg-white border w-full sm:w-1/2 border-neutralDGray shadow-sm rounded p-2 lg:p-3 h-full">
-                <h6 className="text-neutralDGray font-semibold mb-2">Notes:</h6>
+                <h6 className="text-neutralDGray text-sm mb-1">Notes:</h6>
 
                 {/* Scrollable Notes List */}
-                <div className="overflow-y-auto h-56 pr-2">
+                <div className="overflow-y-auto h-64 pr-2">
                   <ul className="space-y-2 text-[12px] text-gray-700">
                     {notes.map((note, index) => (
                       <li
@@ -383,15 +497,15 @@ const totalPayroll = safePayslips.reduce(
                 </div>
 
                 {/* Input and Buttons - Fixed at bottom */}
-                <div className="absolute bottom-3 left-3 right-3">
+                <div className="absolute bottom-0 left-3 right-3">
                   {showTitleInput && (
-                    <div className="mb-2">
+                    <div className="mb-1">
                       <input
                         type="text"
                         value={newTitle}
                         onChange={(e) => setNewTitle(e.target.value)}
                         placeholder="Note title"
-                        className="w-full h-10 border border-gray-300 p-2 rounded mb-2 text-sm"
+                        className="w-full h-8 border border-gray-300 px-2 rounded mb-1 text-[12px]"
                       />
                     </div>
                   )}
@@ -403,33 +517,34 @@ const totalPayroll = safePayslips.reduce(
                       placeholder={
                         editingIndex >= 0 ? "Edit note..." : "Add a new note..."
                       }
-                      className="flex-1 border border-gray-300 w-[50%] p-2 rounded text-sm"
+                      className="flex-1 border border-gray-300 w-[50%] px-2 h-8 rounded text-[12px]"
                     />
                     {editingIndex >= 0 ? (
                       <>
                         <button
                           onClick={saveEdit}
-                          className="bg-brandPrimary h-10 w-[20%] text-white text-center py-2 rounded hover:bg-neutralDGray text-sm"
+                          className="bg-brandPrimary h-8 w-[20%] text-white text-center py-2 rounded hover:bg-neutralDGray text-[12px]"
                         >
                           Update
                         </button>
                         <button
                           onClick={cancelEdit}
-                          className="bg-gray-300 h-10 w-[20%] text-gray-700 text-center py-2 rounded hover:bg-gray-400 text-sm"
+                          className="bg-gray-300 h-8 w-[20%] text-gray-700 text-center py-2 rounded hover:bg-gray-400 text-[12px]"
                         >
                           Cancel
                         </button>
                       </>
                     ) : (
-                      <button
-                        onClick={handleAddNote}
-                        className="bg-brandPrimary h-10 text-white text-center w-[20%] py-2 rounded hover:bg-neutralDGray text-sm"
-                      >
-                        {showTitleInput ? "Save" : "Add"}
-                      </button>
-                    )}
+                        <button
+                          onClick={handleAddNote}
+                          className="bg-brandPrimary h-8 w-[20%] py-2 rounded hover:bg-neutralDGray text-white text-[12px] flex items-center justify-center"
+                        >
+                          {showTitleInput ? "Save" : "Add"}
+                        </button>
+
+                      )}
                   </div>
-                  <p className="italic text-[10px] text-neutralGray text-center mt-2">
+                  <p className="italic text-[10px] text-neutralGray text-center">
                     *Newly added notes will automatically disappear after 7
                     days.*
                   </p>
@@ -443,7 +558,7 @@ const totalPayroll = safePayslips.reduce(
             <div className="bg-white relative border border-neutralDGray rounded shadow-sm p-2 lg:p-3 h-full flex flex-col">
               <div className="flex-none">
                 <div className="flex justify-left items-center gap-6 mb-2">
-                  <h6 className="text-neutralDGray text-md font-semibold">
+                  <h6 className="text-neutralDGray text-sm">
                     Employee Status
                   </h6>
                 </div>
@@ -460,12 +575,12 @@ const totalPayroll = safePayslips.reduce(
                     </p>
                     <p
                       className={`text-xs font-medium -mt-3 mb-2 px-2 rounded-full w-fit ${
-                        employee.status === "active"
+                        employee.status === "Active"
                           ? "bg-green-100 text-green-700"
                           : employee.status === "On Leave"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
                     >
                       {employee.status}
                     </p>
@@ -488,10 +603,10 @@ const totalPayroll = safePayslips.reduce(
           {/* Right - Payroll Status, Top Earners, Holidays */}
           <div className="laptop:col-span-4 flex flex-col gap-3 overflow-auto">
             <div className="bg-white rounded shadow-sm p-2 lg:p-3 border border-neutralDGray">
-              <h6 className="text-lg font-semibold text-neutralDGray mb-3">
+              <h6 className="text-sm text-neutralDGray mb-3">
                 Payroll Cutoff Status
               </h6>
-              <ul className="space-y-2 text-sm">
+              <ul className="text-sm">
                 {payrollCutoffs.map((cutoff, idx) => (
                   <li key={idx} className="flex justify-between items-center">
                     <div>
@@ -514,14 +629,14 @@ const totalPayroll = safePayslips.reduce(
 
 
             <div className="bg-white rounded shadow-sm p-2 lg:p-3 border border-neutralDGray">
-              <h6 className="text-lg font-semibold text-neutralDGray mb-2">
+              <h6 className="text-sm text-neutralDGray mb-2">
                 Top 3 Earners
               </h6>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[1, 2, 3].map((_, i) => (
                   <div
                     key={i}
-                    className="flex flex-col items-center justify-center bg-gradient-to-b from-[#9D426E] via-[#80B646] to-[#4191D6] rounded-lg p-[0.7rem]"
+                    className="flex flex-col items-center border justify-center bg-gradient-to-b from-[#9D426E] via-[#80B646] to-[#4191D6] rounded-lg p-[0.7rem]"
                   >
                     <div className="w-16 h-14 lg:w-16 lg:h-16 rounded-full mb-2 border-4 border-white bg-gray-200"></div>
                     <p className="font-semibold text-white text-sm text-center">
@@ -539,25 +654,25 @@ const totalPayroll = safePayslips.reduce(
             </div>
 
             <div className="bg-white rounded shadow-sm p-2 lg:p-3 border border-neutralDGray">
-              <h6 className="text-lg font-semibold text-neutralDGray mb-3">
+              <h6 className="text-sm text-neutralDGray mb-3">
                 Holiday Summary
               </h6>
               <ul className="space-y-2 text-sm">
-              {holidaySummary.map((holiday, index) => (
-                <li key={index} className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-gray-700">
-                      {holiday.date}
-                    </p>
-                    <p className="text-xs -mt-3 text-gray-500">
-                      {holiday.name}
-                    </p>
-                  </div>
-                  <span className="bg-green-100 text-green-600 text-xs px-3 py-1 rounded-full">
-                    {holiday.type}
-                  </span>
-                </li>
-              ))}
+                {holidaySummary.map((holiday, index) => (
+                  <li key={index} className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium text-gray-700">
+                        {holiday.date}
+                      </p>
+                      <p className="text-xs -mt-3 text-gray-500">
+                        {holiday.name}
+                      </p>
+                    </div>
+                    <span className="bg-green-100 text-green-600 text-xs px-3 py-1 rounded-full">
+                      {holiday.type}
+                    </span>
+                  </li>
+                ))}
               </ul>
             </div>
 

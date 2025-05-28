@@ -192,6 +192,10 @@ const Employee = sequelize.define("Employee", {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
+  permanentaddress: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
   contactno: {
     type: DataTypes.STRING,
     defaultValue: "N/A",
