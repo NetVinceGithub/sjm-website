@@ -5,11 +5,14 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import axios from "axios";
 import sequelize from "./db/db.js";
 import Employee from "./models/Employee.js";
 import PayrollInformation from "./models/PayrollInformation.js";
 import setupAssociations from "./models/associations.js";
+import { userRegister } from "./userSeed.js";
 
+// Load environment variables
 dotenv.config();
 
 // Define associations
@@ -17,11 +20,10 @@ Employee.hasOne(PayrollInformation, { foreignKey: "employee_id", onDelete: "CASC
 PayrollInformation.belongsTo(Employee, { foreignKey: "employee_id" });
 
 // Sync Database
-// Sync Database
 sequelize.sync({ alter: true })
   .then(() => {
     console.log("✅ MySQL Database Synced");
-    return userRegister(); // Call it here, after sync is done
+    return userRegister();
   })
   .then(() => {
     console.log("✅ Admin user ensured");
@@ -30,40 +32,23 @@ sequelize.sync({ alter: true })
     console.error("❌ MySQL Connection Error:", err);
   });
 
-
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Get current directory using ES Module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use("/public", express.static(path.join(__dirname, "../frontend/public")));
-
-// ✅ Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// ✅ Test Route to Serve Image
-app.get("/long-logo", (req, res) => {
-  const filePath = path.join(__dirname, "../frontend/public/fonts/long-logo.png");
-
-  // Check if file exists before sending
-  if (fs.existsSync(filePath)) {
-    res.sendFile(filePath);
-  } else {
-    res.status(404).send("File not found!");
-  }
-});
-
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(cors());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/public", express.static(path.join(__dirname, "../frontend/public")));
 
-// ✅ Move `upload` setup before importing routes
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
@@ -84,13 +69,11 @@ export const upload = multer({
       cb(new Error('Only image files are allowed!'), false);
     }
   },
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 }
 });
 
 setupAssociations();
 
-
-// ✅ Now import routes (after `upload` is initialized)
 import authRouter from "./routes/auth.js";
 import employeeRouter from "./routes/employee.js";
 import payslipRouter from "./routes/payslip.js";
@@ -98,23 +81,54 @@ import userRouter from "./routes/user.js";
 import invoiceRouter from "./routes/invoice.js";
 import jobsRouter from "./routes/jobs.js";
 import attendanceRouter from "./routes/attendance.js";
-import connectRouter from "./routes/connect.js"; // ✅ Import connectRouter
-import holidaysRouter from "./routes/holidays.js"; // ✅ Correct import
+import connectRouter from "./routes/connect.js";
+import holidaysRouter from "./routes/holidays.js";
 import loginRouter from './routes/login.js';
 import changeRequestRouter from './routes/changeRequest.js';
-import { userRegister } from "./userSeed.js";
-// Add logging middleware to log incoming requests
+
 app.use((req, res, next) => {
   console.log(`Request URL: ${req.url}, Method: ${req.method}`);
   next();
 });
 
+app.get("/long-logo", (req, res) => {
+  const filePath = path.join(__dirname, "../frontend/public/fonts/long-logo.png");
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send("File not found!");
+  }
+});
 
-// Serve frontend's public folder as static
-app.use("/public", express.static(path.join(__dirname, "public")));
+// API Proxy for CrossChex Cloud
+app.post('/api/token', async (req, res) => {
+  try {
+    const response = await axios.post('https://api.us.crosschexcloud.com/v2/oauth2/token', {
+      app_key: process.env.CROSSCHEX_APP_KEY,
+      app_secret: process.env.CROSSCHEX_APP_SECRET
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error getting CrossChex token:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to get token' });
+  }
+});
 
+app.get('/api/devices', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  try {
+    const response = await axios.get('https://api.us.crosschexcloud.com/v2/device/list', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }      
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error fetching CrossChex devices:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to get devices' });
+  }
+});
 
-// Your existing routes go here
 app.use("/api/auth", authRouter);
 app.use("/api/employee", employeeRouter);
 app.use("/api/payslip", payslipRouter);
@@ -122,20 +136,18 @@ app.use("/api/users", userRouter);
 app.use("/api/invoice", invoiceRouter);
 app.use("/api/jobs", jobsRouter);
 app.use("/api/attendance", attendanceRouter);
-app.use("/api/connect", connectRouter); // Ensure this line is included
+app.use("/api/connect", connectRouter);
 app.use("/api/holidays", holidaysRouter);
-app.use('/api/login', loginRouter);
-app.use('/api/change-requests', changeRequestRouter);
+app.use("/api/login", loginRouter);
+app.use("/api/change-requests", changeRequestRouter);
+
 app.use(express.static(path.join(__dirname, "../frontend/dist")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
-})
+});
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });
 
 export { Employee, PayrollInformation };
-
-
-// import './userSeed.js'; // ✅ Temporarily run the admin seed on deployment

@@ -10,7 +10,7 @@ export const addUser = async (req, res) => {
     }
 
     // Validate role before inserting
-    if (!['admin', 'employee'].includes(role)) {
+    if (!['admin', 'approver', 'hr'].includes(role)) {
       return res.status(400).json({ success: false, message: "Invalid role value. Allowed values: 'admin' or 'employee'" });
     }
 
@@ -95,5 +95,20 @@ export const editUser = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const authenticateUser = async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      user: req.user, // This comes from your middleware
+    });
+  } catch (error) {
+    console.error("Error fetching current user:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to retrieve current user",
+    });
   }
 };

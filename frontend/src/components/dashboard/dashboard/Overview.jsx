@@ -34,6 +34,11 @@ const Overview = () => {
   const [loading, setLoading] = useState(true);
   const [changesRequests, setChangesRequests] = useState([]);
   const [loadingChanges, setLoadingChanges] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+
+  
 
   const fetchRequests = async () => {
     try {
@@ -90,6 +95,53 @@ const Overview = () => {
     fetchRequests();
     fetchPayslips();
   }, []);
+
+  useEffect(() => {
+    const checkUserRole = async () => {
+      const token = localStorage.getItem("token"); // Make sure token is stored in localStorage
+      if (!token) {
+          console.log("cannot find token");
+        return;
+      }
+  
+      try {
+        const userResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/users/current`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`, 
+            },
+          }
+        );
+  
+        const currentUserRole = userResponse.data.user.role;
+        setUserRole(currentUserRole);
+        if (currentUserRole === "approver") {
+          setIsAuthorized(true);
+          // Fetch users here if needed
+        } else {
+          setIsAuthorized(false);
+        }
+
+      } catch (error) {
+        console.error("Error checking authorization:", error);
+        setIsAuthorized(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    checkUserRole();
+  }, []);
+
+  useEffect(() => {
+    if (isAuthorized && Array.isArray(changesRequests)) {
+      notifyChangeRequests(changesRequests);
+    }
+  }, [isAuthorized, changesRequests]);
+  
+  
+  
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -361,6 +413,8 @@ const Overview = () => {
       ),
     },
   ];
+
+
 
   return (
     <div className="fixed top-0 right-0 bottom-0 w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
