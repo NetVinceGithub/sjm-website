@@ -1,42 +1,78 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FaTachometerAlt, FaUsers, FaCogs, FaMoneyBillWave, FaSignOutAlt, FaRegCalendarAlt , FaPoll, FaScroll, FaPrint, FaFolderOpen, FaChevronDown, FaChevronUp, FaBookOpen,
-  FaClipboardList, FaUserPlus, FaCalendarPlus , FaCalendarCheck, FaFileInvoiceDollar, FaCalculator 
- } from 'react-icons/fa';
- import { FaCalendarXmark } from "react-icons/fa6";
+import axios from 'axios';
 import { useAuth } from '../../../context/authContext';
+import {
+  FaTachometerAlt, FaUsers, FaCogs, FaMoneyBillWave, FaSignOutAlt, FaRegCalendarAlt,
+  FaPoll, FaScroll, FaPrint, FaFolderOpen, FaChevronDown, FaChevronUp, FaBookOpen,
+  FaClipboardList, FaUserPlus, FaCalendarPlus, FaCalendarCheck, FaFileInvoiceDollar, FaCalculator
+} from 'react-icons/fa';
+import { FaCalendarXmark } from "react-icons/fa6";
 import Logo from '/public/logo-rembg.png';
 
-
 const AdminSidebar = () => {
-  const role = localStorage.getItem("userRole"); // Get user role from localStorage
-  const isAdmin = role === "admin";
-  const isEmployee = role === "employee";
-
-  const [showModal, setShowModal] = useState(false); // State for modal visibility
-  const { logout } = useAuth(); // Get logout function from AuthContext
-  const navigate = useNavigate(); // Hook for navigation
-  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
-  const [isEmployeeOpen, setIsEmployeeOpen] = useState(false);
-  const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
-  const [isPayrollOpen, setIsPayrollOpen] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [activeDropdown, setActiveDropdown] = useState(null);
 
   const toggleDropdown = (dropdown) => {
     setActiveDropdown(activeDropdown === dropdown ? null : dropdown);
   };
-  
-  // Handle restricted access
+
   const handleRestrictedAccess = (e) => {
-    e.preventDefault(); // Prevent navigation
-    setShowModal(true); // Show modal
+    e.preventDefault();
+    setShowModal(true);
   };
-  
-  // Handle user logout
+
   const handleLogout = () => {
-    logout(); // Call logout function
-    navigate('/payroll-management-login'); // Redirect to login page
+    logout();
+    navigate('/payroll-management-login');
   };
+
+  useEffect(() => {
+    const checkUserRole = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setIsAuthorized(false);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const userResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/users/current`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const currentUserRole = userResponse.data.user.role;
+        setUserRole(currentUserRole);
+        setIsAuthorized(["admin", "approver", "hr"].includes(currentUserRole));
+      } catch (error) {
+        console.error("Error checking authorization:", error);
+        setIsAuthorized(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUserRole();
+  }, []);
+
+  const isAdmin = userRole === "admin";
+  const isApprover = userRole === "approver";
+  const isHr = userRole === "hr";
+
+  if (loading) {
+    return <div className="text-white p-4">Loading...</div>;
+  }
 
   return (
     <>
@@ -58,7 +94,7 @@ const AdminSidebar = () => {
 
         {/* Dashboard */}
         <div className="mb-1 -mt-2">
-          {isAdmin ? (
+          {isApprover || isAdmin || isHr ? (
             <button
               onClick={() => toggleDropdown("dashboard")}
               className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition-all duration-300"
@@ -83,34 +119,37 @@ const AdminSidebar = () => {
           {/* Dashboard Submenu */}
           {activeDropdown === "dashboard" && (
             <div className="ml-6 mt-1 space-y-1">
-              {isAdmin ? (
-                <>
-                  <NavLink
-                    to="/admin-dashboard/overview"
-                    end
-                    className={({ isActive }) =>
-                      `flex -mt-1 items-center text-white no-underline space-x-3 py-2 px-4 rounded-md ${
-                        isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
-                      }`
-                    }
-                  >
-                    <FaBookOpen />
-                    <span>Overview</span>
-                  </NavLink>
+              {/* Overview: Approver, HR, or Admin */}
+              {(isApprover || isHr ) && (
+                <NavLink
+                  to="/admin-dashboard/overview"
+                  end
+                  className={({ isActive }) =>
+                    `flex -mt-1 items-center text-white no-underline space-x-3 py-2 px-4 rounded-md ${
+                      isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"}`
+                  }
+                >
+                  <FaBookOpen />
+                  <span>Overview</span>
+                </NavLink>
+              )}
 
-                  <NavLink
-                    to="/admin-dashboard/lounge"
-                    className={({ isActive }) =>
-                      `flex -mt-3 items-center space-x-3 text-white no-underline py-2 px-4 rounded-md ${
-                        isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
-                      }`
-                    }
-                  >
-                    <FaCogs />
-                    <span>Admin Settings</span>
-                  </NavLink>
-                </>
-              ) : (
+              {/* Admin Settings: Only Admin */}
+              {isAdmin || isHr || isApprover&& (
+                <NavLink
+                  to="/admin-dashboard/lounge"
+                  className={({ isActive }) =>
+                    `flex -mt-3 items-center space-x-3 text-white no-underline py-2 px-4 rounded-md ${
+                      isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"}`
+                  }
+                >
+                  <FaCogs />
+                  <span>Admin Settings</span>
+                </NavLink>
+              )}
+
+              {/* Restricted fallback for non-authorized users */}
+              {!isApprover && !isHr && !isAdmin && (
                 <button
                   onClick={handleRestrictedAccess}
                   className="flex items-center space-x-4 w-full text-left py-2 px-4 bg-red-600 hover:bg-red-700 rounded-md"
@@ -121,6 +160,7 @@ const AdminSidebar = () => {
               )}
             </div>
           )}
+
         </div>
 
 
@@ -141,7 +181,7 @@ const AdminSidebar = () => {
             {/* Employee Submenu */}
             {activeDropdown === "employee" && (
               <div className="ml-6 mt-1 space-y-1">
-                {isEmployee || isAdmin ? (
+                {isAdmin || isApprover ? (
                   <>
                     <NavLink
                       to="/admin-dashboard/employees"
@@ -184,21 +224,32 @@ const AdminSidebar = () => {
 
           {/* Attendance */}
           <div className="mb-1 -mt-2">
+          {isApprover || isHr? (
             <button
-              onClick={() => toggleDropdown("attendance")}
-              className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition"
-            >
-              <span className="flex items-center space-x-4">
-                <FaCalendarCheck />
+            onClick={() => toggleDropdown("attendance")}
+            className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition"
+          >
+            <span className="flex items-center space-x-4">
+              <FaCalendarCheck />
+              <span>Attendance</span>
+            </span>
+            {activeDropdown === "attendance" ? <FaChevronUp /> : <FaChevronDown />}
+          </button>
+          ):(
+            <button
+                onClick={handleRestrictedAccess} // Add restriction to the main button as well
+                className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md mb-[12px]"
+              >
+                <FaFileInvoiceDollar />
                 <span>Attendance</span>
-              </span>
-              {activeDropdown === "attendance" ? <FaChevronUp /> : <FaChevronDown />}
-            </button>
+              </button>
+          )}
+            
 
             {/* Attendance Submenu */}
             {activeDropdown === "attendance" && (
               <div className="ml-6 mt-1 space-y-1">
-                {isEmployee || isAdmin ? (
+                {isHr || isApprover ? (
                   <>
                     <NavLink
                       to="/admin-dashboard/attendance"
@@ -266,7 +317,7 @@ const AdminSidebar = () => {
 
           {/* Payroll */}
           <div className="mb-1 -mt-2">
-            {isAdmin ? (
+            {isApprover || isHr ? (
               <button
                 onClick={() => toggleDropdown("payroll")}
                 className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition-all duration-300"
@@ -290,7 +341,7 @@ const AdminSidebar = () => {
             {/* Payroll Submenu */}
             {activeDropdown === "payroll" && (
               <div className="ml-6 mt-1 space-y-1">
-                {isAdmin ? (
+                {isApprover || isHr? (
                   <>
                     <NavLink
                       to="/admin-dashboard/employees/payroll-informations/list"
@@ -346,7 +397,7 @@ const AdminSidebar = () => {
 
 
           {/* Invoice */}
-          {isAdmin ? (
+          {isApprover || isAdmin? (
             <NavLink
               to="/admin-dashboard/invoice-list"
               className={({ isActive }) =>

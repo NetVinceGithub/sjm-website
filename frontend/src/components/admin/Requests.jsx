@@ -22,6 +22,62 @@ const Requests = () => {
   const [loadingPayroll, setLoadingPayroll] = useState(false);
   const [message, setMessage] = useState("");
 
+  const [userRole, setUserRole] = useState(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+
+  useEffect(() => {
+    const checkUserRole = async () => {
+      const token = localStorage.getItem("token"); // Make sure token is stored in localStorage
+      if (!token) {
+        setIsAuthorized(false);
+        return;
+      }
+  
+      try {
+        const userResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/users/current`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`, // 🔥 This is crucial
+            },
+          }
+        );
+  
+        const currentUserRole = userResponse.data.user.role;
+        setUserRole(currentUserRole);
+  
+        if (currentUserRole === "approver") {
+          setIsAuthorized(true);
+          // Fetch users here if needed
+        } else {
+          setIsAuthorized(false);
+        }
+      } catch (error) {
+        console.error("Error checking authorization:", error);
+        setIsAuthorized(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    checkUserRole();
+  }, []);
+
+  useEffect(() => {
+    if (isAuthorized) {
+      notifyChangeRequests();
+      notifyPayrollRequests();
+    }
+  }, [isAuthorized]);
+
+  useEffect(() => {
+    if (isAuthorized && Array.isArray(changesRequests)) {
+      notifyChangeRequests(changesRequests);
+    }
+  }, [isAuthorized, changesRequests]);
+  
+
   useEffect(() => {
     const fetchRequests = async () => {
       try {
@@ -321,6 +377,26 @@ const Requests = () => {
     (acc, curr) => acc + Number(curr.netPay || 0),
     0
   );
+
+  if (loading) {
+    return (
+      <div className="p-6 h-[calc(100vh-150px)] flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+  
+  if (!isAuthorized) {
+    return (
+      <div className="p-6 h-[calc(100vh-150px)] flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-red-600 mb-2">Access Denied</h2>
+          <p className="text-neutralDGray">You don't have permission to access this page.</p>
+          <p className="text-sm text-gray-500 mt-2">Only approvers can manage user accounts.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-row gap-8 p-4 overflow-auto h-[calc(100vh-150px)]">

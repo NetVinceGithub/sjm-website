@@ -5,11 +5,17 @@ import { MdBlock } from "react-icons/md";
 
 
 const AddAdmin = () => {
+  const [userRole, setUserRole] = useState(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const role = localStorage.getItem("userRole"); // Get user role from localStorage
+  const isApprover = role === "approver";
+  const isAdmin = role === "admin";
+  const isHr = role === "hr";
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    role: "employee",
+    role: "admin",
   });
 
   const [users, setUsers] = useState([]);
@@ -20,28 +26,64 @@ const AddAdmin = () => {
   const [editFormData, setEditFormData] = useState({
     name: "",
     email: "",
-    role: "employee",
+    role: "admin",
   });
 
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
+    const checkUserRole = async () => {
+      const token = localStorage.getItem("token"); // Make sure token is stored in localStorage
+      if (!token) {
+        setIsAuthorized(false);
+        return;
+      }
+  
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/users/get-users`,
+        const userResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/users/current`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`, // 🔥 This is crucial
+            },
+          }
         );
-        if (response.data.success) {
-          setUsers(response.data.users);
+  
+        const currentUserRole = userResponse.data.user.role;
+        setUserRole(currentUserRole);
+  
+        if (currentUserRole === "approver") {
+          setIsAuthorized(true);
+          // Fetch users here if needed
+        } else {
+          setIsAuthorized(false);
         }
       } catch (error) {
-        console.error("Error fetching users:", error);
+        console.error("Error checking authorization:", error);
+        setIsAuthorized(false);
       } finally {
         setLoading(false);
       }
     };
+  
+    checkUserRole();
+  }, []);
 
+
+  useEffect(() => {
+   const fetchUsers = async () => {
+     try {
+       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/users/get-users`);
+       console.log(response.data);
+       setUsers(response.data.users);
+        } 
+     catch(error){
+      console.error(error);
+     }
+   }
+  
     fetchUsers();
   }, []);
+  
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -62,7 +104,7 @@ const AddAdmin = () => {
         formData
       );
       if (response.data.success) {
-        setFormData({ name: "", email: "", password: "", role: "employee" });
+        setFormData({ name: "", email: "", password: "", role: "admin" });
         setUsers((prevUsers) => [...prevUsers, response.data.user]);
       }
     } catch (error) {
@@ -145,6 +187,26 @@ const AddAdmin = () => {
       console.error("Error updating user:", error.response ?.data || error);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 h-[calc(100vh-150px)] flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+  
+  if (!isAuthorized) {
+    return (
+      <div className="p-6 h-[calc(100vh-150px)] flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-red-600 mb-2">Access Denied</h2>
+          <p className="text-neutralDGray">You don't have permission to access this page.</p>
+          <p className="text-sm text-gray-500 mt-2">Only approvers can manage user accounts.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6  h-[calc(100vh-150px)]">
@@ -272,9 +334,9 @@ const AddAdmin = () => {
                                 onChange={handleEditChange}
                                 className="border p-1 rounded text-sm text-neutralDGray"
                               >
-                                <option value="admin">Approver</option>
-                                <option value="admin">HR</option>
-                                <option value="employee">Admin</option>
+                                <option value="approver">Approver</option>
+                                <option value="hr">HR</option>
+                                <option value="admin">Admin</option>
                               </select>
                               <div className="flex gap-2 text-center">
                                 <button

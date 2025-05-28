@@ -5,21 +5,23 @@ let hasShownPayrollToast = false;  // flag outside function, persists during ses
 let payrollToastId = null;         // store toast id for dismissal
 
 export const notifyPayrollRequests = (requests) => {
+  if (!Array.isArray(requests)) return;  // ✅ Prevents `.length` on undefined/null
+
   const count = requests.length;
 
   if (count > 0) {
-    if (!hasShownPayrollToast) {
+    if (!hasShownChangeToast) {
       payrollToastId = toast.info(
-        <div style={{ fontSize: '0.9rem', color: '#fff'}}>
-          You have {count} payroll request{count > 1 ? 's' : ''} to review.
+        <div style={{ fontSize: '0.9rem', color: '#fff' }}>
+          You have {count} change request{count > 1 ? 's' : ''} to review.
         </div>,
         {
-          icon: 'ⓘ',
+          icon: '⚠️',
           autoClose: false,
           closeOnClick: true,
           closeButton: false,
           draggable: false,
-          hideProgressBar: false,
+          hideProgressBar: true,
           style: {
             backgroundColor: '#444',
           },

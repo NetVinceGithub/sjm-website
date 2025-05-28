@@ -1,9 +1,12 @@
 import { toast } from 'react-toastify';
+import React from 'react';
 
 let hasShownChangeToast = false;   // track if toast shown
 let toastId = null;                // store toast id for dismissal
 
 export const notifyChangeRequests = (requests) => {
+  if (!Array.isArray(requests)) return;  // ✅ Prevents `.length` on undefined/null
+
   const count = requests.length;
 
   if (count > 0) {
