@@ -12,7 +12,7 @@ const AuthContext = ({ children }) => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
-          const response = await axios.get('${import.meta.env.VITE_API_URL}/api/auth/verify', {
+          const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/verify`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -36,10 +36,11 @@ const AuthContext = ({ children }) => {
     verifyUser();
   }, []); // Run once when the component mounts
 
-  const login = (userData) => {
-    localStorage.setItem("token", userData.token);
-    setUser(userData);
+  const login = (user, token) => {
+    localStorage.setItem("token", token);
+    setUser(user);
   };
+  
 
   const logout = () => {
     setUser(null);
