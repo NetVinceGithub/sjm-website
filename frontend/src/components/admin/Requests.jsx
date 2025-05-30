@@ -390,9 +390,9 @@ const Requests = () => {
     return (
       <div className="p-6 h-[calc(100vh-150px)] flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-bold text-red-600 mb-2">Access Denied</h2>
+          <h2 className="text-xl font-bold text-red-600">Access Denied</h2>
           <p className="text-neutralDGray">You don't have permission to access this page.</p>
-          <p className="text-sm text-gray-500 mt-2">Only approvers can manage user accounts.</p>
+          <p className="text-sm italic text-gray-500 -mt-2">Only approvers can manage user accounts.</p>
         </div>
       </div>
     );
