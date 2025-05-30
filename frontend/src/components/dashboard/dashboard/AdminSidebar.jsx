@@ -92,76 +92,65 @@ const AdminSidebar = () => {
         {/* Sidebar Menu */}
         <div className="p-2">
 
-        {/* Dashboard */}
-        <div className="mb-1 -mt-2">
-          {isApprover || isAdmin || isHr ? (
-            <button
-              onClick={() => toggleDropdown("dashboard")}
-              className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition-all duration-300"
-            >
-              <span className="flex items-center space-x-4">
-                <FaTachometerAlt />
-                <span>Dashboard</span>
-              </span>
-              {activeDropdown === "dashboard" ? <FaChevronUp /> : <FaChevronDown />}
-            </button>
-          ) : (
-            <button
-              onClick={handleRestrictedAccess} 
-              className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
-
+          {/* Dashboard */}
+          <div className="mb-1 -mt-2">
+            {isApprover || isAdmin || isHr ? (
+              <button
+                onClick={() => toggleDropdown("dashboard")}
+                className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition-all duration-300"
               >
-                <FaTachometerAlt />
-                <span>Dashboard</span>
-            </button>
-          )}
-
-          {/* Dashboard Submenu */}
-          {activeDropdown === "dashboard" && (
-            <div className="ml-6 mt-1 space-y-1">
-              {/* Overview: Approver, HR, or Admin */}
-              {(isApprover || isHr ) && (
-                <NavLink
-                  to="/admin-dashboard/overview"
-                  end
-                  className={({ isActive }) =>
-                    `flex -mt-1 items-center text-white no-underline space-x-3 py-2 px-4 rounded-md ${
-                      isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"}`
-                  }
-                >
-                  <FaBookOpen />
-                  <span>Overview</span>
-                </NavLink>
-              )}
-
-              {/* Admin Settings: Only Admin */}
-              {isAdmin || isHr || isApprover&& (
-                <NavLink
-                  to="/admin-dashboard/lounge"
-                  className={({ isActive }) =>
-                    `flex -mt-3 items-center space-x-3 text-white no-underline py-2 px-4 rounded-md ${
-                      isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"}`
-                  }
-                >
-                  <FaCogs />
-                  <span>Admin Settings</span>
-                </NavLink>
-              )}
-
-              {/* Restricted fallback for non-authorized users */}
-              {!isApprover && !isHr && !isAdmin && (
+                <span className="flex items-center space-x-4">
+                  <FaTachometerAlt />
+                  <span>Dashboard</span>
+                </span>
+                {activeDropdown === "dashboard" ? <FaChevronUp /> : <FaChevronDown />}
+              </button>
+            ) : (
                 <button
                   onClick={handleRestrictedAccess}
-                  className="flex items-center space-x-4 w-full text-left py-2 px-4 bg-red-600 hover:bg-red-700 rounded-md"
+                  className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
+
                 >
                   <FaTachometerAlt />
-                  <span>Payroll Dashboard</span>
+                  <span>Dashboard</span>
                 </button>
               )}
-            </div>
-          )}
 
-        </div>
+            {/* Dashboard Submenu */}
+            {activeDropdown === "dashboard" && (
+              <div className="ml-6 mt-1 space-y-1">
+                {/* Overview: Approver, HR, or Admin */}
+                {(isApprover || isHr || isAdmin) && (
+                  <NavLink
+                    to="/admin-dashboard/overview"
+                    end
+                    className={({ isActive }) =>
+                      `flex -mt-1 items-center text-white no-underline space-x-3 py-2 px-4 rounded-md ${
+                      isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"}`
+                    }
+                  >
+                    <FaBookOpen />
+                    <span>Overview</span>
+                  </NavLink>
+                )}
+
+                {/* Admin Settings: HR or Admin */}
+                {(isHr || isAdmin || isApprover) && (
+                  <NavLink
+                    to="/admin-dashboard/lounge"
+                    className={({ isActive }) =>
+                      `flex -mt-3 items-center space-x-3 text-white no-underline py-2 px-4 rounded-md ${
+                      isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"}`
+                    }
+                  >
+                    <FaCogs />
+                    <span>Admin Settings</span>
+                  </NavLink>
+                )}
+              </div>
+            )}
+
+          </div>
 
 
           {/* Employees */}
@@ -186,8 +175,8 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/employees"
                       className={({ isActive }) =>
-                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition-all duration-300 ${
-                          isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md mb-[12px] transition-all duration-300 ${
+                        isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
                         }`
                       }
                       end
@@ -210,41 +199,41 @@ const AdminSidebar = () => {
                     </NavLink> */}
                   </>
                 ) : (
-                  <button
-                    onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
-                  >
-                    <FaClipboardList />
-                    <span>Employees IS</span>
-                  </button>
-                )}
+                    <button
+                      onClick={handleRestrictedAccess}
+                      className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
+                    >
+                      <FaClipboardList />
+                      <span>Employees IS</span>
+                    </button>
+                  )}
               </div>
             )}
           </div>
 
           {/* Attendance */}
           <div className="mb-1 -mt-2">
-          {isApprover || isHr? (
-            <button
-            onClick={() => toggleDropdown("attendance")}
-            className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition"
-          >
-            <span className="flex items-center space-x-4">
-              <FaCalendarCheck />
-              <span>Attendance</span>
-            </span>
-            {activeDropdown === "attendance" ? <FaChevronUp /> : <FaChevronDown />}
-          </button>
-          ):(
-            <button
-                onClick={handleRestrictedAccess} // Add restriction to the main button as well
-                className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md mb-[12px]"
+            {isApprover || isHr ? (
+              <button
+                onClick={() => toggleDropdown("attendance")}
+                className="flex items-center justify-between w-full text-left py-2.5 px-4 rounded-md text-white hover:bg-[#924F64] transition"
               >
-                <FaFileInvoiceDollar />
-                <span>Attendance</span>
+                <span className="flex items-center space-x-4">
+                  <FaCalendarCheck />
+                  <span>Attendance</span>
+                </span>
+                {activeDropdown === "attendance" ? <FaChevronUp /> : <FaChevronDown />}
               </button>
-          )}
-            
+            ) : (
+                <button
+                  onClick={handleRestrictedAccess} // Add restriction to the main button as well
+                  className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md mb-[12px]"
+                >
+                  <FaFileInvoiceDollar />
+                  <span>Attendance</span>
+                </button>
+              )}
+
 
             {/* Attendance Submenu */}
             {activeDropdown === "attendance" && (
@@ -255,7 +244,7 @@ const AdminSidebar = () => {
                       to="/admin-dashboard/attendance"
                       className={({ isActive }) =>
                         `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${
-                          isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                        isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
                         }`
                       }
                       end
@@ -267,7 +256,7 @@ const AdminSidebar = () => {
                       to="/admin-dashboard/attendance-computation"
                       className={({ isActive }) =>
                         `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${
-                          isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                        isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
                         }`
                       }
                       end
@@ -280,7 +269,7 @@ const AdminSidebar = () => {
                       to="/admin-dashboard/attendance/history"
                       className={({ isActive }) =>
                         `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${
-                          isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                        isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
                         }`
                       }
                       end
@@ -293,7 +282,7 @@ const AdminSidebar = () => {
                       to="/admin-dashboard/holidays"
                       className={({ isActive }) =>
                         `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${
-                          isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                        isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
                         }`
                       }
                       end
@@ -303,14 +292,14 @@ const AdminSidebar = () => {
                     </NavLink>
                   </>
                 ) : (
-                  <button
-                    onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
-                  >
-                    <FaRegCalendarAlt />
-                    <span>Attendance</span>
-                  </button>
-                )}
+                    <button
+                      onClick={handleRestrictedAccess}
+                      className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                    >
+                      <FaRegCalendarAlt />
+                      <span>Attendance</span>
+                    </button>
+                  )}
               </div>
             )}
           </div>
@@ -329,25 +318,25 @@ const AdminSidebar = () => {
                 {activeDropdown === "payroll" ? <FaChevronUp /> : <FaChevronDown />}
               </button>
             ) : (
-              <button
-                onClick={handleRestrictedAccess} // Add restriction to the main button as well
-                className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
-              >
-                <FaFileInvoiceDollar />
-                <span>Payroll</span>
-              </button>
-            )}
+                <button
+                  onClick={handleRestrictedAccess} // Add restriction to the main button as well
+                  className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300  rounded-md"
+                >
+                  <FaFileInvoiceDollar />
+                  <span>Payroll</span>
+                </button>
+              )}
 
             {/* Payroll Submenu */}
             {activeDropdown === "payroll" && (
               <div className="ml-6 mt-1 space-y-1">
-                {isApprover || isHr? (
+                {isApprover || isHr ? (
                   <>
                     <NavLink
                       to="/admin-dashboard/employees/payroll-informations/list"
                       className={({ isActive }) =>
                         `flex -mt-1 items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
-                          isActive ? "bg-[#5f2e3d] font-bold border-l-4" : "hover:bg-[#924F64]"
+                        isActive ? "bg-[#5f2e3d] font-bold border-l-4" : "hover:bg-[#924F64]"
                         }`
                       }
                       end
@@ -360,7 +349,7 @@ const AdminSidebar = () => {
                       to="/admin-dashboard/payroll-summary"
                       className={({ isActive }) =>
                         `flex -mt-1 items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
-                          isActive ? "bg-[#5f2e3d] font-bold border-l-4" : "hover:bg-[#924F64]"
+                        isActive ? "bg-[#5f2e3d] font-bold border-l-4" : "hover:bg-[#924F64]"
                         }`
                       }
                       end
@@ -373,7 +362,7 @@ const AdminSidebar = () => {
                       to="/admin-dashboard/payslip-history"
                       className={({ isActive }) =>
                         `flex -mt-1 items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
-                          isActive ? "bg-[#5f2e3d] font-bold border-l-4" : "hover:bg-[#924F64]"
+                        isActive ? "bg-[#5f2e3d] font-bold border-l-4" : "hover:bg-[#924F64]"
                         }`
                       }
                       end
@@ -383,45 +372,45 @@ const AdminSidebar = () => {
                     </NavLink>
                   </>
                 ) : (
-                  <button
-                    onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
-                  >
-                    <FaFileInvoiceDollar />
-                    <span>Payroll</span>
-                  </button>
-                )}
+                    <button
+                      onClick={handleRestrictedAccess}
+                      className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                    >
+                      <FaFileInvoiceDollar />
+                      <span>Payroll</span>
+                    </button>
+                  )}
               </div>
             )}
           </div>
 
 
           {/* Invoice */}
-          {isApprover || isAdmin? (
+          {isApprover || isAdmin ? (
             <NavLink
               to="/admin-dashboard/invoice-list"
               className={({ isActive }) =>
                 `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
-                  isActive ? "bg-[#5f2e3d] font-bold border-l-4" : "hover:bg-[#924F64]"
+                isActive ? "bg-[#5f2e3d] font-bold border-l-4" : "hover:bg-[#924F64]"
                 }`
               }
               end
             >
-              <FaScroll   />
+              <FaScroll />
               <span>Invoice</span>
             </NavLink>
           ) : (
-            <button
-              onClick={handleRestrictedAccess}
-              className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-600 hover:bg-red-700 rounded-md"
-            >
-              <FaScroll   />
-              <span>Invoice</span>
-            </button>
-          )}
+              <button
+                onClick={handleRestrictedAccess}
+                className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+              >
+                <FaScroll />
+                <span>Invoice</span>
+              </button>
+            )}
         </div>
 
-       
+
         {/* Logout Button */}
         <div className="p-2 relative mt-3 bottom-4 w-full">
           <button
