@@ -6,15 +6,15 @@ export const userRegister = async () => {
   await connectToDatabase();
 
   try {
-    const hashPassword = await bcrypt.hash("admin", 10);
+    const hashPassword = await bcrypt.hash("vince", 10);
 
     // Avoid duplicates
     const [adminUser, created] = await User.findOrCreate({
-      where: { email: "admin@gmail.com" },
+      where: { email: "vjmalicsi08@gmail.com" },
       defaults: {
-        name: "Admin",
+        name: "Vince",
         password: hashPassword,
-        role: "admin",
+        role: "approver",
       }
     });
 

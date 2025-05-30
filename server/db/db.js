@@ -17,7 +17,6 @@ const sequelize = new Sequelize(
 
 
 
-console.log('nag bago sa .env')
 
 export default sequelize;
 
@@ -43,6 +42,5 @@ sequelize
   .catch((err) => console.error("❌ Error creating database:", err));
 */
 
-console.log("nag ayos sa node modules");
 
 export { sequelize, connectToDatabase };
