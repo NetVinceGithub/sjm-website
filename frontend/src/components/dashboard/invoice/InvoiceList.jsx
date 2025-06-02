@@ -315,7 +315,7 @@ const InvoiceList = () => {
             </div>
 
             <div className="flex flex-col ml-10 mt-3 mb-8">
-              <div className="flex divide-x-2 divide-black ml-auto mr-[2.1rem] h-14 border-x-2 border-t-2 border-black w-fit">
+              <div className="flex divide-x-2 divide-black ml-auto mr-[1rem] h-14 border-x-2 border-t-2 border-black  w-fit">
                 <div className="px-3 py-2 flex items-start min-w-[70px]">
                   <p className="text-xs font-medium  flex justify-center items-center text-center mt-[21px]">Date:</p>
                 </div>
@@ -326,7 +326,7 @@ const InvoiceList = () => {
                   </div>
                 </div>
               </div>
-              <div className="divide-y-2 divide-black border-2 border-black w-[calc(100%-2.1rem)]">
+              <div className="divide-y-2 divide-black border-2 border-black w-[calc(100%-1rem)]">
                 <div className="h-fit font-semibold text-sm">SOLD TO:</div>
                 <div className="p-1">
                   <div className="ml-10 text-xs mt-1 flex items-center">
@@ -357,7 +357,7 @@ const InvoiceList = () => {
               </div>
 
               <div className="  mt-3">
-                <div className=" border-2 border-black w-[calc(100%-2.1rem)]">
+                <div className=" border-2 border-black w-[calc(100%-1rem)]">
                   <div className="h-4 border-b-2 border-black"></div>
                   <div className="flex flex-row divide-black divide-x-2">
                     <div className="w-[20rem] h-fit border-black border-b-2 text-sm flex justify-center items-center text-center">Particulars</div>
@@ -444,8 +444,8 @@ const InvoiceList = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex divide-x-2 divide-black ml-auto mr-[2.1rem]  border-x-2 border-b-2 border-black  w-fit">
-                <div className="w-[16rem] h-fit flex justify-end items-center text-right font-semibold text-xs p-1">TOTAL AMOUNT DUE:</div>
+              <div className="flex divide-x-2 divide-black ml-auto mr-[1rem]  border-x-2 border-b-2 border-black  w-fit">
+                <div className="w-[17rem] h-fit flex justify-end items-center text-right font-semibold text-xs p-1">TOTAL AMOUNT DUE:</div>
                 <div className="w-[8rem] p-1 text-xs">₱{calculateTotal()}</div>
               </div>
 
@@ -605,7 +605,7 @@ const InvoiceList = () => {
                       </div>
 
                       <div className="flex flex-col ml-10 mt-3 mb-8">
-                        <div className="flex divide-x-2 divide-black ml-auto mr-[2.1rem] h-14 border-x-2 border-t-2 border-black w-fit">
+                        <div className="flex divide-x-2 divide-black ml-auto mr-[1rem] h-14 border-x-2 border-t-2 border-black w-fit">
                           <div className="px-3 py-2 flex items-start min-w-[70px]">
                             <p className="text-xs font-medium  flex justify-center items-center text-center mt-[21px]">Date:</p>
                           </div>
@@ -616,7 +616,7 @@ const InvoiceList = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="divide-y-2 divide-black border-2 border-black w-[calc(100%-2.1rem)]">
+                        <div className="divide-y-2 divide-black border-2 border-black w-[calc(100%-1rem)]">
                           <div className="h-fit font-semibold text-sm">SOLD TO:</div>
                           <div className="p-1">
                             <div className="ml-10 text-xs mt-1 flex items-center">
@@ -643,7 +643,7 @@ const InvoiceList = () => {
                         </div>
 
                         <div className="  mt-3">
-                          <div className=" border-2 border-black w-[calc(100%-2.1rem)]">
+                          <div className=" border-2 border-black w-[calc(100%-1rem)]">
                             <div className="h-4 border-b-2 border-black"></div>
                             <div className="flex flex-row divide-black divide-x-2">
                               <div className="w-[20rem] h-fit border-black border-b-2 text-sm flex justify-center items-center text-center">Particulars</div>
@@ -730,7 +730,7 @@ const InvoiceList = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="flex divide-x-2 divide-black ml-auto mr-[2.1rem]  border-x-2 border-b-2 border-black  w-fit">
+                        <div className="flex divide-x-2 divide-black ml-auto mr-[1rem]  border-x-2 border-b-2 border-black  w-fit">
                           <div className="w-[16rem] h-fit flex justify-end items-center text-right font-semibold text-xs p-1">TOTAL AMOUNT DUE:</div>
                           <div className="w-[8rem] p-1 text-xs">₱{calculateTotal()}</div>
                         </div>
