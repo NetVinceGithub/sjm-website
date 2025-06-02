@@ -29,6 +29,13 @@ const InvoiceList = () => {
     project: null,
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const [particulars, setParticulars] = useState([]);
+  const [currentParticular, setCurrentParticular] = useState({
+    description: "",
+    quantity: "",
+    unitPrice: "",
+    amount: 0
+  });
 
 
   useEffect(() => {
@@ -198,34 +205,95 @@ const InvoiceList = () => {
   };
 
   const customStyles = {
-    headCells: {
+    table: {
       style: {
-        backgroundColor: '#f9fafb',
-        fontSize: '13px',
-        fontWeight: '600',
-        color: '#374151',
-        padding: '8px',
+        fontWeight: "bold",
+        backgroundColor: "#fff",
+        width: "100%",
+        margin: "0 auto",
+      },
+    },
+    headRow: {
+      style: {
+        height: "40px", // consistent height
       },
     },
     rows: {
       style: {
-        fontSize: '13px',
-        color: '#4B5563',
-        minHeight: '40px',
-        borderBottom: '1px solid #e5e7eb',
+        height: "40px", // consistent row height
+      },
+    },
+    headCells: {
+      style: {
+        backgroundColor: "#fff",
+        color: "#333",
+        fontWeight: "bold",
+        fontSize: "13px", // text-sm
+        display: "flex",
+        alignItems: "center",
+        padding: "4px 8px",
       },
     },
     cells: {
       style: {
-        padding: '8px',
+        fontSize: "12px", // text-sm
+        padding: "4px 8px",
+        display: "flex",
+        alignItems: "center",
+        height: "100%", // ensures it fills the row height
       },
     },
+  };
+
+  const addParticular = () => {
+    if (currentParticular.description.trim() === "") return;
+
+    const quantity = parseFloat(currentParticular.quantity) || 0;
+    const unitPrice = parseFloat(currentParticular.unitPrice) || 0;
+    const amount = quantity * unitPrice;
+
+    const newParticular = {
+      id: Date.now(),
+      description: currentParticular.description,
+      quantity: quantity,
+      unitPrice: unitPrice,
+      amount: amount
+    };
+
+    setParticulars([...particulars, newParticular]);
+    setCurrentParticular({
+      description: "",
+      quantity: "",
+      unitPrice: "",
+      amount: 0
+    });
+    setParticular("");
+  };
+
+  const removeParticular = (id) => {
+    setParticulars(particulars.filter(item => item.id !== id));
+  };
+
+  const calculateTotal = () => {
+    return particulars.reduce((total, item) => total + item.amount, 0).toFixed(2);
+  };
+
+  const handleParticularChange = (field, value) => {
+    const updatedParticular = { ...currentParticular, [field]: value };
+
+    if (field === 'quantity' || field === 'unitPrice') {
+      const quantity = parseFloat(field === 'quantity' ? value : updatedParticular.quantity) || 0;
+      const unitPrice = parseFloat(field === 'unitPrice' ? value : updatedParticular.unitPrice) || 0;
+      updatedParticular.amount = quantity * unitPrice;
+    }
+
+    setCurrentParticular(updatedParticular);
   };
 
   return (
     <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-20">
       <div className="flex flex-row gap-4 w-full">
-        <div className="w-1/2 bg-white p-3">
+        <div className="w-1/2 bg-white rounded shadow-lg p-3 h-[calc(100vh-150px)] overflow-auto">
           <div className="border">
             <div className="flex flex-row gap-2 mt-3 p-2 justify-center items-center">
               <img src={Logo} className="w-28 h-28" />
@@ -247,7 +315,7 @@ const InvoiceList = () => {
             </div>
 
             <div className="flex flex-col ml-10 mt-3 mb-8">
-              <div className="flex divide-x-2 divide-black ml-[436px] h-14 border-x-2 border-t-2 border-black  w-fit">
+              <div className="flex divide-x-2 divide-black ml-auto mr-[2.1rem] h-14 border-x-2 border-t-2 border-black w-fit">
                 <div className="px-3 py-2 flex items-start min-w-[70px]">
                   <p className="text-xs font-medium  flex justify-center items-center text-center mt-[21px]">Date:</p>
                 </div>
@@ -260,36 +328,92 @@ const InvoiceList = () => {
               </div>
               <div className="divide-y-2 divide-black border-2 border-black w-[calc(100%-2.1rem)]">
                 <div className="h-fit font-semibold text-sm">SOLD TO:</div>
-                <div>
-                  <p className="ml-10 text-xs mt-1">Registered Name:</p>
-                  <p className="ml-10 text-xs -mt-2">TIN:</p>
-                  <p className="ml-10 text-xs -mt-2 mb-1">Business Address:</p>
+                <div className="p-1">
+                  <div className="ml-10 text-xs mt-1 flex items-center">
+                    <span className="w-28">Registered Name:</span>
+                    <input
+                      type="text"
+                      className="ml-2 text-xs w-1/2 h-6 border-white focus:ring-0 focus:outline-none"
+                      placeholder=""
+                    />
+                  </div>
+                  <div className="ml-10 text-xs mt-1 flex items-center">
+                    <span className="w-28">TIN:</span>
+                    <input
+                      type="text"
+                      className="ml-2 h-6 w-1/2 text-xs border-white focus:ring-0 focus:outline-none"
+                      placeholder=""
+                    />
+                  </div>
+                  <div className="ml-10 text-xs mt-1 mb-1 flex items-center">
+                    <span className="w-28">Business Address:</span>
+                    <input
+                      type="text"
+                      className="ml-2 h-6 w-1/2 text-xs border-b-2 border-white focus:ring-0 focus:outline-none"
+                      placeholder=""
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="  mt-3">
-                <div className="divide-y-2 divide-black border-2 border-black w-[calc(100%-2.1rem)]">
-                  <div className="h-4"></div>
+                <div className=" border-2 border-black w-[calc(100%-2.1rem)]">
+                  <div className="h-4 border-b-2 border-black"></div>
                   <div className="flex flex-row divide-black divide-x-2">
-                    <div className="w-[20rem] text-sm flex justify-center items-center text-center">Particulars</div>
-                    <div className="w-[9rem] text-sm  flex justify-center items-center text-center">Quantity</div>
-                    <div className="w-[9rem] text-sm flex justify-center items-center text-center">Unit Price</div>
-                    <div className="w-[9rem] text-sm flex justify-center items-center text-center">Amount</div>
+                    <div className="w-[20rem] h-fit border-black border-b-2 text-sm flex justify-center items-center text-center">Particulars</div>
+                    <div className="w-[9rem] h-fit border-b-2 text-sm  flex justify-center items-center text-center">Quantity</div>
+                    <div className="w-[9rem] h-fit border-b-2 text-sm flex justify-center items-center text-center">Unit Price</div>
+                    <div className="w-[9rem] h-fit border-b-2 text-sm flex justify-center items-center text-center">Amount</div>
                   </div>
+
+                  {particulars.map((item) => (
+                    <div key={item.id} className="flex flex-row divide-black divide-x-2">
+                      <div className="h-10 p-1 w-[20rem] flex items-center">
+                        <span className="text-xs px-2">{item.description}</span>
+                      </div>
+                      <div className="h-10 p-1 w-[9rem] flex items-center justify-center">
+                        <span className="text-xs">{item.quantity}</span>
+                      </div>
+                      <div className="h-10 w-[9rem] p-1 flex items-center justify-center">
+                        <span className="text-xs">{item.unitPrice}</span>
+                      </div>
+                      <div className="h-10 w-[9rem] p-1 flex items-center justify-between">
+                        <span className="text-xs">{item.amount.toFixed(2)}</span>
+                        <button
+                          onClick={() => removeParticular(item.id)}
+                          className="border w-6 h-6 rounded hover:bg-red-400 hover:text-white text-xs"
+                        >
+                          -
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
                   <div className="flex flex-row divide-black divide-x-2">
-                    <div className="h-10 p-1 w-[20rem]">
+                    <div className="flex flex-row gap-1 h-10 p-1 w-[20rem]">
                       <input
                         type="text"
                         value={particular}
-                        onChange={(e) => setParticular(e.target.value)}
+                        onChange={(e) => {
+                          setParticular(e.target.value);
+                          handleParticularChange('description', e.target.value);
+                        }}
                         placeholder="Enter particulars"
                         className="w-full h-full px-2 border rounded text-xs"
                       />
+                      <button
+                        onClick={addParticular}
+                        className="border w-9 h-full rounded hover:bg-green-400 hover:text-white"
+                      >
+                        +
+                      </button>
                     </div>
                     <div className="h-10 p-1 w-[9rem]">
                       {particular && (
                         <input
                           type="number"
+                          value={currentParticular.quantity}
+                          onChange={(e) => handleParticularChange('quantity', e.target.value)}
                           placeholder="Qty"
                           className="w-full h-full px-2 border rounded text-xs"
                         />
@@ -299,6 +423,8 @@ const InvoiceList = () => {
                       {particular && (
                         <input
                           type="number"
+                          value={currentParticular.unitPrice}
+                          onChange={(e) => handleParticularChange('unitPrice', e.target.value)}
                           placeholder="Price"
                           className="w-full h-full px-2 border rounded text-sm"
                         />
@@ -308,6 +434,7 @@ const InvoiceList = () => {
                       {particular && (
                         <input
                           type="number"
+                          value={currentParticular.amount.toFixed(2)}
                           placeholder="Amount"
                           className="w-full h-full px-2 border rounded text-sm"
                           readOnly
@@ -317,17 +444,38 @@ const InvoiceList = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex divide-x-2 divide-black ml-[296px]  border-x-2 border-b-2 border-black  w-fit">
-                <div className="w-[16.48rem] h-fit flex justify-end font-semibold text-xs p-1">TOTAL AMOUNT DUE:</div>
-                <div className="w-[8.25rem]"></div>
+              <div className="flex divide-x-2 divide-black ml-auto mr-[2.1rem]  border-x-2 border-b-2 border-black  w-fit">
+                <div className="w-[16rem] h-fit flex justify-end items-center text-right font-semibold text-xs p-1">TOTAL AMOUNT DUE:</div>
+                <div className="w-[8rem] p-1 text-xs">₱{calculateTotal()}</div>
               </div>
 
               <div className="flex flex-row gap-4">
                 <div flex flex-col>
-                  <div className="divide-y-2 divide-black w-[18rem] border-2 border-black -mt-4">
-                    <div className="text-xs p-2 h-10">Prepared by: </div>
-                    <div className="text-xs p-2 h-10">Received by:</div>
-                    <div className="text-xs p-2 h-10">Date Received: </div>
+                  <div className="divide-y-2 divide-black w-[17rem] mr-4 border-2 border-black -mt-4">
+                    <div className="text-xs p-2 h-10">
+                      <span>Prepared by:</span>
+                      <input
+                        type="text"
+                        className="ml-2 h-6 w-1/2 text-xs border-white focus:ring-0 focus:outline-none"
+                        placeholder=""
+                      />
+                    </div>
+                    <div className="text-xs p-2 h-10">
+                      <span>Received by:</span>
+                      <input
+                        type="text"
+                        className="ml-2 h-6 w-1/2 text-xs border-white focus:ring-0 focus:outline-none"
+                        placeholder=""
+                      />
+                    </div>
+                    <div className="text-xs p-2 h-10">
+                      <span>Prepared by:</span>
+                      <input
+                        type="text"
+                        className="ml-2 h-6 w-1/2 text-xs border-white focus:ring-0 focus:outline-none"
+                        placeholder=""
+                      />
+                    </div>
                   </div>
                   <div>
                     <p className="text-decoration-underline font-semibold text-[10px] mt-2">"THIS DOCUMENT IS NOT VALID FOR CLAIMING INPUT TAX."</p>
@@ -341,7 +489,7 @@ const InvoiceList = () => {
           </div>
 
           <div className="flex justify-end">
-            <button className="w-32 text-md bg-brandPrimary h-10 hover:bg-neutralDGray text-white py-1 px-2 rounded mt-3">Add Invoice</button>
+            <button className="w-32 text-sm bg-brandPrimary h-8 hover:bg-neutralDGray text-white py-1 px-2 rounded mt-3">Create Invoice</button>
           </div>
         </div>
 
@@ -349,11 +497,11 @@ const InvoiceList = () => {
           <div className="flex justify-between items-center">
             <h6 className="text-md text-neutralDGray font-bold">Invoice List</h6>
             <div className="flex items-center gap-2">
-              <div className="flex items-center rounded px-2 py-1">
+              <div className="flex items-center border rounded px-1 py-1">
                 <input
                   type="text"
                   placeholder="Search Project"
-                  className="text-sm outline-none rounded-lg"
+                  className="text-xs h-5 border-white focus:outline-none"
                   value={searchTerm}
                   onChange={handleSearch}
                 />
@@ -365,13 +513,23 @@ const InvoiceList = () => {
           <div className="mt-3 border border-neutralDGray h-[31rem] rounded overflow-x-auto">
             <DataTable
               columns={[
-                { name: "Project", selector: row => row.project, sortable: true },
-                { name: "Cutoff Date", selector: row => row.cutoffDate, sortable: true },
+                {
+                  name: "Project",
+                  selector: row => row.project,
+                  sortable: true,
+                  width: "350px",
+                },
+                {
+                  name: "Cutoff Date",
+                  selector: row => row.cutoffDate,
+                  sortable: true,
+                  width: "300px",
+                },
                 {
                   name: "Action",
                   cell: (row) => (
                     <button
-                      className="w-10 h-8 border hover:bg-neutralSilver border-neutralDGray rounded flex items-center justify-center"
+                      className="w-8 h-8 border hover:bg-neutralSilver border-neutralDGray rounded flex items-center justify-center"
                       onClick={() => handleGroupClick(row.cutoffDate, row.project)}
                     >
                       <FaArrowUpRightFromSquare
@@ -380,6 +538,8 @@ const InvoiceList = () => {
                       />
                     </button>
                   ),
+                  width: "100px",
+                  center: true,
                 },
               ]}
               data={filteredProjects}
@@ -397,7 +557,7 @@ const InvoiceList = () => {
               backdrop="static"
               centered
             >
-              <div className="modal-dialog fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[80vw] max-h-[80vh] z-[1051]">
+              <div className=" fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[80vw] max-h-[80vh] z-[1051]">
                 <div className="modal-content flex flex-col h-[80vh] z-[1052]">
                   <Modal.Header closeButton>
                     <Modal.Title>
@@ -406,7 +566,7 @@ const InvoiceList = () => {
                   </Modal.Header>
 
                   <Modal.Body className="overflow-y-auto flex-1">
-                    <DataTable
+                    {/* <DataTable
                       data={filteredInvoices}
                       columns={[
                         { name: "Ecode", selector: row => row.ecode },
@@ -423,18 +583,217 @@ const InvoiceList = () => {
                       ]}
                       highlightOnHover
                       striped
-                    />
+                    /> */}
+                    <div className="border w-[50%]">
+                      <div className="flex flex-row gap-2 mt-3 p-2 justify-center items-center">
+                        <img src={Logo} className="w-28 h-28" />
+                        <div>
+                          <p className="font-semibold text-[#9D426E] text-sm">ST. JOHN MAJORE SERVICES COMPANY, INC.</p>
+                          <p className="italic text-xs -mt-3">Registered DOLE D.O. RO4A-BPO-DO174-0225-005-N</p>
+                          <p className="text-xs -mt-3">Batangas, 4226, PHILIPPINES</p>
+                          <p className="text-xs -mt-3">Cel No.: 0917-185-1909 • Tel. No.:(043) 575-5675</p>
+                          <p className="text-xs -mt-3">www.stjohnmajore.com</p>
+                        </div>
+                        <div className="border-black border-2 rounded-lg flex flex-col divide-y-2 divide-black ml-10">
+                          <div className="p-2">
+                            <p className="text-xs mb-0">VAT REGISTERED TIN: 010-837-591-000</p>
+                          </div>
+                          <div className="p-2">
+                            <p className="flex justify-center text-center items-center mt-2 font-semibold">BILLING INVOICE</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col ml-10 mt-3 mb-8">
+                        <div className="flex divide-x-2 divide-black ml-auto mr-[2.1rem] h-14 border-x-2 border-t-2 border-black w-fit">
+                          <div className="px-3 py-2 flex items-start min-w-[70px]">
+                            <p className="text-xs font-medium  flex justify-center items-center text-center mt-[21px]">Date:</p>
+                          </div>
+                          <div className="px-3 py-1 w-[11.65rem] h-14 flex flex-col justify-between">
+                            <p className="text-xs italic">Control #: </p>
+                            <div className="text-xs -ml-[12px] -mt-[15px]">
+                             {/* Add date here */}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="divide-y-2 divide-black border-2 border-black w-[calc(100%-2.1rem)]">
+                          <div className="h-fit font-semibold text-sm">SOLD TO:</div>
+                          <div className="p-1">
+                            <div className="ml-10 text-xs mt-1 flex items-center">
+                              <span className="w-28">Registered Name:</span>
+                              {/* Add Name here */}
+                            </div>
+                            <div className="ml-10 text-xs mt-1 flex items-center">
+                              <span className="w-28">TIN:</span>
+                              <input
+                                type="text"
+                                className="ml-2 h-6 w-1/2 text-xs border-white focus:ring-0 focus:outline-none"
+                                placeholder=""
+                              />
+                            </div>
+                            <div className="ml-10 text-xs mt-1 mb-1 flex items-center">
+                              <span className="w-28">Business Address:</span>
+                              <input
+                                type="text"
+                                className="ml-2 h-6 w-1/2 text-xs border-b-2 border-white focus:ring-0 focus:outline-none"
+                                placeholder=""
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="  mt-3">
+                          <div className=" border-2 border-black w-[calc(100%-2.1rem)]">
+                            <div className="h-4 border-b-2 border-black"></div>
+                            <div className="flex flex-row divide-black divide-x-2">
+                              <div className="w-[20rem] h-fit border-black border-b-2 text-sm flex justify-center items-center text-center">Particulars</div>
+                              <div className="w-[9rem] h-fit border-b-2 text-sm  flex justify-center items-center text-center">Quantity</div>
+                              <div className="w-[9rem] h-fit border-b-2 text-sm flex justify-center items-center text-center">Unit Price</div>
+                              <div className="w-[9rem] h-fit border-b-2 text-sm flex justify-center items-center text-center">Amount</div>
+                            </div>
+
+                            {particulars.map((item) => (
+                              <div key={item.id} className="flex flex-row divide-black divide-x-2">
+                                <div className="h-10 p-1 w-[20rem] flex items-center">
+                                  <span className="text-xs px-2">{item.description}</span>
+                                </div>
+                                <div className="h-10 p-1 w-[9rem] flex items-center justify-center">
+                                  <span className="text-xs">{item.quantity}</span>
+                                </div>
+                                <div className="h-10 w-[9rem] p-1 flex items-center justify-center">
+                                  <span className="text-xs">{item.unitPrice}</span>
+                                </div>
+                                <div className="h-10 w-[9rem] p-1 flex items-center justify-between">
+                                  <span className="text-xs">{item.amount.toFixed(2)}</span>
+                                  <button
+                                    onClick={() => removeParticular(item.id)}
+                                    className="border w-6 h-6 rounded hover:bg-red-400 hover:text-white text-xs"
+                                  >
+                                    -
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+
+                            <div className="flex flex-row divide-black divide-x-2">
+                              <div className="flex flex-row gap-1 h-10 p-1 w-[20rem]">
+                                {/* <input
+                                  type="text"
+                                  value={particular}
+                                  onChange={(e) => {
+                                    setParticular(e.target.value);
+                                    handleParticularChange('description', e.target.value);
+                                  }}
+                                  placeholder="Enter particulars"
+                                  className="w-full h-full px-2 border rounded text-xs"
+                                />
+                                <button
+                                  onClick={addParticular}
+                                  className="border w-9 h-full rounded hover:bg-green-400 hover:text-white"
+                                >
+                                  +
+                                </button> */}
+                              </div>
+                              <div className="h-10 p-1 w-[9rem]">
+                                {particular && (
+                                  <input
+                                    type="number"
+                                    value={currentParticular.quantity}
+                                    onChange={(e) => handleParticularChange('quantity', e.target.value)}
+                                    placeholder="Qty"
+                                    className="w-full h-full px-2 border rounded text-xs"
+                                  />
+                                )}
+                              </div>
+                              <div className="h-10 w-[9rem] p-1">
+                                {particular && (
+                                  <input
+                                    type="number"
+                                    value={currentParticular.unitPrice}
+                                    onChange={(e) => handleParticularChange('unitPrice', e.target.value)}
+                                    placeholder="Price"
+                                    className="w-full h-full px-2 border rounded text-sm"
+                                  />
+                                )}
+                              </div>
+                              <div className="h-10 w-[9rem] p-1">
+                                {particular && (
+                                  <input
+                                    type="number"
+                                    value={currentParticular.amount.toFixed(2)}
+                                    placeholder="Amount"
+                                    className="w-full h-full px-2 border rounded text-sm"
+                                    readOnly
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex divide-x-2 divide-black ml-auto mr-[2.1rem]  border-x-2 border-b-2 border-black  w-fit">
+                          <div className="w-[16rem] h-fit flex justify-end items-center text-right font-semibold text-xs p-1">TOTAL AMOUNT DUE:</div>
+                          <div className="w-[8rem] p-1 text-xs">₱{calculateTotal()}</div>
+                        </div>
+
+                        <div className="flex flex-row gap-4">
+                          <div flex flex-col>
+                            <div className="divide-y-2 divide-black w-[17rem] mr-4 border-2 border-black -mt-4">
+                              <div className="text-xs p-2 h-10">
+                                <span>Prepared by:</span>
+                                <input
+                                  type="text"
+                                  className="ml-2 h-6 w-1/2 text-xs border-white focus:ring-0 focus:outline-none"
+                                  placeholder=""
+                                />
+                              </div>
+                              <div className="text-xs p-2 h-10">
+                                <span>Received by:</span>
+                                <input
+                                  type="text"
+                                  className="ml-2 h-6 w-1/2 text-xs border-white focus:ring-0 focus:outline-none"
+                                  placeholder=""
+                                />
+                              </div>
+                              <div className="text-xs p-2 h-10">
+                                <span>Prepared by:</span>
+                                <input
+                                  type="text"
+                                  className="ml-2 h-6 w-1/2 text-xs border-white focus:ring-0 focus:outline-none"
+                                  placeholder=""
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-decoration-underline font-semibold text-[10px] mt-2">"THIS DOCUMENT IS NOT VALID FOR CLAIMING INPUT TAX."</p>
+                              <p className="text-[8px] -mt-3 font-semibold">THIS BILLING INVOICE SHALL BE VALID FOR FIVE (5) YEARS FROM THE DATE OF ATP.</p>
+                            </div>
+                          </div>
+
+                          <img src={LongLogo} className="w-60 h-32 mt-2" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border mt-3 p-5">
+                      <div>
+                        <p className="italic font-semibold text-[#9D426E] text-sm">ST. JOHN MAJORE SERVICES COMPANY, INC.</p>
+                        <p className="text-xs -mt-3">Details of Billing Invoice</p>
+                        <p className="text-xs -mt-3">For the period of {selectedGroup.cutoffDate}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm mt-5">Principal: {selectedGroup.project}</p>
+                      </div>
+
+                      <div>
+                        <table>
+                          
+                        </table>
+                      </div>
+                    </div>
                   </Modal.Body>
 
                   <Modal.Footer className="flex justify-between flex-wrap gap-2">
-                    <button
-                      onClick={closeModal}
-                      className="flex items-center px-4 py-2 border border-neutralDGray rounded hover:bg-neutralSilver"
-                    >
-                      <FaXmark className="mr-2 text-neutralDGray" />
-                      Close
-                    </button>
-
                     <div className="flex gap-2">
                       <button
                         onClick={printInvoices}
