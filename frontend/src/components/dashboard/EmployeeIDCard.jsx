@@ -116,8 +116,8 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
       });
   
       // ID card dimensions in inches
-      const idCardWidth = 3.28;
-      const idCardHeight = 2.25;
+      const idCardWidth = 4.38;
+      const idCardHeight = 3.35;
   
       // Position (in inches from top-left of page)
       const xPosition = 0.5;
