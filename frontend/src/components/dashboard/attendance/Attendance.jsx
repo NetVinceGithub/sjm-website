@@ -21,7 +21,7 @@ const Attendance = () => {
   // Column definitions for attendance table
   const attendanceColumns = [
     {
-      name: 'Employee Name',
+      name: 'Ecode',
       selector: row => row.employeeName,
       sortable: true,
       width: '150px'

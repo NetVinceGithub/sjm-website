@@ -577,7 +577,7 @@ const Overview = () => {
                       className={`text-xs font-medium -mt-3 mb-2 px-2 rounded-full w-fit ${
                         employee.status === "Active"
                           ? "bg-green-100 text-green-700"
-                          : employee.status === "On Leave"
+                          : employee.status === "Resigned"
                             ? "bg-yellow-100 text-yellow-700"
                             : "bg-red-100 text-red-700"
                         }`}

@@ -13,6 +13,7 @@ import { FaPrint, FaRegFileExcel, FaRegFilePdf } from "react-icons/fa6";
 import { FaEnvelope, FaMinusSquare } from "react-icons/fa";
 import BlockEmployeeModal from "../modals/BlockEmployeeModal";
 import UnBlockEmployeeModal from "../modals/UnblockEmployeeModal";
+import ActivateEmployeeModal from "../modals/ActivateEmployeeModal";
 import { toast } from 'react-toastify';
 
 const List = () => {
@@ -28,6 +29,7 @@ const List = () => {
   const [isUnBlockModalOpen, setIsUnBlockModalOpen] = useState(false);
   const [employeeToBlock, setEmployeeToBlock] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [isActivateEmployeeOpen, setIsActivateEmployeeOpen] = useState(false);
 
   useEffect(() => {
     fetchEmployees();
@@ -129,17 +131,34 @@ const List = () => {
     }
   };
 
-  const handleToggleStatus = async (id, currentStatus) => {
+  const handleResignationConfirm = () => {
+    setIsActivateEmployeeOpen(false);
+    setIsUnBlockModalOpen(true); // Proceed with unblock modal
+  };
+
+  const handleResignationCancel = () => {
+    setIsActivateEmployeeOpen(false);
+    setEmployeeToBlock(null);
+  };
+
+  const handleToggleStatus = async (id, currentStatus, employmentStatus) => {
     const employee = employees.find((emp) => emp.id === id);
 
     if (!employee) return;
 
+    // Check if employee is resigned and trying to activate
+    if (employmentStatus === 'RESIGNED' && currentStatus === 'Inactive') {
+      setEmployeeToBlock(employee);
+      setIsActivateEmployeeOpen(true);
+      return;
+    }
+
     if (currentStatus === "Inactive") {
       setEmployeeToBlock(employee);
-      setIsUnBlockModalOpen(true); // Open Unblock Modal if the employee is inactive
+      setIsUnBlockModalOpen(true);
     } else {
       setEmployeeToBlock(employee);
-      setIsBlockModalOpen(true); // Open Block Modal if the employee is active
+      setIsBlockModalOpen(true);
     }
   };
 
@@ -255,6 +274,21 @@ const List = () => {
     },
   };
 
+  const conditionalRowStyles = [
+    {
+      when: row => row.employmentstatus === 'RESIGNED',
+      style: {
+        opacity: 0.5,
+        backgroundColor: '#f5f5f5',
+        '&:hover': {
+          opacity: 0.7,
+          backgroundColor: '#e5e5e5',
+          cursor: 'not-allowed',
+        },
+      },
+    },
+  ];
+
 
   // Define columns with sticky positioning for Options column
   const columns = [
@@ -281,7 +315,7 @@ const List = () => {
       name: "Name",
       selector: (row) => row.name,
       sortable: true,
-      width: "190px",
+      width: "230px",
     },
     {
       name: "Last Name",
@@ -453,43 +487,48 @@ const List = () => {
     },
     {
       name: "Options",
-      cell: (row) => (
-        <div className="flex justify-center items-center sticky-actions">
-          <button
-            onClick={() => openModal(row.employeeId || row.id)}
-            className="w-14 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center"
-          >
-            <FaIdCard
-              title="View ID"
-              className=" text-neutralDGray w-5 h-5"
-            />
-          </button>
-          <button className="w-14 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center">
-            <FaEnvelope
-              title="Message"
-              className=" text-neutralDGray w-5 h-5"
-            />
-          </button>
-          <button
-            className={`w-14 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${
-              row.status === "Active"
+      cell: (row) => {
+        // Determine if employee is resigned and should be inactive
+        const isResigned = row.employmentstatus === 'RESIGNED';
+        const effectiveStatus = isResigned ? 'Inactive' : row.status;
+
+        return (
+          <div className="flex justify-center items-center sticky-actions">
+            <button
+              onClick={() => openModal(row.employeeId || row.id)}
+              className="w-14 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center"
+            >
+              <FaIdCard
+                title="View ID"
+                className=" text-neutralDGray w-5 h-5"
+              />
+            </button>
+            <button className="w-14 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center">
+              <FaEnvelope
+                title="Message"
+                className=" text-neutralDGray w-5 h-5"
+              />
+            </button>
+            <button
+              className={`w-14 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${effectiveStatus === "Active"
                 ? "bg-green-500 text-white"
                 : "bg-red-500 text-white"
-              }`}
-            onClick={() =>
-              handleToggleStatus(row.id, row.status)
-            }
-          >
-            <FaMinusSquare
-              title="Toggle Status"
-              className="w-5 h-5"
-            />
-          </button>
-        </div>
-      ),
+                }`}
+              onClick={() =>
+                handleToggleStatus(row.id, effectiveStatus, row.employmentstatus)
+              }
+            >
+              <FaMinusSquare
+                title="Toggle Status"
+                className="w-5 h-5"
+              />
+            </button>
+          </div>
+        );
+      },
       width: "200px",
       right: true,
-      center: true, // This makes the column stick to the right
+      center: true,
     },
   ];
 
@@ -536,7 +575,7 @@ const List = () => {
     if (count > 0) {
       toast.info(
         <div style={{ fontSize: '0.8rem' }}>
-           {count} {count > 1 ? 'people have' : 'person has'} their birthday{count > 1 ? 's' : ''} approaching soon. 
+          {count} {count > 1 ? 'people have' : 'person has'} their birthday{count > 1 ? 's' : ''} approaching soon.
         </div>,
         {
           autoClose: 5000,
@@ -545,7 +584,7 @@ const List = () => {
           position: 'top-right',
         }
       );
-      
+
     }
   };
 
@@ -563,7 +602,7 @@ const List = () => {
           position: 'top-right',
         }
       );
-      
+
     }
   };
 
@@ -572,7 +611,7 @@ const List = () => {
     if (count > 0) {
       toast.error(
         <div style={{ fontSize: '0.8rem' }}>
-           {count} medical{count > 1 ? 's are' : ' is'} expiring soon.
+          {count} medical{count > 1 ? 's are' : ' is'} expiring soon.
         </div>,
         {
           autoClose: 5000,
@@ -581,7 +620,7 @@ const List = () => {
           position: 'top-right',
         }
       );
-      
+
     }
   };
 
@@ -663,7 +702,7 @@ const List = () => {
                       className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
                     >
                       Close
-                  </button>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -716,6 +755,7 @@ const List = () => {
                   data={filteredEmployees}
                   progressPending={loading}
                   pagination
+                  conditionalRowStyles={conditionalRowStyles}
                 />
               </div>
             </div>
@@ -736,6 +776,14 @@ const List = () => {
         onConfirm={confirmBlockEmployee}
         employee={employeeToBlock}
       />
+
+      <ActivateEmployeeModal
+        isOpen={isActivateEmployeeOpen}
+        onClose={handleResignationCancel}
+        onConfirm={handleResignationConfirm}
+        employee={employeeToBlock} // Corrected prop name
+      />
+
 
       <UnBlockEmployeeModal
         isOpen={isUnBlockModalOpen}

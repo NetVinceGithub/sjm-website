@@ -99,37 +99,43 @@ const AttendanceForComputation = () => {
                       Ecode
                     </th>
                     <th className="border text-center px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg">
-                      No. of Days Present
+                      Date
                     </th>
                     <th className="border text-center  px-4 py-2">
-                      Total Tardiness
+                      Duty End
                     </th>
                     <th className="border text-center  px-4 py-2">
-                      Total Hours
+                      Duty Start
                     </th>
                     <th className="border text-center  px-4 py-2">
-                      Total Overtime
+                      Punch In
+                    </th>
+                    <th className="border text-center  px-4 py-2">
+                      Punch Out
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {attendanceSummary?.length > 0 ? (
-                    attendanceSummary.map((record) => (
+                  {attendanceData?.length > 0 ? (
+                    attendanceData.map((record) => (
                       <tr key={record.id}>
                         <td className="border text-center  px-4 py-2">
                           {record.ecode}
                         </td>
                         <td className="border text-center  px-4 py-2">
-                          {record.daysPresent}
+                          {record.date}
                         </td>
                         <td className="border text-center  px-4 py-2">
-                          {record.totalTardiness}
+                          {record.dutyEnd}
                         </td>
                         <td className="border text-center  px-4 py-2">
-                          {record.totalHours || "N/A"}
+                          {record.dutyStart}
                         </td>
                         <td className="border text-center  px-4 py-2">
-                          {record.totalOvertime || "N/A"}
+                          {record.punchIn}
+                        </td>
+                        <td className="border text-center  px-4 py-2">
+                          {record.punchOut}
                         </td>
                       </tr>
                     ))
