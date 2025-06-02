@@ -559,8 +559,8 @@ const InvoiceList = () => {
             >
               <div className=" fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[80vw] max-h-[80vh] z-[1051]">
                 <div className="modal-content flex flex-col h-[80vh] z-[1052]">
-                  <Modal.Header closeButton>
-                    <Modal.Title>
+                  <Modal.Header  className="py-2 px-3 text-[12px]" closeButton>
+                    <Modal.Title as="h6" className="text-lg">
                       Invoices for Cutoff Date: {selectedGroup.cutoffDate} | Project: {selectedGroup.project}
                     </Modal.Title>
                   </Modal.Header>
@@ -612,7 +612,7 @@ const InvoiceList = () => {
                           <div className="px-3 py-1 w-[11.65rem] h-14 flex flex-col justify-between">
                             <p className="text-xs italic">Control #: </p>
                             <div className="text-xs -ml-[12px] -mt-[15px]">
-                             {/* Add date here */}
+                              {/* Add date here */}
                             </div>
                           </div>
                         </div>
@@ -786,9 +786,77 @@ const InvoiceList = () => {
                       </div>
 
                       <div>
-                        <table>
-                          
+                        <table className="min-w-full -ml-[1px] table-auto border-separate border border-black text-sm mt-5">
+                          <thead>
+                            <tr>
+                              <th className=" border border-black text-center  px-4 py-2" rowSpan="2">NO.</th>
+                              <th className=" border border-black text-center px-4 py-2" rowSpan="2">EMPLOYEE NAME</th>
+                              <th className=" border border-black text-center px-4 py-2" rowSpan="2">DESCRIPTION</th>
+                              <th className=" border border-black text-center px-4 py-2" rowSpan="2">PAYROLL RATE</th>
+                              <th className=" border border-black text-center px-4 py-2" colSpan="2">REGULAR OVERTIME (excess in 8/hrs/day)</th>
+                              <th className=" border border-black text-center px-4 py-2" rowSpan="2">GROSS PAY (DUE TO EMPLOYEES)</th>
+                              <th className=" border border-black text-center px-4 py-2" rowSpan="2">ADMIN FEE (10%)</th>
+                              <th className=" border border-black text-center px-4 py-2" rowSpan="2">TOTAL AMOUNT</th>
+                              <th className=" border border-black text-center px-4 py-2" rowSpan="2">12% VALUE ADDED TAX</th>
+                              <th className=" border border-black text-center px-4 py-2" rowSpan="2">TOTAL AMOUNT DUE</th>
+                            </tr>
+                            <tr>
+                              <th className=" border border-black text-center px-4 py-2">Hrs</th>
+                              <th className=" border border-black text-center px-4 py-2">Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td className=" border border-black text-center px-4 py-2">1</td>
+                              <td className=" border border-black text-left px-4 py-2">John Doe</td>
+                              <td className=" border border-black text-left px-4 py-2">production helper</td>
+                              <td className=" border border-black text-right px-4 py-2">502.00</td>
+                              <td className=" border border-black text-right px-4 py-2">1.00</td>
+                              <td className=" border border-black text-right px-4 py-2">62.66</td>
+                              <td className=" border border-black text-right px-4 py-2">62.66</td>
+                              <td className=" border border-black text-right px-4 py-2">6.27</td>
+                              <td className=" border border-black text-right px-4 py-2">68.92</td>
+                              <td className=" border border-black text-right px-4 py-2">8.27</td>
+                              <td className=" border border-black text-right px-4 py-2">77.19</td>
+                            </tr>
+                            <tr>
+                              <td className=" border border-black font-semibold text-center px-4 py-2" colSpan="3">TOTAL AMOUNT</td>
+                              <td className=" border border-black text-right px-4 py-2">1</td>
+                              <td className=" border border-black text-right px-4 py-2">1</td>
+                              <td className=" border border-black text-right px-4 py-2">1</td>
+                              <td className=" border border-black text-right px-4 py-2">1</td>
+                              <td className=" border border-black text-right px-4 py-2">1</td>
+                              <td className=" border border-black text-right px-4 py-2">1</td>
+                              <td className=" border border-black text-right px-4 py-2">1</td>
+                              <td className=" border border-black text-right px-4 py-2">1</td>
+                            </tr>
+                          </tbody>
                         </table>
+
+                        <div className="flex flex-row gap-4 w-fit border border-black divide-x divide-black text-xs">
+                          <div className="px-2">TOTAL APPROVED MAN HOURS</div>
+                          <div className="px-2 w-32 text-right">1</div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4 text-center mt-20">
+                          <div>
+                            <p className="text-xs text-left mb-2">Prepared by:</p>
+                            <div className="border-t border-black h-6"></div>
+                            <p className="text-xs -mt-3">N/A</p>
+                            <p className="text-xs -mt-3">Billing Head</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-left mb-2">Checked by:</p>
+                            <div className="border-t border-black h-6"></div>
+                            <p className="text-xs -mt-3">N/A</p>
+                            <p className="text-xs -mt-3">Finance Head</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-left mb-2">Received by:</p>
+                            <div className="border-t border-black h-6"></div>
+                            <p className="text-xs -mt-3">Client</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </Modal.Body>
