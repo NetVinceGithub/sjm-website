@@ -12,7 +12,9 @@ import {
   FaRegFilePdf,
   FaXmark,
 } from "react-icons/fa6";
-import {Modal, Button} from "react-bootstrap";
+import { Modal, Button } from "react-bootstrap";
+import Logo from '../../../assets/logo.png'
+import LongLogo from '../../../assets/long-logo.png'
 
 const InvoiceList = () => {
   const [invoices, setInvoices] = useState([]);
@@ -21,6 +23,7 @@ const InvoiceList = () => {
   const [selectedCutoff, setSelectedCutoff] = useState(null);
   const [filteredInvoices, setFilteredInvoices] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [particular, setParticular] = useState("");
   const [selectedGroup, setSelectedGroup] = useState({
     cutoffDate: null,
     project: null,
@@ -96,63 +99,63 @@ const InvoiceList = () => {
 
 
 
-    /** =================== PDF Export Function =================== */
-    const downloadPDF = () => {
-      const doc = new jsPDF();
-      doc.text(
-        `Invoices for Cutoff Date: ${selectedGroup.cutoffDate} | Project: ${selectedGroup.project}`,
-        10,
-        10
-      );
-      autoTable(doc, {
-        startY: 20,
-        head: [
-          [
-            "Ecode",
-            "Name",
-            "Position",
-            "Daily Rate",
-            "OT Hours",
-            "OT Amount",
-            "Normal Hours",
-            "Normal Amount",
-            "Gross Pay",
-            "Total Deductions",
-            "Net Pay",
-          ],
+  /** =================== PDF Export Function =================== */
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    doc.text(
+      `Invoices for Cutoff Date: ${selectedGroup.cutoffDate} | Project: ${selectedGroup.project}`,
+      10,
+      10
+    );
+    autoTable(doc, {
+      startY: 20,
+      head: [
+        [
+          "Ecode",
+          "Name",
+          "Position",
+          "Daily Rate",
+          "OT Hours",
+          "OT Amount",
+          "Normal Hours",
+          "Normal Amount",
+          "Gross Pay",
+          "Total Deductions",
+          "Net Pay",
         ],
-        body: filteredInvoices.map((invoice) => [
-          invoice.ecode,
-          invoice.name,
-          invoice.position,
-          invoice.dailyrate,
-          invoice.totalOvertime,
-          invoice.overtimePay,
-          invoice.totalHours,
-          invoice.totalEarnings,
-          invoice.gross_pay,
-          invoice.totalDeductions,
-          invoice.netPay,
-        ]),
-      });
-      doc.save(`Invoices_${selectedGroup.cutoffDate}_${selectedGroup.project}.pdf`);
-    };
-  
-    /** =================== Excel Export Function =================== */
-    const downloadExcel = () => {
-      const worksheet = XLSX.utils.json_to_sheet(filteredInvoices);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Invoices");
-      XLSX.writeFile(
-        workbook,
-        `Invoices_${selectedGroup.cutoffDate}_${selectedGroup.project}.xlsx`
-      );
-    };
-  
-    /** =================== Print Function =================== */
-    const printInvoices = () => {
-      const printWindow = window.open("", "_blank");
-      const tableContent = `
+      ],
+      body: filteredInvoices.map((invoice) => [
+        invoice.ecode,
+        invoice.name,
+        invoice.position,
+        invoice.dailyrate,
+        invoice.totalOvertime,
+        invoice.overtimePay,
+        invoice.totalHours,
+        invoice.totalEarnings,
+        invoice.gross_pay,
+        invoice.totalDeductions,
+        invoice.netPay,
+      ]),
+    });
+    doc.save(`Invoices_${selectedGroup.cutoffDate}_${selectedGroup.project}.pdf`);
+  };
+
+  /** =================== Excel Export Function =================== */
+  const downloadExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(filteredInvoices);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Invoices");
+    XLSX.writeFile(
+      workbook,
+      `Invoices_${selectedGroup.cutoffDate}_${selectedGroup.project}.xlsx`
+    );
+  };
+
+  /** =================== Print Function =================== */
+  const printInvoices = () => {
+    const printWindow = window.open("", "_blank");
+    const tableContent = `
         <h3>Invoices for Cutoff Date: ${selectedGroup.cutoffDate} | Project: ${selectedGroup.project}</h3>
         <table border="1" style="width: 100%; border-collapse: collapse; text-align: center;">
           <tr>
@@ -169,8 +172,8 @@ const InvoiceList = () => {
             <th>Net Pay</th>
           </tr>
           ${filteredInvoices
-            .map(
-              (invoice) => `
+        .map(
+          (invoice) => `
             <tr>
               <td>${invoice.ecode}</td>
               <td>${invoice.name}</td>
@@ -185,16 +188,16 @@ const InvoiceList = () => {
               <td>${invoice.netPay}</td>
             </tr>
           `
-            )
-            .join("")}
+        )
+        .join("")}
         </table>
       `;
-      printWindow.document.write(tableContent);
-      printWindow.document.close();
-      printWindow.print();
-    };
+    printWindow.document.write(tableContent);
+    printWindow.document.close();
+    printWindow.print();
+  };
 
-    const customStyles = {
+  const customStyles = {
     headCells: {
       style: {
         backgroundColor: '#f9fafb',
@@ -221,146 +224,243 @@ const InvoiceList = () => {
 
   return (
     <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-20">
-      <div className="bg-white  -mt-3 py-3 p-2 rounded-lg shadow">
-        <div className="flex -mt-3 justify-between">
-          <h6 className="p-3 mb-0 ml-1 text-md text-neutralDGray">
-            <strong>Invoice List</strong>
-          </h6>
-          <div className="flex items-center gap-3">
-            <div className="flex rounded items-center">
-              <input
-                type="text"
-                placeholder="Search Project"
-                className="px-2 rounded py-0.5 text-sm border"
-                value={searchTerm}
-                onChange={handleSearch}
-              />
-              <FaSearch className="ml-[-20px] mr-3 text-neutralDGray" />
+      <div className="flex flex-row gap-4 w-full">
+        <div className="w-1/2 bg-white p-3">
+          <div className="border">
+            <div className="flex flex-row gap-2 mt-3 p-2 justify-center items-center">
+              <img src={Logo} className="w-28 h-28" />
+              <div>
+                <p className="font-semibold text-[#9D426E] text-sm">ST. JOHN MAJORE SERVICES COMPANY, INC.</p>
+                <p className="italic text-xs -mt-3">Registered DOLE D.O. RO4A-BPO-DO174-0225-005-N</p>
+                <p className="text-xs -mt-3">Batangas, 4226, PHILIPPINES</p>
+                <p className="text-xs -mt-3">Cel No.: 0917-185-1909 • Tel. No.:(043) 575-5675</p>
+                <p className="text-xs -mt-3">www.stjohnmajore.com</p>
+              </div>
+              <div className="border-black border-2 rounded-lg flex flex-col divide-y-2 divide-black ml-10">
+                <div className="p-2">
+                  <p className="text-xs mb-0">VAT REGISTERED TIN: 010-837-591-000</p>
+                </div>
+                <div className="p-2">
+                  <p className="flex justify-center text-center items-center mt-2 font-semibold">BILLING INVOICE</p>
+                </div>
+              </div>
             </div>
+
+            <div className="flex flex-col ml-10 mt-3 mb-8">
+              <div className="flex divide-x-2 divide-black ml-[436px] h-14 border-x-2 border-t-2 border-black  w-fit">
+                <div className="px-3 py-2 flex items-start min-w-[70px]">
+                  <p className="text-xs font-medium  flex justify-center items-center text-center mt-[21px]">Date:</p>
+                </div>
+                <div className="px-3 py-1 w-[11.65rem] h-14 flex flex-col justify-between">
+                  <p className="text-xs italic">Control #: </p>
+                  <div className="text-xs -ml-[12px] -mt-[15px]">
+                    <input type="date" className="text-xs border-none" />
+                  </div>
+                </div>
+              </div>
+              <div className="divide-y-2 divide-black border-2 border-black w-[calc(100%-2.1rem)]">
+                <div className="h-fit font-semibold text-sm">SOLD TO:</div>
+                <div>
+                  <p className="ml-10 text-xs mt-1">Registered Name:</p>
+                  <p className="ml-10 text-xs -mt-2">TIN:</p>
+                  <p className="ml-10 text-xs -mt-2 mb-1">Business Address:</p>
+                </div>
+              </div>
+
+              <div className="  mt-3">
+                <div className="divide-y-2 divide-black border-2 border-black w-[calc(100%-2.1rem)]">
+                  <div className="h-4"></div>
+                  <div className="flex flex-row divide-black divide-x-2">
+                    <div className="w-[20rem] text-sm flex justify-center items-center text-center">Particulars</div>
+                    <div className="w-[9rem] text-sm  flex justify-center items-center text-center">Quantity</div>
+                    <div className="w-[9rem] text-sm flex justify-center items-center text-center">Unit Price</div>
+                    <div className="w-[9rem] text-sm flex justify-center items-center text-center">Amount</div>
+                  </div>
+                  <div className="flex flex-row divide-black divide-x-2">
+                    <div className="h-10 p-1 w-[20rem]">
+                      <input
+                        type="text"
+                        value={particular}
+                        onChange={(e) => setParticular(e.target.value)}
+                        placeholder="Enter particulars"
+                        className="w-full h-full px-2 border rounded text-xs"
+                      />
+                    </div>
+                    <div className="h-10 p-1 w-[9rem]">
+                      {particular && (
+                        <input
+                          type="number"
+                          placeholder="Qty"
+                          className="w-full h-full px-2 border rounded text-xs"
+                        />
+                      )}
+                    </div>
+                    <div className="h-10 w-[9rem] p-1">
+                      {particular && (
+                        <input
+                          type="number"
+                          placeholder="Price"
+                          className="w-full h-full px-2 border rounded text-sm"
+                        />
+                      )}
+                    </div>
+                    <div className="h-10 w-[9rem] p-1">
+                      {particular && (
+                        <input
+                          type="number"
+                          placeholder="Amount"
+                          className="w-full h-full px-2 border rounded text-sm"
+                          readOnly
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex divide-x-2 divide-black ml-[296px]  border-x-2 border-b-2 border-black  w-fit">
+                <div className="w-[16.48rem] h-fit flex justify-end font-semibold text-xs p-1">TOTAL AMOUNT DUE:</div>
+                <div className="w-[8.25rem]"></div>
+              </div>
+
+              <div className="flex flex-row gap-4">
+                <div flex flex-col>
+                  <div className="divide-y-2 divide-black w-[18rem] border-2 border-black -mt-4">
+                    <div className="text-xs p-2 h-10">Prepared by: </div>
+                    <div className="text-xs p-2 h-10">Received by:</div>
+                    <div className="text-xs p-2 h-10">Date Received: </div>
+                  </div>
+                  <div>
+                    <p className="text-decoration-underline font-semibold text-[10px] mt-2">"THIS DOCUMENT IS NOT VALID FOR CLAIMING INPUT TAX."</p>
+                    <p className="text-[8px] -mt-3 font-semibold">THIS BILLING INVOICE SHALL BE VALID FOR FIVE (5) YEARS FROM THE DATE OF ATP.</p>
+                  </div>
+                </div>
+
+                <img src={LongLogo} className="w-60 h-32 mt-2" />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button className="w-32 text-md bg-brandPrimary h-10 hover:bg-neutralDGray text-white py-1 px-2 rounded mt-3">Add Invoice</button>
           </div>
         </div>
 
-        <div className="mt-2 border h-[31rem]  border-neutralDGray rounded overflow-x-auto">
-          <DataTable
-            columns={[
-              {
-                name: "Project",
-                selector: (row) => row.project,
-                sortable: true,
-              },
-              {
-                name: "Cutoff Date",
-                selector: (row) => row.cutoffDate,
-                sortable: true,
-              },
-              {
-                name: "Action",
-                cell: (row) => (
-                  <button
-                    className="w-10 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center"
-                    onClick={() =>
-                      handleGroupClick(row.cutoffDate, row.project)
-                    }
-                  >
-                    <FaArrowUpRightFromSquare
-                    title="View Details"
-                    className="text-neutralDGray w-5 h-5"
-                  />
-                  </button>
-                ),
-              },
-            ]}
-            data={filteredProjects}
-            highlightOnHover
-            striped
-            pagination
-            customStyles={customStyles}
-          />
-        </div>
-
-        {isModalOpen && selectedGroup && (
-          <Modal 
-          show={isModalOpen} 
-          onHide={closeModal} 
-          backdrop="static" 
-          centered
-        >
-          <div 
-            className="modal-dialog" 
-            style={{ 
-              maxWidth: "80vw", 
-              width: "80vw", 
-              maxHeight: "80vh", 
-              height: "80vh", 
-              zIndex: "1051", 
-              position: "fixed",  // Ensures it stays in place
-              top: "50%",         // Centers it vertically
-              left: "58%",        // Centers it horizontally
-              transform: "translate(-50%, -50%)" // Adjusts centering
-            }}
-          >
-
-            <div 
-              className="modal-content" 
-              style={{ 
-                maxHeight: "80vh", 
-                height: "100vh", 
-                display: "flex", 
-                flexDirection: "column",
-                zIndex: "1052" 
-              }}
-            >
-              <Modal.Header closeButton>
-                <Modal.Title>
-                  Invoices for Cutoff Date: {selectedGroup.cutoffDate} | Project: {selectedGroup.project}
-                </Modal.Title>
-              </Modal.Header>
-              <Modal.Body style={{ overflowY: "auto", flex: "1" }}>
-                <DataTable 
-                  data={filteredInvoices} 
-                  columns={[
-                    { name: "Ecode", selector: (row) => row.ecode },
-                    { name: "Name", selector: (row) => row.name, width: "200px" },
-                    { name: "Position", selector: (row) => row.position, width: "200px" },
-                    { name: "Daily Rate", selector: (row) => row.dailyrate, width: "130px" },
-                    { name: "Ot hours", selector: (row) => row.totalOvertime, width: "130px" },
-                    { name: "Amount", selector: (row) => row.overtimePay, width: "130px" },
-                    { name: "Normal Hours", selector: (row) => row.totalHours, width: "130px" },
-                    { name: "Normal Amount", selector: (row) => row.totalEarnings, width: "130px" },
-                    { name: "Gross Pay", selector: (row) => row.gross_pay, width: "130px" },
-                    { name: "Total Deductions", selector: (row) => row.totalDeductions, width: "130px" },
-                    { name: "Net Pay", selector: (row) => row.netPay, width: "130px" },
-                  ]} 
-                  highlightOnHover 
-                  striped 
+        <div className="bg-white w-1/2 py-4 px-3 rounded-lg shadow">
+          <div className="flex justify-between items-center">
+            <h6 className="text-md text-neutralDGray font-bold">Invoice List</h6>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center rounded px-2 py-1">
+                <input
+                  type="text"
+                  placeholder="Search Project"
+                  className="text-sm outline-none rounded-lg"
+                  value={searchTerm}
+                  onChange={handleSearch}
                 />
-              </Modal.Body>
-              <Modal.Footer>
-                <button
-                  onClick={closeModal}
-                  className="flex items-center h-auto w-auto justify-center px-4 py-2 border border-neutralDGray rounded hover:bg-neutralSilver"
-                >
-                  <FaXmark className="mr-2 text-neutralDGray" />
-                  Close
-                </button>
-          
-                <button onClick={printInvoices} className="w-20 h-8 border hover:bg-neutralSilver rounded-l-md border-neutralDGray border-l-0 flex items-center justify-center">
-                  <FaPrint title="Print" className="text-neutralDGray w-5 h-5" />
-                </button>
-                <button onClick={downloadExcel} className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray border-l-0 flex items-center justify-center">
-                  <FaRegFileExcel title="Export to Excel" className="text-neutralDGray w-5 h-5" />
-                </button>
-                <button onClick={downloadPDF} className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-r border-l-0 flex items-center justify-center transition">
-                  <FaRegFilePdf title="Export to PDF" className="text-neutralDGray w-5 h-5" />
-                </button>
-              </Modal.Footer>
+                <FaSearch className="ml-2 text-neutralDGray" />
+              </div>
             </div>
           </div>
-        </Modal>
-        
-        
-        )}
 
+          <div className="mt-3 border border-neutralDGray h-[31rem] rounded overflow-x-auto">
+            <DataTable
+              columns={[
+                { name: "Project", selector: row => row.project, sortable: true },
+                { name: "Cutoff Date", selector: row => row.cutoffDate, sortable: true },
+                {
+                  name: "Action",
+                  cell: (row) => (
+                    <button
+                      className="w-10 h-8 border hover:bg-neutralSilver border-neutralDGray rounded flex items-center justify-center"
+                      onClick={() => handleGroupClick(row.cutoffDate, row.project)}
+                    >
+                      <FaArrowUpRightFromSquare
+                        title="View Details"
+                        className="text-neutralDGray w-5 h-5"
+                      />
+                    </button>
+                  ),
+                },
+              ]}
+              data={filteredProjects}
+              highlightOnHover
+              striped
+              pagination
+              customStyles={customStyles}
+            />
+          </div>
+
+          {isModalOpen && selectedGroup && (
+            <Modal
+              show={isModalOpen}
+              onHide={closeModal}
+              backdrop="static"
+              centered
+            >
+              <div className="modal-dialog fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[80vw] max-h-[80vh] z-[1051]">
+                <div className="modal-content flex flex-col h-[80vh] z-[1052]">
+                  <Modal.Header closeButton>
+                    <Modal.Title>
+                      Invoices for Cutoff Date: {selectedGroup.cutoffDate} | Project: {selectedGroup.project}
+                    </Modal.Title>
+                  </Modal.Header>
+
+                  <Modal.Body className="overflow-y-auto flex-1">
+                    <DataTable
+                      data={filteredInvoices}
+                      columns={[
+                        { name: "Ecode", selector: row => row.ecode },
+                        { name: "Name", selector: row => row.name, width: "200px" },
+                        { name: "Position", selector: row => row.position, width: "200px" },
+                        { name: "Daily Rate", selector: row => row.dailyrate, width: "130px" },
+                        { name: "Ot hours", selector: row => row.totalOvertime, width: "130px" },
+                        { name: "Amount", selector: row => row.overtimePay, width: "130px" },
+                        { name: "Normal Hours", selector: row => row.totalHours, width: "130px" },
+                        { name: "Normal Amount", selector: row => row.totalEarnings, width: "130px" },
+                        { name: "Gross Pay", selector: row => row.gross_pay, width: "130px" },
+                        { name: "Total Deductions", selector: row => row.totalDeductions, width: "130px" },
+                        { name: "Net Pay", selector: row => row.netPay, width: "130px" },
+                      ]}
+                      highlightOnHover
+                      striped
+                    />
+                  </Modal.Body>
+
+                  <Modal.Footer className="flex justify-between flex-wrap gap-2">
+                    <button
+                      onClick={closeModal}
+                      className="flex items-center px-4 py-2 border border-neutralDGray rounded hover:bg-neutralSilver"
+                    >
+                      <FaXmark className="mr-2 text-neutralDGray" />
+                      Close
+                    </button>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={printInvoices}
+                        className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded flex items-center justify-center"
+                      >
+                        <FaPrint title="Print" className="text-neutralDGray w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={downloadExcel}
+                        className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded flex items-center justify-center"
+                      >
+                        <FaRegFileExcel title="Export to Excel" className="text-neutralDGray w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={downloadPDF}
+                        className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded flex items-center justify-center"
+                      >
+                        <FaRegFilePdf title="Export to PDF" className="text-neutralDGray w-5 h-5" />
+                      </button>
+                    </div>
+                  </Modal.Footer>
+                </div>
+              </div>
+            </Modal>
+          )}
+        </div>
       </div>
     </div>
   );
