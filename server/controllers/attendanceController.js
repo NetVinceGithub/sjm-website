@@ -6,13 +6,32 @@ import AttendanceHistory from "../models/AttendanceHistory.js";
 import multer from 'multer';
 import XLSX from 'xlsx';
 
-// Function to convert Excel serial date to YYYY-MM-DD format
+
+
 const excelSerialToDate = (serial) => {
-  const excelEpoch = new Date(1899, 11, 30); // Excel epoch start
-  // Excel incorrectly treats 1900 as leap year; serial numbers < 60 need adjustment if you want precision
-  if (serial < 60) serial -= 1; // Fix for Excel leap year bug
+  const excelEpoch = new Date(1899, 11, 30);
+  if (serial < 60) serial -= 1;
   return moment(excelEpoch).add(serial, "days").format("YYYY-MM-DD");
 };
+
+const parseTimeToHHMMSS = (timeValue) => {
+  // Null or empty check
+  if (timeValue == null || timeValue === '' || timeValue === 'null') return null;
+
+  // Handle Excel numeric time (e.g., 0.333333 for 08:00 AM)
+  if (typeof timeValue === 'number') {
+    const totalSeconds = Math.round(24 * 60 * 60 * timeValue);
+    const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+    const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+  }
+
+  // Handle common string formats
+  const m = moment(timeValue, ['HH:mm:ss', 'HH:mm', 'H:mm', 'h:mm A'], true);
+  return m.isValid() ? m.format('HH:mm:ss') : null;
+};
+
 
 export const uploadAttendanceFile = async (req, res) => {
   try {
@@ -26,81 +45,143 @@ export const uploadAttendanceFile = async (req, res) => {
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(worksheet);
 
-    const formattedData = rows.map(row => {
-      // Convert Date - handle Excel serial number or date string
-      const dateRaw = row.Date || row.date || '';
-      let date = '';
-      if (!isNaN(dateRaw) && Number(dateRaw) > 0) {
-        date = excelSerialToDate(Number(dateRaw));
-      } else {
-        date = moment(dateRaw).isValid() ? moment(dateRaw).format('YYYY-MM-DD') : null;
-      }
+    console.log('Raw Excel rows sample:', rows.slice(0, 2));
 
-      const employeeName = row.Name || row.name || '';
+    const formattedData = rows
+      .map(row => {
+        // Convert Date
+        const dateRaw = row.Date || row.date || '';
+        let date = '';
+        if (!isNaN(dateRaw) && Number(dateRaw) > 0) {
+          date = excelSerialToDate(Number(dateRaw));
+        } else {
+          date = moment(dateRaw).isValid() ? moment(dateRaw).format('YYYY-MM-DD') : null;
+        }
 
-      // Handle duty time split
-      const dutyTimeRaw = row['Duty time'] || row['duty time'] || '';
-      let dutyStart = null, dutyEnd = null;
-      if (dutyTimeRaw.includes(' - ')) {
-        const [startRaw, endRaw] = dutyTimeRaw.split(' - ').map(str => str.trim());
-        dutyStart = moment(startRaw, 'HH:mm', true).isValid() ? startRaw : null;
-        dutyEnd = moment(endRaw, 'HH:mm', true).isValid() ? endRaw : null;
-      }
+        const ecode = String(row.Name || row.name || '').trim();
 
-      // Parse Punch In and Punch Out
-      const parseTime = (timeStr) => {
-        if (!timeStr) return null;
-        const m = moment(timeStr, ['HH:mm:ss', 'HH:mm'], true);
-        return m.isValid() ? m.format('HH:mm:ss') : null;
-      };
+        // Handle duty time split
+        const dutyTimeRaw = row['Duty time'] || row['duty time'] || '';
+        let dutyStart = null, dutyEnd = null;
+        if (dutyTimeRaw && dutyTimeRaw.includes(' - ')) {
+          const [startRaw, endRaw] = dutyTimeRaw.split(' - ').map(str => str.trim());
+          dutyStart = parseTimeToHHMMSS(startRaw);
+          dutyEnd = parseTimeToHHMMSS(endRaw);
+        }
 
-      const punchIn = parseTime(row['Punch In'] || row['punch in'] || null);
-      const punchOut = parseTime(row['Punch Out'] || row['punch out'] || null);
-      const workTime = row['Work time'] || row['work time'] || null;
-      const lateTime = row['Late'] || null;
-      const overtime = row['Overtime'] || null;
-      const absentTime = row['Absent time'] || null;
+        // Parse times
+        const punchIn = parseTimeToHHMMSS(row['Punch In'] || row['punch in']);
+        const punchOut = parseTimeToHHMMSS(row['Punch Out'] || row['punch out']);
+        const workTime = parseTimeToHHMMSS(row['Work time'] || row['work time']);
+        const lateTime = parseTimeToHHMMSS(row['Late']);
+        const overtime = parseTimeToHHMMSS(row['Overtime']);
+        const absentTime = parseTimeToHHMMSS(row['Absent time']);
 
-      const isAbsent = !punchIn && !punchOut;
-      const status = isAbsent ? 'absent' : 'present';
-      const remarks = row['Remarks'] || null;
+        const isAbsent = !punchIn && !punchOut;
+        const status = isAbsent ? 'absent' : 'present';
 
-      return {
-        employeeName,
-        date,
-        dutyStart,
-        dutyEnd,
-        punchIn,
-        punchOut,
-        workTime,
-        lateTime,
-        overtime,
-        absentTime,
-        isAbsent,
-        status,
-        remarks
-      };
-    });
+        return {
+          date,
+          dutyStart,
+          dutyEnd,
+          punchIn,
+          punchOut,
+          workTime,
+          lateTime,
+          overtime,
+          absentTime,
+          isAbsent,
+          status,
+          ecode
+        };
+      })
+      .filter(record => record.date && record.ecode); // Only filter out completely invalid records
 
-    console.log('Formatted attendance data:', formattedData);
+    console.log('Formatted attendance data sample:', formattedData.slice(0, 3));
+    console.log('Total records to insert:', formattedData.length);
 
-    // IMPORTANT: Make sure your model has unique constraints to support ignoreDuplicates.
-    try {
-      const result = await Attendance.bulkCreate(formattedData, {
-        ignoreDuplicates: true
+    if (formattedData.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No valid records found in the uploaded file' 
       });
-      console.log('Bulk create result:', result);
-    } catch (e) {
-      console.error('Bulk create error:', e);
-      throw e;
     }
 
+    // Insert all data without checking for duplicates
+    try {
+      const result = await Attendance.bulkCreate(formattedData, {
+        // Remove ignoreDuplicates and updateOnDuplicate options
+        // This will insert all records, including duplicates
+        validate: true,
+        returning: true
+      });
 
-    res.status(200).json({ success: true, message: 'Attendance uploaded successfully' });
+      console.log('Bulk create successful. Inserted records:', result.length);
+
+      // Verify insertion
+      const totalRecordsInDB = await Attendance.count();
+      console.log('Total records in database after insert:', totalRecordsInDB);
+
+      res.status(200).json({ 
+        success: true, 
+        message: `All attendance data uploaded successfully. ${result.length} records inserted.`,
+        details: {
+          recordsInserted: result.length,
+          totalInDatabase: totalRecordsInDB
+        }
+      });
+
+    } catch (bulkError) {
+      console.error('Bulk create error:', bulkError);
+      
+      // If bulk create fails, try individual inserts
+      console.log('Attempting individual record insertion...');
+      
+      let successCount = 0;
+      let errorCount = 0;
+      const errors = [];
+
+      for (const record of formattedData) {
+        try {
+          await Attendance.create(record);
+          successCount++;
+        } catch (error) {
+          errorCount++;
+          errors.push({
+            record: record,
+            error: error.message
+          });
+          console.error(`Failed to insert record for ${record.ecode} on ${record.date}:`, error.message);
+        }
+      }
+
+      console.log(`Individual insertion complete. Success: ${successCount}, Errors: ${errorCount}`);
+
+      if (errors.length > 0) {
+        console.log('First few errors:', errors.slice(0, 3));
+      }
+
+      const totalRecordsInDB = await Attendance.count();
+
+      res.status(200).json({ 
+        success: true, 
+        message: `Attendance upload completed. ${successCount} records inserted successfully.`,
+        details: {
+          recordsInserted: successCount,
+          recordsFailed: errorCount,
+          totalInDatabase: totalRecordsInDB,
+          errors: errorCount > 0 ? errors.slice(0, 5) : [] // Return first 5 errors
+        }
+      });
+    }
 
   } catch (err) {
     console.error('Error saving attendance:', err);
-    res.status(500).json({ success: false, message: 'Error saving attendance data' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error saving attendance data',
+      error: err.message 
+    });
   }
 };
 

@@ -1,7 +1,6 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../db/db.js";
-import moment from "moment"; // Import moment.js for date formatting
-
+import moment from "moment";
 
 const Attendance = sequelize.define('Attendance', {
   id: {
@@ -9,19 +8,9 @@ const Attendance = sequelize.define('Attendance', {
     primaryKey: true,
     autoIncrement: true,
   },
-  employeeName: {
+  ecode: {
     type: DataTypes.STRING(100),
     allowNull: false,
-    field: 'employee_name'
-  },
-  employeeId: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    field: 'employee_id',
-    references: {
-      model: 'employees', // Assuming you have an employees table
-      key: 'id'
-    }
   },
   date: {
     type: DataTypes.DATEONLY,
@@ -37,7 +26,6 @@ const Attendance = sequelize.define('Attendance', {
     allowNull: true,
     field: 'duty_end'
   },
-
   punchIn: {
     type: DataTypes.TIME,
     allowNull: true,
@@ -77,23 +65,17 @@ const Attendance = sequelize.define('Attendance', {
     type: DataTypes.ENUM('present', 'absent', 'late', 'holiday'),
     defaultValue: 'present'
   },
-  remarks: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  }
 }, {
   tableName: 'attendance',
   timestamps: true,
+  // Remove the unique index to allow duplicates
   indexes: [
+    // You can add non-unique indexes for performance if needed
     {
-      unique: true,
-      fields: ['employee_name', 'date'] // Prevent duplicate entries for same employee on same date
+      fields: ['ecode']
     },
     {
       fields: ['date']
-    },
-    {
-      fields: ['employee_id']
     }
   ]
 });

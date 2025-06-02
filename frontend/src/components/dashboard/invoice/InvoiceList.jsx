@@ -194,8 +194,33 @@ const InvoiceList = () => {
       printWindow.print();
     };
 
+    const customStyles = {
+    headCells: {
+      style: {
+        backgroundColor: '#f9fafb',
+        fontSize: '13px',
+        fontWeight: '600',
+        color: '#374151',
+        padding: '8px',
+      },
+    },
+    rows: {
+      style: {
+        fontSize: '13px',
+        color: '#4B5563',
+        minHeight: '40px',
+        borderBottom: '1px solid #e5e7eb',
+      },
+    },
+    cells: {
+      style: {
+        padding: '8px',
+      },
+    },
+  };
+
   return (
-    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
+    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-20">
       <div className="bg-white  -mt-3 py-3 p-2 rounded-lg shadow">
         <div className="flex -mt-3 justify-between">
           <h6 className="p-3 mb-0 ml-1 text-md text-neutralDGray">
@@ -219,13 +244,13 @@ const InvoiceList = () => {
           <DataTable
             columns={[
               {
-                name: "Cutoff Date",
-                selector: (row) => row.cutoffDate,
+                name: "Project",
+                selector: (row) => row.project,
                 sortable: true,
               },
               {
-                name: "Project",
-                selector: (row) => row.project,
+                name: "Cutoff Date",
+                selector: (row) => row.cutoffDate,
                 sortable: true,
               },
               {
@@ -248,6 +273,8 @@ const InvoiceList = () => {
             data={filteredProjects}
             highlightOnHover
             striped
+            pagination
+            customStyles={customStyles}
           />
         </div>
 
