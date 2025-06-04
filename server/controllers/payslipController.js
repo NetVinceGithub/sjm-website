@@ -16,6 +16,7 @@ import path from 'path';
 import fs from 'fs';
 import puppeteer from 'puppeteer'; // ✅ correct
 import { fileURLToPath } from 'url';
+import User from "../models/User.js";
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -289,10 +290,7 @@ export const sendPayslips = async (req, res) => {
     console.log("📨 Received request to send payslips:", payslips?.length || 0, "payslips");
 
     if (!payslips || payslips.length === 0) {
-      console.log("⚠️ No payslips received.");
-      return res
-        .status(400)
-        .json({ success: false, message: "No payslips provided." });
+      return res.status(400).json({ success: false, message: "No payslips provided." });
     }
 
     let successfulEmails = [];
@@ -301,166 +299,111 @@ export const sendPayslips = async (req, res) => {
 
     for (let payslip of payslips) {
       if (!payslip.email) {
-        console.warn(
-          `⚠️ Skipping payslip for ${payslip.name} (No email provided)`
-        );
         failedEmails.push({ name: payslip.name, reason: "No email provided" });
         continue;
       }
 
       try {
-        console.log(`🖼️ Generating payslip image for ${payslip.name}...`);
-
-        // Generate payslip image
         const payslipImage = await generatePayslipImage(payslip);
-
-        // Create temporary file path
         const tempDir = path.join(__dirname, '../temp');
-        if (!fs.existsSync(tempDir)) {
-          fs.mkdirSync(tempDir, { recursive: true });
-        }
+        if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
-        const imagePath = path.join(tempDir, `payslip_${payslip.ecode}_${Date.now()}.jpg`);
+        const fileName = `payslip_${payslip.ecode}_${Date.now()}.jpg`;
+        const imagePath = path.join(tempDir, fileName);
         fs.writeFileSync(imagePath, payslipImage);
-
-        // Generate unique Content-ID for the embedded image
-        const contentId = `payslip_${payslip.ecode}_${Date.now()}`;
+        const contentId = fileName.replace(".jpg", "");
 
         let mailOptions = {
           from: process.env.EMAIL_USER,
           to: payslip.email,
           subject: `Payslip for ${payslip.name}`,
           html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <div style="background-color: #0093DD; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
-                <h1 style="margin: 0; font-size: 20px;">St. John Majore Services Company Inc.</h1>
-                <p style="margin: 10px 0 0 0; font-size: 16px; font-style: italic;">Electronic Payslip</p>
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+              <div style="background-color: #0093DD; color: white; padding: 20px;">
+                <h1>St. John Majore Services Company Inc.</h1>
+                <p>Electronic Payslip</p>
               </div>
-              
-              <div style="background-color: #f8f9fa; padding: 20px; border: 1px solid #dee2e6;">
-                <h2 style="color: #0093DD; margin-top: 0;">Dear ${payslip.name},</h2>
-                <p>Please find your payslip below:</p>
+              <div style="padding: 20px; border: 1px solid #ccc;">
+                <h2>Dear ${payslip.name},</h2>
                 <p><strong>Payroll Period:</strong> ${payslip.cutoffDate || "N/A"}</p>
                 <p><strong>Employee Code:</strong> ${payslip.ecode || "N/A"}</p>
-                <p><strong>Net Pay:</strong> ₱${payslip.netPay ? Number(payslip.netPay).toLocaleString() : "0.00"}</p>
-                
-                <!-- Embedded Payslip Image -->
-                <div style="text-align: center; margin: 20px 0; padding: 10px; background-color: white; border: 2px solid #0093DD; border-radius: 8px;">
-                <img src="cid:${contentId}" alt="Payslip" style="width: 288px; height: 367px; border-radius: 4px;" />
+                <p><strong>Net Pay:</strong> ₱${Number(payslip.netPay).toLocaleString()}</p>
+                <div style="text-align: center; margin: 20px 0;">
+                  <img src="cid:${contentId}" style="width: 288px; height: 367px;" />
                 </div>
               </div>
-              
-              <div style="background-color: #bbe394; padding: 15px; text-align: center; border-radius: 0 0 10px 10px;">
-                <p style="margin: 0; font-size: 12px; color: #666;">
-                  <strong>Contact Information:</strong><br>
-                  Email: sjmajore@gmail.com<br>
-                  Address: 8 Patron Central Plaza De Villa St., Poblacion, San Juan, Batangas
-                </p>
+              <div style="background-color: #bbe394; padding: 10px; text-align: center;">
+                <p>Email: sjmajore@gmail.com</p>
               </div>
-              
-              <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px;">
-                <p style="margin: 0; font-size: 12px; color: #856404;">
-                  <strong>Note:</strong> This is an automated email. Please do not reply to this message. 
-                  If you have any questions regarding your payslip, please contact the HR department.
-                </p>
+              <div style="margin-top: 20px; padding: 10px; background-color: #fff3cd;">
+                <p><strong>Note:</strong> This is an automated email. Do not reply.</p>
               </div>
             </div>
           `,
           attachments: [
             {
-              filename: `payslip_${payslip.ecode}_${payslip.cutoffDate || 'latest'}.jpg`,
+              filename: fileName,
               path: imagePath,
               contentType: 'image/jpeg',
-              cid: contentId // This makes the image inline/embedded
-            }
-          ]
+              cid: contentId,
+            },
+          ],
         };
 
         await transporter.sendMail(mailOptions);
-        console.log(`📩 Payslip sent to ${payslip.email}`);
+        console.log(`✅ Payslip sent to ${payslip.email}`);
         successfulEmails.push(payslip.email);
 
-        // Clean up temporary file
-        try {
-          fs.unlinkSync(imagePath);
-        } catch (unlinkError) {
-          console.warn(`⚠️ Could not delete temp file: ${imagePath}`);
-        }
-
-        // Save to payslip history with correct field names
+        // Save to PayslipHistory
         await PayslipHistory.create({
           ecode: payslip.ecode,
           email: payslip.email,
-          employeeId: payslip.employeeId, // Fixed field name
+          employeeId: payslip.employeeId,
           name: payslip.name,
           project: payslip.project || "N/A",
           position: payslip.position || "N/A",
           department: payslip.department,
-          cutoffDate: payslip.cutoffDate, // Fixed field name
-          allowance: parseFloat(payslip.allowance) || 0,
-          dailyrate: parseFloat(payslip.dailyrate) || 0,
-          basicPay: parseFloat(payslip.basicPay) || 0, // Fixed field name
-          overtimePay: parseFloat(payslip.overtimePay) || 0, // Fixed field name
-          holidayPay: parseFloat(payslip.holidayPay) || 0, // Fixed field name
-          noOfDays: parseInt(payslip.noOfDays) || 0, // Fixed field name
-          totalOvertime: parseFloat(payslip.totalOvertime) || 0,
-          nightDifferential: parseFloat(payslip.nightDifferential) || 0,
-          sss: parseFloat(payslip.sss) || 0,
-          phic: parseFloat(payslip.phic) || 0,
-          hdmf: parseFloat(payslip.hdmf) || 0,
-          loan: parseFloat(payslip.loan) || 0,
-          totalTardiness: parseFloat(payslip.totalTardiness) || 0, // Fixed field name
-          totalHours: parseFloat(payslip.totalHours) || 0, // Fixed field name
-          otherDeductions: parseFloat(payslip.otherDeductions) || 0,
-          totalEarnings: parseFloat(payslip.totalEarnings) || 0,
-          adjustment: parseFloat(payslip.adjustment) || 0,
-          gross_pay: parseFloat(payslip.gross_pay) || 0,
-          totalDeductions: parseFloat(payslip.totalDeductions) || 0, // Fixed field name
-          netPay: parseFloat(payslip.netPay) || 0, // Fixed field name
+          cutoffDate: payslip.cutoffDate,
+          allowance: +payslip.allowance || 0,
+          dailyrate: +payslip.dailyrate || 0,
+          basicPay: +payslip.basicPay || 0,
+          overtimePay: +payslip.overtimePay || 0,
+          holidayPay: +payslip.holidayPay || 0,
+          noOfDays: +payslip.noOfDays || 0,
+          totalOvertime: +payslip.totalOvertime || 0,
+          nightDifferential: +payslip.nightDifferential || 0,
+          sss: +payslip.sss || 0,
+          phic: +payslip.phic || 0,
+          hdmf: +payslip.hdmf || 0,
+          loan: +payslip.loan || 0,
+          totalTardiness: +payslip.totalTardiness || 0,
+          totalHours: +payslip.totalHours || 0,
+          otherDeductions: +payslip.otherDeductions || 0,
+          totalEarnings: +payslip.totalEarnings || 0,
+          adjustment: +payslip.adjustment || 0,
+          gross_pay: +payslip.gross_pay || 0,
+          totalDeductions: +payslip.totalDeductions || 0,
+          netPay: +payslip.netPay || 0,
         });
 
         payslipIdsToDelete.push(payslip.id);
-      } catch (error) {
-        console.error(`❌ Email failed to ${payslip.email}:`, error);
-        failedEmails.push({ 
-          email: payslip.email, 
-          name: payslip.name,
-          error: error.message 
-        });
-
-        // Clean up temporary file if it exists
-        const imagePath = path.join(__dirname, '../temp', `payslip_${payslip.ecode}_${Date.now()}.jpg`);
-        try {
-          if (fs.existsSync(imagePath)) {
-            fs.unlinkSync(imagePath);
-          }
-        } catch (unlinkError) {
-          console.warn(`⚠️ Could not delete temp file after error: ${imagePath}`);
-        }
+        fs.unlinkSync(imagePath);
+      } catch (err) {
+        console.error(`❌ Failed for ${payslip.email}:`, err.message);
+        failedEmails.push({ name: payslip.name, email: payslip.email, error: err.message });
       }
     }
 
-    // Bulk delete sent payslips
     if (payslipIdsToDelete.length > 0) {
-      try {
-        await Payslip.destroy({ where: { id: payslipIdsToDelete } });
-        console.log(`🗑 Deleted ${payslipIdsToDelete.length} sent payslips.`);
-      } catch (deleteError) {
-        console.error("❌ Error deleting payslips:", deleteError);
-      }
+      await Payslip.destroy({ where: { id: payslipIdsToDelete } });
+      console.log(`🗑 Deleted ${payslipIdsToDelete.length} sent payslips.`);
     }
 
-    // Optional: Clear attendance data (only if you want to)
-    // CAUTION: This will delete ALL attendance records!
-    try {
-      // Only clear if specifically requested or if this is end-of-period processing
-      if (req.body.clearAttendance === true) {
-        await AttendanceSummary.destroy({ where: {} });
-        await Attendance.destroy({ where: {} });
-        console.log("🗑 Cleared AttendanceSummary and Attendance tables.");
-      }
-    } catch (error) {
-      console.error("❌ Error while clearing attendance data:", error);
+    // Optional attendance cleanup
+    if (req.body.clearAttendance === true) {
+      await AttendanceSummary.destroy({ where: {} });
+      await Attendance.destroy({ where: {} });
+      console.log("🧹 Cleared attendance data.");
     }
 
     res.status(200).json({
@@ -482,6 +425,7 @@ export const sendPayslips = async (req, res) => {
     });
   }
 };
+
 
 // 🔹 Add Payslip
 export const addPayslip = async (req, res) => {
@@ -546,13 +490,18 @@ export const addPayslip = async (req, res) => {
 
 export const getPayslips = async (req, res) => {
   try {
-    const payslips = await Payslip.findAll(); // ✅ This is correct for MySQL (Sequelize)
+    const { batchId } = req.query;
+    const whereClause = batchId ? { batchId } : {};
+
+    const payslips = await Payslip.findAll({ where: whereClause });
     res.status(200).json(payslips);
   } catch (error) {
     console.error("Error getting payslips:", error);
     res.status(500).json({ success: false, message: "Error getting payslips" });
   }
 };
+
+
 
 // 🔹 Fetch Payslip History
 export const getPayslipsHistory = async (req, res) => {
@@ -597,6 +546,25 @@ export const generatePayroll = async (req, res) => {
 
   console.log("🔍 Incoming request:", { cutoffDate, selectedEmployees, maxOvertime });
 
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false,
+    },
+  });
+
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error("❌ SMTP Connection Failed:", error);
+    } else {
+      console.log("✅ SMTP Server Ready!");
+    }
+  });
+
   if (!cutoffDate) {
     return res.status(400).json({ 
       success: false, 
@@ -605,24 +573,25 @@ export const generatePayroll = async (req, res) => {
   }
 
   try {
-    console.log("🚀 Starting Payroll Generation for cutoffDate:", cutoffDate);
+    // 👇 Generate unique batch ID
+    const now = new Date();
+    const batchId = `batch-${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${now.getTime()}`;
+    console.log(`🔗 Generated batchId: ${batchId}`);
 
-    // Fetch data with error handling for each query
     let employees, attendanceRecords, payrollInformations, holidays;
 
     try {
       employees = await Employee.findAll({ 
-        where: { status: { [Op.ne]: "Inactive" } } // Using Op.ne instead of exact match
+        where: { status: { [Op.ne]: "Inactive" } }
       });
       console.log(`✅ Found ${employees.length} active employees`);
     } catch (error) {
       console.error("❌ Error fetching employees:", error);
-      employees = await Employee.findAll(); // Fallback to all employees
+      employees = await Employee.findAll();
       employees = employees.filter(emp => emp.status !== "Inactive");
     }
 
     try {
-      // Adjust this based on your actual attendance model name
       attendanceRecords = await Attendance.findAll();
       console.log(`✅ Found ${attendanceRecords.length} attendance records`);
     } catch (error) {
@@ -662,34 +631,26 @@ export const generatePayroll = async (req, res) => {
       try {
         console.log(`📝 Processing ${i + 1}/${employees.length}: ${employee.name} (${employee.ecode})`);
 
-        // Get employee-specific data
         const employeeAttendance = attendanceRecords.filter(
           record => record.ecode === employee.ecode
         );
-        
-        // Skip employees with no attendance data
+
         if (!employeeAttendance || employeeAttendance.length === 0) {
           console.log(`⏭️ Skipping ${employee.name} (${employee.ecode}) - No attendance data found`);
           continue;
         }
-        
+
         const employeePayrollInfo = payrollInformations.find(
           info => info.ecode === employee.ecode
         ) || {};
 
-        console.log(`   - Found ${employeeAttendance.length} attendance records`);
-
-        // Calculate attendance metrics with error handling
         let attendanceMetrics;
         try {
           attendanceMetrics = calculateAttendanceMetrics(employeeAttendance, holidays);
-          console.log(`   - Attendance metrics:`, attendanceMetrics);
         } catch (error) {
-          console.error(`❌ Error calculating attendance for ${employee.name}:`, error);
           attendanceMetrics = getDefaultAttendanceMetrics();
         }
 
-        // Get payroll rates with defaults
         const rates = {
           hourlyRate: Number(employeePayrollInfo.hourly_rate) || 0,
           overtimeRate: Number(employeePayrollInfo.overtime_pay) || 0,
@@ -698,7 +659,6 @@ export const generatePayroll = async (req, res) => {
           nightDifferential: Number(employeePayrollInfo.night_differential) || 0
         };
 
-        // Get deductions with defaults
         const deductions = {
           sss: Number(employeePayrollInfo.sss_contribution) || 0,
           phic: Number(employeePayrollInfo.philhealth_contribution) || 0,
@@ -710,24 +670,19 @@ export const generatePayroll = async (req, res) => {
 
         const adjustment = Number(employeePayrollInfo.adjustment) || 0;
 
-        // Calculate overtime (only for selected employees)
         const totalOvertime = selectedEmployees.includes(employee.ecode)
           ? Math.min(attendanceMetrics.totalOvertime || 0, Number(maxOvertime))
           : 0;
 
-        // Calculate pay components
         const basicPay = (attendanceMetrics.totalRegularHours || 0) * rates.hourlyRate;
         const overtimePay = totalOvertime * rates.overtimeRate;
         const holidayPay = (attendanceMetrics.totalHolidayHours || 0) * (rates.hourlyRate * 2);
-        
+
         const grossPay = basicPay + overtimePay + holidayPay + rates.allowance + rates.nightDifferential;
         const totalEarnings = grossPay + adjustment;
         const totalDeductions = Object.values(deductions).reduce((sum, val) => sum + (Number(val) || 0), 0);
         const netPay = totalEarnings - totalDeductions;
 
-        console.log(`   - Pay calculation: Basic=${basicPay.toFixed(2)}, Overtime=${overtimePay.toFixed(2)}, Holiday=${holidayPay.toFixed(2)}, Net=${netPay.toFixed(2)}`);
-
-        // Create payslip data
         const payslipData = {
           ecode: employee.ecode,
           email: employee.emailaddress || '',
@@ -761,16 +716,14 @@ export const generatePayroll = async (req, res) => {
           adjustment: adjustment.toFixed(2),
           gross_pay: grossPay.toFixed(2),
           netPay: netPay.toFixed(2),
-          status: "pending"
+          status: "pending",
+          batchId // 👈 New field for batch approval
         };
 
-        // Save the payslip
         const newPayslip = await Payslip.create(payslipData);
         generatedPayslips.push(newPayslip);
-        console.log(`✅ Payslip created for ${employee.name}`);
 
       } catch (employeeError) {
-        console.error(`❌ Error processing employee ${employee.name}:`, employeeError);
         errors.push({
           employee: employee.name,
           ecode: employee.ecode,
@@ -779,19 +732,45 @@ export const generatePayroll = async (req, res) => {
       }
     }
 
-    console.log(`🎉 Payroll generation completed: ${generatedPayslips.length} successful, ${errors.length} errors`);
+    const approvers = await User.findAll({ where: { role: 'approver', isBlocked: false } });
+    const successfulEmails = [];
+
+    for (const approver of approvers) {
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: approver.email,
+        subject: `Payroll Generated: ${cutoffDate} (Batch: ${batchId})`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h3>Hello ${approver.name},</h3>
+            <p>Payroll has been successfully generated for the cutoff date <strong>${cutoffDate}</strong>.</p>
+            <p>Batch ID: <strong>${batchId}</strong></p>
+            <p>Please review the payslips in the payroll system.</p>
+            <br />
+            <p>Best regards,<br />SJM Payroll System</p>
+          </div>
+        `
+      };
+
+      try {
+        await transporter.sendMail(mailOptions);
+        successfulEmails.push(approver.email);
+      } catch (emailError) {
+        console.error(`❌ Failed to send email to ${approver.email}:`, emailError);
+      }
+    }
 
     res.status(201).json({
       success: true,
       message: `Payroll generated for ${generatedPayslips.length} employees!`,
+      batchId,
       payslips: generatedPayslips,
+      notified: successfulEmails,
       errors: errors.length > 0 ? errors : undefined
     });
 
   } catch (error) {
     console.error("❌ Payroll Generation Critical Error:", error);
-    console.error("Stack trace:", error.stack);
-    
     res.status(500).json({
       success: false,
       message: "Server error during payroll generation.",
@@ -800,6 +779,7 @@ export const generatePayroll = async (req, res) => {
     });
   }
 };
+
 
 // Helper function to calculate attendance metrics from raw attendance data
 function calculateAttendanceMetrics(attendanceRecords, holidays = []) {
@@ -886,6 +866,23 @@ function timeStringToHours(timeString) {
     return 0;
   }
 }
+
+
+export const getAvailableBatches = async (req, res) => {
+  try {
+    const batches = await Payslip.findAll({
+      attributes: ['batchId'],
+      group: ['batchId'],
+      order: [['batchId', 'DESC']],
+      raw: true,
+    });
+
+    res.status(200).json(batches);
+  } catch (error) {
+    console.error("Error fetching available batches:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch batch IDs" });
+  }
+};
 
 
 export const requestPayrollRelease = async (req, res) => {
