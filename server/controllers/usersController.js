@@ -1,5 +1,27 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
+import nodemailer from 'nodemailer';
+
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,  // <-- add this line
+  },
+});
+
+
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ SMTP Connection Failed:", error);
+  } else {
+    console.log("✅ SMTP Server Ready!");
+  }
+});
 
 export const addUser = async (req, res) => {
   try {
@@ -22,8 +44,29 @@ export const addUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await User.create({ name, email, password: hashedPassword, role });
 
+
     res.status(201).json({ success: true, message: "User added successfully", user: newUser });
-  } catch (error) {
+      let successfulEmails = [];
+
+
+     let mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: email,
+          subject: `Access for ${name}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div>
+                You are given access to sjm-payroll system as ${role}
+              </div>
+            </div>
+          `
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log(`Notification sent to ${email}`);
+        successfulEmails.push(email);
+
+      } catch (error) {
     console.error("Error adding user:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }

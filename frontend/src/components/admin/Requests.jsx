@@ -25,10 +25,13 @@ const Requests = () => {
   const [userRole, setUserRole] = useState(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
+  // Add state for batch selection
+  const [batches, setAvailableBatches] = useState([]);
+  const [selectedBatchId, setSelectedBatchId] = useState('');
 
   useEffect(() => {
     const checkUserRole = async () => {
-      const token = localStorage.getItem("token"); // Make sure token is stored in localStorage
+      const token = localStorage.getItem("token");
       if (!token) {
         setIsAuthorized(false);
         return;
@@ -39,7 +42,7 @@ const Requests = () => {
           `${import.meta.env.VITE_API_URL}/api/users/current`,
           {
             headers: {
-              Authorization: `Bearer ${token}`, // 🔥 This is crucial
+              Authorization: `Bearer ${token}`,
             },
           }
         );
@@ -49,7 +52,6 @@ const Requests = () => {
   
         if (currentUserRole === "approver") {
           setIsAuthorized(true);
-          // Fetch users here if needed
         } else {
           setIsAuthorized(false);
         }
@@ -68,6 +70,7 @@ const Requests = () => {
     if (isAuthorized) {
       notifyChangeRequests();
       notifyPayrollRequests();
+      fetchAvailableBatches(); // Fetch available batches when authorized
     }
   }, [isAuthorized]);
 
@@ -76,17 +79,39 @@ const Requests = () => {
       notifyChangeRequests(changesRequests);
     }
   }, [isAuthorized, changesRequests]);
-  
+
+  // Fetch available batches
+  const fetchAvailableBatches = async () => {
+    try {
+      // You may need to create this endpoint to get all unique batch IDs
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/batches`);
+      setAvailableBatches(response.data);
+      
+      // Auto-select the latest batch if available
+      if (response.data.length > 0) {
+        setSelectedBatchId(response.data[0].batchId);
+      }
+    } catch (error) {
+      console.error("Error fetching available batches:", error);
+      // If the batches endpoint doesn't exist, you can set a default batchId
+      // or handle this differently based on your requirements
+    }
+  };
 
   useEffect(() => {
     const fetchRequests = async () => {
+      if (!selectedBatchId) return; // Don't fetch if no batch is selected
+      
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
+        setLoading(true);
+        // Updated to use batchId parameter
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip?batchId=${selectedBatchId}`);
         console.log(response.data);
         setRequests(response.data);
         notifyPayrollRequests(response.data);
       } catch (error) {
         console.error("Error fetching payroll requests:", error);
+        setRequests([]); // Clear requests on error
       } finally {
         setLoading(false);
       }
@@ -118,10 +143,11 @@ const Requests = () => {
       }
     };
 
-
-    fetchRequests();
-    fetchChangeRequests();
-  }, []);
+    if (isAuthorized) {
+      fetchRequests();
+      fetchChangeRequests();
+    }
+  }, [isAuthorized, selectedBatchId]); // Added selectedBatchId as dependency
 
   // Function to get changed fields from the changes object
   const getChangedFields = (changes) => {
@@ -149,12 +175,12 @@ const Requests = () => {
            Payroll approved successfully.
           </div>,
           {
-            autoClose: 3000,        // auto close after 3 seconds
+            autoClose: 3000,
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: false,
-            position: "top-right",  // position of the toast
+            position: "top-right",
           }
         );
       } else {
@@ -163,12 +189,12 @@ const Requests = () => {
            Failed to approve payroll.
           </div>,
           {
-            autoClose: 3000,        // auto close after 3 seconds
+            autoClose: 3000,
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: false,
-            position: "top-right",  // position of the toast
+            position: "top-right",
           }
         );
       }
@@ -180,12 +206,12 @@ const Requests = () => {
          Error approving payroll.
         </div>,
         {
-          autoClose: 3000,        // auto close after 3 seconds
+          autoClose: 3000,
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
           closeButton: false,
-          position: "top-right",  // position of the toast
+          position: "top-right",
         }
       );
       setShowSuccessModal(true);
@@ -196,13 +222,14 @@ const Requests = () => {
 
   const formatRequestId = (id) => {
     const prefix = "SJM-C";
-    const paddedNumber = id.toString().padStart(4, "0"); // pads with leading zeros to 4 digits
+    const paddedNumber = id.toString().padStart(4, "0");
     return `${prefix}${paddedNumber}`;
   };
 
   const handleDeleteAll = async () => {
     try {
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/payslip`);
+      // Updated to include batchId parameter for deletion
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/payslip?batchId=${selectedBatchId}`);
       setRequests([]);
       setShowModal(false);
     } catch (error) {
@@ -212,12 +239,12 @@ const Requests = () => {
           Failed to delete payslips.
         </div>,
         {
-          autoClose: 3000,        // auto close after 3 seconds
+          autoClose: 3000,
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
           closeButton: false,
-          position: "top-right",  // position of the toast
+          position: "top-right",
         }
       );
     }
@@ -232,7 +259,6 @@ const Requests = () => {
   const handleApproveChanges = async () => {
     try {
       setLoadingChanges(true);
-      // You'll need to implement a bulk approve endpoint or loop through individual requests
       const promises = changesRequests.map(request =>
         axios.post(`${import.meta.env.VITE_API_URL}/api/employee/approve-payroll-change/${request.id}`)
       );
@@ -252,7 +278,6 @@ const Requests = () => {
   const handleRejectAllChanges = async () => {
     try {
       setLoadingChanges(true);
-      // You'll need to implement a bulk reject endpoint or loop through individual requests
       const promises = changesRequests.map(request =>
         axios.post(`${import.meta.env.VITE_API_URL}/api/employee/reject-payroll-change/${request.id}`)
       );
@@ -283,12 +308,12 @@ const Requests = () => {
            Change request approved successfully.
           </div>,
           {
-            autoClose: 3000,        // auto close after 3 seconds
+            autoClose: 3000,
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: false,
-            position: "top-right",  // position of the toast
+            position: "top-right",
           }
         );
         setShowChangeDetailModal(false);
@@ -301,12 +326,12 @@ const Requests = () => {
          Error approving change request.
         </div>,
         {
-          autoClose: 3000,        // auto close after 3 seconds
+          autoClose: 3000,
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
           closeButton: false,
-          position: "top-right",  // position of the toast
+          position: "top-right",
         }
       );
     }
@@ -325,12 +350,12 @@ const Requests = () => {
            Change request rejected successfully.
           </div>,
           {
-            autoClose: 3000,        // auto close after 3 seconds
+            autoClose: 3000,
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: false,
-            position: "top-right",  // position of the toast
+            position: "top-right",
           }
         );
         setShowChangeDetailModal(false);
@@ -343,12 +368,12 @@ const Requests = () => {
          Error rejecting change request.
         </div>,
         {
-          autoClose: 3000,        // auto close after 3 seconds
+          autoClose: 3000,
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
           closeButton: false,
-          position: "top-right",  // position of the toast
+          position: "top-right",
         }
       );
     }
@@ -398,7 +423,8 @@ const Requests = () => {
     );
   }
 
-  return (
+
+return (
     <div className="flex flex-row gap-8 p-4 overflow-auto h-[calc(100vh-150px)]">
       {/* Payroll Requests Section */}
       <section className="flex-1 flex flex-col rounded-lg border p-2">
@@ -407,43 +433,120 @@ const Requests = () => {
           Payroll Requests
         </h2>
 
+        
+
         {message && <p className="text-green-500">{message}</p>}
 
         <div className="leading-snug overflow-y-auto pr-2 flex-1">
           {loading ? (
             <p className="text-gray-500">Loading payroll requests...</p>
-          ) : requests.length > 0 ? (
-            <div className="border p-3 rounded shadow-md">
-              <p className="text-md mb-1 italic">
-                Total Payslips: <span className="font-normal text-red-500">{requests.length}</span>
-              </p>
-              <div className="mb-2">
-                <hr className="mb-2 mt-1" />
-                <p><strong>Amount:</strong> ₱ {totalNetPay.toLocaleString()}</p>
-                <p>
-                  <strong>Date Requested:</strong>{" "}
-                  {new Date(requests[0] ?.date).toLocaleDateString()}
+          ) : batches && batches.length > 0 ? (
+            <div className="space-y-4">
+              {/* Summary Header */}
+              <div className="border p-3 rounded shadow-md bg-blue-50">
+                <p className="text-md mb-1 italic">
+                  Total Batches: <span className="font-normal text-blue-600">{batches.length}</span>
                 </p>
-
+                <p className="text-md mb-1 italic">
+                  Total Payslips: <span className="font-normal text-red-500">
+                    {batches.reduce((total, batch) => {
+                      const batchRequests = requests.filter(req => req.batchId === batch.batchId);
+                      return total + batchRequests.length;
+                    }, 0)}
+                  </span>
+                </p>
+                <p className="text-md mb-1 italic">
+                  Grand Total Amount: <span className="font-normal text-green-600">
+                    ₱ {batches.reduce((total, batch) => {
+                      const batchRequests = requests.filter(req => req.batchId === batch.batchId);
+                      return total + batchRequests.reduce((sum, req) => sum + (req.net_pay || req.netPay || 0), 0);
+                    }, 0).toLocaleString()}
+                  </span>
+                </p>
+                <hr className="my-2" />
                 <div className="flex gap-2 mt-2">
                   <button
                     onClick={handleApprove}
-                    className="bg-green-500 text-white w-20 px-2 py-1 rounded hover:bg-green-900"
+                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-900"
                   >
-                    Approve
-                </button>
+                    Approve All Batches
+                  </button>
                   <button
                     onClick={() => setShowModal(true)}
-                    className="bg-red-500 text-white w-20 px-2 py-1 rounded hover:bg-red-900"
+                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-900"
                   >
-                    Reject
-                </button>
+                    Reject All Batches
+                  </button>
                 </div>
               </div>
+
+              {/* Individual Batch Details */}
+              {batches.map((batch, batchIndex) => {
+                const batchRequests = requests.filter(req => req.batchId === batch.batchId);
+                const batchTotalNetPay = batchRequests.reduce((sum, req) => sum + (req.net_pay || req.netPay || 0), 0);
+                
+                return (
+                  <div key={batch.batchId} className="border p-3 rounded shadow-md">
+                    <p className="text-md mb-1 italic">
+                      Batch Payslips: <span className="font-normal text-red-500">{batchRequests.length}</span>
+                    </p>
+                    <div className="mb-2">
+                      <hr className="mb-2 mt-1" />
+                      <p><strong>Batch ID:</strong> {batch.batchId}</p>
+                      <p><strong>Batch Amount:</strong> ₱ {batchTotalNetPay.toLocaleString()}</p>
+                      <p>
+                        <strong>Date Requested:</strong>{" "}
+                        {batchRequests.length > 0 ? new Date(batchRequests[0]?.date).toLocaleDateString() : 'N/A'}
+                      </p>
+
+                      {/* Individual Payslips Display */}
+                      {batchRequests.length > 0 && (
+                        <div className="mt-4 mb-2">
+                          <hr className="mb-2" />
+                          <p className="text-sm font-semibold mb-2">Individual Payslips:</p>
+                          <div className="max-h-64 overflow-y-auto">
+                            {batchRequests.map((payslip, index) => (
+                              <div key={index} className="border p-2 rounded shadow-sm bg-gray-50 mb-2">
+                                <div className="flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <p className="font-semibold text-sm">
+                                      {payslip.employee_name || payslip.name || `Employee ${index + 1}`}
+                                    </p>
+                                    <p className="text-xs text-gray-600">
+                                      Employee ID: {payslip.employee_id || payslip.employeeId || 'N/A'}
+                                    </p>
+                                    <p className="text-xs text-gray-600">
+                                      Department: {payslip.department || 'N/A'}
+                                    </p>
+                                    <p className="text-xs text-gray-600">
+                                      Position: {payslip.position || 'N/A'}
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-sm font-semibold text-green-600">
+                                      ₱ {(payslip.net_pay || payslip.netPay || 0).toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      Gross: ₱ {(payslip.gross_pay || payslip.grossPay || 0).toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      Deductions: ₱ {(payslip.total_deductions || payslip.totalDeductions || 0).toLocaleString()}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-                <p className="text-gray-500">No pending payroll requests.</p>
-              )}
+            <p className="text-gray-500">No pending payroll requests.</p>
+          )}
 
           {/* Loading Modal */}
           {loadingPayroll && (
@@ -463,7 +566,14 @@ const Requests = () => {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
                 <h3 className="text-base mb-2 text-red-500">Confirm Rejection</h3>
-                <p className="text-justify text-sm">Are you sure you want to reject the request?</p>
+                <p className="text-justify text-sm">Are you sure you want to reject all batch requests?</p>
+                <p className="text-justify text-sm text-gray-600 mt-1">
+                  This will reject {batches ? batches.length : 0} batches containing {" "}
+                  {batches ? batches.reduce((total, batch) => {
+                    const batchRequests = requests.filter(req => req.batchId === batch.batchId);
+                    return total + batchRequests.length;
+                  }, 0) : 0} total payslips.
+                </p>
 
                 <div className="flex justify-end gap-3 mt-6">
                   <button

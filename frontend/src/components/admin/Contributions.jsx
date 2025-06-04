@@ -218,11 +218,11 @@ const Contributions = () => {
               <BarChart
                 data={barChartData}
                 margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-                
+
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" tick={{ fontSize: "12px" }} />
-                <YAxis tick={{ fontSize: 12 }}/>
+                <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip contentStyle={{ fontSize: "12px" }} formatter={(value) => `₱${value.toLocaleString()}`} />
                 <Legend wrapperStyle={{ fontSize: "12px", marginTop: "10px" }} />
                 <Bar dataKey="Employee" fill={BAR_COLORS[0]} />
@@ -241,6 +241,12 @@ const Contributions = () => {
             columns={columns}
             data={employeeData}
             progressPending={loading}
+            progressComponent={
+              <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
+                <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
+                Loading data...
+              </div>
+            }
             pagination
             highlightOnHover
             dense
