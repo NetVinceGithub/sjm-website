@@ -1,3 +1,7 @@
+
+process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
+
+// Rest of your imports and code...
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
