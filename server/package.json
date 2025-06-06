@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon --env-file=.env index.js",
-    "build": "cd frontend && npm install && npm run build",
-    "postinstall": "echo 'Skipping puppeteer browser download in production'"
+    "start": "node index.js",
+    "build": "cd frontend && npm install && npm run build && npx puppeteer browsers install chrome",
+    "postinstall": "if [ \"$NODE_ENV\" != \"production\" ]; then echo 'Skipping puppeteer browser download in development'; fi"
   },
   "keywords": [],
   "author": "",
