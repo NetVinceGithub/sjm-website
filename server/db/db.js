@@ -13,10 +13,7 @@ const sequelize = new Sequelize(
     dialect: process.env.DB_DIALECT || "mysql",
     dialectOptions: {
       connectTimeout: 30000,
-      // Add SSL if required
-      ssl: process.env.NODE_ENV === 'production' ? {
-        rejectUnauthorized: false
-      } : false
+      ssl: false // 👈 fix for Hostinger (no SSL support)
     },
     pool: {
       max: 5,
@@ -27,6 +24,7 @@ const sequelize = new Sequelize(
     logging: process.env.NODE_ENV === 'development' ? console.log : false
   }
 );
+
 
 const connectToDatabase = async () => {
   try {
