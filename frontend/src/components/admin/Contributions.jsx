@@ -14,7 +14,7 @@ import {
   Sector,
 } from "recharts";
 import DataTable from "react-data-table-component";
-
+import axios from 'axios';
 const COLORS = ["#4191D6", "#9D426E", "#80B646"];
 const BAR_COLORS = ["#80B646", "#9D426E"];
 
@@ -74,28 +74,41 @@ const Contributions = () => {
   const [employeeData, setEmployeeData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [employeeShare, setEmployeeShare] = useState([]);
+
+  useEffect(() => {
+    fetchEmployeeData();
+    fetchEmployeeContribution();
+  }, [])
 
   // Fetch data from backend
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Replace with your actual API endpoint
-        // const response = await fetch(`${process.env.REACT_APP_API_URL}/api/contributions`);
-        // const data = await response.json();
-        // setEmployeeData(data);
 
-        // For now, using empty array until backend is connected
-        setEmployeeData([]);
-      } catch (error) {
-        console.error("Error fetching contributions:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchEmployeeData = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee`);
+      setEmployeeData(response.data.employees);
+    } catch (error) {
+      console.error("Error fetching contributions:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchData();
-  }, []);
+  const fetchEmployeeContribution = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/history`);
+      setEmployeeShare(response.data.payslips);
+      console.log("data of employee shares history", employeeShare);
+    } catch (error) {
+      console.error("Error fetching employee history:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
 
   // Calculate totals from employee data
   const totalContributions = employeeData.reduce(
@@ -136,6 +149,26 @@ const Contributions = () => {
     },
   ];
 
+  const totalRow = {
+    name: "TOTAL",
+    sss: totalContributions.sss,
+    philhealth: totalContributions.philhealth,
+    pagibig: totalContributions.pagibig,
+    employerShare: "", // Optional blank for unrelated columns
+    employeeShare: "",
+    isTotalRow: true,  // Custom flag to identify it in the row rendering
+  };
+
+  const dataWithTotal = [...employeeData];
+  const conditionalRowStyles = [
+    {
+      when: row => row.employmentstatus === 'RESIGNED',
+      style: {
+        display: 'none', // This will completely hide the row
+      },
+    },
+  ];
+
   // DataTable columns
   const columns = [
     {
@@ -145,17 +178,17 @@ const Contributions = () => {
     },
     {
       name: "SSS",
-      selector: (row) => `₱${(row.sss || 0).toLocaleString()}`,
+      selector: (row) => `${(row.sss || 0).toLocaleString()}`,
       sortable: true,
     },
     {
       name: "PhilHealth",
-      selector: (row) => `₱${(row.philhealth || 0).toLocaleString()}`,
+      selector: (row) => `${(row.philhealth || 0).toLocaleString()}`,
       sortable: true,
     },
     {
       name: "Pag-IBIG",
-      selector: (row) => `₱${(row.pagibig || 0).toLocaleString()}`,
+      selector: (row) => `${(row.pagibig || 0).toLocaleString()}`,
       sortable: true,
     },
     {
@@ -166,6 +199,21 @@ const Contributions = () => {
     {
       name: "Employer Share",
       selector: (row) => `₱${(row.employerShare || 0).toLocaleString()}`,
+      sortable: true,
+    },
+    {
+      name: "SSS Share",
+      selector: (row) => `₱${(row.sss || 0).toLocaleString()}`,
+      sortable: true,
+    },
+    {
+      name: "Phil Health Share",
+      selector: (row) => `₱${(row.philhealth || 0).toLocaleString()}`,
+      sortable: true,
+    },
+    {
+      name: "PAGIBIG Share",
+      selector: (row) => `₱${(row.pagibig || 0).toLocaleString()}`,
       sortable: true,
     },
   ];
@@ -218,11 +266,11 @@ const Contributions = () => {
               <BarChart
                 data={barChartData}
                 margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-                
+
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" tick={{ fontSize: "12px" }} />
-                <YAxis tick={{ fontSize: 12 }}/>
+                <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip contentStyle={{ fontSize: "12px" }} formatter={(value) => `₱${value.toLocaleString()}`} />
                 <Legend wrapperStyle={{ fontSize: "12px", marginTop: "10px" }} />
                 <Bar dataKey="Employee" fill={BAR_COLORS[0]} />
@@ -239,8 +287,16 @@ const Contributions = () => {
           </h3>
           <DataTable
             columns={columns}
-            data={employeeData}
+            data={dataWithTotal}
             progressPending={loading}
+            conditionalRowStyles={conditionalRowStyles}
+
+            progressComponent={
+              <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
+                <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
+                Loading data...
+              </div>
+            }
             pagination
             highlightOnHover
             dense

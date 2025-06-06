@@ -160,14 +160,6 @@ const PayslipSend = () => {
                         </tbody>
                       </table>
                       <div className="footer">
-                        <div className="block">
-                          <h6 className="font-bold text-[14px] text-center">
-                            Pat Pineda
-                          </h6>
-                          <p className="-mt-3 text-[12px] text-center">
-                            Human Resource Head
-                          </p>
-                        </div>
                         <div className="grid grid-cols-2 gap-4 text-[12px] -mt-1">
                           <div>
                             <p>

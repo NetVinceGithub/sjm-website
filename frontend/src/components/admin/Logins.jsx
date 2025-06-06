@@ -99,8 +99,7 @@ const Logins = () => {
               sortable: true,
               cell: row => (
                 <span
-                  className={`px-3 py-1 rounded-full text-xs ${
-                    row.role === 'Admin'
+                  className={`px-3 py-1 rounded-full text-xs ${row.role === 'Admin'
                       ? 'bg-green-200 text-green-800'
                       : 'bg-blue-200 text-blue-800'
                     }`}
@@ -125,6 +124,12 @@ const Logins = () => {
           data={loginRecords}
           paginationPerPage={12}
           progressPending={loading}
+          progressComponent={
+            <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
+              <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
+              Loading data...
+            </div>
+          }
           pagination
           responsive
           highlightOnHover
