@@ -41,10 +41,16 @@ const PayslipHistory = sequelize.define(
     adjustment: DataTypes.DECIMAL(10, 2),
     gross_pay: DataTypes.DECIMAL(10, 2),
     netPay: DataTypes.DECIMAL(10, 2),
+    billingSummary: DataTypes. INTEGER,
+    controlNumber: DataTypes.STRING,
     date: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW
     },
+    batchId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  }
   },
   {
     tableName: "paysliphistories", // Explicitly define table name

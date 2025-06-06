@@ -289,6 +289,12 @@ const EmployeePayrollInformationsList = () => {
                     columns={columns}
                     data={filteredEmployees}
                     progressPending={loading}
+                    progressComponent={
+                      <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
+                        <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
+                        Loading data...
+                      </div>
+                    }
                     pagination
                     paginationPerPage={10}
                     paginationRowsPerPageOptions={[10, 20, 30, 50]}

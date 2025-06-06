@@ -10,6 +10,8 @@ export const PayrollButtons = ({ Id, refreshData }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [changeReason, setChangeReason] = useState("");
+  const [loading, setLoading] = useState(false);
+
 
   const [payrollData, setPayrollData] = useState({
     name: "",
@@ -79,6 +81,7 @@ export const PayrollButtons = ({ Id, refreshData }) => {
 
   // When user submits reason, this sends actual request
   const submitChangeRequest = async () => {
+    setLoading(true);
     if (!changeReason.trim()) {
       alert("Please provide a reason for the change.");
       return;
@@ -96,14 +99,14 @@ export const PayrollButtons = ({ Id, refreshData }) => {
           payroll_info_id: Id,
           changes,
           reason: changeReason,
-          requested_by: user ?.name || "Unknown User",
+          requested_by: user?.name || "Unknown User",
         }
       );
 
       if (response.data.success) {
         setIsReasonModalOpen(false);
         toast.success(
-          <div style={{ fontSize: '0.9rem'}}>
+          <div style={{ fontSize: '0.9rem' }}>
             Payroll change request submitted for approval.
           </div>,
           {
@@ -141,7 +144,7 @@ export const PayrollButtons = ({ Id, refreshData }) => {
             <div className="relative bg-white p-6 mt-11 -mr-[75rem] rounded-xl shadow-2xl w-4/5 max-w-[22rem] max-h-[80vh] overflow-y-auto transform transition-all scale-100">
               <h2 className="text-base font-poppins mb-4 text-left -mt-3 text-neutralDGray">
                 Edit Payroll Data
-            </h2>
+              </h2>
               <hr className="mb-3 -mt-3" />
 
               <button
@@ -172,7 +175,7 @@ export const PayrollButtons = ({ Id, refreshData }) => {
                   <div key={key} className="flex flex-col">
                     <label className="text-xs text-left mb-1 font-medium text-gray-700">
                       {label}:
-                  </label>
+                    </label>
                     {key === "designation" ? (
                       <select
                         value={payrollData[key] || "Regular"}
@@ -185,15 +188,15 @@ export const PayrollButtons = ({ Id, refreshData }) => {
                         <option value="Team Leader">Team Leader</option>
                       </select>
                     ) : (
-                        <input
-                          type="text"
-                          value={payrollData[key] || ""}
-                          onChange={(e) =>
-                            setPayrollData({ ...payrollData, [key]: e.target.value })
-                          }
-                          className="w-72 text-[12px] h-8 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
-                        />
-                      )}
+                      <input
+                        type="text"
+                        value={payrollData[key] || ""}
+                        onChange={(e) =>
+                          setPayrollData({ ...payrollData, [key]: e.target.value })
+                        }
+                        className="w-72 text-[12px] h-8 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      />
+                    )}
                   </div>
                 ))}
               </div>
@@ -204,13 +207,13 @@ export const PayrollButtons = ({ Id, refreshData }) => {
                   onClick={() => setIsModalOpen(false)}
                 >
                   Cancel
-              </button>
+                </button>
                 <button
                   className="px-4 py-2 h-10 border text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                   onClick={handleSave}
                 >
                   Request
-              </button>
+                </button>
               </div>
             </div>
           </div>
@@ -227,7 +230,7 @@ export const PayrollButtons = ({ Id, refreshData }) => {
               <div className="flex  justify-center text-center justify-between mb-1">
                 <h2 className="text-sm top-0 flex-justify-start font-poppins text-neutralDGray">
                   Reason for Change
-              </h2>
+                </h2>
                 <button
                   className="text-gray-600 hover:text-red-500 flex justify-end transition"
                   onClick={() => setIsReasonModalOpen(false)}
@@ -248,22 +251,41 @@ export const PayrollButtons = ({ Id, refreshData }) => {
 
               <div className="text-xs text-center text-gray-300 mt-1">
                 Maximum of {changeReason.length}/200 Characters
-            </div>
+              </div>
+
+
+
+
+
 
               {/* Buttons */}
               <div className="flex justify-end gap-3 mt-3">
                 <button
                   className="px-4 py-2 w-24 h-8 border flex text-center justify-center text-sm items-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
                   onClick={() => setIsReasonModalOpen(false)}
+                  disabled={loading}
                 >
-                  Cancel
-              </button>
+                  {loading ? (
+                    <div className="flex items-center gap-2 cursor-not-allowed">
+                      <span>Cancel</span>
+                    </div>
+                  ) : (
+                    "Cancel"
+                  )}
+                </button>
                 <button
-                  className="px-4 py-2 w-24 h-8 flex text-center justify-center items-center text-sm border text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+                  className="px-4 py-2 min-w-24 h-8 flex text-center justify-center items-center text-sm border text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                   onClick={submitChangeRequest}
+                  disabled={loading}
                 >
-                  Submit
-              </button>
+                  {loading ? (
+                    <div className="flex items-center gap-2 cursor-not-allowed">
+                      <span>Submitting...</span>
+                    </div>
+                  ) : (
+                    "Submit"
+                  )}
+                </button>
               </div>
             </div>
           </div>
