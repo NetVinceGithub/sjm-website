@@ -119,7 +119,17 @@ const History = () => {
               columns={columns}
               data={filteredData}
               progressPending={loading}
-              noDataComponent="No matching records found"
+              progressComponent={
+                <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
+                  <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
+                  Loading data...
+                </div>
+              }
+              noDataComponent={
+                <div className="text-gray-500 text-sm italic py-4 text-center">
+                  *** No matching records found ***
+                </div>
+              }
               pagination
               paginationPerPage={15}
               highlightOnHover

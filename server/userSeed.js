@@ -19,13 +19,13 @@ export const userRegister = async () => {
     });
 
     if (created) {
-      console.log("✅ Admin user created:", adminUser.toJSON());
+      console.log("✅ Approver user created:", adminUser.toJSON());
     } else {
-      console.log("⚠️ Admin user already exists.");
+      console.log("⚠️ Approver user already exists.");
     }
 
   } catch (error) {
-    console.error("❌ Error inserting admin user:", error);
+    console.error("❌ Error inserting approver user:", error);
   } finally {
     // await sequelize.close();
   }

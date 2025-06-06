@@ -20,6 +20,10 @@ const Payslip = db.define("Payslip", {
   department: DataTypes.STRING,
   position: DataTypes.STRING,
   cutoffDate: DataTypes.STRING,
+  batchId: {                            // 👈 NEW FIELD
+    type: DataTypes.STRING,
+    allowNull: false
+  },
   dailyrate: DataTypes.DECIMAL(10, 2),
   basicPay: DataTypes.DECIMAL(10, 2),
   noOfDays: DataTypes.INTEGER,
@@ -44,19 +48,21 @@ const Payslip = db.define("Payslip", {
   adjustment: DataTypes.DECIMAL(10, 2),
   gross_pay: DataTypes.DECIMAL(10, 2),
   netPay: DataTypes.DECIMAL(10, 2),
+  requestedBy: DataTypes.STRING(25),
   date: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
   },
   status: {
-    type: DataTypes.ENUM("draft", "pending", "released"),  // 👈 Add status field
+    type: DataTypes.ENUM("draft", "pending", "released"),
     defaultValue: "draft"
   }
 }, {
   tableName: "payslips",
   underscored: true,
-  timestamps: false  // 👈 Disable automatic timestamps
+  timestamps: false
 });
+
 
 export default Payslip;
 
