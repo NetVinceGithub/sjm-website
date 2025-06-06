@@ -12,10 +12,8 @@ const sequelize = new Sequelize(
     port: process.env.DB_PORT || 3306,
     dialect: process.env.DB_DIALECT || "mysql",
     dialectOptions: {
-      connectTimeout: 60000,
-      acquireTimeout: 60000,
-      timeout: 60000,
-      // Add SSL if your hosting requires it
+      connectTimeout: 30000,
+      // Add SSL if required
       ssl: process.env.NODE_ENV === 'production' ? {
         rejectUnauthorized: false
       } : false
@@ -26,40 +24,23 @@ const sequelize = new Sequelize(
       acquire: 30000,
       idle: 10000
     },
-    retry: {
-      match: [
-        /ETIMEDOUT/,
-        /EHOSTUNREACH/,
-        /ECONNRESET/,
-        /ECONNREFUSED/,
-        /ETIMEDOUT/,
-        /ESOCKETTIMEDOUT/,
-        /EHOSTUNREACH/,
-        /EPIPE/,
-        /EAI_AGAIN/,
-        /ER_ACCESS_DENIED_ERROR/
-      ],
-      max: 3
-    },
     logging: process.env.NODE_ENV === 'development' ? console.log : false
   }
 );
 
 const connectToDatabase = async () => {
   try {
+    console.log(`Attempting to connect to: ${process.env.DB_HOST}:${process.env.DB_PORT}`);
+    console.log(`Database: ${process.env.DB_NAME}`);
+    console.log(`User: ${process.env.DB_USER}`);
+    
     await sequelize.authenticate();
     console.log("✅ MySQL Database Connected");
   } catch (error) {
-    console.error("❌ Database Connection Failed:", error);
+    console.error("❌ Database Connection Failed:", error.message);
+    console.error("Error code:", error.original?.code);
     
-    // More detailed error logging for debugging
-    if (error.original) {
-      console.error("Original error:", error.original.message);
-      console.error("Error code:", error.original.code);
-      console.error("SQL State:", error.original.sqlState);
-    }
-    
-    // Don't exit in production, let the app continue running
+    // Don't exit in production - let app continue without DB
     if (process.env.NODE_ENV !== 'production') {
       process.exit(1);
     }
