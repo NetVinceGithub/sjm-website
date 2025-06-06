@@ -26,6 +26,7 @@ import { format } from "date-fns";
 
 const Overview = () => {
   const [payslips, setPayslips] = useState([]);
+  const [filteredPayslips, setFilteredPayslips] = useState([]);
   const [cutoffDate, setCutoffDate] = useState("");
   const [employees, setEmployees] = useState([]);
   const [newNote, setNewNote] = useState("");
@@ -42,8 +43,8 @@ const Overview = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
-  const [message, setMessage] = useState(""); // Added missing state
-  const [sending, setSending] = useState(false); // Added missing state
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
 
   // Helper function to determine payroll status
   const getPayrollStatus = (cutoff, currentDate) => {
@@ -97,9 +98,54 @@ const Overview = () => {
     return [firstCutoff, secondCutoff];
   };
 
+  // Filter function to apply month/year filters
+  const applyFilters = (payslipsData, filterMonth, filterYear) => {
+    if (!filterMonth && !filterYear) {
+      return payslipsData;
+    }
+
+    return payslipsData.filter(payslip => {
+      // Assuming payslip has a date field (adjust field name as needed)
+      const payslipDate = new Date(payslip.cutoff_date || payslip.date || payslip.created_at);
+
+      const matchesMonth = !filterMonth || (payslipDate.getMonth() + 1) === parseInt(filterMonth);
+      const matchesYear = !filterYear || payslipDate.getFullYear() === parseInt(filterYear);
+
+      return matchesMonth && matchesYear;
+    });
+  };
+
   const handleConfirm = () => {
-    onConfirm({ month, year });
+    const filtered = applyFilters(payslips, month, year);
+    setFilteredPayslips(filtered);
     setShowFilterModal(false);
+
+    // Show toast notification about applied filters
+    const filterText = [];
+    if (month) filterText.push(`Month: ${new Date(2000, month - 1).toLocaleString('default', { month: 'long' })}`);
+    if (year) filterText.push(`Year: ${year}`);
+
+    if (filterText.length > 0) {
+      toast.success(`Filters applied: ${filterText.join(', ')}`, {
+        position: "top-right",
+        autoClose: 3000,
+        closeButton: false,
+        closeOnClick: true,
+      });
+    }
+  };
+
+  const clearFilters = () => {
+    setMonth("");
+    setYear("");
+    setFilteredPayslips(payslips);
+    setShowFilterModal(false);
+    toast.warning("Filters cleared", {
+      position: "top-right",
+      autoClose: 2000,
+      closeButton: false,
+      closeOnClick: true,
+    });
   };
 
   const fetchRequests = async () => {
@@ -146,10 +192,13 @@ const Overview = () => {
     const fetchPayslips = async () => {
       try {
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
-        setPayslips(Array.isArray(response.data) ? response.data : []);
+        const payslipsData = Array.isArray(response.data) ? response.data : [];
+        setPayslips(payslipsData);
+        setFilteredPayslips(payslipsData); // Initialize filtered payslips
       } catch (error) {
         console.error("Error fetching payslips:", error);
         setPayslips([]);
+        setFilteredPayslips([]);
       }
     };
 
@@ -243,8 +292,9 @@ const Overview = () => {
     };
   });
 
-  // Defensive assignment - ensure payslips is always an array
-  const safePayslips = Array.isArray(payslips) ? payslips : [];
+  // Use filtered payslips for all calculations
+  const displayPayslips = filteredPayslips.length > 0 ? filteredPayslips : payslips;
+  const safePayslips = Array.isArray(displayPayslips) ? displayPayslips : [];
 
   const handleCreatePayroll = async () => {
     if (!cutoffDate) {
@@ -257,7 +307,6 @@ const Overview = () => {
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
-          closeButton: false,
           position: "top-right",
         }
       );
@@ -273,6 +322,7 @@ const Overview = () => {
 
       if (response.data.success && Array.isArray(response.data.payslips)) {
         setPayslips(response.data.payslips);
+        setFilteredPayslips(response.data.payslips);
         setMessage("✅ Payroll successfully generated!");
       } else {
         setMessage(
@@ -433,12 +483,33 @@ const Overview = () => {
               { label: "Overview", href: "" },
             ]}
           />
-
-          <div
-            className=" mb-3 px-2 w-fit h-8 border flex justify-center items-center text-xs text-center text-neutralDGray/60 rounded-lg hover:bg-gray-200 transition-all"
-            onClick={() => setShowFilterModal(true)}>
-            <FaFilter className="mr-2" /> Filter Options
+          <div className="flex flex-row gap-2">
+            {/* Display filter status */}
+            {(month || year) && (
+              <div className="mb-3 px-2 h-8 text-neutralDGray/60 border flex justify-center items-center text-xs rounded-lg">
+                <div className="flex items-center justify-between w-full">
+                  <span>
+                    Active filters: {month && `Month: ${new Date(2000, month - 1).toLocaleString('default', { month: 'long' })}`}
+                    {month && year && ', '}
+                    {year && `Year: ${year}`}
+                  </span>
+                  <div className="w-px h-4 bg-neutralDGray mx-2"></div>
+                  <button
+                    onClick={clearFilters}
+                    className="px-2 w-fit h-8"
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              </div>
+            )}
+            <div
+              className="mb-3 px-2 w-fit h-8 border flex justify-center items-center text-xs text-center text-neutralDGray/60 rounded-lg hover:bg-gray-200 transition-all cursor-pointer"
+              onClick={() => setShowFilterModal(true)}>
+              <FaFilter className="mr-2" /> Filter Options
+            </div>
           </div>
+
 
           {showFilterModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -448,23 +519,31 @@ const Overview = () => {
                 <div className="flex flex-col sm:flex-row gap-4 mb-4">
                   <div className="flex-1">
                     <label className="block text-sm text-neutralDGray mb-1">Month</label>
-                    <select className="w-full border px-3 py-2 rounded-md text-sm text-neutralDGray">
+                    <select
+                      className="w-full border px-3 py-2 rounded-md text-sm text-neutralDGray"
+                      value={month}
+                      onChange={(e) => setMonth(e.target.value)}
+                    >
                       <option value="">Select month</option>
                       {[
                         "January", "February", "March", "April", "May", "June",
                         "July", "August", "September", "October", "November", "December"
-                      ].map((month, index) => (
-                        <option key={index} value={index + 1}>{month}</option>
+                      ].map((monthName, index) => (
+                        <option key={index} value={index + 1}>{monthName}</option>
                       ))}
                     </select>
                   </div>
 
                   <div className="flex-1">
                     <label className="block text-sm text-neutralDGray mb-1">Year</label>
-                    <select className="w-full border px-3 py-2 rounded-md text-sm text-neutralDGray">
+                    <select
+                      className="w-full border px-3 py-2 rounded-md text-sm text-neutralDGray"
+                      value={year}
+                      onChange={(e) => setYear(e.target.value)}
+                    >
                       <option value="">Select year</option>
-                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((year) => (
-                        <option key={year} value={year}>{year}</option>
+                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((yearOption) => (
+                        <option key={yearOption} value={yearOption}>{yearOption}</option>
                       ))}
                     </select>
                   </div>
@@ -472,22 +551,30 @@ const Overview = () => {
 
                 <div className="flex justify-end gap-2 mt-4">
                   <button
+                    onClick={clearFilters}
+                    className="px-4 py-2 w-20 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-gray-100 transition-all"
+                  >
+                    Clear
+                  </button>
+                  <button
                     onClick={() => setShowFilterModal(false)}
-                    className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+                    className="px-4 py-2 w-20 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleConfirm}
-                    className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center  text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+                    className="px-4 py-2 w-20 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                   >
-                    Confirm
+                    Apply
                   </button>
                 </div>
               </div>
             </div>
           )}
         </div>
+
+
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mt-3">
@@ -580,14 +667,14 @@ const Overview = () => {
                         <button
                           onClick={saveEdit}
                           title="Update"
-                          className="bg-brandPrimary h-8 p-2 text-white rounded hover:bg-neutralDGray text-[12px]"
+                          className="bg-brandPrimary h-8 w-fit p-2 text-white rounded hover:bg-neutralDGray text-[12px]"
                         >
                           <FaArrowRotateRight />
                         </button>
                         <button
                           onClick={cancelEdit}
                           title="Cancel"
-                          className="bg-gray-300 h-8 p-2 text-gray-700 rounded hover:bg-gray-400 text-[12px]"
+                          className="bg-gray-300 h-8 p-2 w-fit text-gray-700 rounded hover:bg-gray-400 text-[12px]"
                         >
                           <FaXmark />
                         </button>
@@ -686,27 +773,28 @@ const Overview = () => {
             </div>
 
             <div className="bg-white rounded shadow-sm p-2 lg:p-3 border border-neutralDGray">
-              <h6 className="text-sm text-neutralDGray mb-2">
-                Top 3 Earners
-              </h6>
+              <h6 className="text-sm text-neutralDGray mb-2">Top 3 Earners</h6>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {[1, 2, 3].map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex flex-col items-center border justify-center bg-gradient-to-b from-[#9D426E] via-[#80B646] to-[#4191D6] rounded-lg p-[0.7rem]"
-                  >
-                    <div className="w-16 h-14 lg:w-16 lg:h-16 rounded-full mb-2 border-4 border-white bg-gray-200"></div>
-                    <p className="font-semibold text-white text-sm text-center">
-                      Employee {i + 1}
-                    </p>
-                    <p className="font-medium text-white text-xs">
-                      ₱{1_000_000 - i * 100_000}
-                    </p>
-                    <span className="text-xl text-white mt-1">
-                      {["🏅", "🥈", "🥉"][i]}
-                    </span>
-                  </div>
-                ))}
+                {safePayslips
+                  .sort((a, b) => parseFloat(b.netPay || 0) - parseFloat(a.netPay || 0))
+                  .slice(0, 3)
+                  .map((payslip, i) => (
+                    <div
+                      key={i}
+                      className="flex flex-col items-center border justify-center bg-gradient-to-b from-[#9D426E] via-[#80B646] to-[#4191D6] rounded-lg p-[0.7rem]"
+                    >
+                      <div className="w-16 h-14 lg:w-16 lg:h-16 rounded-full mb-2 border-4 border-white bg-gray-200"></div>
+                      <p className="font-semibold text-white text-sm text-center">
+                        {payslip.name || 'N/A'}
+                      </p>
+                      <p className="font-medium text-white text-xs">
+                        ₱{parseFloat(payslip.netPay || 0).toLocaleString()}
+                      </p>
+                      <span className="text-xl text-white mt-1">
+                        {["🏅", "🥈", "🥉"][i]}
+                      </span>
+                    </div>
+                  ))}
               </div>
             </div>
 
@@ -743,8 +831,7 @@ const Overview = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 };
-
 export default Overview;

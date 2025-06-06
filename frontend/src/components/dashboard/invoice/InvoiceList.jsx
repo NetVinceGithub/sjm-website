@@ -38,7 +38,9 @@ const InvoiceList = () => {
     amount: 0
   });
   const [invoiceNumber, setInvoiceNumber] = useState(1); // or fetch from a DB/API
-  const [controlNumber, setControlNumber] = useState(1);
+  const [nextControlNumber, setNextControlNumber] = useState(1);
+  const [currentIndex, setCurrentIndex] = useState(1);
+  const [nextBillingSummary, setNextBillingSummary] = useState(1);
 
 
 
@@ -47,9 +49,37 @@ const InvoiceList = () => {
     const fetchInvoices = async () => {
       try {
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/invoice`);
-        console.log(response.data);
+        console.log("this is the data", response.data);
         if (response.data.success && Array.isArray(response.data.invoice)) {
           setInvoices(response.data.invoice);
+
+          const nextBillingSummary = response.data.invoice.reduce((max, invoice) => {
+            return invoice.billingSummary > max ? invoice.billingSummary : max;
+          }, 0);
+
+          // Get the latest control number and calculate the next one
+          const latestControlNumber = response.data.invoice.reduce((latest, invoice) => {
+            return invoice.controlNumber > latest ? invoice.controlNumber : latest;
+          }, "");
+
+          // Extract last 4 digits, convert to number, add 1, and format back with full prefix
+          const getNextControlNumber = (currentNumber) => {
+            if (!currentNumber) return "SJM 2025-06-0001"; // Default if no existing numbers
+
+            const lastFourDigits = currentNumber.slice(-4);
+            const nextNumber = parseInt(lastFourDigits, 10) + 1;
+            const nextNumberFormatted = nextNumber.toString().padStart(4, '0');
+
+            // Keep the prefix (everything except last 4 digits) and append new number
+            const prefix = currentNumber.slice(0, -4);
+            return prefix + nextNumberFormatted;
+          };
+
+          const nextControlNumberFormatted = getNextControlNumber(latestControlNumber);
+
+          setNextControlNumber(nextControlNumberFormatted);
+          setNextBillingSummary(nextBillingSummary + 1);  // next available index
+          console.log("next control number", nextControlNumberFormatted);
         } else {
           console.error("API response is not an array", response.data);
         }
@@ -62,13 +92,30 @@ const InvoiceList = () => {
     fetchInvoices();
   }, []);
 
-  const getControlNumber = () => {
+  console.log('currentIndex', currentIndex);
+
+
+  const getControlNumber = (invoices = []) => {
     const now = new Date();
     const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const number = String(invoiceNumber).padStart(4, '0');
-    return `SJM${year}-${month}${number}`;
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+
+    // Defensive: default invoices to empty array if undefined
+    const invoicesThisMonth = invoices.filter((invoice) => {
+      const invoiceDate = new Date(invoice.createdAt); // or invoice.date
+      return (
+        invoiceDate.getFullYear() === year &&
+        String(invoiceDate.getMonth() + 1).padStart(2, "0") === month
+      );
+    });
+
+    const nextNumber = invoicesThisMonth.length + 1;
+    const paddedNumber = String(nextNumber).padStart(4, "0");
+
+    return `SJM${year}-${month}-${paddedNumber}`;
   };
+
+
 
 
   const handleSearch = (event) => {
@@ -104,29 +151,34 @@ const InvoiceList = () => {
     setIsModalOpen(true);
   };
 
+
+
+
   const handleGroupClick = (batchId) => {
     console.log("Clicked batchId:", batchId);
-    const filtered = invoices.filter(invoice => {
-      // Adjust this if batchId in invoices is array or string
-      if (Array.isArray(invoice.batchId)) {
-        return invoice.batchId.includes(batchId);
-      }
-      return invoice.batchId === batchId;
-    });
+
+    const filtered = invoices
+      .filter((invoice) => {
+        if (Array.isArray(invoice.batchId)) {
+          return invoice.batchId.includes(batchId);
+        }
+        return invoice.batchId === batchId;
+      })
+      .map((invoice, index) => ({
+        ...invoice,
+        index, // assign index in filtered list
+      }));
 
     setFilteredInvoices(filtered);
 
+    // Optional: if you still want to highlight one item (like the first)
     if (filtered.length > 0) {
       const sample = filtered[0];
-      setSelectedGroup({
-        cutoffDate: sample.cutoffDate,
-        project: sample.project,
-        // other props...
-      });
+      setSelectedGroup(sample); // now includes index
     }
+
     setIsModalOpen(true);
   };
-
 
 
 
@@ -376,6 +428,18 @@ const InvoiceList = () => {
     setCurrentParticular(updatedParticular);
   };
 
+
+  const uniqueBillingSummaries = filteredInvoices.reduce((acc, invoice) => {
+    if (!acc.some(item => item.billingSummary === invoice.billingSummary)) {
+      acc.push(invoice);
+    }
+    return acc;
+  }, []);
+
+
+
+
+
   return (
     <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-20">
       <div className="flex flex-row gap-4 w-full">
@@ -401,10 +465,17 @@ const InvoiceList = () => {
                   </div>
                   <div className="p-2">
                     <p className="flex justify-center text-center items-center mt-2 font-semibold">BILLING SUMMARY</p>
-                    <p className="text-lg font-semibold text-red-500 -mt-4 -mb-1 text-center">
-                      {String(selectedGroup.index + 1).padStart(5, "0")}
-                    </p>
-
+                    <div>
+                      {nextBillingSummary !== null ? (
+                        <p className="text-lg font-semibold text-red-500 text-center">
+                          {String(nextBillingSummary).padStart(5, "0")}
+                        </p>
+                      ) : (
+                        <p className="text-lg font-semibold text-gray-400 text-center">
+                          Loading...
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -416,9 +487,20 @@ const InvoiceList = () => {
                     <td className="border-r border-l border-t border-black p-2 text-center align-middle font-semibold">
 
                     </td>
-                    <td colSpan={2} className="p-2 border-t border-r w-20 border-black italic text-[11px]">
+
+                    {nextControlNumber !== null ? (
+                      <td colSpan={2} className="p-2 border-t border-r w-20 border-black italic text-[10px]">
+                        {nextControlNumber}
+                      </td>
+                    ) : (
+                      <td className="text-lg font-semibold text-gray-400 text-center">
+                        Loading...
+                      </td>
+                    )}
+
+                    {/* <td colSpan={2} className="p-2 border-t border-r w-20 border-black italic text-[11px]">
                       Control #: {getControlNumber()}
-                    </td>
+                    </td> */}
                   </tr>
                   <tr>
                     <td></td>
@@ -663,26 +745,44 @@ const InvoiceList = () => {
                             <p className="text-[9px] mb-0">VAT REGISTERED TIN: 010-837-591-000</p>
                           </div>
                           <div className="p-2">
-                            <p className="flex justify-center text-center items-center mt-2 font-semibold">BILLING SUMMARY</p>
-                            <p className="text-lg font-semibold text-red-500 -mt-4 -mb-1 text-center">
-                              {String(selectedGroup.index + 1).padStart(5, "0")}
+                            <p className="flex justify-center text-center items-center -mt-1 font-semibold">
+                              BILLING SUMMARY
                             </p>
+
+                            {uniqueBillingSummaries.map((invoice) => (
+                              <div key={invoice.billingSummary}>
+                                <p className="text-lg font-semibold -mt-3  text-red-500 text-center">
+                                  {String(invoice.billingSummary).padStart(5, "0")}
+                                </p>
+                                {/* Display other batch-level details if needed */}
+                              </div>
+                            ))}
 
                           </div>
                         </div>
+
                       </div>
 
                       <table className="border-collapse my-8 text-xs font-sans">
+
                         <tbody>
                           <tr>
                             <td></td>
                             <td className="border-r border-l border-t border-black p-2 text-center align-middle font-semibold">
 
                             </td>
-                            <td colSpan={2} className="p-2 border-t border-r w-20 border-black italic text-[10px]">
-                              Control #: {getControlNumber()}
-                            </td>
+                            {filteredInvoices
+                              .filter((invoice, index, self) =>
+                                index === self.findIndex(inv => inv.controlNumber === invoice.controlNumber)
+                              )
+                              .map((invoice) => (
+                                <td key={invoice.controlNumber} colSpan={2} className="p-2 border-t border-r w-20 border-black italic text-[10px]">
+                                  Control #: {invoice.controlNumber}
+                                </td>
+                              ))}
+
                           </tr>
+
                           <tr>
                             <td></td>
                             <td className="border-r border-l border-black p-2 text-center align-middle w-20 font-semibold text-xs">
@@ -735,6 +835,7 @@ const InvoiceList = () => {
                             <td className="border-r border-black border-b">₱ [Total]</td>
                           </tr>
                         </tbody>
+
                       </table>
 
                       <div className="flex flex-row gap-4 -mt-14">

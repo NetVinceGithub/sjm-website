@@ -88,7 +88,7 @@ const EditPayrollModal = ({ employee, isOpen, onClose, onSuccess }) => {
         requests.map(request => submitChangeRequest(request))
       );
 
-      const successCount = results.filter(result => result.success).length;
+      zt = results.filter(result => result.success).length;
       const failureCount = results.length - successCount;
 
       if (successCount > 0) {

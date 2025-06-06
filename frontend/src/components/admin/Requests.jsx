@@ -16,6 +16,7 @@ const Requests = () => {
   const [showChangesModal, setShowChangesModal] = useState(false);
   const [selectedChangeRequest, setSelectedChangeRequest] = useState(null);
   const [showChangeDetailModal, setShowChangeDetailModal] = useState(false);
+  const [payrollRequests, setPayrollRequests] = useState([]);
   const [showPayrollDetailModal, setShowPayrollDetailModal] = useState(false);
   const [selectedPayrollRequest, setSelectedPayrollRequest] = useState(null);
 
@@ -83,11 +84,18 @@ const Requests = () => {
     }
   }, [isAuthorized, changesRequests]);
 
+  useEffect(() => {
+    if (isAuthorized && Array.isArray(payrollRequests)) {
+      notifyChangeRequests(payrollRequests);
+    }
+  }, [isAuthorized, payrollRequests]);
+
   // Fetch available batches
   const fetchAvailableBatches = async () => {
     try {
       // You may need to create this endpoint to get all unique batch IDs
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/batches`);
+      console.log("batches", response.data);
       setAvailableBatches(response.data);
 
       // Auto-select the latest batch if available
@@ -164,11 +172,13 @@ const Requests = () => {
     }));
   };
 
-  const getPayrollDetails = (payroll) => {
-    if (!payroll || typeof payroll !== 'object') return [];
+
+
+  const getPayrollDetails = (payrollDetails) => {
+    if (!payrollDetails || typeof payrollDetails !== 'object') return [];
 
     // Convert changes object to array of changed fields
-    return Object.entries(payroll).map(([field, value]) => ({
+    return Object.entries(payrollDetails).map(([field, value]) => ({
       field,
       value,
       displayName: formatFieldName(field)
@@ -437,6 +447,7 @@ const Requests = () => {
     );
   }
 
+  console.log("Selected Payroll Request:", selectedPayrollRequest);
 
   return (
     <div className="flex flex-row gap-8 p-4 overflow-auto h-[calc(100vh-150px)]">
@@ -457,126 +468,92 @@ const Requests = () => {
           ) : batches && batches.length > 0 ? (
             <div className="space-y-4">
               {/* Summary Header */}
-              <div className="border p-3 rounded shadow-md bg-blue-50">
+              <div className="border p-3 rounded shadow-md bg-white">
                 <p className="text-md mb-1 italic">
-                  Total Batches: <span className="font-normal text-blue-600">{batches.length}</span>
+                  Total Payroll: <span className="font-normal text-blue-600">{batches.length}</span>
                 </p>
-                <p className="text-md mb-1 italic">
+                {/* <p className="text-md mb-1 italic">
                   Total Payslips: <span className="font-normal text-red-500">
                     {batches.reduce((total, batch) => {
                       const batchRequests = requests.filter(req => req.batchId === batch.batchId);
                       return total + batchRequests.length;
                     }, 0)}
                   </span>
-                </p>
-                <p className="text-md mb-1 italic">
-                  Grand Total Amount: <span className="font-normal text-green-600">
-                    ₱ {batches.reduce((total, batch) => {
-                      const batchRequests = requests.filter(req => req.batchId === batch.batchId);
-                      return total + batchRequests.reduce((sum, req) => sum + (req.net_pay || req.netPay || 0), 0);
-                    }, 0).toLocaleString()}
-                  </span>
-                </p>
+                </p> */}
                 <hr className="my-2" />
-                {/* { <div className="flex gap-2 mt-2">
+                {batches.map((batch) => {
+                  const batchTotalNetPay = batch.payslips.reduce((sum, slip) => sum + (slip.netPay || slip.net_pay || 0), 0);
+
+                  return (
+                    <div key={batch.batchId} className="border p-3 bg-gray-50  rounded shadow-md mb-4 flex justify-between items-start">
+                      <p className="text-md mb-1 italic">
+                        {/* Batch Payslips: <span className="font-normal text-red-500">{batch.payslips.length}</span> */}
+                      </p>
+
+                      <div className="mb-2 flex-1 ">
+                        <p className="font-semibold text-sm">Batch ID: {batch.batchId}</p>
+                        <p className="text-xs -mt-3 text-gray-600">
+                          Payroll Amount: ₱{batch.payslips.reduce((total, payslip) => total + parseFloat(payslip.netPay), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </p>                     <p className="text-xs -mt-3 text-gray-600">Cutoff Period: {batch.cutoffDate || 'N/A'}
+                        </p>
+                        <p className="text-xs -mt-3 text-gray-600">Status:{batch.uniqueStatuses.join(', ').charAt(0).toUpperCase() + batch.uniqueStatuses[0].slice(1)}</p>
+                        <p className="text-xs -mt-3 -mb-2 text-gray-600">
+                          Date Requested: {" "}
+                          {batch.payslips.length > 0 && batch.payslips[0].date
+                            ? new Date(batch.payslips[0].date).toLocaleDateString()
+                            : "N/A"}
+                        </p>
+                      </div>
+                      <div className="flex gap-1 items-center border h-8 w-32 rounded justify-end">
+                        <button
+                          onClick={() => {
+                            setSelectedPayrollRequest(batch); // Set the entire batch object
+                            setShowPayrollDetailModal(true);
+                          }}
+                          className="p-2 text-neutralDGray hover:text-blue-600 rounded flex items-center justify-center"
+                          title="View Details"
+                        >
+                          <FaEye size={14} />
+                        </button>
+
+                        <>
+                          <button
+                            onClick={() => handleApprove(batch.batchId)}
+                            className="p-2 text-neutralDGray hover:text-green-600 rounded flex items-center justify-center"
+                            title="Approve"
+                          >
+                            <FaCheck size={14} />
+                          </button>
+                          <button
+                            onClick={() => setShowModal(batch.batchId)}
+                            className="p-2 text-neutralDGray hover:text-red-100 rounded flex items-center justify-center"
+                            title="Reject"
+                          >
+                            <FaTimes size={14} />
+                          </button>
+                        </>
+
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="flex gap-2 mt-2">
                   <button
                     onClick={handleApprove}
-                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-900"
+                    className="bg-green-500 text-white w-32 h-8 text-sm px-3 py-1 rounded hover:bg-green-900 disabled:opacity-50"
                   >
-                    Approve All Batches
+                    Approve All
                   </button>
                   <button
                     onClick={() => setShowModal(true)}
-                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-900"
+                    className="bg-red-500 text-white px-3 py-1 w-32 h-8 text-sm  rounded hover:bg-red-900 disabled:opacity-50"
                   >
-                    Reject All Batches
+                    Reject All
                   </button>
-                </div> */}
+                </div>
               </div>
 
-              {batches.map((batch) => {
-                const batchTotalNetPay = batch.payslips.reduce((sum, slip) => sum + (slip.netPay || slip.net_pay || 0), 0);
 
-                return (
-                  <div key={batch.batchId} className="border p-3 rounded shadow-md mb-4">
-                    <p className="text-md mb-1 italic">
-                      Batch Payslips: <span className="font-normal text-red-500">{batch.payslips.length}</span>
-                    </p>
-
-                    <div className="mb-2">
-                      <hr className="mb-2 mt-1" />
-                      <p><strong>Batch ID: SJM</strong> {batch.batchId}</p>
-                      <p><strong>Batch Amount:</strong> ₱ {batchTotalNetPay.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-                      <p><strong>Cutoff Range:</strong> {batch.cutoffRange || 'N/A'}</p>
-                      <p><strong>Status Summary:</strong> {batch.uniqueStatuses.join(', ')}</p>
-                      <p><strong>Date Requested:</strong>{" "}
-                        {batch.payslips.length > 0
-                          ? new Date(batch.payslips[0].date).toLocaleDateString()
-                          : 'N/A'}
-                      </p>
-
-                      <div className="flex gap-2 mt-2">
-                        <button
-                          onClick={() => handleApprove(batch.batchId)}
-                          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-900"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => setShowModal(batch.batchId)}
-                          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-900"
-                        >
-                          Reject
-                        </button>
-                        <div className="flex gap-1 items-center border h-8 w-32 rounded justify-end">
-                          <button
-                            onClick={() => {
-                              setSelectedPayrollRequest(batch.batchId);
-                              setShowPayrollDetailModal(true);
-                            }}
-                            className="p-2 text-neutralDGray hover:text-blue-600 rounded flex items-center justify-center"
-                            title="View Details"
-                          >
-                            <FaEye size={14} />
-                          </button>
-                          {batch.status === 'Pending' && (
-                            <>
-                              <button
-                                onClick={() => handleApproveIndividualChange(batch.id)}
-                                className="p-2 text-neutralDGray hover:text-green-600 rounded flex items-center justify-center"
-                                title="Approve"
-                              >
-                                <FaCheck size={14} />
-                              </button>
-                              <button
-                                onClick={() => handleRejectIndividualChange(batch.id)}
-                                className="p-2 text-neutralDGray hover:text-red-100 rounded flex items-center justify-center"
-                                title="Reject"
-                              >
-                                <FaTimes size={14} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Individual Payslips Display */}
-                      {batch.payslips.length > 0 && (
-                        <div className="mt-4 mb-2 border-t pt-3 space-y-2">
-                          {batch.payslips.map((slip) => (
-                            <div key={slip.id} className="border p-2 rounded bg-gray-50 shadow-sm">
-                              <p><strong>Name:</strong> {slip.name}</p>
-                              <p><strong>Cutoff Date:</strong> {slip.cutoffDate}</p>
-                              <p><strong>Status:</strong> <span className="capitalize">{slip.status}</span></p>
-                              <p><strong>Net Pay:</strong> ₱ {Number(slip.netPay || slip.net_pay).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
 
             </div>
           ) : (
@@ -787,7 +764,7 @@ const Requests = () => {
                 <hr />
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm">Request ID: {formatRequestId(selectedChangeRequest.id)}</p>
+                    <p className="text-sm">Request ID: {(selectedChangeRequest.id)}</p>
                   </div>
                   <div>
                     <p className="text-sm">Requested By: {selectedChangeRequest.requested_by}</p>
@@ -868,59 +845,60 @@ const Requests = () => {
                 <hr />
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm">Request ID: {selectedPayrollRequest.batchId}</p>
+                    <p className="text-sm">Batch ID: {selectedPayrollRequest.batchId}</p>
                   </div>
                   <div>
-                    <p className="text-sm">Requested By:Trial muna</p>
+                    <p className="text-sm">Requested By: {selectedPayrollRequest.requestedBy}</p>
                   </div>
                   <div>
                     <p className="text-sm">
-                      Status:{" "}
-                      <span
-                        className={`font-semibold ${selectedPayrollRequest.status === "Pending"
-                          ? "text-orange-500"
-                          : selectedPayrollRequest.status === "Rejected"
-                            ? "text-red-600"
-                            : "text-green-600"
-                          }`}
-                      >
-                        {selectedPayrollRequest.status}
+                      Status:
+                      <span className={`font-semibold ${selectedPayrollRequest.uniqueStatuses[0] === "pending" ? "text-orange-500" : selectedPayrollRequest.uniqueStatuses[0] === "rejected" ? "text-red-600" : "text-green-600"}`}>
+                        {selectedPayrollRequest.uniqueStatuses[0].charAt(0).toUpperCase() + selectedPayrollRequest.uniqueStatuses[0].slice(1)}
                       </span>
                     </p>
                   </div>
                   <div>
                     <div className="bg-gray-100 p-2 rounded space-y-2">
-
-
+                      <p className="text-sm italic mb-1">Employees in Payroll:</p>
+                      {selectedPayrollRequest.payslips.map((payslip, index) => (
+                        <div key={index} className="text-sm">
+                          <p>
+                            <span className="font-medium">{payslip.name}:</span> ₱ {parseFloat(payslip.netPay).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <div>
-                    <p className="text-sm">Created at: {selectedPayrollRequest.cutoffDate}</p>
-                  </div>
-                </div>
+                  {selectedPayrollRequest.payslips.map((payslip, index) => (
+                    <div key={index}>
+                      {/* Only show date for the first payslip */}
+                      {index === 0 && (
+                        <p className="text-sm">Created at: {new Date(payslip.date).toLocaleDateString()}</p>
+                      )}
+                      {/* Other payslip content */}
+                    </div>
+                  ))}
 
+                </div>
                 <div className="flex justify-end gap-2 mt-6">
                   <button
-                    onClick={() => setShowChangeDetailModal(false)}
-                    className="flex items-center justify-center px-4 py-2 w-32 h-8 text-sm text-center bg-gray-600 text-white rounded hover:bg-neutralDGray"
-
+                    onClick={() => setShowPayrollDetailModal(false)}
+                    className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-gray-400 hover:text-white transition-all"
                   >
                     Close
                   </button>
-
-                  {selectedPayrollRequest.status === "Pending" && (
+                  {selectedPayrollRequest.uniqueStatuses[0] === "pending" && (
                     <>
                       <button
-                        onClick={() => handleApproveIndividualChange(selectedPayrollRequest.id)}
-                        className="flex items-center justify-center px-4 py-2 w-32 h-8 text-sm text-center bg-green-600 text-white rounded hover:bg-neutralDGray"
-
+                        onClick={() => handleApprove(selectedPayrollRequest.batchId)}
+                        className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                       >
                         Approve
                       </button>
                       <button
-                        onClick={() => handleRejectIndividualChange(selectedPayrollRequest.id)}
-                        className="flex items-center justify-center px-4 py-2 w-32 h-8 text-sm text-center bg-red-600 text-white rounded hover:bg-neutralDGray"
-
+                        onClick={() => setShowModal(selectedPayrollRequest.batchId)}
+                        className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
                       >
                         Reject
                       </button>
@@ -930,6 +908,9 @@ const Requests = () => {
               </div>
             </div>
           )}
+
+
+
 
         </div>
       </section>

@@ -13,8 +13,11 @@ import NoAttendanceModal from "../modals/NoAttendanceModal";
 import * as XLSX from "xlsx";
 import { Modal, Button } from "react-bootstrap";
 import { toast } from 'react-toastify';
+import { useAuth } from "../../../context/authContext";
 
 const PayrollSummary = () => {
+  const { user } = useAuth();
+  
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -206,6 +209,7 @@ const PayrollSummary = () => {
   };
 
   const proceedWithPayroll = async (selectedEmployees) => {
+
     if (!cutoffDate) {
       return;
     }
@@ -252,7 +256,8 @@ const PayrollSummary = () => {
           cutoffDate: cutoffDate.trim(),
           selectedEmployees,
           attendanceData: updatedAttendanceData,
-          individualOvertime, // Send individual overtime values instead of maxOvertime
+          individualOvertime, 
+          requestedBy: user.name// Send individual overtime values instead of maxOvertime
         }
       );
 
@@ -761,7 +766,7 @@ const PayrollSummary = () => {
                           type="text"
                           placeholder="Search employee by name or ID"
                           value={searchTerm}
-                          className="px-2 text-sm h-8 w-80 text-base font-normal rounded py-0.5 border"
+                          className="px-2 h-8 w-80 text-sm font-normal rounded py-0.5 border"
                           onChange={(e) => setSearchTerm(e.target.value)}
                         />
                         <FaSearch className="ml-[-20px] text-neutralDGray" />

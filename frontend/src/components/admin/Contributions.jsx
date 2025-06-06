@@ -76,39 +76,39 @@ const Contributions = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [employeeShare, setEmployeeShare] = useState([]);
 
-  useEffect(()=> {
+  useEffect(() => {
     fetchEmployeeData();
     fetchEmployeeContribution();
-  },[])
+  }, [])
 
   // Fetch data from backend
 
   const fetchEmployeeData = async () => {
     setLoading(true);
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee`);
-        setEmployeeData(response.data.employees);
-      } catch (error) {
-        console.error("Error fetching contributions:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee`);
+      setEmployeeData(response.data.employees);
+    } catch (error) {
+      console.error("Error fetching contributions:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const fetchEmployeeContribution = async () => {
+  const fetchEmployeeContribution = async () => {
     setLoading(true);
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/history`);
-        setEmployeeShare(response.data.payslips);
-        console.log("data of employee shares history", employeeShare);
-      } catch (error) {
-        console.error("Error fetching employee history:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/history`);
+      setEmployeeShare(response.data.payslips);
+      console.log("data of employee shares history", employeeShare);
+    } catch (error) {
+      console.error("Error fetching employee history:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
- 
+
 
   // Calculate totals from employee data
   const totalContributions = employeeData.reduce(
@@ -149,7 +149,7 @@ const Contributions = () => {
     },
   ];
 
-    const totalRow = {
+  const totalRow = {
     name: "TOTAL",
     sss: totalContributions.sss,
     philhealth: totalContributions.philhealth,
@@ -160,7 +160,14 @@ const Contributions = () => {
   };
 
   const dataWithTotal = [...employeeData];
-
+  const conditionalRowStyles = [
+    {
+      when: row => row.employmentstatus === 'RESIGNED',
+      style: {
+        display: 'none', // This will completely hide the row
+      },
+    },
+  ];
 
   // DataTable columns
   const columns = [
@@ -171,17 +178,17 @@ const Contributions = () => {
     },
     {
       name: "SSS",
-      selector: (row) => `₱${(row.sss || 0).toLocaleString()}`,
+      selector: (row) => `${(row.sss || 0).toLocaleString()}`,
       sortable: true,
     },
     {
       name: "PhilHealth",
-      selector: (row) => `₱${(row.philhealth || 0).toLocaleString()}`,
+      selector: (row) => `${(row.philhealth || 0).toLocaleString()}`,
       sortable: true,
     },
     {
       name: "Pag-IBIG",
-      selector: (row) => `₱${(row.pagibig || 0).toLocaleString()}`,
+      selector: (row) => `${(row.pagibig || 0).toLocaleString()}`,
       sortable: true,
     },
     {
@@ -282,6 +289,8 @@ const Contributions = () => {
             columns={columns}
             data={dataWithTotal}
             progressPending={loading}
+            conditionalRowStyles={conditionalRowStyles}
+
             progressComponent={
               <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
                 <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
