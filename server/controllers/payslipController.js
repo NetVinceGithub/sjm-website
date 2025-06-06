@@ -64,8 +64,8 @@ const fillTemplate = (template, data) => {
 const generatePayslipPDF = async (payslip) => {
   const browser = await puppeteer.launch({
     headless: true,
-    executablePath: process.env.NODE_ENV === 'production' 
-      ? '/usr/bin/google-chrome-stable' 
+    executablePath: process.env.NODE_ENV === 'production'
+      ? '/usr/bin/google-chrome-stable'
       : undefined,
     args: [
       '--no-sandbox',
@@ -285,7 +285,7 @@ export const sendPayslips = async (req, res) => {
                   <h2 style="color: #333; margin-top: 0;">Dear ${payslip.name},</h2>
                   
                   <p style="font-size: 16px; line-height: 1.6;">
-                    Please find your payslip attached to this email as a PDF document.
+                    Please find your Your detailed payslip is attached as a PDF file. Please download and save it for your records.
                   </p>
                   
                   <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 20px 0;">
@@ -324,8 +324,7 @@ export const sendPayslips = async (req, res) => {
                   
                   <div style="background-color: #fff3cd; padding: 15px; border-radius: 6px; border-left: 4px solid #ffc107;">
                     <p style="margin: 0; font-size: 14px;">
-                      <strong>📎 Attachment:</strong> Your detailed payslip is attached as a PDF file. 
-                      Please download and save it for your records.
+                      <strong>ⓘ Confidentiality Notice:</strong> This email and any attached documents are intended solely for the individual to whom they are addressed. If you are not the intended recipient, please notify us immediately and delete this message. Any unauthorized review, use, disclosure, or distribution is strictly prohibited.
                     </p>
                   </div>
                   
@@ -336,15 +335,13 @@ export const sendPayslips = async (req, res) => {
                 
                 <div style="background-color: #bbe394; padding: 15px; text-align: center; border-radius: 0 0 8px 8px;">
                   <p style="margin: 0; font-size: 14px;">
-                    <strong>Contact:</strong> sjmajore@gmail.com<br>
-                    8 Patron Central Plaza De Villa St., Poblacion, San Juan, Batangas
+                    St. John Majore Services Company, Inc.<br>8 Patron Central Plaza, De Villa Street, Poblacion, San Juan, Batangas<br>Email: simajore@gmail.com | Office Hours: Monday–Saturday, 8:00 AM–5:00 PM
                   </p>
                 </div>
                 
                 <div style="margin-top: 20px; padding: 15px; background-color: #f8d7da; border-radius: 6px; border-left: 4px solid #dc3545;">
                   <p style="margin: 0; font-size: 13px; color: #721c24;">
-                    <strong>Important:</strong> This is an automated email. Please do not reply to this message. 
-                    Keep this payslip for your records and tax purposes.
+                    <strong>Important:</strong> This is an automated email—please do not reply. Kindly keep this payslip for your records and tax purposes.
                   </p>
                 </div>
               </div>
