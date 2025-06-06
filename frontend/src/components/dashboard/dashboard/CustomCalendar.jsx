@@ -44,7 +44,19 @@ export default function CustomCalendar({ onDateChange }) {
 
   const handleDateChange = (value) => {
     setSelectedDate(value);
-    onDateChange(value.toLocaleDateString());
+
+    const day = value.getDate();
+    const month = value.toLocaleDateString('en-US', { month: 'long' });
+    const year = value.getFullYear();
+
+    let cutoffDate;
+    if (day <= 15) {
+      cutoffDate = `${month} 1-15, ${year}`;
+    } else {
+      cutoffDate = `${month} 16-31, ${year}`;
+    }
+
+    onDateChange(cutoffDate);
   };
 
   const getTileClassName = ({ date, view }) => {

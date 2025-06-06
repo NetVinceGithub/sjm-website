@@ -48,6 +48,7 @@ const Payslip = db.define("Payslip", {
   adjustment: DataTypes.DECIMAL(10, 2),
   gross_pay: DataTypes.DECIMAL(10, 2),
   netPay: DataTypes.DECIMAL(10, 2),
+  requestedBy: DataTypes.STRING(25),
   date: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
