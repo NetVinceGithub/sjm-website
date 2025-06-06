@@ -16,6 +16,9 @@ const Requests = () => {
   const [showChangesModal, setShowChangesModal] = useState(false);
   const [selectedChangeRequest, setSelectedChangeRequest] = useState(null);
   const [showChangeDetailModal, setShowChangeDetailModal] = useState(false);
+  const [showPayrollDetailModal, setShowPayrollDetailModal] = useState(false);
+  const [selectedPayrollRequest, setSelectedPayrollRequest] = useState(null);
+
   const [loadingChanges, setLoadingChanges] = useState(false);
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -36,7 +39,7 @@ const Requests = () => {
         setIsAuthorized(false);
         return;
       }
-  
+
       try {
         const userResponse = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/users/current`,
@@ -46,10 +49,10 @@ const Requests = () => {
             },
           }
         );
-  
+
         const currentUserRole = userResponse.data.user.role;
         setUserRole(currentUserRole);
-  
+
         if (currentUserRole === "approver") {
           setIsAuthorized(true);
         } else {
@@ -62,7 +65,7 @@ const Requests = () => {
         setLoading(false);
       }
     };
-  
+
     checkUserRole();
   }, []);
 
@@ -86,7 +89,7 @@ const Requests = () => {
       // You may need to create this endpoint to get all unique batch IDs
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/batches`);
       setAvailableBatches(response.data);
-      
+
       // Auto-select the latest batch if available
       if (response.data.length > 0) {
         setSelectedBatchId(response.data[0].batchId);
@@ -101,7 +104,7 @@ const Requests = () => {
   useEffect(() => {
     const fetchRequests = async () => {
       if (!selectedBatchId) return; // Don't fetch if no batch is selected
-      
+
       try {
         setLoading(true);
         // Updated to use batchId parameter
@@ -161,6 +164,17 @@ const Requests = () => {
     }));
   };
 
+  const getPayrollDetails = (payroll) => {
+    if (!payroll || typeof payroll !== 'object') return [];
+
+    // Convert changes object to array of changed fields
+    return Object.entries(payroll).map(([field, value]) => ({
+      field,
+      value,
+      displayName: formatFieldName(field)
+    }));
+  };
+
   const handleApprove = async () => {
     try {
       setLoadingPayroll(true);
@@ -171,8 +185,8 @@ const Requests = () => {
 
       if (response.data.success) {
         toast.success(
-          <div style={{ fontSize: '0.9rem'}}>
-           Payroll approved successfully.
+          <div style={{ fontSize: '0.9rem' }}>
+            Payroll approved successfully.
           </div>,
           {
             autoClose: 3000,
@@ -185,8 +199,8 @@ const Requests = () => {
         );
       } else {
         toast.error(
-          <div style={{ fontSize: '0.9rem'}}>
-           Failed to approve payroll.
+          <div style={{ fontSize: '0.9rem' }}>
+            Failed to approve payroll.
           </div>,
           {
             autoClose: 3000,
@@ -202,8 +216,8 @@ const Requests = () => {
     } catch (error) {
       console.error("Error approving payroll:", error);
       toast.error(
-        <div style={{ fontSize: '0.9rem'}}>
-         Error approving payroll.
+        <div style={{ fontSize: '0.9rem' }}>
+          Error approving payroll.
         </div>,
         {
           autoClose: 3000,
@@ -235,7 +249,7 @@ const Requests = () => {
     } catch (error) {
       console.error("Error deleting payroll requests:", error);
       toast.error(
-        <div style={{ fontSize: '0.9rem'}}>
+        <div style={{ fontSize: '0.9rem' }}>
           Failed to delete payslips.
         </div>,
         {
@@ -304,8 +318,8 @@ const Requests = () => {
       if (response.data.success) {
         setChangesRequests(prev => prev.filter(req => req.id !== requestId));
         toast.success(
-          <div style={{ fontSize: '0.9rem'}}>
-           Change request approved successfully.
+          <div style={{ fontSize: '0.9rem' }}>
+            Change request approved successfully.
           </div>,
           {
             autoClose: 3000,
@@ -322,8 +336,8 @@ const Requests = () => {
     } catch (error) {
       console.error("Error approving individual change:", error);
       toast.error(
-        <div style={{ fontSize: '0.9rem'}}>
-         Error approving change request.
+        <div style={{ fontSize: '0.9rem' }}>
+          Error approving change request.
         </div>,
         {
           autoClose: 3000,
@@ -346,8 +360,8 @@ const Requests = () => {
       if (response.data.success) {
         setChangesRequests(prev => prev.filter(req => req.id !== requestId));
         toast.success(
-          <div style={{ fontSize: '0.9rem'}}>
-           Change request rejected successfully.
+          <div style={{ fontSize: '0.9rem' }}>
+            Change request rejected successfully.
           </div>,
           {
             autoClose: 3000,
@@ -364,8 +378,8 @@ const Requests = () => {
     } catch (error) {
       console.error("Error rejecting individual change:", error);
       toast.error(
-        <div style={{ fontSize: '0.9rem'}}>
-         Error rejecting change request.
+        <div style={{ fontSize: '0.9rem' }}>
+          Error rejecting change request.
         </div>,
         {
           autoClose: 3000,
@@ -410,7 +424,7 @@ const Requests = () => {
       </div>
     );
   }
-  
+
   if (!isAuthorized) {
     return (
       <div className="p-6 h-[calc(100vh-150px)] flex items-center justify-center">
@@ -424,7 +438,7 @@ const Requests = () => {
   }
 
 
-return (
+  return (
     <div className="flex flex-row gap-8 p-4 overflow-auto h-[calc(100vh-150px)]">
       {/* Payroll Requests Section */}
       <section className="flex-1 flex flex-col rounded-lg border p-2">
@@ -433,7 +447,7 @@ return (
           Payroll Requests
         </h2>
 
-        
+
 
         {message && <p className="text-green-500">{message}</p>}
 
@@ -464,7 +478,7 @@ return (
                   </span>
                 </p>
                 <hr className="my-2" />
-                <div className="flex gap-2 mt-2">
+                {/* { <div className="flex gap-2 mt-2">
                   <button
                     onClick={handleApprove}
                     className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-900"
@@ -477,72 +491,93 @@ return (
                   >
                     Reject All Batches
                   </button>
-                </div>
+                </div> */}
               </div>
 
-              {/* Individual Batch Details */}
-              {batches.map((batch, batchIndex) => {
-                const batchRequests = requests.filter(req => req.batchId === batch.batchId);
-                const batchTotalNetPay = batchRequests.reduce((sum, req) => sum + (req.net_pay || req.netPay || 0), 0);
-                
+              {batches.map((batch) => {
+                const batchTotalNetPay = batch.payslips.reduce((sum, slip) => sum + (slip.netPay || slip.net_pay || 0), 0);
+
                 return (
-                  <div key={batch.batchId} className="border p-3 rounded shadow-md">
+                  <div key={batch.batchId} className="border p-3 rounded shadow-md mb-4">
                     <p className="text-md mb-1 italic">
-                      Batch Payslips: <span className="font-normal text-red-500">{batchRequests.length}</span>
+                      Batch Payslips: <span className="font-normal text-red-500">{batch.payslips.length}</span>
                     </p>
+
                     <div className="mb-2">
                       <hr className="mb-2 mt-1" />
-                      <p><strong>Batch ID:</strong> {batch.batchId}</p>
-                      <p><strong>Batch Amount:</strong> ₱ {batchTotalNetPay.toLocaleString()}</p>
-                      <p>
-                        <strong>Date Requested:</strong>{" "}
-                        {batchRequests.length > 0 ? new Date(batchRequests[0]?.date).toLocaleDateString() : 'N/A'}
+                      <p><strong>Batch ID: SJM</strong> {batch.batchId}</p>
+                      <p><strong>Batch Amount:</strong> ₱ {batchTotalNetPay.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                      <p><strong>Cutoff Range:</strong> {batch.cutoffRange || 'N/A'}</p>
+                      <p><strong>Status Summary:</strong> {batch.uniqueStatuses.join(', ')}</p>
+                      <p><strong>Date Requested:</strong>{" "}
+                        {batch.payslips.length > 0
+                          ? new Date(batch.payslips[0].date).toLocaleDateString()
+                          : 'N/A'}
                       </p>
 
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() => handleApprove(batch.batchId)}
+                          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-900"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => setShowModal(batch.batchId)}
+                          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-900"
+                        >
+                          Reject
+                        </button>
+                        <div className="flex gap-1 items-center border h-8 w-32 rounded justify-end">
+                          <button
+                            onClick={() => {
+                              setSelectedPayrollRequest(batch.batchId);
+                              setShowPayrollDetailModal(true);
+                            }}
+                            className="p-2 text-neutralDGray hover:text-blue-600 rounded flex items-center justify-center"
+                            title="View Details"
+                          >
+                            <FaEye size={14} />
+                          </button>
+                          {batch.status === 'Pending' && (
+                            <>
+                              <button
+                                onClick={() => handleApproveIndividualChange(batch.id)}
+                                className="p-2 text-neutralDGray hover:text-green-600 rounded flex items-center justify-center"
+                                title="Approve"
+                              >
+                                <FaCheck size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleRejectIndividualChange(batch.id)}
+                                className="p-2 text-neutralDGray hover:text-red-100 rounded flex items-center justify-center"
+                                title="Reject"
+                              >
+                                <FaTimes size={14} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
                       {/* Individual Payslips Display */}
-                      {batchRequests.length > 0 && (
-                        <div className="mt-4 mb-2">
-                          <hr className="mb-2" />
-                          <p className="text-sm font-semibold mb-2">Individual Payslips:</p>
-                          <div className="max-h-64 overflow-y-auto">
-                            {batchRequests.map((payslip, index) => (
-                              <div key={index} className="border p-2 rounded shadow-sm bg-gray-50 mb-2">
-                                <div className="flex justify-between items-start">
-                                  <div className="flex-1">
-                                    <p className="font-semibold text-sm">
-                                      {payslip.employee_name || payslip.name || `Employee ${index + 1}`}
-                                    </p>
-                                    <p className="text-xs text-gray-600">
-                                      Employee ID: {payslip.employee_id || payslip.employeeId || 'N/A'}
-                                    </p>
-                                    <p className="text-xs text-gray-600">
-                                      Department: {payslip.department || 'N/A'}
-                                    </p>
-                                    <p className="text-xs text-gray-600">
-                                      Position: {payslip.position || 'N/A'}
-                                    </p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-sm font-semibold text-green-600">
-                                      ₱ {(payslip.net_pay || payslip.netPay || 0).toLocaleString()}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                      Gross: ₱ {(payslip.gross_pay || payslip.grossPay || 0).toLocaleString()}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                      Deductions: ₱ {(payslip.total_deductions || payslip.totalDeductions || 0).toLocaleString()}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                      {batch.payslips.length > 0 && (
+                        <div className="mt-4 mb-2 border-t pt-3 space-y-2">
+                          {batch.payslips.map((slip) => (
+                            <div key={slip.id} className="border p-2 rounded bg-gray-50 shadow-sm">
+                              <p><strong>Name:</strong> {slip.name}</p>
+                              <p><strong>Cutoff Date:</strong> {slip.cutoffDate}</p>
+                              <p><strong>Status:</strong> <span className="capitalize">{slip.status}</span></p>
+                              <p><strong>Net Pay:</strong> ₱ {Number(slip.netPay || slip.net_pay).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
                   </div>
                 );
               })}
+
             </div>
           ) : (
             <p className="text-gray-500">No pending payroll requests.</p>
@@ -647,12 +682,11 @@ return (
                           </p>
                           <p className="text-xs -mt-3 text-gray-500">
                             Status: <span
-                              className={`font-semibold ${
-                                request.status === 'Pending'
-                                  ? 'text-orange-500'
-                                  : request.status === 'Rejected'
-                                    ? 'text-red-600'
-                                    : 'text-green-600'
+                              className={`font-semibold ${request.status === 'Pending'
+                                ? 'text-orange-500'
+                                : request.status === 'Rejected'
+                                  ? 'text-red-600'
+                                  : 'text-green-600'
                                 }`}
                             >
                               {request.status}
@@ -717,8 +751,8 @@ return (
               </div>
             </div>
           ) : (
-                <p className="text-gray-500">No pending change requests.</p>
-              )}
+            <p className="text-gray-500">No pending change requests.</p>
+          )}
 
           {/* Confirmation Modal for Rejecting All Changes */}
           {showChangesModal && (
@@ -762,12 +796,11 @@ return (
                     <p className="text-sm">
                       Status:{" "}
                       <span
-                        className={`font-semibold ${
-                          selectedChangeRequest.status === "Pending"
-                            ? "text-orange-500"
-                            : selectedChangeRequest.status === "Rejected"
-                              ? "text-red-600"
-                              : "text-green-600"
+                        className={`font-semibold ${selectedChangeRequest.status === "Pending"
+                          ? "text-orange-500"
+                          : selectedChangeRequest.status === "Rejected"
+                            ? "text-red-600"
+                            : "text-green-600"
                           }`}
                       >
                         {selectedChangeRequest.status}
@@ -776,7 +809,7 @@ return (
                   </div>
                   <div>
                     <div className="bg-gray-100 p-2 rounded space-y-2">
-                    <p className="text-sm italic mb-1 ">Requested Changes:</p>
+                      <p className="text-sm italic mb-1 ">Requested Changes:</p>
                       {getChangedFields(selectedChangeRequest.changes).map((change, index) => (
                         <div key={index} className="text-sm">
                           <p>
@@ -785,13 +818,84 @@ return (
                           </p>
                         </div>
                       ))}
-                       <p className="text-sm italic mb-1 ">Reason for Changes: </p>
-                       <p className="text-sm">{selectedChangeRequest.reasons}</p>
+                      <p className="text-sm italic mb-1 ">Reason for Changes: </p>
+                      <p className="text-sm">{selectedChangeRequest.reasons}</p>
 
                     </div>
                   </div>
                   <div>
                     <p className="text-sm">Created at: {new Date(selectedChangeRequest.createdAt).toLocaleString()}</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 mt-6">
+                  <button
+                    onClick={() => setShowChangeDetailModal(false)}
+                    className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-gray-400 hover:text-white transition-all"
+                  >
+                    Close
+                  </button>
+
+                  {selectedChangeRequest.status === "Pending" && (
+                    <>
+                      <button
+                        onClick={() => handleApproveIndividualChange(selectedChangeRequest.id)}
+                        className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleRejectIndividualChange(selectedChangeRequest.id)}
+                        className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+
+
+
+          {/* Payroll Detail Modal */}
+          {showPayrollDetailModal && selectedPayrollRequest && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-96 max-w-lg max-h-[80vh] overflow-y-auto">
+                <h3 className="text-[18px] mb-3">Payroll Request Details</h3>
+                <hr />
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm">Request ID: {selectedPayrollRequest.batchId}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm">Requested By:Trial muna</p>
+                  </div>
+                  <div>
+                    <p className="text-sm">
+                      Status:{" "}
+                      <span
+                        className={`font-semibold ${selectedPayrollRequest.status === "Pending"
+                          ? "text-orange-500"
+                          : selectedPayrollRequest.status === "Rejected"
+                            ? "text-red-600"
+                            : "text-green-600"
+                          }`}
+                      >
+                        {selectedPayrollRequest.status}
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <div className="bg-gray-100 p-2 rounded space-y-2">
+
+
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm">Created at: {selectedPayrollRequest.cutoffDate}</p>
                   </div>
                 </div>
 
@@ -804,17 +908,17 @@ return (
                     Close
                   </button>
 
-                  {selectedChangeRequest.status === "Pending" && (
+                  {selectedPayrollRequest.status === "Pending" && (
                     <>
                       <button
-                        onClick={() => handleApproveIndividualChange(selectedChangeRequest.id)}
+                        onClick={() => handleApproveIndividualChange(selectedPayrollRequest.id)}
                         className="flex items-center justify-center px-4 py-2 w-32 h-8 text-sm text-center bg-green-600 text-white rounded hover:bg-neutralDGray"
 
                       >
                         Approve
                       </button>
                       <button
-                        onClick={() => handleRejectIndividualChange(selectedChangeRequest.id)}
+                        onClick={() => handleRejectIndividualChange(selectedPayrollRequest.id)}
                         className="flex items-center justify-center px-4 py-2 w-32 h-8 text-sm text-center bg-red-600 text-white rounded hover:bg-neutralDGray"
 
                       >

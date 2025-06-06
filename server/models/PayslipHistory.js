@@ -45,6 +45,10 @@ const PayslipHistory = sequelize.define(
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW
     },
+    batchId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  }
   },
   {
     tableName: "paysliphistories", // Explicitly define table name

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Payslip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body>
+    <div class="p-3">
+        <p>Payslip No.:</p>
+        <table class="border-collapse text-xs w-1/2 font-sans text-center">
+            <tr>
+                <td class="border h-8 w-24 border-[#AA396F]">Ecode</td>
+                <td class="border h-8 w- border-[#AA396F]">Employee Name</td>
+                <td class="border h-8 w-auto border-[#AA396F]">Project Site</td>
+                <td class="border h-8 w-auto border-[#AA396F]">Rate</td>
+            </tr>
+            <tr>
+                <td class="border h-8 w-auto border-[#AA396F]">M0007</td>
+                <td class="border h-8 w-auto border-[#AA396F]">PINEDA, JOHN PATRICK</td>
+                <td class="border h-8 w-auto border-[#AA396F]">MAIN OFFICE</td>
+                <td class="border h-8 w-auto border-[#AA396F]">520</td>
+            </tr>
+        </table>
+        <table class="border-collapse text-xs text-center w-1/2 font-sans">
+            <tr>
+                <td colspan="2" class="border h-8 w-80 border-[#AA396F]">Position</td>
+                <td colspan="2" class="border h-8 w-80 border-[#AA396F]">Cutoff Date</td>
+            </tr>
+            <tr>
+                <td colspan="2" class="border h-8 border-[#AA396F]"></td>
+                <td colspan="2" class="border h-8 border-[#AA396F]"></td>
+            </tr>
+        </table>
+        <table class="border-collapse text-xs w-1/2 font-sans">
+            <tr>
+                <td class="border h-8 border-[#AA396F] px-2">Earnings</td>
+                <td class="border h-8 border-[#AA396F] px-2">Figures</td>
+                <td class="border h-8 border-[#AA396F] px-2">Deductions</td>
+                <td class="border h-8 border-[#AA396F] px-2">Figures</td>
+            </tr>
+            <tr>
+                <td class="border h-8  border-b-0 border-[#AA396F]">Basic Pay</td>
+                <td class="border h-8 border-[#AA396F]"></td>
+                <td rowspan="2" class="border h-8 border-[#AA396F] w-48 p-0">
+                    <div
+                        class="text-xs bg-[#AA396F] h-fit flex justify-center items-center rounded-lg text-center font-bold">
+                        <p>GOVERNMENT CONTRIBUTION</p>
+                    </div>
+                </td>
+                <td class="border border-[#AA396F] h-8"></td>
+            </tr>
+            <tr>
+                <td class="border border-t-0  border-b-0  border-[#AA396F] h-8">No. of Days</td>
+                <td class="border  border-b-0 border-[#AA396F] h-8"></td>
+                <td class="border  border-b-0 border-[#AA396F] h-8"></td>
+            </tr>
+            <tr>
+                <td class="border  border-t-0  border-b-0  border-[#AA396F] h-8">Overtime Pay</td>
+                <td class="border border-[#AA396F] h-8"></td>
+                <td class="border border-[#AA396F] h-8">SSS</td>
+                <td class="border border-[#AA396F] h-8"></td>
+            </tr>
+            <tr>
+                <td class="border  border-t-0  border-b-0  border-[#AA396F] h-8">Overtime Hours</td>
+                <td class="border border-[#AA396F] h-8"></td>
+                <td class="border border-[#AA396F] h-8">PHIC</td>
+                <td class="border border-[#AA396F] h-8"></td>
+            </tr>
+            <tr>
+                <td class="border  border-t-0  border-b-0  border-[#AA396F] h-8">Holiday Pay</td>
+                <td class="border border-[#AA396F] h-8"></td>
+                <td class="border border-[#AA396F] h-8">HDMF</td>
+                <td class="border border-[#AA396F] h-8"></td>
+            </tr>
+            <tr>
+                <td class="border  border-t-0  border-b-0  border-[#AA396F] h-8">Night Differential</td>
+                <td class="border border-[#AA396F] h-8"></td>
+                <td class="border border-[#AA396F] h-8">Cash Advance/Loan</td>
+                <td class="border border-[#AA396F] h-8"></td>
+            </tr>
+            <tr>
+                <td class="border  border-t-0  border-b-0  border-[#AA396F] h-8">Allowance</td>
+                <td class="border border-[#AA396F] h-8"></td>
+                <td class="border border-[#AA396F] h-8">Tardiness</td>
+                <td class="border border-[#AA396F] h-8"></td>
+            </tr>
+            <tr>
+                <td class="border border-[#AA396F] h-8"></td>
+                <td class="border border-[#AA396F] h-8"></td>
+                <td class="border border-[#AA396F] h-8">Other Deductions</td>
+                <td class="border border-[#AA396F] h-8"></td>
+            </tr>
+            <tr>
+                <td class="border border-[#AA396F] h-8"></td>
+                <td class="border border-[#AA396F] h-8"></td>
+                <td class="border border-[#AA396F] h-8">Total Deductions</td>
+                <td class="border border-[#AA396F] h-8"></td>
+            </tr>
+            <tr>
+                <td class="border border-[#AA396F] h-8"></td>
+                <td class="border border-[#AA396F] h-8"></td>
+                <td class="border border-[#AA396F] h-8">Adjustments</td>
+                <td class="border border-[#AA396F] h-8"></td>
+            </tr>
+        </table>
+        <table class="border-collapse text-xs w-1/2 font-sans">
+            <tr>
+                <td colspan="2" class="border border-[#AA396F] h-8 w-80 text-center">Netpay</td>
+                <td colspan="2" class="border border-[#AA396F] h-8 w-80 text-center">Amount</td>
+            </tr>
+        </table>
+        <table class="border-collapse text-xs w-1/2 font-sans">
+             <tr>
+                <td colspan="2" class="border-2 border-[#AA396F] h-8 w-80">Netpay:</td>
+                <td colspan="2" class="border-2 border-[#AA396F] h-8 w-80"></td>
+            </tr>
+        </table>
+    </div>
+</body>
+
+</html>
