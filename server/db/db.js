@@ -6,19 +6,44 @@ dotenv.config();
 const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
-  process.env.DB_PASSWORD, // ✅ this should match your .env
+  process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
     port: process.env.DB_PORT || 3306,
     dialect: process.env.DB_DIALECT || "mysql",
-    logging: false,
+    dialectOptions: {
+      connectTimeout: 60000,
+      acquireTimeout: 60000,
+      timeout: 60000,
+      // Add SSL if your hosting requires it
+      ssl: process.env.NODE_ENV === 'production' ? {
+        rejectUnauthorized: false
+      } : false
+    },
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    },
+    retry: {
+      match: [
+        /ETIMEDOUT/,
+        /EHOSTUNREACH/,
+        /ECONNRESET/,
+        /ECONNREFUSED/,
+        /ETIMEDOUT/,
+        /ESOCKETTIMEDOUT/,
+        /EHOSTUNREACH/,
+        /EPIPE/,
+        /EAI_AGAIN/,
+        /ER_ACCESS_DENIED_ERROR/
+      ],
+      max: 3
+    },
+    logging: process.env.NODE_ENV === 'development' ? console.log : false
   }
 );
-
-
-
-
-export default sequelize;
 
 const connectToDatabase = async () => {
   try {
@@ -26,21 +51,20 @@ const connectToDatabase = async () => {
     console.log("✅ MySQL Database Connected");
   } catch (error) {
     console.error("❌ Database Connection Failed:", error);
-    process.exit(1); // Exit process if DB connection fails
+    
+    // More detailed error logging for debugging
+    if (error.original) {
+      console.error("Original error:", error.original.message);
+      console.error("Error code:", error.original.code);
+      console.error("SQL State:", error.original.sqlState);
+    }
+    
+    // Don't exit in production, let the app continue running
+    if (process.env.NODE_ENV !== 'production') {
+      process.exit(1);
+    }
   }
 };
 
-// Remove this block or replace with a proper CREATE DATABASE command only if needed
-// Sequelize expects the database to already exist
-// You can't run CREATE DATABASE IF NOT EXISTS in most shared hosting environments
-/*
-sequelize
-  .query(CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME}\;`)
-  .then(() => {
-    console.log("✅ Database checked/created successfully.");
-  })
-  .catch((err) => console.error("❌ Error creating database:", err));
-*/
-
-
 export { sequelize, connectToDatabase };
+export default sequelize;
