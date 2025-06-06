@@ -4,11 +4,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "postinstall": "echo 'Skipping puppeteer browser download'",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js",
+    "start": "nodemon --env-file=.env index.js",
     "build": "cd frontend && npm install && npm run build",
-    "postinstall": "npx puppeteer browsers install chrome"
+    "postinstall": "echo 'Skipping puppeteer browser download in production'"
   },
   "keywords": [],
   "author": "",
