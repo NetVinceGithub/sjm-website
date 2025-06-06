@@ -332,7 +332,7 @@ export const getEmployeeStatus = async (req, res) => {
     console.log("Fetching all employees...");
 
     const employees = await sequelize.query(
-      "SELECT * FROM employees", // ✅ Remove WHERE condition
+      "SELECT * FROM Employees", // ✅ Remove WHERE condition
       { type: QueryTypes.SELECT }
     );
 
