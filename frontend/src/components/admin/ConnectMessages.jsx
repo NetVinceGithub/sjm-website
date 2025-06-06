@@ -157,6 +157,12 @@ const ConnectMessages = () => {
           ]}
           data={messages}
           progressPending={loading}
+          progressComponent={
+            <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
+              <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
+              Loading data...
+            </div>
+          }
           customStyles={customStyles}
           pagination
           responsive
@@ -168,7 +174,7 @@ const ConnectMessages = () => {
         <Modal.Header className="py-2 px-3 text-[12px]" closeButton>
           <Modal.Title as="h6" className="text-lg">
             Inquiry Message
-        </Modal.Title>
+          </Modal.Title>
         </Modal.Header>
 
         <Modal.Body className="pt-3 pb-4 px-4">
@@ -178,24 +184,24 @@ const ConnectMessages = () => {
               <div>
                 <p className="text-left text-base mb-4">Sender Details:</p>
                 <p className="-mt-5 text-sm ml-5 text-neutralDGray">
-                  <span >Name:</span> {selectedMessage ?.firstname}{" "}
-                  {selectedMessage ?.surname}
+                  <span >Name:</span> {selectedMessage?.firstname}{" "}
+                  {selectedMessage?.surname}
                 </p>
                 <p className="-mt-4 text-sm ml-5 text-neutralDGray">
-                  <span >Sender Type:</span> {selectedMessage ?.type}
+                  <span >Sender Type:</span> {selectedMessage?.type}
                 </p>
                 <p className="-mt-4 text-sm ml-5 text-neutralDGray">
-                  <span >Email:</span> {selectedMessage ?.email}
+                  <span >Email:</span> {selectedMessage?.email}
                 </p>
                 <p className="-mt-4 text-sm ml-5 text-neutralDGray">
-                  <span >Phone:</span> {selectedMessage ?.phone}
+                  <span >Phone:</span> {selectedMessage?.phone}
                 </p>
                 <p className="-mt-4 text-sm ml-5 text-neutralDGray">
-                  <span >Inquired About:</span> {selectedMessage ?.services}
+                  <span >Inquired About:</span> {selectedMessage?.services}
                 </p>
                 <hr />
                 <p className="text-justify ml-5 mt-3 text-neutralDGray text-sm whitespace-pre-wrap">
-                  {selectedMessage ?.message || "No message available"}
+                  {selectedMessage?.message || "No message available"}
                 </p>
               </div>
             </div>

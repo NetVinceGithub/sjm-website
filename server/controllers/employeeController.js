@@ -7,6 +7,8 @@ import PayrollChangeRequest from "../models/PayrollChangeRequest.js";
 
 import sequelize from "../db/db.js";
 import { QueryTypes } from "sequelize";
+import nodemailer from 'nodemailer';
+import User from "../models/User.js";
 
 dotenv.config();
 
@@ -194,6 +196,27 @@ export const updatePayrollInformation = async (req, res) => {
   }
 };
 
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,  // <-- add this line
+  },
+});
+
+
+// Verify  connection once
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ SMTP Connection Failed:", error);
+  } else {
+    console.log("✅ SMTP Server Ready!");
+  }
+});
+
 export const requestPayrollChange = async (req, res) => {
   const { payroll_info_id, changes, reason, requested_by } = req.body;
 
@@ -211,12 +234,44 @@ export const requestPayrollChange = async (req, res) => {
       requested_by
     });
 
-    res.status(200).json({ success: true, message: "Request submitted" });
+    // Get all users with the role 'approver'
+    const approvers = await User.findAll({ where: { role: 'approver', isBlocked: false } });
+
+    const successfulEmails = [];
+
+    for (const approver of approvers) {
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: approver.email,
+        subject: `New Payroll Change Request Submitted`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h3>Hello ${approver.name},</h3>
+            <p>A new payroll change request by ${requested_by} is awaiting your review.</p>
+            <p><strong>Reason:</strong> ${reason || 'No reason provided'}</p>
+            <p>Please login to the payroll system to review and take appropriate action.</p>
+            <br />
+            <p>best regards,<br />SJM Payroll System</p>
+          </div>
+        `
+      };
+
+      try {
+        await transporter.sendMail(mailOptions);
+        console.log(`Notification sent to ${approver.email}`);
+        successfulEmails.push(approver.email);
+      } catch (emailError) {
+        console.error(`Failed to send email to ${approver.email}:`, emailError);
+      }
+    }
+
+    res.status(200).json({ success: true, message: "Request submitted", notified: successfulEmails });
   } catch (error) {
     console.error("Error saving payroll change request:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+
 
 export const reviewPayrollChange = async (req, res) => {
   console.log("💡 Hit reviewPayrollChange route");

@@ -86,78 +86,85 @@ const AttendanceForComputation = () => {
         <div className="mt-4 overflow-x-auto">
           <div className="">
             <div className=" overflow-y-auto text-neutralDGray border rounded-md">
-              <p className="italic font-poppins text-neutralDGray p-2">* This is the summary of attendance, that contains useful info for payroll generation.</p>
-              <table
-                className="w-[70rem] mb-1 mt-2 border-collapse overflow-auto rounded-lg"
-                border="1"
-                cellPadding="5"
-                cellSpacing="0"
-              >
-                <thead>
-                  <tr>
-                    <th className="border text-center px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg">
-                      Ecode
-                    </th>
-                    <th className="border text-center px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg">
-                      No. of Days Present
-                    </th>
-                    <th className="border text-center  px-4 py-2">
-                      Total Tardiness
-                    </th>
-                    <th className="border text-center  px-4 py-2">
-                      Total Hours
-                    </th>
-                    <th className="border text-center  px-4 py-2">
-                      Total Overtime
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attendanceSummary?.length > 0 ? (
-                    attendanceSummary.map((record) => (
-                      <tr key={record.id}>
-                        <td className="border text-center  px-4 py-2">
-                          {record.ecode}
-                        </td>
-                        <td className="border text-center  px-4 py-2">
-                          {record.daysPresent}
-                        </td>
-                        <td className="border text-center  px-4 py-2">
-                          {record.totalTardiness}
-                        </td>
-                        <td className="border text-center  px-4 py-2">
-                          {record.totalHours || "N/A"}
-                        </td>
-                        <td className="border text-center  px-4 py-2">
-                          {record.totalOvertime || "N/A"}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
+              <p className="italic text-xs font-poppins text-neutralDGray p-2">* This is the summary of attendance, that contains useful info for payroll generation.</p>
+              <div className="flex justify-center">
+                <table
+                  className="w-[70rem] mb-1 mt-2 border-collapse overflow-auto  rounded-lg"
+                  border="1"
+                  cellPadding="5"
+                  cellSpacing="0"
+                >
+                  <thead>
                     <tr>
-                      <td colSpan="4">No attendance summary found</td>
+                      <th className="border text-center px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg">
+                        Ecode
+                      </th>
+                      <th className="border text-center px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg">
+                        Date
+                      </th>
+                      <th className="border text-center  px-4 py-2">
+                        Duty End
+                      </th>
+                      <th className="border text-center  px-4 py-2">
+                        Duty Start
+                      </th>
+                      <th className="border text-center  px-4 py-2">
+                        Punch In
+                      </th>
+                      <th className="border text-center  px-4 py-2">
+                        Punch Out
+                      </th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-
+                  </thead>
+                  <tbody>
+                    {attendanceData?.length > 0 ? (
+                      attendanceData.map((record) => (
+                        <tr key={record.id}>
+                          <td className="border text-center  px-4 py-2">
+                            {record.ecode}
+                          </td>
+                          <td className="border text-center  px-4 py-2">
+                            {record.date}
+                          </td>
+                          <td className="border text-center  px-4 py-2">
+                            {record.dutyEnd}
+                          </td>
+                          <td className="border text-center  px-4 py-2">
+                            {record.dutyStart}
+                          </td>
+                          <td className="border text-center  px-4 py-2">
+                            {record.punchIn}
+                          </td>
+                          <td className="border text-center  px-4 py-2">
+                            {record.punchOut}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="4">No attendance summary found</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
               <div className="flex justify-end gap-2 mb-3 mr-4">
                 <button
                   onClick={() => navigate("/admin-dashboard/payroll-summary")}
-                  className="mt-4 h-auto px-3 py-2 border text-neutralDGray rounded hover:bg-neutralSilver"
+                  className="mt-4 h-fit w-fit px-3 py-2 border text-xs text-neutralDGray rounded hover:bg-neutralSilver"
                 >
                   Generate Payroll
                 </button>
 
                 <button
                   onClick={() => navigate("/admin-dashboard/attendance")}
-                  className="mt-4 h-auto px-3 py-2 border text-neutralDGray rounded  hover:bg-neutralSilver"
+                  className="mt-4 h-fit px-3 py-2 border fit w-fit text-xs text-neutralDGray rounded  hover:bg-neutralSilver"
                 >
                   Add Attendance
                 </button>
 
                 <button
-                  className="mt-4 h-auto px-3 py-2 border text-neutralDGray rounded  hover:bg-neutralSilver"
+                  className="mt-4 h-fit w-fit text-xs px-3 py-2 border text-neutralDGray rounded  hover:bg-neutralSilver"
                   onClick={() => setIsModalOpen(true)} // Open modal
                 >
                   Delete Attendance

@@ -1,80 +1,83 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../db/db.js";
-import moment from "moment"; // Import moment.js for date formatting
+import moment from "moment";
 
-const Attendance = sequelize.define("Attendance", {
+const Attendance = sequelize.define('Attendance', {
   id: {
     type: DataTypes.INTEGER,
-    autoIncrement: true,
     primaryKey: true,
+    autoIncrement: true,
   },
   ecode: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.STRING(100),
     allowNull: false,
   },
-  ea_txndte: {
+  date: {
     type: DataTypes.DATEONLY,
     allowNull: false,
-    set(value) {
-      this.setDataValue("ea_txndte", moment(value, ["DD-MMM-YY", "YYYY-MM-DD"]).format("YYYY-MM-DD"));
-    },
   },
-  ea_day: {
-    type: DataTypes.VIRTUAL,
-    get() {
-      return moment(this.getDataValue("ea_txndte")).format("DD");
-    },
+  dutyStart: {
+    type: DataTypes.TIME,
+    allowNull: true,
+    field: 'duty_start'
   },
-  ea_month: {
-    type: DataTypes.VIRTUAL,
-    get() {
-      return moment(this.getDataValue("ea_txndte")).format("MM");
-    },
+  dutyEnd: {
+    type: DataTypes.TIME,
+    allowNull: true,
+    field: 'duty_end'
   },
-  ea_year: {
-    type: DataTypes.VIRTUAL,
-    get() {
-      return moment(this.getDataValue("ea_txndte")).format("YYYY");
-    },
+  punchIn: {
+    type: DataTypes.TIME,
+    allowNull: true,
+    field: 'punch_in'
   },
-  schedin: DataTypes.STRING(10),
-  schedout: DataTypes.STRING(10),
-  timein: DataTypes.STRING(10),
-  timeout2: DataTypes.STRING(10),
-  tardiness: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
+  punchOut: {
+    type: DataTypes.TIME,
+    allowNull: true,
+    field: 'punch_out'
   },
-  total_hours: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: false,
-    defaultValue: 0.0,
+  workTime: {
+    type: DataTypes.TIME,
+    allowNull: true,
+    field: 'work_time'
+  },
+  lateTime: {
+    type: DataTypes.TIME,
+    allowNull: true,
+    field: 'late_time'
   },
   overtime: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: false,
-    defaultValue: 0.0,
+    type: DataTypes.TIME,
+    allowNull: true,
+    field: 'overtime'
   },
-  daysPresent: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0, // Tracks total attendance days
+  absentTime: {
+    type: DataTypes.TIME,
+    allowNull: true,
+    field: 'absent_time'
   },
-  regularDays: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0, // Tracks number of regular working days
+  isAbsent: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    field: 'is_absent'
   },
-  holidayDays: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0, // Tracks number of holidays
+  status: {
+    type: DataTypes.ENUM('present', 'absent', 'late', 'holiday'),
+    defaultValue: 'present'
   },
 }, {
-  tableName: "attendances",
-  timestamps: false,
-  freezeTableName: true,
+  tableName: 'attendance',
+  timestamps: true,
+  // Remove the unique index to allow duplicates
+  indexes: [
+    // You can add non-unique indexes for performance if needed
+    {
+      fields: ['ecode']
+    },
+    {
+      fields: ['date']
+    }
+  ]
 });
 
 export default Attendance;

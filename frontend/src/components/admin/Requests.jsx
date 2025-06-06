@@ -16,6 +16,10 @@ const Requests = () => {
   const [showChangesModal, setShowChangesModal] = useState(false);
   const [selectedChangeRequest, setSelectedChangeRequest] = useState(null);
   const [showChangeDetailModal, setShowChangeDetailModal] = useState(false);
+  const [payrollRequests, setPayrollRequests] = useState([]);
+  const [showPayrollDetailModal, setShowPayrollDetailModal] = useState(false);
+  const [selectedPayrollRequest, setSelectedPayrollRequest] = useState(null);
+
   const [loadingChanges, setLoadingChanges] = useState(false);
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -25,31 +29,33 @@ const Requests = () => {
   const [userRole, setUserRole] = useState(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
+  // Add state for batch selection
+  const [batches, setAvailableBatches] = useState([]);
+  const [selectedBatchId, setSelectedBatchId] = useState('');
 
   useEffect(() => {
     const checkUserRole = async () => {
-      const token = localStorage.getItem("token"); // Make sure token is stored in localStorage
+      const token = localStorage.getItem("token");
       if (!token) {
         setIsAuthorized(false);
         return;
       }
-  
+
       try {
         const userResponse = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/users/current`,
           {
             headers: {
-              Authorization: `Bearer ${token}`, // 🔥 This is crucial
+              Authorization: `Bearer ${token}`,
             },
           }
         );
-  
+
         const currentUserRole = userResponse.data.user.role;
         setUserRole(currentUserRole);
-  
+
         if (currentUserRole === "approver") {
           setIsAuthorized(true);
-          // Fetch users here if needed
         } else {
           setIsAuthorized(false);
         }
@@ -60,7 +66,7 @@ const Requests = () => {
         setLoading(false);
       }
     };
-  
+
     checkUserRole();
   }, []);
 
@@ -68,6 +74,7 @@ const Requests = () => {
     if (isAuthorized) {
       notifyChangeRequests();
       notifyPayrollRequests();
+      fetchAvailableBatches(); // Fetch available batches when authorized
     }
   }, [isAuthorized]);
 
@@ -76,17 +83,46 @@ const Requests = () => {
       notifyChangeRequests(changesRequests);
     }
   }, [isAuthorized, changesRequests]);
-  
+
+  useEffect(() => {
+    if (isAuthorized && Array.isArray(payrollRequests)) {
+      notifyChangeRequests(payrollRequests);
+    }
+  }, [isAuthorized, payrollRequests]);
+
+  // Fetch available batches
+  const fetchAvailableBatches = async () => {
+    try {
+      // You may need to create this endpoint to get all unique batch IDs
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/batches`);
+      console.log("batches", response.data);
+      setAvailableBatches(response.data);
+
+      // Auto-select the latest batch if available
+      if (response.data.length > 0) {
+        setSelectedBatchId(response.data[0].batchId);
+      }
+    } catch (error) {
+      console.error("Error fetching available batches:", error);
+      // If the batches endpoint doesn't exist, you can set a default batchId
+      // or handle this differently based on your requirements
+    }
+  };
 
   useEffect(() => {
     const fetchRequests = async () => {
+      if (!selectedBatchId) return; // Don't fetch if no batch is selected
+
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
+        setLoading(true);
+        // Updated to use batchId parameter
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip?batchId=${selectedBatchId}`);
         console.log(response.data);
         setRequests(response.data);
         notifyPayrollRequests(response.data);
       } catch (error) {
         console.error("Error fetching payroll requests:", error);
+        setRequests([]); // Clear requests on error
       } finally {
         setLoading(false);
       }
@@ -118,10 +154,11 @@ const Requests = () => {
       }
     };
 
-
-    fetchRequests();
-    fetchChangeRequests();
-  }, []);
+    if (isAuthorized) {
+      fetchRequests();
+      fetchChangeRequests();
+    }
+  }, [isAuthorized, selectedBatchId]); // Added selectedBatchId as dependency
 
   // Function to get changed fields from the changes object
   const getChangedFields = (changes) => {
@@ -129,6 +166,19 @@ const Requests = () => {
 
     // Convert changes object to array of changed fields
     return Object.entries(changes).map(([field, value]) => ({
+      field,
+      value,
+      displayName: formatFieldName(field)
+    }));
+  };
+
+
+
+  const getPayrollDetails = (payrollDetails) => {
+    if (!payrollDetails || typeof payrollDetails !== 'object') return [];
+
+    // Convert changes object to array of changed fields
+    return Object.entries(payrollDetails).map(([field, value]) => ({
       field,
       value,
       displayName: formatFieldName(field)
@@ -145,30 +195,30 @@ const Requests = () => {
 
       if (response.data.success) {
         toast.success(
-          <div style={{ fontSize: '0.9rem'}}>
-           Payroll approved successfully.
+          <div style={{ fontSize: '0.9rem' }}>
+            Payroll approved successfully.
           </div>,
           {
-            autoClose: 3000,        // auto close after 3 seconds
+            autoClose: 3000,
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: false,
-            position: "top-right",  // position of the toast
+            position: "top-right",
           }
         );
       } else {
         toast.error(
-          <div style={{ fontSize: '0.9rem'}}>
-           Failed to approve payroll.
+          <div style={{ fontSize: '0.9rem' }}>
+            Failed to approve payroll.
           </div>,
           {
-            autoClose: 3000,        // auto close after 3 seconds
+            autoClose: 3000,
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: false,
-            position: "top-right",  // position of the toast
+            position: "top-right",
           }
         );
       }
@@ -176,16 +226,16 @@ const Requests = () => {
     } catch (error) {
       console.error("Error approving payroll:", error);
       toast.error(
-        <div style={{ fontSize: '0.9rem'}}>
-         Error approving payroll.
+        <div style={{ fontSize: '0.9rem' }}>
+          Error approving payroll.
         </div>,
         {
-          autoClose: 3000,        // auto close after 3 seconds
+          autoClose: 3000,
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
           closeButton: false,
-          position: "top-right",  // position of the toast
+          position: "top-right",
         }
       );
       setShowSuccessModal(true);
@@ -196,28 +246,29 @@ const Requests = () => {
 
   const formatRequestId = (id) => {
     const prefix = "SJM-C";
-    const paddedNumber = id.toString().padStart(4, "0"); // pads with leading zeros to 4 digits
+    const paddedNumber = id.toString().padStart(4, "0");
     return `${prefix}${paddedNumber}`;
   };
 
   const handleDeleteAll = async () => {
     try {
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/payslip`);
+      // Updated to include batchId parameter for deletion
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/payslip?batchId=${selectedBatchId}`);
       setRequests([]);
       setShowModal(false);
     } catch (error) {
       console.error("Error deleting payroll requests:", error);
       toast.error(
-        <div style={{ fontSize: '0.9rem'}}>
+        <div style={{ fontSize: '0.9rem' }}>
           Failed to delete payslips.
         </div>,
         {
-          autoClose: 3000,        // auto close after 3 seconds
+          autoClose: 3000,
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
           closeButton: false,
-          position: "top-right",  // position of the toast
+          position: "top-right",
         }
       );
     }
@@ -232,7 +283,6 @@ const Requests = () => {
   const handleApproveChanges = async () => {
     try {
       setLoadingChanges(true);
-      // You'll need to implement a bulk approve endpoint or loop through individual requests
       const promises = changesRequests.map(request =>
         axios.post(`${import.meta.env.VITE_API_URL}/api/employee/approve-payroll-change/${request.id}`)
       );
@@ -252,7 +302,6 @@ const Requests = () => {
   const handleRejectAllChanges = async () => {
     try {
       setLoadingChanges(true);
-      // You'll need to implement a bulk reject endpoint or loop through individual requests
       const promises = changesRequests.map(request =>
         axios.post(`${import.meta.env.VITE_API_URL}/api/employee/reject-payroll-change/${request.id}`)
       );
@@ -279,16 +328,16 @@ const Requests = () => {
       if (response.data.success) {
         setChangesRequests(prev => prev.filter(req => req.id !== requestId));
         toast.success(
-          <div style={{ fontSize: '0.9rem'}}>
-           Change request approved successfully.
+          <div style={{ fontSize: '0.9rem' }}>
+            Change request approved successfully.
           </div>,
           {
-            autoClose: 3000,        // auto close after 3 seconds
+            autoClose: 3000,
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: false,
-            position: "top-right",  // position of the toast
+            position: "top-right",
           }
         );
         setShowChangeDetailModal(false);
@@ -297,16 +346,16 @@ const Requests = () => {
     } catch (error) {
       console.error("Error approving individual change:", error);
       toast.error(
-        <div style={{ fontSize: '0.9rem'}}>
-         Error approving change request.
+        <div style={{ fontSize: '0.9rem' }}>
+          Error approving change request.
         </div>,
         {
-          autoClose: 3000,        // auto close after 3 seconds
+          autoClose: 3000,
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
           closeButton: false,
-          position: "top-right",  // position of the toast
+          position: "top-right",
         }
       );
     }
@@ -321,16 +370,16 @@ const Requests = () => {
       if (response.data.success) {
         setChangesRequests(prev => prev.filter(req => req.id !== requestId));
         toast.success(
-          <div style={{ fontSize: '0.9rem'}}>
-           Change request rejected successfully.
+          <div style={{ fontSize: '0.9rem' }}>
+            Change request rejected successfully.
           </div>,
           {
-            autoClose: 3000,        // auto close after 3 seconds
+            autoClose: 3000,
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: false,
-            position: "top-right",  // position of the toast
+            position: "top-right",
           }
         );
         setShowChangeDetailModal(false);
@@ -339,16 +388,16 @@ const Requests = () => {
     } catch (error) {
       console.error("Error rejecting individual change:", error);
       toast.error(
-        <div style={{ fontSize: '0.9rem'}}>
-         Error rejecting change request.
+        <div style={{ fontSize: '0.9rem' }}>
+          Error rejecting change request.
         </div>,
         {
-          autoClose: 3000,        // auto close after 3 seconds
+          autoClose: 3000,
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
           closeButton: false,
-          position: "top-right",  // position of the toast
+          position: "top-right",
         }
       );
     }
@@ -385,7 +434,7 @@ const Requests = () => {
       </div>
     );
   }
-  
+
   if (!isAuthorized) {
     return (
       <div className="p-6 h-[calc(100vh-150px)] flex items-center justify-center">
@@ -398,6 +447,8 @@ const Requests = () => {
     );
   }
 
+  console.log("Selected Payroll Request:", selectedPayrollRequest);
+
   return (
     <div className="flex flex-row gap-8 p-4 overflow-auto h-[calc(100vh-150px)]">
       {/* Payroll Requests Section */}
@@ -407,43 +458,107 @@ const Requests = () => {
           Payroll Requests
         </h2>
 
+
+
         {message && <p className="text-green-500">{message}</p>}
 
         <div className="leading-snug overflow-y-auto pr-2 flex-1">
           {loading ? (
             <p className="text-gray-500">Loading payroll requests...</p>
-          ) : requests.length > 0 ? (
-            <div className="border p-3 rounded shadow-md">
-              <p className="text-md mb-1 italic">
-                Total Payslips: <span className="font-normal text-red-500">{requests.length}</span>
-              </p>
-              <div className="mb-2">
-                <hr className="mb-2 mt-1" />
-                <p><strong>Amount:</strong> ₱ {totalNetPay.toLocaleString()}</p>
-                <p>
-                  <strong>Date Requested:</strong>{" "}
-                  {new Date(requests[0] ?.date).toLocaleDateString()}
+          ) : batches && batches.length > 0 ? (
+            <div className="space-y-4">
+              {/* Summary Header */}
+              <div className="border p-3 rounded shadow-md bg-white">
+                <p className="text-md mb-1 italic">
+                  Total Payroll: <span className="font-normal text-blue-600">{batches.length}</span>
                 </p>
+                {/* <p className="text-md mb-1 italic">
+                  Total Payslips: <span className="font-normal text-red-500">
+                    {batches.reduce((total, batch) => {
+                      const batchRequests = requests.filter(req => req.batchId === batch.batchId);
+                      return total + batchRequests.length;
+                    }, 0)}
+                  </span>
+                </p> */}
+                <hr className="my-2" />
+                {batches.map((batch) => {
+                  const batchTotalNetPay = batch.payslips.reduce((sum, slip) => sum + (slip.netPay || slip.net_pay || 0), 0);
 
+                  return (
+                    <div key={batch.batchId} className="border p-3 bg-gray-50  rounded shadow-md mb-4 flex justify-between items-start">
+                      <p className="text-md mb-1 italic">
+                        {/* Batch Payslips: <span className="font-normal text-red-500">{batch.payslips.length}</span> */}
+                      </p>
+
+                      <div className="mb-2 flex-1 ">
+                        <p className="font-semibold text-sm">Batch ID: {batch.batchId}</p>
+                        <p className="text-xs -mt-3 text-gray-600">
+                          Payroll Amount: ₱{batch.payslips.reduce((total, payslip) => total + parseFloat(payslip.netPay), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </p>                     <p className="text-xs -mt-3 text-gray-600">Cutoff Period: {batch.cutoffDate || 'N/A'}
+                        </p>
+                        <p className="text-xs -mt-3 text-gray-600">Status:{batch.uniqueStatuses.join(', ').charAt(0).toUpperCase() + batch.uniqueStatuses[0].slice(1)}</p>
+                        <p className="text-xs -mt-3 -mb-2 text-gray-600">
+                          Date Requested: {" "}
+                          {batch.payslips.length > 0 && batch.payslips[0].date
+                            ? new Date(batch.payslips[0].date).toLocaleDateString()
+                            : "N/A"}
+                        </p>
+                      </div>
+                      <div className="flex gap-1 items-center border h-8 w-32 rounded justify-end">
+                        <button
+                          onClick={() => {
+                            setSelectedPayrollRequest(batch); // Set the entire batch object
+                            setShowPayrollDetailModal(true);
+                          }}
+                          className="p-2 text-neutralDGray hover:text-blue-600 rounded flex items-center justify-center"
+                          title="View Details"
+                        >
+                          <FaEye size={14} />
+                        </button>
+
+                        <>
+                          <button
+                            onClick={() => handleApprove(batch.batchId)}
+                            className="p-2 text-neutralDGray hover:text-green-600 rounded flex items-center justify-center"
+                            title="Approve"
+                          >
+                            <FaCheck size={14} />
+                          </button>
+                          <button
+                            onClick={() => setShowModal(batch.batchId)}
+                            className="p-2 text-neutralDGray hover:text-red-100 rounded flex items-center justify-center"
+                            title="Reject"
+                          >
+                            <FaTimes size={14} />
+                          </button>
+                        </>
+
+                      </div>
+                    </div>
+                  );
+                })}
                 <div className="flex gap-2 mt-2">
                   <button
                     onClick={handleApprove}
-                    className="bg-green-500 text-white w-20 px-2 py-1 rounded hover:bg-green-900"
+                    className="bg-green-500 text-white w-32 h-8 text-sm px-3 py-1 rounded hover:bg-green-900 disabled:opacity-50"
                   >
-                    Approve
-                </button>
+                    Approve All
+                  </button>
                   <button
                     onClick={() => setShowModal(true)}
-                    className="bg-red-500 text-white w-20 px-2 py-1 rounded hover:bg-red-900"
+                    className="bg-red-500 text-white px-3 py-1 w-32 h-8 text-sm  rounded hover:bg-red-900 disabled:opacity-50"
                   >
-                    Reject
-                </button>
+                    Reject All
+                  </button>
                 </div>
               </div>
+
+
+
             </div>
           ) : (
-                <p className="text-gray-500">No pending payroll requests.</p>
-              )}
+            <p className="text-gray-500">No pending payroll requests.</p>
+          )}
 
           {/* Loading Modal */}
           {loadingPayroll && (
@@ -463,7 +578,14 @@ const Requests = () => {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
                 <h3 className="text-base mb-2 text-red-500">Confirm Rejection</h3>
-                <p className="text-justify text-sm">Are you sure you want to reject the request?</p>
+                <p className="text-justify text-sm">Are you sure you want to reject all batch requests?</p>
+                <p className="text-justify text-sm text-gray-600 mt-1">
+                  This will reject {batches ? batches.length : 0} batches containing {" "}
+                  {batches ? batches.reduce((total, batch) => {
+                    const batchRequests = requests.filter(req => req.batchId === batch.batchId);
+                    return total + batchRequests.length;
+                  }, 0) : 0} total payslips.
+                </p>
 
                 <div className="flex justify-end gap-3 mt-6">
                   <button
@@ -537,12 +659,11 @@ const Requests = () => {
                           </p>
                           <p className="text-xs -mt-3 text-gray-500">
                             Status: <span
-                              className={`font-semibold ${
-                                request.status === 'Pending'
-                                  ? 'text-orange-500'
-                                  : request.status === 'Rejected'
-                                    ? 'text-red-600'
-                                    : 'text-green-600'
+                              className={`font-semibold ${request.status === 'Pending'
+                                ? 'text-orange-500'
+                                : request.status === 'Rejected'
+                                  ? 'text-red-600'
+                                  : 'text-green-600'
                                 }`}
                             >
                               {request.status}
@@ -607,8 +728,8 @@ const Requests = () => {
               </div>
             </div>
           ) : (
-                <p className="text-gray-500">No pending change requests.</p>
-              )}
+            <p className="text-gray-500">No pending change requests.</p>
+          )}
 
           {/* Confirmation Modal for Rejecting All Changes */}
           {showChangesModal && (
@@ -643,7 +764,7 @@ const Requests = () => {
                 <hr />
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm">Request ID: {formatRequestId(selectedChangeRequest.id)}</p>
+                    <p className="text-sm">Request ID: {(selectedChangeRequest.id)}</p>
                   </div>
                   <div>
                     <p className="text-sm">Requested By: {selectedChangeRequest.requested_by}</p>
@@ -652,12 +773,11 @@ const Requests = () => {
                     <p className="text-sm">
                       Status:{" "}
                       <span
-                        className={`font-semibold ${
-                          selectedChangeRequest.status === "Pending"
-                            ? "text-orange-500"
-                            : selectedChangeRequest.status === "Rejected"
-                              ? "text-red-600"
-                              : "text-green-600"
+                        className={`font-semibold ${selectedChangeRequest.status === "Pending"
+                          ? "text-orange-500"
+                          : selectedChangeRequest.status === "Rejected"
+                            ? "text-red-600"
+                            : "text-green-600"
                           }`}
                       >
                         {selectedChangeRequest.status}
@@ -666,7 +786,7 @@ const Requests = () => {
                   </div>
                   <div>
                     <div className="bg-gray-100 p-2 rounded space-y-2">
-                    <p className="text-sm italic mb-1 ">Requested Changes:</p>
+                      <p className="text-sm italic mb-1 ">Requested Changes:</p>
                       {getChangedFields(selectedChangeRequest.changes).map((change, index) => (
                         <div key={index} className="text-sm">
                           <p>
@@ -675,8 +795,8 @@ const Requests = () => {
                           </p>
                         </div>
                       ))}
-                       <p className="text-sm italic mb-1 ">Reason for Changes: </p>
-                       <p className="text-sm">{selectedChangeRequest.reasons}</p>
+                      <p className="text-sm italic mb-1 ">Reason for Changes: </p>
+                      <p className="text-sm">{selectedChangeRequest.reasons}</p>
 
                     </div>
                   </div>
@@ -688,8 +808,7 @@ const Requests = () => {
                 <div className="flex justify-end gap-2 mt-6">
                   <button
                     onClick={() => setShowChangeDetailModal(false)}
-                    className="flex items-center justify-center px-4 py-2 w-32 h-8 text-sm text-center bg-gray-600 text-white rounded hover:bg-neutralDGray"
-
+                    className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-gray-400 hover:text-white transition-all"
                   >
                     Close
                   </button>
@@ -698,15 +817,13 @@ const Requests = () => {
                     <>
                       <button
                         onClick={() => handleApproveIndividualChange(selectedChangeRequest.id)}
-                        className="flex items-center justify-center px-4 py-2 w-32 h-8 text-sm text-center bg-green-600 text-white rounded hover:bg-neutralDGray"
-
+                        className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                       >
                         Approve
                       </button>
                       <button
                         onClick={() => handleRejectIndividualChange(selectedChangeRequest.id)}
-                        className="flex items-center justify-center px-4 py-2 w-32 h-8 text-sm text-center bg-red-600 text-white rounded hover:bg-neutralDGray"
-
+                        className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
                       >
                         Reject
                       </button>
@@ -716,6 +833,84 @@ const Requests = () => {
               </div>
             </div>
           )}
+
+
+
+
+          {/* Payroll Detail Modal */}
+          {showPayrollDetailModal && selectedPayrollRequest && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-96 max-w-lg max-h-[80vh] overflow-y-auto">
+                <h3 className="text-[18px] mb-3">Payroll Request Details</h3>
+                <hr />
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm">Batch ID: {selectedPayrollRequest.batchId}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm">Requested By: {selectedPayrollRequest.requestedBy}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm">
+                      Status:
+                      <span className={`font-semibold ${selectedPayrollRequest.uniqueStatuses[0] === "pending" ? "text-orange-500" : selectedPayrollRequest.uniqueStatuses[0] === "rejected" ? "text-red-600" : "text-green-600"}`}>
+                        {selectedPayrollRequest.uniqueStatuses[0].charAt(0).toUpperCase() + selectedPayrollRequest.uniqueStatuses[0].slice(1)}
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <div className="bg-gray-100 p-2 rounded space-y-2">
+                      <p className="text-sm italic mb-1">Employees in Payroll:</p>
+                      {selectedPayrollRequest.payslips.map((payslip, index) => (
+                        <div key={index} className="text-sm">
+                          <p>
+                            <span className="font-medium">{payslip.name}:</span> ₱ {parseFloat(payslip.netPay).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {selectedPayrollRequest.payslips.map((payslip, index) => (
+                    <div key={index}>
+                      {/* Only show date for the first payslip */}
+                      {index === 0 && (
+                        <p className="text-sm">Created at: {new Date(payslip.date).toLocaleDateString()}</p>
+                      )}
+                      {/* Other payslip content */}
+                    </div>
+                  ))}
+
+                </div>
+                <div className="flex justify-end gap-2 mt-6">
+                  <button
+                    onClick={() => setShowPayrollDetailModal(false)}
+                    className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-gray-400 hover:text-white transition-all"
+                  >
+                    Close
+                  </button>
+                  {selectedPayrollRequest.uniqueStatuses[0] === "pending" && (
+                    <>
+                      <button
+                        onClick={() => handleApprove(selectedPayrollRequest.batchId)}
+                        className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => setShowModal(selectedPayrollRequest.batchId)}
+                        className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+
+
 
         </div>
       </section>
