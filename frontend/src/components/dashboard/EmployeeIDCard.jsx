@@ -466,7 +466,7 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
     return null;
   }
 
-  const formattedDOB = dayjs(employee.dob).format("MMMM DD, YYYY");
+  const formattedDOB = dayjs(employee.birthdate).format("MMMM DD, YYYY");
 
   const getProfileImageUrl = (imagePath) => {
     if (!imagePath || imagePath === "N/A") {

@@ -14,7 +14,7 @@ import {
   Sector,
 } from "recharts";
 import DataTable from "react-data-table-component";
-
+import axios from 'axios';
 const COLORS = ["#4191D6", "#9D426E", "#80B646"];
 const BAR_COLORS = ["#80B646", "#9D426E"];
 
@@ -74,19 +74,20 @@ const Contributions = () => {
   const [employeeData, setEmployeeData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [employeeShare, setEmployeeShare] = useState([]);
+
+  useEffect(()=> {
+    fetchEmployeeData();
+    fetchEmployeeContribution();
+  },[])
 
   // Fetch data from backend
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Replace with your actual API endpoint
-        // const response = await fetch(`${process.env.REACT_APP_API_URL}/api/contributions`);
-        // const data = await response.json();
-        // setEmployeeData(data);
 
-        // For now, using empty array until backend is connected
-        setEmployeeData([]);
+  const fetchEmployeeData = async () => {
+    setLoading(true);
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee`);
+        setEmployeeData(response.data.employees);
       } catch (error) {
         console.error("Error fetching contributions:", error);
       } finally {
@@ -94,8 +95,20 @@ const Contributions = () => {
       }
     };
 
-    fetchData();
-  }, []);
+    const fetchEmployeeContribution = async () => {
+    setLoading(true);
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/history`);
+        setEmployeeShare(response.data.payslips);
+        console.log("data of employee shares history", employeeShare);
+      } catch (error) {
+        console.error("Error fetching employee history:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+ 
 
   // Calculate totals from employee data
   const totalContributions = employeeData.reduce(
@@ -136,6 +149,19 @@ const Contributions = () => {
     },
   ];
 
+    const totalRow = {
+    name: "TOTAL",
+    sss: totalContributions.sss,
+    philhealth: totalContributions.philhealth,
+    pagibig: totalContributions.pagibig,
+    employerShare: "", // Optional blank for unrelated columns
+    employeeShare: "",
+    isTotalRow: true,  // Custom flag to identify it in the row rendering
+  };
+
+  const dataWithTotal = [...employeeData];
+
+
   // DataTable columns
   const columns = [
     {
@@ -166,6 +192,21 @@ const Contributions = () => {
     {
       name: "Employer Share",
       selector: (row) => `₱${(row.employerShare || 0).toLocaleString()}`,
+      sortable: true,
+    },
+    {
+      name: "SSS Share",
+      selector: (row) => `₱${(row.sss || 0).toLocaleString()}`,
+      sortable: true,
+    },
+    {
+      name: "Phil Health Share",
+      selector: (row) => `₱${(row.philhealth || 0).toLocaleString()}`,
+      sortable: true,
+    },
+    {
+      name: "PAGIBIG Share",
+      selector: (row) => `₱${(row.pagibig || 0).toLocaleString()}`,
       sortable: true,
     },
   ];
@@ -239,7 +280,7 @@ const Contributions = () => {
           </h3>
           <DataTable
             columns={columns}
-            data={employeeData}
+            data={dataWithTotal}
             progressPending={loading}
             progressComponent={
               <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
