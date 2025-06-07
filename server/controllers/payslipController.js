@@ -23,7 +23,6 @@ import { DataTypes } from "sequelize";
 import { Sequelize } from "sequelize";
 import puppeteer from 'puppeteer'; // Make sure puppeteer is installed
 
-import fs from 'fs';
 import { execSync } from 'child_process';
 
 
