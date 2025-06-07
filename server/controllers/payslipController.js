@@ -84,7 +84,7 @@ const generatePayslipPDF = async (payslip) => {
   try {
     const puppeteerConfig = {
       headless: 'new',
-      executablePath: process.env.NODE_ENV === 'production' ? '/usr/bin/google-chrome-stable' : undefined,
+      executablePath: puppeteer.executablePath(),
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
