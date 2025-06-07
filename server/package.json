@@ -4,11 +4,11 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js",
-    "build": "cd frontend && npm install && npm run build && npx puppeteer browsers install chrome",
-    "postinstall": "if [ \"$NODE_ENV\" != \"production\" ]; then echo 'Skipping puppeteer browser download in development'; fi"
-  },
+  "test": "echo \"Error: no test specified\" && exit 1",
+  "start": "node index.js",
+  "build": "cd frontend && npm install && npm run build",
+  "postinstall": "npx puppeteer browsers install chrome"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
