@@ -91,7 +91,6 @@ const generatePayslipPDF = async (payslip) => {
       ],
     };
 
-export { generatePayslipPDF };
 
     console.log('🚀 Launching Puppeteer browser for payslip generation...');
     browser = await puppeteer.launch(puppeteerConfig);
