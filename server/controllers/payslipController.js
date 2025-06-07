@@ -67,8 +67,19 @@ const fillTemplate = (template, data) => {
 
 
 const generatePayslipPDF = async (payslip) => {
+  // In your generatePayslipPDF function, add this before launching:
+  console.log('🔍 Checking Puppeteer executable path...');
+  try {
+    const executablePath = await puppeteer.executablePath();
+    console.log('📍 Puppeteer executable path:', executablePath);
+  } catch (error) {
+    console.log('❌ Error getting executable path:', error.message);
+  }
+
   let browser = null;
   let page = null;
+
+
 
   try {
     const puppeteerConfig = {
