@@ -22,6 +22,8 @@ dotenv.config();
 import moment from "moment"; // Import moment.js for date manipulation
 import { DataTypes } from "sequelize";
 import { Sequelize } from "sequelize";
+import puppeteer from 'puppeteer'; // Make sure puppeteer is installed
+
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -65,12 +67,11 @@ const fillTemplate = (template, data) => {
 
 const generatePayslipPDF = async (payslip) => {
   let browser = null;
-  let context = null;
   let page = null;
 
   try {
-    const playwrightConfig = {
-      headless: true, // Changed from 'false' to true for better performance
+    const puppeteerConfig = {
+      headless: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -91,19 +92,18 @@ const generatePayslipPDF = async (payslip) => {
       timeout: 60000,
     };
 
-    console.log('🚀 Launching Playwright browser for payslip generation...');
-    browser = await chromium.launch(playwrightConfig);
+    console.log('🚀 Launching Puppeteer browser for payslip generation...');
+    browser = await puppeteer.launch(puppeteerConfig);
 
-    // Create a new context
-    context = await browser.newContext({
-      viewport: {
-        width: 396,  // ~4.13 inches at 96 DPI
-        height: 561, // ~5.83 inches at 96 DPI
-      },
+    // Create a new page
+    page = await browser.newPage();
+
+    // Set viewport (similar to Playwright's context viewport)
+    await page.setViewport({
+      width: 396,  // ~4.13 inches at 96 DPI
+      height: 561, // ~5.83 inches at 96 DPI
       deviceScaleFactor: 2
     });
-
-    page = await context.newPage();
 
     // Load template and fill with data
     const template = loadPayslipTemplate();
@@ -138,12 +138,12 @@ const generatePayslipPDF = async (payslip) => {
 
     console.log('📄 Setting page content and generating PDF...');
     await page.setContent(htmlContent, {
-      waitUntil: 'networkidle', // Playwright uses 'networkidle' instead of 'networkidle0'
+      waitUntil: 'networkidle0',
       timeout: 30000
     });
 
-    // Wait for any additional content to load
-    await page.waitForLoadState('domcontentloaded');
+    // Wait for DOM content to be loaded (similar to Playwright's domcontentloaded)
+    await page.waitForSelector('body', { timeout: 30000 });
 
     const pdf = await page.pdf({
       width: '105mm',
@@ -156,7 +156,7 @@ const generatePayslipPDF = async (payslip) => {
         left: '3mm'
       },
       preferCSSPageSize: true,
-      // Note: Playwright doesn't have a timeout option for PDF generation
+      timeout: 30000
     });
 
     console.log('✅ PDF generated successfully');
@@ -171,10 +171,6 @@ const generatePayslipPDF = async (payslip) => {
       if (page) {
         await page.close();
         console.log('📄 Page closed successfully');
-      }
-      if (context) {
-        await context.close();
-        console.log('🔧 Context closed successfully');
       }
       if (browser) {
         await browser.close();
