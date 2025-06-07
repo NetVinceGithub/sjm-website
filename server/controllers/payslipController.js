@@ -15,7 +15,6 @@ import PayrollReleaseRequest from "../models/PayrollReleaseRequest.js"; // Ensur
 import Holidays from "../models/Holidays.js"
 import path from 'path';
 import fs from 'fs';
-import puppeteer from 'puppeteer';
 import { fileURLToPath } from 'url';
 import User from "../models/User.js";
 dotenv.config();
