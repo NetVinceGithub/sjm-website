@@ -65,7 +65,7 @@ const generatePayslipPDF = async (payslip) => {
   let browser = null;
   try {
     const puppeteerConfig = {
-      headless: 'new',
+      headless: 'false',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -83,7 +83,7 @@ const generatePayslipPDF = async (payslip) => {
         '--memory-pressure-off',
         '--max_old_space_size=4096',
         '--single-process',
-        '--no-zygote'
+        // '--no-zygote'
       ],
       timeout: 60000,
     };
