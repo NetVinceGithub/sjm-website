@@ -64,7 +64,6 @@ const fillTemplate = (template, data) => {
   });
 };
 
-import puppeteer from 'puppeteer';
 
 const generatePayslipPDF = async (payslip) => {
   let browser = null;
