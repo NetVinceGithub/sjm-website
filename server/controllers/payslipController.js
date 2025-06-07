@@ -295,12 +295,17 @@ export const sendPayslips = async (req, res) => {
 
       // Process all payslips in this batch with the same control number
       for (let payslip of batchPayslips) {
-        if (!payslip.email) {
-          failedEmails.push({ name: payslip.name, reason: "No email provided" });
+        // Enhanced email validation
+        if (!payslip.email || !payslip.email.includes('@') || payslip.email.trim() === '') {
+          failedEmails.push({ name: payslip.name, reason: "Invalid or missing email address" });
           continue;
         }
 
         try {
+          // Add debug logging
+          console.log(`📋 Processing payslip for ${payslip.name} (${payslip.email})`);
+          console.log(`📋 Payslip data:`, JSON.stringify(payslip, null, 2));
+
           const pdfBuffer = await generatePayslipPDF(payslip);
 
           // Send the email with the control number
@@ -319,7 +324,7 @@ export const sendPayslips = async (req, res) => {
                   <h2 style="color: #333; margin-top: 0;">Dear ${payslip.name},</h2>
                   
                   <p style="font-size: 16px; line-height: 1.6;">
-                    Please find your Your detailed payslip is attached as a PDF file. Please download and save it for your records.
+                    Please find your detailed payslip attached as a PDF file. Please download and save it for your records.
                   </p>
                   
                   <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 20px 0;">
@@ -335,7 +340,7 @@ export const sendPayslips = async (req, res) => {
                       </tr>
                       <tr>
                         <td style="padding: 8px 0; font-weight: bold; border-top: 1px solid #ddd;">Payroll Period:</td>
-                        <td style="padding: 8px 0; border-top: 1px solid #ddd;">${payslip.cutoff_date || "N/A"}</td>
+                        <td style="padding: 8px 0; border-top: 1px solid #ddd;">${payslip.cutoff_date || payslip.cutoffDate || "N/A"}</td>
                       </tr>
                       <tr>
                         <td style="padding: 8px 0; font-weight: bold; border-top: 1px solid #ddd;">Employee Code:</td>
@@ -351,7 +356,7 @@ export const sendPayslips = async (req, res) => {
                       </tr>
                       <tr style="background-color: #e8f5e8;">
                         <td style="padding: 12px 8px; font-weight: bold; font-size: 18px; border-top: 2px solid #0093DD;">Net Pay:</td>
-                        <td style="padding: 12px 8px; font-weight: bold; font-size: 18px; color: #28a745; border-top: 2px solid #0093DD;">₱${payslip.net_pay ? Number(payslip.net_pay).toLocaleString() : "0.00"}</td>
+                        <td style="padding: 12px 8px; font-weight: bold; font-size: 18px; color: #28a745; border-top: 2px solid #0093DD;">₱${(payslip.net_pay || payslip.netPay) ? Number(payslip.net_pay || payslip.netPay).toLocaleString() : "0.00"}</td>
                       </tr>
                     </table>
                   </div>
@@ -382,7 +387,7 @@ export const sendPayslips = async (req, res) => {
             `,
             attachments: [
               {
-                filename: `${payslip.name}_Payslip_${payslip.cutoff_date || 'Current'}.pdf`,
+                filename: `${payslip.name}_Payslip_${payslip.cutoff_date || payslip.cutoffDate || 'Current'}.pdf`,
                 content: pdfBuffer,
                 contentType: 'application/pdf'
               }
@@ -393,7 +398,7 @@ export const sendPayslips = async (req, res) => {
           console.log(`✅ Payslip sent to ${payslip.email} with control number ${formattedControlNumber} and billing summary ${formattedBillingSummary}`);
           successfulEmails.push(payslip.email);
 
-          // Save to PayslipHistory
+          // Save to PayslipHistory with proper field mapping
           await PayslipHistory.create({
             ecode: payslip.ecode,
             email: payslip.email,
@@ -402,27 +407,27 @@ export const sendPayslips = async (req, res) => {
             project: payslip.project || "N/A",
             position: payslip.position || "N/A",
             department: payslip.department,
-            cutoffDate: payslip.cutoffDate,
-            allowance: +payslip.allowance || 0,
-            dailyrate: +payslip.dailyrate || 0,
-            basicPay: +payslip.basicPay || 0,
-            overtimePay: +payslip.overtimePay || 0,
-            holidayPay: +payslip.holidayPay || 0,
-            noOfDays: +payslip.noOfDays || 0,
-            totalOvertime: +payslip.totalOvertime || 0,
-            nightDifferential: +payslip.nightDifferential || 0,
-            sss: +payslip.sss || 0,
-            phic: +payslip.phic || 0,
-            hdmf: +payslip.hdmf || 0,
-            loan: +payslip.loan || 0,
-            totalTardiness: +payslip.totalTardiness || 0,
-            totalHours: +payslip.totalHours || 0,
-            otherDeductions: +payslip.otherDeductions || 0,
-            totalEarnings: +payslip.totalEarnings || 0,
-            adjustment: +payslip.adjustment || 0,
-            gross_pay: +payslip.gross_pay || 0,
-            totalDeductions: +payslip.totalDeductions || 0,
-            netPay: +payslip.netPay || 0,
+            cutoffDate: payslip.cutoff_date || payslip.cutoffDate,
+            allowance: +(payslip.allowance || 0),
+            dailyrate: +(payslip.dailyrate || payslip.daily_rate || 0),
+            basicPay: +(payslip.basicPay || payslip.basic_pay || 0),
+            overtimePay: +(payslip.overtimePay || payslip.overtime_pay || 0),
+            holidayPay: +(payslip.holidayPay || payslip.holiday_pay || 0),
+            noOfDays: +(payslip.noOfDays || payslip.no_of_days || 0),
+            totalOvertime: +(payslip.totalOvertime || payslip.total_overtime || 0),
+            nightDifferential: +(payslip.nightDifferential || payslip.night_differential || 0),
+            sss: +(payslip.sss || 0),
+            phic: +(payslip.phic || 0),
+            hdmf: +(payslip.hdmf || 0),
+            loan: +(payslip.loan || 0),
+            totalTardiness: +(payslip.totalTardiness || payslip.total_tardiness || 0),
+            totalHours: +(payslip.totalHours || payslip.total_hours || 0),
+            otherDeductions: +(payslip.otherDeductions || payslip.other_deductions || 0),
+            totalEarnings: +(payslip.totalEarnings || payslip.total_earnings || 0),
+            adjustment: +(payslip.adjustment || 0),
+            gross_pay: +(payslip.gross_pay || 0),
+            totalDeductions: +(payslip.totalDeductions || payslip.total_deductions || 0),
+            netPay: +(payslip.net_pay || payslip.netPay || 0),
             controlNumber: formattedControlNumber,
             billingSummary: formattedBillingSummary,
             batchId: payslip.batchId,
@@ -430,9 +435,9 @@ export const sendPayslips = async (req, res) => {
 
           payslipIdsToDelete.push(payslip.id);
 
-
         } catch (err) {
-          console.log("❌ Failed to send payslip to", payslip.name, err);
+          console.log("❌ Failed to send payslip to", payslip.name, "Error:", err.message);
+          console.log("❌ Full error:", err);
           failedEmails.push({ name: payslip.name, reason: err.message });
         }
       }
