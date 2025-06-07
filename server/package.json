@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "build": "cd ../frontend && npm install && npm run build",
+    "build": "echo 'No frontend build needed on Render'",
     "postinstall": "if [ \"$NODE_ENV\" != \"production\" ]; then npx --unsafe-perm playwright install && npx --unsafe-perm puppeteer browsers install chrome --platform=linux; fi",
     "install-chrome": "npx puppeteer browsers install chrome"
   },
