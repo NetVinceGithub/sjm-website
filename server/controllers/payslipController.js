@@ -15,7 +15,7 @@ import PayrollReleaseRequest from "../models/PayrollReleaseRequest.js"; // Ensur
 import Holidays from "../models/Holidays.js"
 import path from 'path';
 import fs from 'fs';
-import { chromium, firefox, webkit } from 'playwright'; // ✅ Use Playwright instead of Puppeteer
+import puppeteer from 'puppeteer';
 import { fileURLToPath } from 'url';
 import User from "../models/User.js";
 dotenv.config();
