@@ -82,7 +82,7 @@ const generatePayslipPDF = async (payslip) => {
         '--disable-default-apps',
         '--memory-pressure-off',
         '--max_old_space_size=4096',
-        '--single-process',
+        // '--single-process',
         // '--no-zygote'
       ],
       timeout: 60000,
