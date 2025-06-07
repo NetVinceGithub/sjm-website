@@ -1,3 +1,4 @@
+
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import Payslip from "../models/Payslip.js";
@@ -14,7 +15,7 @@ import PayrollReleaseRequest from "../models/PayrollReleaseRequest.js"; // Ensur
 import Holidays from "../models/Holidays.js"
 import path from 'path';
 import fs from 'fs';
-import puppeteer from 'puppeteer'; // ✅ correct
+import { chromium, firefox, webkit } from 'playwright'; // ✅ Use Playwright instead of Puppeteer
 import { fileURLToPath } from 'url';
 import User from "../models/User.js";
 dotenv.config();
@@ -27,7 +28,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Configure Email Transporter once
-const transporter = nodemailer.createTransport({
+const transporter = nodemailer.createTransporter({
   service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
@@ -48,7 +49,7 @@ transporter.verify((error, success) => {
   }
 });
 
-// Function to generate payslip PDF - Modified for 4" x 5"
+// Function to generate payslip PDF - Modified for 4" x 5" using Playwright
 // Method 1: Read HTML file and replace placeholders
 const loadPayslipTemplate = () => {
   const templatePath = path.join(__dirname, '..', '..', 'frontend', 'src', 'components', 'paysliptemplate.html');
@@ -63,9 +64,12 @@ const fillTemplate = (template, data) => {
 
 const generatePayslipPDF = async (payslip) => {
   let browser = null;
+  let context = null;
+  let page = null;
+  
   try {
-    const puppeteerConfig = {
-      headless: 'false',
+    const playwrightConfig = {
+      headless: true, // Changed from 'false' to true for better performance
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -82,23 +86,23 @@ const generatePayslipPDF = async (payslip) => {
         '--disable-default-apps',
         '--memory-pressure-off',
         '--max_old_space_size=4096',
-        // '--single-process',
-        // '--no-zygote'
       ],
       timeout: 60000,
     };
 
-
-    console.log('🚀 Launching Puppeteer browser for payslip generation...');
-    browser = await puppeteer.launch(puppeteerConfig)
-
-    const page = await browser.newPage();
-
-    await page.setViewport({
-      width: 396,  // ~4.13 inches at 96 DPI
-      height: 561, // ~5.83 inches at 96 DPI
+    console.log('🚀 Launching Playwright browser for payslip generation...');
+    browser = await chromium.launch(playwrightConfig);
+    
+    // Create a new context
+    context = await browser.newContext({
+      viewport: {
+        width: 396,  // ~4.13 inches at 96 DPI
+        height: 561, // ~5.83 inches at 96 DPI
+      },
       deviceScaleFactor: 2
     });
+
+    page = await context.newPage();
 
     // Load template and fill with data
     const template = loadPayslipTemplate();
@@ -133,9 +137,12 @@ const generatePayslipPDF = async (payslip) => {
 
     console.log('📄 Setting page content and generating PDF...');
     await page.setContent(htmlContent, {
-      waitUntil: ['networkidle0', 'domcontentloaded'],
+      waitUntil: 'networkidle', // Playwright uses 'networkidle' instead of 'networkidle0'
       timeout: 30000
     });
+
+    // Wait for any additional content to load
+    await page.waitForLoadState('domcontentloaded');
 
     const pdf = await page.pdf({
       width: '105mm',
@@ -148,7 +155,7 @@ const generatePayslipPDF = async (payslip) => {
         left: '3mm'
       },
       preferCSSPageSize: true,
-      timeout: 30000
+      // Note: Playwright doesn't have a timeout option for PDF generation
     });
 
     console.log('✅ PDF generated successfully');
@@ -158,14 +165,22 @@ const generatePayslipPDF = async (payslip) => {
     console.error('❌ Error generating payslip PDF:', error);
     throw new Error(`Failed to generate payslip PDF: ${error.message}`);
   } finally {
-    // Always close browser to prevent memory leaks
-    if (browser) {
-      try {
+    // Always close resources to prevent memory leaks
+    try {
+      if (page) {
+        await page.close();
+        console.log('📄 Page closed successfully');
+      }
+      if (context) {
+        await context.close();
+        console.log('🔧 Context closed successfully');
+      }
+      if (browser) {
         await browser.close();
         console.log('🔒 Browser closed successfully');
-      } catch (closeError) {
-        console.error('⚠️ Error closing browser:', closeError);
       }
+    } catch (closeError) {
+      console.error('⚠️ Error closing browser resources:', closeError);
     }
   }
 };
@@ -468,9 +483,6 @@ export const sendPayslips = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
-
-
-
 
 
 
