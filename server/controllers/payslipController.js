@@ -64,6 +64,8 @@ const fillTemplate = (template, data) => {
   });
 };
 
+import puppeteer from 'puppeteer';
+
 const generatePayslipPDF = async (payslip) => {
   let browser = null;
   let page = null;
@@ -88,8 +90,9 @@ const generatePayslipPDF = async (payslip) => {
         '--memory-pressure-off',
         '--max_old_space_size=4096',
       ],
-      timeout: 60000,
     };
+
+export { generatePayslipPDF };
 
     console.log('🚀 Launching Puppeteer browser for payslip generation...');
     browser = await puppeteer.launch(puppeteerConfig);
