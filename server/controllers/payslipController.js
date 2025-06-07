@@ -64,9 +64,8 @@ const fillTemplate = (template, data) => {
 const generatePayslipPDF = async (payslip) => {
   let browser = null;
   try {
-    // Configure Puppeteer for Render environment
     const puppeteerConfig = {
-      headless: 'new', // Use new headless mode
+      headless: 'new',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -83,14 +82,15 @@ const generatePayslipPDF = async (payslip) => {
         '--disable-default-apps',
         '--memory-pressure-off',
         '--max_old_space_size=4096',
-        '--single-process', // Important for serverless environments
+        '--single-process',
         '--no-zygote'
       ],
       timeout: 60000,
     };
 
+
     console.log('🚀 Launching Puppeteer browser for payslip generation...');
-    browser = await puppeteer.launch(puppeteerConfig);
+    browser = await puppeteer.launch(puppeteerConfig)
 
     const page = await browser.newPage();
 
