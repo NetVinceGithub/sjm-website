@@ -6,8 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "build": "npm install && npx puppeteer browsers install chrome",
-    "install-chrome": "npx puppeteer browsers install chrome"
+    "build": "npm ci --only=production",
+    "render-postbuild": "npx puppeteer browsers install chrome"
   },
   "keywords": [],
   "author": "",
@@ -28,7 +28,7 @@
     "nodemailer": "^7.0.3",
     "nodemon": "^3.1.9",
     "path": "^0.12.7",
-    "puppeteer": "^24.10.0",
+    "puppeteer": "^23.6.0",
     "sequelize": "^6.37.7"
   },
   "engines": {

@@ -65,6 +65,7 @@ const fillTemplate = (template, data) => {
 };
 
 
+
 const generatePayslipPDF = async (payslip) => {
   let browser = null;
   let page = null;
@@ -91,6 +92,7 @@ const generatePayslipPDF = async (payslip) => {
       ],
     };
 
+export { generatePayslipPDF };
 
     console.log('🚀 Launching Puppeteer browser for payslip generation...');
     browser = await puppeteer.launch(puppeteerConfig);
