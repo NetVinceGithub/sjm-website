@@ -62,79 +62,113 @@ const fillTemplate = (template, data) => {
 };
 
 const generatePayslipPDF = async (payslip) => {
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: process.env.NODE_ENV === 'production'
-      ? '/usr/bin/google-chrome-stable'
-      : undefined,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--disable-web-security',
-      '--disable-features=VizDisplayCompositor'
-    ]
-  });
+  let browser = null;
+  try {
+    // Configure Puppeteer for Render environment
+    const puppeteerConfig = {
+      headless: 'new', // Use new headless mode
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection',
+        '--disable-extensions',
+        '--disable-default-apps',
+        '--memory-pressure-off',
+        '--max_old_space_size=4096',
+        '--single-process', // Important for serverless environments
+        '--no-zygote'
+      ],
+      timeout: 60000,
+    };
 
-  const page = await browser.newPage();
+    console.log('🚀 Launching Puppeteer browser for payslip generation...');
+    browser = await puppeteer.launch(puppeteerConfig);
 
-  await page.setViewport({
-    width: 396,  // ~4.13 inches at 96 DPI
-    height: 561, // ~5.83 inches at 96 DPI
-    deviceScaleFactor: 2
-  });
+    const page = await browser.newPage();
 
-  // Load template and fill with data
-  const template = loadPayslipTemplate();
-  const templateData = {
-    payslip_number: `${payslip.ecode || "N/A"}-${new Date().getTime()}`,
-    ecode: payslip.ecode || "N/A",
-    employee_name: payslip.name || "N/A",
-    project_site: payslip.project || "N/A",
-    daily_rate: `₱${payslip.dailyrate ? Number(payslip.dailyrate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-    position: payslip.position || "N/A",
-    cutoff_date: payslip.cutoff_date || "N/A",
-    basic_pay: `₱${payslip.basic_pay ? Number(payslip.basic_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-    no_of_days: parseInt(payslip.no_of_days, 10) || "0",
-    overtime_pay: `₱${payslip.overtime_pay ? Number(payslip.overtime_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-    total_overtime: payslip.total_overtime || "0",
-    holiday_pay: `₱${payslip.holiday_pay ? Number(payslip.holiday_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-    night_differential: `₱${payslip.night_differential ? Number(payslip.night_differential).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-    allowance: `₱${payslip.allowance ? Number(payslip.allowance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-    sss: `₱${payslip.sss ? Number(payslip.sss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-    phic: `₱${payslip.phic ? Number(payslip.phic).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-    hdmf: `₱${payslip.hdmf ? Number(payslip.hdmf).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-    loan: `₱${payslip.loan ? Number(payslip.loan).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-    total_tardiness: `₱${payslip.total_tardiness ? Number(payslip.total_tardiness).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-    other_deductions: `₱${payslip.other_deductions ? Number(payslip.other_deductions).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-    total_earnings: `₱${payslip.total_earnings ? Number(payslip.total_earnings).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-    total_deductions: `₱${payslip.total_deductions ? Number(payslip.total_deductions).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-    adjustment: `₱${payslip.adjustment ? Number(payslip.adjustment).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-    net_pay: `₱${payslip.net_pay ? Number(payslip.net_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`
-  };
+    await page.setViewport({
+      width: 396,  // ~4.13 inches at 96 DPI
+      height: 561, // ~5.83 inches at 96 DPI
+      deviceScaleFactor: 2
+    });
 
-  const htmlContent = fillTemplate(template, templateData);
+    // Load template and fill with data
+    const template = loadPayslipTemplate();
+    const templateData = {
+      payslip_number: `${payslip.ecode || "N/A"}-${new Date().getTime()}`,
+      ecode: payslip.ecode || "N/A",
+      employee_name: payslip.name || "N/A",
+      project_site: payslip.project || "N/A",
+      daily_rate: `₱${payslip.dailyrate ? Number(payslip.dailyrate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      position: payslip.position || "N/A",
+      cutoff_date: payslip.cutoff_date || "N/A",
+      basic_pay: `₱${payslip.basic_pay ? Number(payslip.basic_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      no_of_days: parseInt(payslip.no_of_days, 10) || "0",
+      overtime_pay: `₱${payslip.overtime_pay ? Number(payslip.overtime_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      total_overtime: payslip.total_overtime || "0",
+      holiday_pay: `₱${payslip.holiday_pay ? Number(payslip.holiday_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      night_differential: `₱${payslip.night_differential ? Number(payslip.night_differential).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      allowance: `₱${payslip.allowance ? Number(payslip.allowance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      sss: `₱${payslip.sss ? Number(payslip.sss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      phic: `₱${payslip.phic ? Number(payslip.phic).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      hdmf: `₱${payslip.hdmf ? Number(payslip.hdmf).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      loan: `₱${payslip.loan ? Number(payslip.loan).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      total_tardiness: `₱${payslip.total_tardiness ? Number(payslip.total_tardiness).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      other_deductions: `₱${payslip.other_deductions ? Number(payslip.other_deductions).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      total_earnings: `₱${payslip.total_earnings ? Number(payslip.total_earnings).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      total_deductions: `₱${payslip.total_deductions ? Number(payslip.total_deductions).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      adjustment: `₱${payslip.adjustment ? Number(payslip.adjustment).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      net_pay: `₱${payslip.net_pay ? Number(payslip.net_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`
+    };
 
-  await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    const htmlContent = fillTemplate(template, templateData);
 
-  const pdf = await page.pdf({
-    width: '105mm',
-    height: '148mm',
-    printBackground: true,
-    margin: {
-      top: '3mm',
-      right: '3mm',
-      bottom: '3mm',
-      left: '3mm'
-    },
-    preferCSSPageSize: true
-  });
+    console.log('📄 Setting page content and generating PDF...');
+    await page.setContent(htmlContent, {
+      waitUntil: ['networkidle0', 'domcontentloaded'],
+      timeout: 30000
+    });
 
-  await browser.close();
-  return pdf;
+    const pdf = await page.pdf({
+      width: '105mm',
+      height: '148mm',
+      printBackground: true,
+      margin: {
+        top: '3mm',
+        right: '3mm',
+        bottom: '3mm',
+        left: '3mm'
+      },
+      preferCSSPageSize: true,
+      timeout: 30000
+    });
+
+    console.log('✅ PDF generated successfully');
+    return pdf;
+
+  } catch (error) {
+    console.error('❌ Error generating payslip PDF:', error);
+    throw new Error(`Failed to generate payslip PDF: ${error.message}`);
+  } finally {
+    // Always close browser to prevent memory leaks
+    if (browser) {
+      try {
+        await browser.close();
+        console.log('🔒 Browser closed successfully');
+      } catch (closeError) {
+        console.error('⚠️ Error closing browser:', closeError);
+      }
+    }
+  }
 };
-
 
 // Updated ControlNumberHistory model definition
 const ControlNumberHistory = sequelize.define('ControlNumberHistory', {
