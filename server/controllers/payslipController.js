@@ -28,16 +28,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Configure Email Transporter once
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
   tls: {
-    rejectUnauthorized: false,  // <-- add this line
+    rejectUnauthorized: false,
   },
 });
+
 
 
 // Verify SMTP connection once
@@ -66,7 +67,7 @@ const generatePayslipPDF = async (payslip) => {
   let browser = null;
   let context = null;
   let page = null;
-  
+
   try {
     const playwrightConfig = {
       headless: true, // Changed from 'false' to true for better performance
@@ -92,7 +93,7 @@ const generatePayslipPDF = async (payslip) => {
 
     console.log('🚀 Launching Playwright browser for payslip generation...');
     browser = await chromium.launch(playwrightConfig);
-    
+
     // Create a new context
     context = await browser.newContext({
       viewport: {
