@@ -188,16 +188,11 @@ const Requests = () => {
   const handleApprove = async () => {
     try {
       setLoadingPayroll(true);
-      // Send the entire list of requests in one POST request
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/payslip/send-payslip`, {
-        payslips: requests,
-      });
 
-      if (response.data.success) {
-        toast.success(
-          <div style={{ fontSize: '0.9rem' }}>
-            Payroll approved successfully.
-          </div>,
+      // Validation: Check if requests array exists and has data
+      if (!requests || !Array.isArray(requests) || requests.length === 0) {
+        toast.error(
+          'No payslips selected for approval',
           {
             autoClose: 3000,
             closeOnClick: true,
@@ -207,11 +202,98 @@ const Requests = () => {
             position: "top-right",
           }
         );
-      } else {
+        return;
+      }
+
+      // Debug logging
+      console.log('Sending payload:', { payslips: requests });
+      console.log('First payslip object:', requests[0]);
+      console.log('Payslip keys:', Object.keys(requests[0]));
+      console.log('Total payslips:', requests.length);
+
+      // Optional: Validate each payslip has required fields
+      const invalidPayslips = requests.filter(payslip =>
+        !payslip.employeeId || !payslip.id
+      );
+
+      if (invalidPayslips.length > 0) {
+        console.error('Invalid payslips found:', invalidPayslips);
         toast.error(
-          <div style={{ fontSize: '0.9rem' }}>
-            Failed to approve payroll.
-          </div>,
+          'Some payslips have missing required data',
+          {
+            autoClose: 3000,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",
+          }
+        );
+        return;
+      }
+
+      // Make the API request with proper headers
+      console.log('Making API request to:', `${import.meta.env.VITE_API_URL}/api/payslip/send-payslip`);
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/payslip/send-payslip`,
+        {
+          payslips: requests,
+          // Add any additional fields the server might expect:
+          // approvedBy: currentUserId,
+          // approvalDate: new Date().toISOString(),
+          // batchId: generateBatchId(),
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            // Add authorization header if required:
+            // 'Authorization': `Bearer ${authToken}`,
+          },
+          timeout: 30000, // 30 second timeout
+        }
+      );
+
+      console.log('API Response received:', response);
+      console.log('Response status:', response.status);
+      console.log('Response data:', response.data);
+      console.log('Response data type:', typeof response.data);
+      console.log('Response data success:', response.data?.success);
+
+      // Check if response is successful
+      console.log('Checking success condition...');
+      console.log('response.data:', response.data);
+      console.log('response.data.success:', response.data.success);
+      console.log('Success condition result:', response.data && response.data.success);
+
+      if (response.data && response.data.success) {
+        console.log('SUCCESS: Entering success block');
+        toast.success(
+          'Payroll approved successfully.',
+          {
+            autoClose: 3000,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",
+          }
+        );
+
+        // Show success modal
+        setShowSuccessModal(true);
+        console.log('SUCCESS: Modal should be shown, toast should appear');
+
+        // Optional: Clear requests or refresh data
+        // setRequests([]);
+        // await fetchPayslips(); // Refresh the list
+
+      } else {
+        console.log('ELSE: Response does not indicate success');
+        // Handle case where response doesn't indicate success
+        console.warn('Unexpected response format:', response.data);
+        toast.error(
+          'Failed to approve payroll. Please try again.',
           {
             autoClose: 3000,
             closeOnClick: true,
@@ -222,23 +304,120 @@ const Requests = () => {
           }
         );
       }
-      setShowSuccessModal(true);
+
     } catch (error) {
       console.error("Error approving payroll:", error);
-      toast.error(
-        <div style={{ fontSize: '0.9rem' }}>
-          Error approving payroll.
-        </div>,
-        {
-          autoClose: 3000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          closeButton: false,
-          position: "top-right",
+
+      // Detailed error logging for debugging
+      if (error.response) {
+        console.error('=== SERVER ERROR DETAILS ===');
+        console.error('Status:', error.response.status);
+        console.error('Status Text:', error.response.statusText);
+        console.error('Response Data:', error.response.data);
+        console.error('Response Headers:', error.response.headers);
+        console.error('Request URL:', error.config?.url);
+        console.error('Request Method:', error.config?.method);
+        console.error('Request Data:', error.config?.data);
+        console.error('=== END SERVER ERROR DETAILS ===');
+
+        // Handle specific error cases
+        if (error.response.status === 400) {
+          const errorMessage = error.response.data?.message ||
+            error.response.data?.error ||
+            'Invalid request data';
+          toast.error(
+            `Request Error: ${errorMessage}`,
+            {
+              autoClose: 5000,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              closeButton: false,
+              position: "top-right",
+            }
+          );
+        } else if (error.response.status === 401) {
+          toast.error(
+            'Authentication required. Please log in again.',
+            {
+              autoClose: 3000,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              closeButton: false,
+              position: "top-right",
+            }
+          );
+        } else if (error.response.status === 403) {
+          toast.error(
+            'You do not have permission to approve payroll.',
+            {
+              autoClose: 3000,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              closeButton: false,
+              position: "top-right",
+            }
+          );
+        } else if (error.response.status >= 500) {
+          toast.error(
+            'Server error. Please try again later.',
+            {
+              autoClose: 3000,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              closeButton: false,
+              position: "top-right",
+            }
+          );
+        } else {
+          toast.error(
+            'Error approving payroll. Please try again.',
+            {
+              autoClose: 3000,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              closeButton: false,
+              position: "top-right",
+            }
+          );
         }
-      );
-      setShowSuccessModal(true);
+      } else if (error.request) {
+        // Request was made but no response received
+        console.error('No response received:', error.request);
+        toast.error(
+          'Network error. Please check your connection.',
+          {
+            autoClose: 3000,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",
+          }
+        );
+      } else {
+        // Something else happened
+        console.error('Request setup error:', error.message);
+        toast.error(
+          'An unexpected error occurred.',
+          {
+            autoClose: 3000,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",
+          }
+        );
+      }
+
+      // Don't show success modal on error
+      // setShowSuccessModal(true); // Remove this line from catch block
+
     } finally {
       setLoadingPayroll(false);
     }
