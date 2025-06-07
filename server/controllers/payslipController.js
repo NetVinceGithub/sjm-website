@@ -83,23 +83,19 @@ const generatePayslipPDF = async (payslip) => {
 
   try {
     const puppeteerConfig = {
-      headless: true,
+      headless: 'new',
+      executablePath: '/opt/render/.cache/puppeteer/chrome/linux-131.0.6778.204/chrome-linux64/chrome',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
         '--disable-gpu',
         '--disable-web-security',
-        '--disable-features=VizDisplayCompositor',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-features=TranslateUI',
-        '--disable-ipc-flooding-protection',
-        '--disable-extensions',
-        '--disable-default-apps',
-        '--memory-pressure-off',
-        '--max_old_space_size=4096',
+        '--disable-features=VizDisplayCompositor'
       ],
     };
 
