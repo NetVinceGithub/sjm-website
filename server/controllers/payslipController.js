@@ -55,7 +55,7 @@ transporter.verify((error, success) => {
 // Function to generate payslip PDF - Modified for 4" x 5" using Playwright
 // Method 1: Read HTML file and replace placeholders
 const loadPayslipTemplate = () => {
-  const templatePath = path.join(__dirname, '..', '..', 'frontend', 'src', 'components', 'paysliptemplate.html');
+  const templatePath = path.join(__dirname, '..', 'template', 'paysliptemplate.html');
   return fs.readFileSync(templatePath, 'utf8');
 };
 
