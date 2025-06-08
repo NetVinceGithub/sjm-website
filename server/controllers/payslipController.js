@@ -1128,3 +1128,249 @@ export const releasePayrollByProject = async (req, res) => {
     return res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 };
+
+
+
+
+
+export const getContributions = async (req, res) => {
+  try {
+    const { employeeId, startDate, endDate, year, month } = req.query;
+    
+    // Build WHERE conditions for filtering
+    let whereConditions = [];
+    let replacements = {};
+    
+    if (employeeId) {
+      whereConditions.push('e.id = :employeeId');
+      replacements.employeeId = employeeId;
+    }
+    
+    // Fix date filtering - use 'date' column from PayslipHistory
+    if (startDate && endDate) {
+      whereConditions.push('ph.date BETWEEN :startDate AND :endDate');
+      replacements.startDate = startDate;
+      replacements.endDate = endDate;
+    } else if (year) {
+      whereConditions.push('YEAR(ph.date) = :year');
+      replacements.year = year;
+      
+      if (month) {
+        whereConditions.push('MONTH(ph.date) = :month');
+        replacements.month = month;
+      }
+    }
+    
+    const whereClause = whereConditions.length > 0 ? 
+      `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    // Fixed SQL query with correct column names and table references
+    const query = `
+      SELECT 
+        e.id as employeeId,
+        e.name,
+        e.ecode as employeeCode,
+        e.sss as employeeSSS,
+        e.philhealth as employeePhilhealth,
+        e.pagibig as employeePagibig,
+        COUNT(ph.id) as payslipCount,
+        COALESCE(SUM(CAST(ph.sss AS DECIMAL(10,2))), 0) as totalSSS,
+        COALESCE(SUM(CAST(ph.phic AS DECIMAL(10,2))), 0) as totalPhilhealth,
+        COALESCE(SUM(CAST(ph.hdmf AS DECIMAL(10,2))), 0) as totalPagibig,
+        COALESCE(SUM(
+          CAST(ph.sss AS DECIMAL(10,2)) + 
+          CAST(ph.phic AS DECIMAL(10,2)) + 
+          CAST(ph.hdmf AS DECIMAL(10,2))
+        ), 0) as grandTotal,
+        COUNT(CASE WHEN CAST(ph.sss AS DECIMAL(10,2)) > 0 THEN 1 END) as sssCount,
+        COUNT(CASE WHEN CAST(ph.phic AS DECIMAL(10,2)) > 0 THEN 1 END) as philhealthCount,
+        COUNT(CASE WHEN CAST(ph.hdmf AS DECIMAL(10,2)) > 0 THEN 1 END) as pagibigCount
+      FROM employees e
+      LEFT JOIN paysliphistories ph ON e.id = ph.employee_id
+      ${whereClause}
+      GROUP BY e.id, e.name, e.ecode, e.sss, e.philhealth, e.pagibig
+      ORDER BY e.name
+    `;
+
+    const results = await sequelize.query(query, {
+      replacements,
+      type: QueryTypes.SELECT
+    });
+
+    // Format the results
+    const contributionsData = results.map(row => ({
+      employeeId: row.employeeId,
+      employeeCode: row.employeeCode,
+      name: row.name,
+      employeeSSS: row.employeeSSS,
+      employeePhilhealth: row.employeePhilhealth,
+      employeePagibig: row.employeePagibig,
+      contributions: {
+        sss: {
+          total: parseFloat(row.totalSSS || 0),
+          count: parseInt(row.sssCount || 0)
+        },
+        philhealth: {
+          total: parseFloat(row.totalPhilhealth || 0),
+          count: parseInt(row.philhealthCount || 0)
+        },
+        pagibig: {
+          total: parseFloat(row.totalPagibig || 0),
+          count: parseInt(row.pagibigCount || 0)
+        }
+      },
+      grandTotal: parseFloat(row.grandTotal || 0),
+      payslipCount: parseInt(row.payslipCount || 0)
+    }));
+
+    // Calculate overall summary
+    const overallSummary = contributionsData.reduce((acc, employee) => {
+      acc.totalEmployees++;
+      acc.totalSSS += employee.contributions.sss.total;
+      acc.totalPhilhealth += employee.contributions.philhealth.total;
+      acc.totalPagibig += employee.contributions.pagibig.total;
+      acc.grandTotal += employee.grandTotal;
+      return acc;
+    }, {
+      totalEmployees: 0,
+      totalSSS: 0,
+      totalPhilhealth: 0,
+      totalPagibig: 0,
+      grandTotal: 0
+    });
+
+    // Format summary numbers
+    Object.keys(overallSummary).forEach(key => {
+      if (key !== 'totalEmployees') {
+        overallSummary[key] = parseFloat(overallSummary[key].toFixed(2));
+      }
+    });
+
+    // Return success response
+    res.status(200).json({
+      success: true,
+      message: 'Contributions retrieved successfully',
+      data: {
+        summary: overallSummary,
+        employees: contributionsData,
+        filters: {
+          employeeId: employeeId || null,
+          startDate: startDate || null,
+          endDate: endDate || null,
+          year: year || null,
+          month: month || null
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching contributions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// Alternative version if you want to get contributions for a specific employee
+export const getEmployeeContributions = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    if (!employeeId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Employee ID is required'
+      });
+    }
+
+    // Build where condition for payslip history
+    const payslipWhere = {};
+    if (startDate && endDate) {
+      payslipWhere.payPeriod = {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      };
+    }
+
+    // Fetch specific employee with payslip history
+    const employee = await Employee.findByPk(employeeId, {
+      include: [{
+        model: PayslipHistory,
+        where: payslipWhere,
+        required: false,
+        attributes: ['id', 'sss', 'philhealth', 'pagibig', 'payPeriod', 'createdAt']
+      }],
+      attributes: ['id', 'name', 'sss', 'philhealth', 'pagibig', 'employeeCode']
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found'
+      });
+    }
+
+    const payslips = employee.PayslipHistories || [];
+    
+    // Calculate totals
+    const totals = payslips.reduce((acc, payslip) => {
+      acc.totalSSS += parseFloat(payslip.sss || 0);
+      acc.totalPhilhealth += parseFloat(payslip.philhealth || 0);
+      acc.totalPagibig += parseFloat(payslip.pagibig || 0);
+      return acc;
+    }, {
+      totalSSS: 0,
+      totalPhilhealth: 0,
+      totalPagibig: 0
+    });
+
+    const grandTotal = totals.totalSSS + totals.totalPhilhealth + totals.totalPagibig;
+
+    res.status(200).json({
+      success: true,
+      message: 'Employee contributions retrieved successfully',
+      data: {
+        employeeId: employee.id,
+        employeeCode: employee.employeeCode,
+        name: employee.name,
+        employeeSSS: employee.sss,
+        employeePhilhealth: employee.philhealth,
+        employeePagibig: employee.pagibig,
+        contributions: {
+          sss: {
+            total: parseFloat(totals.totalSSS.toFixed(2)),
+            count: payslips.filter(p => p.sss && parseFloat(p.sss) > 0).length
+          },
+          philhealth: {
+            total: parseFloat(totals.totalPhilhealth.toFixed(2)),
+            count: payslips.filter(p => p.philhealth && parseFloat(p.philhealth) > 0).length
+          },
+          pagibig: {
+            total: parseFloat(totals.totalPagibig.toFixed(2)),
+            count: payslips.filter(p => p.pagibig && parseFloat(p.pagibig) > 0).length
+          }
+        },
+        grandTotal: parseFloat(grandTotal.toFixed(2)),
+        payslipCount: payslips.length,
+        payslips: payslips.map(payslip => ({
+          id: payslip.id,
+          sss: parseFloat(payslip.sss || 0),
+          philhealth: parseFloat(payslip.philhealth || 0),
+          pagibig: parseFloat(payslip.pagibig || 0),
+          payPeriod: payslip.payPeriod,
+          createdAt: payslip.createdAt
+        }))
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching employee contributions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};

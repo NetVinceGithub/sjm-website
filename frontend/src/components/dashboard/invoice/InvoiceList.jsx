@@ -900,44 +900,74 @@ const InvoiceList = () => {
                           </thead>
 
                           <tbody>
-                            {filteredInvoices.map((invoice, index) => {
-                              const overtimeHours = parseFloat(invoice.totalOvertime || 0);
-                              const overtimeAmount = parseFloat(invoice.overtimePay || 0);
-                              const grossPay = parseFloat(invoice.gross_pay || 0);
-                              const adminFee = grossPay * 0.10;
-                              const totalAmount = grossPay + adminFee;
-                              const vat = totalAmount * 0.12;
-                              const totalAmountDue = totalAmount + vat;
-                              console.log("Filtered invoices:", filteredInvoices);
+                            {(() => {
+                              // Initialize totals
+                              let totalDailyRate = 0;
+                              let totalOvertimeHours = 0;
+                              let totalOvertimeAmount = 0;
+                              let totalGrossPay = 0;
+                              let totalAdminFee = 0;
+                              let totalAmount = 0;
+                              let totalVat = 0;
+                              let totalAmountDue = 0;
 
-                              return (
-                                <tr key={invoice.id}>
-                                  <td className="border border-black text-center px-4 py-2 text-xs text-nowrap">{index + 1}</td>
-                                  <td className="border border-black text-left px-4 py-2 text-xs text-nowrap">{invoice.name}</td>
-                                  <td className="border border-black text-left px-4 py-2 text-xs text-nowrap">{invoice.position || '—'}</td>
-                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{parseFloat(invoice.dailyrate || 0).toFixed(2)}</td>
-                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{overtimeHours.toFixed(2)}</td>
-                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{overtimeAmount.toFixed(2)}</td>
-                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{grossPay.toFixed(2)}</td>
-                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{adminFee.toFixed(2)}</td>
-                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{totalAmount.toFixed(2)}</td>
-                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{vat.toFixed(2)}</td>
-                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{totalAmountDue.toFixed(2)}</td>
+                              // Map rows and compute totals at the same time
+                              const rows = filteredInvoices.map((invoice, index) => {
+                                const dailyRate = parseFloat(invoice.dailyrate || 0);
+                                const overtimeHours = parseFloat(invoice.totalOvertime || 0);
+                                const overtimeAmount = parseFloat(invoice.overtimePay || 0);
+                                const grossPay = parseFloat(invoice.gross_pay || 0);
+                                const adminFee = grossPay * 0.10;
+                                const subtotal = grossPay + adminFee;
+                                const vat = subtotal * 0.12;
+                                const totalDue = subtotal + vat;
+
+                                // Accumulate totals
+                                totalDailyRate += dailyRate;
+                                totalOvertimeHours += overtimeHours;
+                                totalOvertimeAmount += overtimeAmount;
+                                totalGrossPay += grossPay;
+                                totalAdminFee += adminFee;
+                                totalAmount += subtotal;
+                                totalVat += vat;
+                                totalAmountDue += totalDue;
+
+                                return (
+                                  <tr key={invoice.id}>
+                                    <td className="border border-black text-center px-4 py-2 text-xs text-nowrap">{index + 1}</td>
+                                    <td className="border border-black text-left px-4 py-2 text-xs text-nowrap">{invoice.name}</td>
+                                    <td className="border border-black text-left px-4 py-2 text-xs text-nowrap">{invoice.position || '—'}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{dailyRate.toFixed(2)}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{overtimeHours.toFixed(2)}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{overtimeAmount.toFixed(2)}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{grossPay.toFixed(2)}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{adminFee.toFixed(2)}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{subtotal.toFixed(2)}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{vat.toFixed(2)}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{totalDue.toFixed(2)}</td>
+                                  </tr>
+                                );
+                              });
+
+                              // Append totals row
+                              rows.push(
+                                <tr key="totals">
+                                  <td className="border border-black font-semibold text-center px-4 py-2" colSpan="3">TOTAL AMOUNT</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalDailyRate.toFixed(2)}</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalOvertimeHours.toFixed(2)}</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalOvertimeAmount.toFixed(2)}</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalGrossPay.toFixed(2)}</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalAdminFee.toFixed(2)}</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalAmount.toFixed(2)}</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalVat.toFixed(2)}</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalAmountDue.toFixed(2)}</td>
                                 </tr>
                               );
-                            })}
-                            <tr>
-                              <td className=" border border-black font-semibold text-center px-4 py-2" colSpan="3">TOTAL AMOUNT</td>
-                              <td className=" border border-black text-right px-4 py-2">1</td>
-                              <td className=" border border-black text-right px-4 py-2">1</td>
-                              <td className=" border border-black text-right px-4 py-2">1</td>
-                              <td className=" border border-black text-right px-4 py-2">1</td>
-                              <td className=" border border-black text-right px-4 py-2">1</td>
-                              <td className=" border border-black text-right px-4 py-2">1</td>
-                              <td className=" border border-black text-right px-4 py-2">1</td>
-                              <td className=" border border-black text-right px-4 py-2">1</td>
-                            </tr>
+
+                              return rows;
+                            })()}
                           </tbody>
+
                         </table>
 
                         <table className="table-fixed border border-black text-xs w-fit">

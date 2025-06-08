@@ -9,6 +9,7 @@ import sequelize from "../db/db.js";
 import { QueryTypes } from "sequelize";
 import nodemailer from 'nodemailer';
 import User from "../models/User.js";
+import LoginRecord from "../models/LoginRecord.js";
 
 dotenv.config();
 
@@ -43,23 +44,23 @@ const fetchAndSaveEmployees = async () => {
       // Upsert employee (insert or update)
       // Remove duplicate upsert call here
       await Employee.upsert(employee);
-    
+
       // Then fetch employee by unique field
       const savedEmployeeRecord = await Employee.findOne({ where: { ecode: employee.ecode } });
       if (!savedEmployeeRecord) {
         console.error("Failed to find employee after upsert:", employee.ecode);
         continue; // skip this employee to avoid crash
       }
-    
+
       sheetEmployeeIds.push(savedEmployeeRecord.id);
-    
+
       console.log(`✅ Employee Saved/Updated: ${savedEmployeeRecord.name || "Unknown Employee"}`);
-    
+
       // Check payroll info
       const existingPayroll = await PayrollInformation.findOne({
         where: { employee_id: savedEmployeeRecord.id }
       });
-    
+
       if (!existingPayroll) {
         // Create payroll info if missing, including default payroll values
         await PayrollInformation.create({
@@ -81,7 +82,7 @@ const fetchAndSaveEmployees = async () => {
           philhealth_contribution: 338,
           loan: 0,
         });
-      
+
         console.log(`✅ PayrollInformation Created for ${savedEmployeeRecord.ecode}`);
       } else {
         // Only update employee-identifying fields without resetting payroll numbers
@@ -92,12 +93,12 @@ const fetchAndSaveEmployees = async () => {
           area_section: savedEmployeeRecord.department || "N/A",
           email: savedEmployeeRecord.emailaddress || "N/A",
         });
-      
+
         console.log(`🔄 PayrollInformation Updated for ${savedEmployeeRecord.ecode}`);
       }
-      
+
     }
-    
+
 
     // OPTIONAL: Remove employees not in the sheet anymore
     const employeesToRemove = existingEmployees.filter(e => !sheetEmployeeIds.includes(e.id));
@@ -159,21 +160,22 @@ export const getEmployee = async (req, res) => {
 export const getPayrollInformations = async (req, res) => {
   try {
     const payrollInformations = await PayrollInformation.findAll();
-    res.status(200).json({ success: true, payrollInformations});
+    res.status(200).json({ success: true, payrollInformations });
   } catch (error) {
-    res.status(500).json({success: false, message: error.message}) }
+    res.status(500).json({ success: false, message: error.message })
+  }
 }
 
 export const getPayrollInformationsById = async (req, res) => {
   const { id } = req.params;
-  try{
+  try {
     const payrollInformation = await PayrollInformation.findByPk(id);
     if (!payrollInformation) {
-      return res.status(404).json({success: true, message: "Payroll Data not found"});
+      return res.status(404).json({ success: true, message: "Payroll Data not found" });
     }
-    res.status(200).json({success: true, payrollInformation});
-  }catch (error) {
-    res.status(500).json({success:false, message:error.message});
+    res.status(200).json({ success: true, payrollInformation });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 }
 
@@ -219,19 +221,89 @@ transporter.verify((error, success) => {
 
 export const requestPayrollChange = async (req, res) => {
   const { payroll_info_id, changes, reason, requested_by } = req.body;
+  const ipAddress = req.ip || req.connection.remoteAddress;
+  const userAgent = req.get('User-Agent');
 
   console.log("Received data:", req.body);
 
   try {
     if (!payroll_info_id || !changes || !requested_by) {
+      // Log failed attempt
+      await LoginRecord.logActivity({
+        userName: requested_by || 'Unknown',
+        email: req.user?.email || 'unknown@example.com',
+        role: req.user?.role || 'User',
+        action: 'payroll_change_request',
+        success: false,
+        errorMessage: 'Missing required fields',
+        actionDetails: {
+          payroll_info_id,
+          hasChanges: !!changes,
+          hasRequestedBy: !!requested_by
+        },
+        ipAddress,
+        userAgent,
+        sessionId: req.session?.id
+      });
+
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
+
+    const payrollInfo = await PayrollInformation.findByPk(payroll_info_id);
+
+    if (!payrollInfo) {
+      // Log failed attempt - payroll not found
+      await LoginRecord.logActivity({
+        userName: requested_by,
+        email: req.user?.email || 'unknown@example.com',
+        role: req.user?.role || 'User',
+        action: 'payroll_change_request',
+        success: false,
+        errorMessage: 'Payroll information not found',
+        targetResource: `payroll_id:${payroll_info_id}`,
+        actionDetails: {
+          payroll_info_id,
+          changes
+        },
+        ipAddress,
+        userAgent,
+        sessionId: req.session?.id
+      });
+
+      return res.status(404).json({ success: false, message: "Payroll information not found" });
+    }
+
+    const employee_name = `${payrollInfo.name}`;
+    console.log(employee_name);
 
     const result = await PayrollChangeRequest.create({
       payroll_info_id,
       changes,
       reasons: reason,
-      requested_by
+      requested_by,
+      employee_name
+    });
+
+    console.log(result);
+
+    // Log successful payroll change request
+    await LoginRecord.logActivity({
+      userName: requested_by,
+      email: req.user?.email || 'unknown@example.com',
+      role: req.user?.role || 'User',
+      action: 'payroll_change_request',
+      success: true,
+      targetResource: `payroll_id:${payroll_info_id}`,
+      actionDetails: {
+        payroll_info_id,
+        employee_name,
+        changes,
+        reason,
+        request_id: result.id
+      },
+      ipAddress,
+      userAgent,
+      sessionId: req.session?.id
     });
 
     // Get all users with the role 'approver'
@@ -248,10 +320,17 @@ export const requestPayrollChange = async (req, res) => {
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h3>Hello ${approver.name},</h3>
             <p>A new payroll change request by ${requested_by} is awaiting your review.</p>
+            <p><strong>Employee:</strong> ${employee_name}</p>
             <p><strong>Reason:</strong> ${reason || 'No reason provided'}</p>
+            <p><strong>Changes:</strong></p>
+            <ul>
+              ${Object.entries(changes).map(([key, value]) => 
+                `<li><strong>${key.replace(/_/g, ' ')}:</strong> ${value}</li>`
+              ).join('')}
+            </ul>
             <p>Please login to the payroll system to review and take appropriate action.</p>
             <br />
-            <p>best regards,<br />SJM Payroll System</p>
+            <p>Best regards,<br />SJM Payroll System</p>
           </div>
         `
       };
@@ -262,15 +341,81 @@ export const requestPayrollChange = async (req, res) => {
         successfulEmails.push(approver.email);
       } catch (emailError) {
         console.error(`Failed to send email to ${approver.email}:`, emailError);
+        
+        // Log email failure
+        await LoginRecord.logActivity({
+          userName: 'System',
+          email: 'system@company.com',
+          role: 'Admin',
+          action: 'payroll_change_request',
+          success: false,
+          errorMessage: `Failed to send notification to ${approver.email}`,
+          actionDetails: {
+            type: 'email_notification',
+            recipient: approver.email,
+            payroll_info_id,
+            request_id: result.id
+          },
+          ipAddress,
+          userAgent
+        });
       }
     }
 
-    res.status(200).json({ success: true, message: "Request submitted", notified: successfulEmails });
+    // Log email notification results
+    if (successfulEmails.length > 0) {
+      await LoginRecord.logActivity({
+        userName: 'System',
+        email: 'system@company.com',
+        role: 'Admin',
+        action: 'payroll_change_request',
+        success: true,
+        actionDetails: {
+          type: 'email_notifications_sent',
+          recipients: successfulEmails,
+          payroll_info_id,
+          request_id: result.id,
+          total_approvers: approvers.length,
+          successful_notifications: successfulEmails.length
+        },
+        ipAddress,
+        userAgent
+      });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Request submitted", 
+      notified: successfulEmails,
+      request_id: result.id
+    });
+
   } catch (error) {
     console.error("Error saving payroll change request:", error);
+    
+    // Log the error
+    await LoginRecord.logActivity({
+      userName: requested_by || 'Unknown',
+      email: req.user?.email || 'unknown@example.com',
+      role: req.user?.role || 'User',
+      action: 'payroll_change_request',
+      success: false,
+      errorMessage: error.message,
+      actionDetails: {
+        payroll_info_id,
+        changes,
+        reason,
+        error_stack: error.stack
+      },
+      ipAddress,
+      userAgent,
+      sessionId: req.session?.id
+    });
+
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+
 
 
 export const reviewPayrollChange = async (req, res) => {
@@ -304,7 +449,7 @@ export const updateIDDetails = async (req, res) => {
       if (req.files.profileImage) {
         updatedData.profileImage = req.files.profileImage[0].filename;
       }
-      if (req.files.esignature) {  
+      if (req.files.esignature) {
         updatedData.esignature = req.files.esignature[0].filename;
       } else {
         console.log("🚨 Esignature file is missing in req.files!");
@@ -524,9 +669,9 @@ export const bulkApprovePayrollChanges = async (req, res) => {
     }
 
     console.log(`✅ Bulk approved ${pendingRequests.length} payroll change requests`);
-    res.status(200).json({ 
-      success: true, 
-      message: `Successfully approved ${pendingRequests.length} change requests` 
+    res.status(200).json({
+      success: true,
+      message: `Successfully approved ${pendingRequests.length} change requests`
     });
 
   } catch (error) {
@@ -564,13 +709,132 @@ export const bulkRejectPayrollChanges = async (req, res) => {
     );
 
     console.log(`✅ Bulk rejected ${pendingRequests.length} payroll change requests`);
-    res.status(200).json({ 
-      success: true, 
-      message: `Successfully rejected ${pendingRequests.length} change requests` 
+    res.status(200).json({
+      success: true,
+      message: `Successfully rejected ${pendingRequests.length} change requests`
     });
 
   } catch (error) {
     console.error("❌ Error bulk rejecting payroll changes:", error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+
+export const messageEmployee = async (req, res) => {
+  try {
+    const {
+      employeeId,
+      employeeName,
+      employeeCode,
+      employeeEmail,
+      message,
+      sentAt,
+      sentBy
+    } = req.body;
+
+    console.log(req.body);
+
+    // Validate required fields
+    if (!employeeId || !employeeName || !employeeCode || !employeeEmail || !message || !sentAt || !sentBy) {
+      return res.status(400).json({
+        success: false,
+        message: 'All fields are required'
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(employeeEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
+    // Configure email content
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employeeEmail,
+      subject: `Message for ${employeeName} (${employeeCode})`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Message Notification</h2>
+          
+          <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="color: #555;">Employee Details:</h3>
+            <p><strong>Name:</strong> ${employeeName}</p>
+            <p><strong>Employee Code:</strong> ${employeeCode}</p>
+            <p><strong>Email:</strong> ${employeeEmail}</p>
+          </div>
+          
+          <div style="background-color: #fff; padding: 20px; border-left: 4px solid #007bff; margin: 20px 0;">
+            <h3 style="color: #007bff;">Message:</h3>
+            <p style="line-height: 1.6;">${message}</p>
+          </div>
+          
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
+            <p><strong>Sent by:</strong> ${sentBy}</p>
+            <p><strong>Sent at:</strong> ${new Date(sentAt).toLocaleString()}</p>
+          </div>
+        </div>
+      `,
+      // Plain text version for email clients that don't support HTML
+      text: `
+        Message for ${employeeName} (${employeeCode})
+        
+        Employee Details:
+        Name: ${employeeName}
+        Employee Code: ${employeeCode}
+        Email: ${employeeEmail}
+        
+        Message:
+        ${message}
+        
+        Sent by: ${sentBy}
+        Sent at: ${new Date(sentAt).toLocaleString()}
+      `
+    };
+
+    // Send email
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent:', info.messageId);
+
+    // Return success response
+    res.status(200).json({
+      success: true,
+      message: 'Email sent successfully',
+      data: {
+        messageId: info.messageId,
+        recipient: employeeEmail,
+        sentAt: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Error sending email:', error);
+    
+    // Handle nodemailer specific errors
+    if (error.code === 'EAUTH') {
+      return res.status(500).json({
+        success: false,
+        message: 'Email authentication failed. Please check your email credentials.'
+      });
+    }
+    
+    if (error.code === 'ENOTFOUND') {
+      return res.status(500).json({
+        success: false,
+        message: 'Email server not found. Please check your SMTP configuration.'
+      });
+    }
+
+    // Handle other errors
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send email',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };

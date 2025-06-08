@@ -162,15 +162,27 @@ const Requests = () => {
 
   // Function to get changed fields from the changes object
   const getChangedFields = (changes) => {
-    if (!changes || typeof changes !== 'object') return [];
+    if (!changes) return [];
 
-    // Convert changes object to array of changed fields
+    // If changes is a string, parse it
+    if (typeof changes === 'string') {
+      try {
+        changes = JSON.parse(changes);
+      } catch (e) {
+        console.error("Failed to parse changes:", changes);
+        return [];
+      }
+    }
+
+    if (typeof changes !== 'object') return [];
+
     return Object.entries(changes).map(([field, value]) => ({
       field,
       value,
-      displayName: formatFieldName(field)
+      displayName: formatFieldName(field),
     }));
   };
+
 
 
 
@@ -947,6 +959,9 @@ const Requests = () => {
                   </div>
                   <div>
                     <p className="text-sm">Requested By: {selectedChangeRequest.requested_by}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm">Change for: {selectedChangeRequest.employee_name}</p>
                   </div>
                   <div>
                     <p className="text-sm">

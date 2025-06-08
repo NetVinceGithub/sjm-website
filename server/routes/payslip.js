@@ -9,7 +9,8 @@ import {
   deleteAllPayslips, 
   getPayslipByEmployeeId,
   releasePayrollByProject,
-  getAvailableBatches 
+  getAvailableBatches,
+  getContributions 
 } from "../controllers/payslipController.js";
 import { sequelize } from "../db/db.js"; // Ensure correct path
 import { QueryTypes } from "sequelize";
@@ -20,6 +21,7 @@ const router = express.Router();
 
 router.get("/", getPayslips);
 router.get("/history", getPayslipsHistory);
+router.get("/contribution", getContributions);
 router.get("/history/:employeeId", getPayslipByEmployeeId);
 router.post("/generate", generatePayroll);
 router.post("/request-release", requestPayrollRelease);
