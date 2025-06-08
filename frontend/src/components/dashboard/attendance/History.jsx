@@ -14,33 +14,26 @@ const columns = [
   },
   {
     name: "Date",
-    selector: (row) => row.ea_txndte,
+    selector: (row) => row.date,
     sortable: true,
   },
   {
-    name: "Sched In",
-    selector: (row) => row.schedin || "N/A",
+    name: "Duty Start",
+    selector: (row) => row.dutyStart || "N/A",
   },
   {
-    name: "Sched Out",
-    selector: (row) => row.schedout || "N/A",
+    name: "Duty End",
+    selector: (row) => row.dutyEnd || "N/A",
   },
   {
-    name: "Time In",
-    selector: (row) => row.timein || "N/A",
+    name: "Punch In",
+    selector: (row) => row.punchIn || "N/A",
   },
   {
-    name: "Time Out",
-    selector: (row) => row.timeout2 || "N/A",
+    name: "Punch Out",
+    selector: (row) => row.punchOut || "N/A",
   },
-  {
-    name: "Total Hours",
-    selector: (row) => row.total_hours,
-  },
-  {
-    name: "Overtime",
-    selector: (row) => row.overtime,
-  },
+
 ];
 
 const History = () => {
@@ -56,6 +49,7 @@ const History = () => {
           `${import.meta.env.VITE_API_URL}/api/attendance/get-history`
         );
         if (response.data.attendance) {
+          console.log(response.data.attendance);
           setAttendanceData(response.data.attendance);
         } else {
           setError("Invalid data format from API");

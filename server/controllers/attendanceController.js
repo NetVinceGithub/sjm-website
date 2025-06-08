@@ -107,44 +107,58 @@ export const uploadAttendanceFile = async (req, res) => {
       });
     }
 
-    // Insert all data without checking for duplicates
+    // Insert all data into both tables
     try {
-      const result = await Attendance.bulkCreate(formattedData, {
-        // Remove ignoreDuplicates and updateOnDuplicate options
-        // This will insert all records, including duplicates
+      // Insert into Attendance table
+      const result1 = await Attendance.bulkCreate(formattedData, {
         validate: true,
         returning: true
       });
+      console.log('✅ Attendance bulk create successful. Inserted records:', result1.length);
 
-      console.log('Bulk create successful. Inserted records:', result.length);
+      // Insert into AttendanceHistory table
+      const result2 = await AttendanceHistory.bulkCreate(formattedData, {
+        validate: true,
+        returning: true
+      });
+      console.log('✅ AttendanceHistory bulk create successful. Inserted records:', result2.length);
 
       // Verify insertion
       const totalRecordsInDB = await Attendance.count();
-      console.log('Total records in database after insert:', totalRecordsInDB);
+      const totalHistoryRecordsInDB = await AttendanceHistory.count();
+      console.log('Total records in Attendance table:', totalRecordsInDB);
+      console.log('Total records in AttendanceHistory table:', totalHistoryRecordsInDB);
 
       res.status(200).json({ 
         success: true, 
-        message: `All attendance data uploaded successfully. ${result.length} records inserted.`,
+        message: `All attendance data uploaded successfully. ${result1.length} records inserted into both tables.`,
         details: {
-          recordsInserted: result.length,
-          totalInDatabase: totalRecordsInDB
+          recordsInserted: result1.length,
+          totalInAttendance: totalRecordsInDB,
+          totalInHistory: totalHistoryRecordsInDB
         }
       });
 
     } catch (bulkError) {
       console.error('Bulk create error:', bulkError);
       
-      // If bulk create fails, try individual inserts
+      // If bulk create fails, try individual inserts for both tables
       console.log('Attempting individual record insertion...');
       
-      let successCount = 0;
+      let successCountAttendance = 0;
+      let successCountHistory = 0;
       let errorCount = 0;
       const errors = [];
 
       for (const record of formattedData) {
         try {
+          // Insert into Attendance
           await Attendance.create(record);
-          successCount++;
+          successCountAttendance++;
+          
+          // Insert into AttendanceHistory
+          await AttendanceHistory.create(record);
+          successCountHistory++;
         } catch (error) {
           errorCount++;
           errors.push({
@@ -155,22 +169,25 @@ export const uploadAttendanceFile = async (req, res) => {
         }
       }
 
-      console.log(`Individual insertion complete. Success: ${successCount}, Errors: ${errorCount}`);
+      console.log(`Individual insertion complete. Attendance Success: ${successCountAttendance}, History Success: ${successCountHistory}, Errors: ${errorCount}`);
 
       if (errors.length > 0) {
         console.log('First few errors:', errors.slice(0, 3));
       }
 
       const totalRecordsInDB = await Attendance.count();
+      const totalHistoryRecordsInDB = await AttendanceHistory.count();
 
       res.status(200).json({ 
         success: true, 
-        message: `Attendance upload completed. ${successCount} records inserted successfully.`,
+        message: `Attendance upload completed. ${successCountAttendance} records inserted into Attendance, ${successCountHistory} into History.`,
         details: {
-          recordsInserted: successCount,
+          attendanceRecordsInserted: successCountAttendance,
+          historyRecordsInserted: successCountHistory,
           recordsFailed: errorCount,
-          totalInDatabase: totalRecordsInDB,
-          errors: errorCount > 0 ? errors.slice(0, 5) : [] // Return first 5 errors
+          totalInAttendance: totalRecordsInDB,
+          totalInHistory: totalHistoryRecordsInDB,
+          errors: errorCount > 0 ? errors.slice(0, 5) : []
         }
       });
     }
@@ -195,7 +212,7 @@ export const saveAttendance = async (req, res) => {
       return res.status(400).json({ message: "Invalid data format. Expecting an array." });
     }
 
-    // Validate and format attendance records
+    // Your existing formatting logic...
     const formattedRecords = [];
     for (const record of attendanceRecords) {
       if (record.ea_txndte) {
@@ -213,7 +230,7 @@ export const saveAttendance = async (req, res) => {
           formattedDate = parsedDate.format("YYYY-MM-DD");
         }
 
-        // Clone and update record
+        // Clone and update record - EXACTLY as you had it
         const formattedRecord = { ...record, ea_txndte: formattedDate };
         formattedRecords.push(formattedRecord);
       } else {
@@ -221,18 +238,58 @@ export const saveAttendance = async (req, res) => {
       }
     }
 
-    // Bulk insert into Attendance and AttendanceHistory tables
-    const result1 = await Attendance.bulkCreate(formattedRecords, { validate: true });
-    const result2 = await AttendanceHistory.bulkCreate(formattedRecords, { validate: true });
+    console.log("=== DEBUGGING INFO ===");
+    console.log("Sample formatted record:", JSON.stringify(formattedRecords[0], null, 2));
+    console.log("Total records:", formattedRecords.length);
+    
+    // Test AttendanceHistory model directly
+    console.log("Testing AttendanceHistory model...");
+    console.log("AttendanceHistory table name:", AttendanceHistory.tableName);
+    console.log("AttendanceHistory attributes:", Object.keys(AttendanceHistory.rawAttributes));
 
-    res.status(201).json({
-      message: "Attendance data saved successfully",
-      insertedRowsAttendance: result1.length,
-      insertedRowsHistory: result2.length,
-    });
+    // Insert into Attendance table
+    const result1 = await Attendance.bulkCreate(formattedRecords, { validate: true });
+    console.log("✅ Attendance records inserted:", result1.length);
+
+    // Insert into AttendanceHistory table with detailed logging
+    console.log("Attempting AttendanceHistory insertion...");
+    
+    try {
+      const result2 = await AttendanceHistory.bulkCreate(formattedRecords, { 
+        validate: true,
+        returning: true,
+        ignoreDuplicates: false
+      });
+      console.log("✅ AttendanceHistory records inserted:", result2.length);
+      console.log("Sample inserted record:", result2[0] ? result2[0].toJSON() : "No records returned");
+      
+      res.status(201).json({
+        message: "Attendance data saved successfully",
+        insertedRowsAttendance: result1.length,
+        insertedRowsHistory: result2.length,
+      });
+    } catch (historyError) {
+      console.error("❌ AttendanceHistory ERROR:");
+      console.error("Error name:", historyError.name);
+      console.error("Error message:", historyError.message);
+      console.error("Error stack:", historyError.stack);
+      
+      if (historyError.errors) {
+        console.error("Validation errors:", historyError.errors);
+      }
+      
+      // Return the error details
+      res.status(500).json({
+        message: "AttendanceHistory insertion failed",
+        error: historyError.message,
+        errorName: historyError.name,
+        insertedRowsAttendance: result1.length,
+        insertedRowsHistory: 0
+      });
+    }
 
   } catch (error) {
-    console.error("Error saving attendance:", error);
+    console.error("General error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

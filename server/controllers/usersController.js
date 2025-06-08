@@ -54,12 +54,14 @@ export const addUser = async (req, res) => {
           to: email,
           subject: `Access for ${name}`,
           html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <div>
-                You are given access to sjm-payroll system as ${role}
-              </div>
-            </div>
-          `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div>
+                      You are given access to sjm-payroll system as ${role}, you can access the system in 
+                      <a href="https://payroll.stjohnmajore.com/">https://payroll.stjohnmajore.com/</a>
+                    </div>
+                  </div>
+                `
+
         };
 
         await transporter.sendMail(mailOptions);

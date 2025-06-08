@@ -10,13 +10,16 @@ import { FaSearch, FaSyncAlt, FaIdCard } from "react-icons/fa";
 import EmployeeIDCard from "../EmployeeIDCard";
 import Breadcrumb from "../dashboard/Breadcrumb";
 import { FaPrint, FaRegFileExcel, FaRegFilePdf } from "react-icons/fa6";
-import { FaEnvelope, FaMinusSquare } from "react-icons/fa";
+import { FaEnvelope, FaMinusSquare, FaTimes } from "react-icons/fa";
 import BlockEmployeeModal from "../modals/BlockEmployeeModal";
 import UnBlockEmployeeModal from "../modals/UnblockEmployeeModal";
 import ActivateEmployeeModal from "../modals/ActivateEmployeeModal";
 import { toast } from 'react-toastify';
+import { useAuth } from "../../../context/authContext";
 
 const List = () => {
+  const { user } = useAuth();
+  
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -30,6 +33,11 @@ const List = () => {
   const [employeeToBlock, setEmployeeToBlock] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [isActivateEmployeeOpen, setIsActivateEmployeeOpen] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [isEmailModalEmployee, setIsEmailModalEmployee] = useState(null);
+  const [emailMessage, setEmailMessage] = useState();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
     fetchEmployees();
@@ -83,6 +91,77 @@ const List = () => {
     setIsModalOpen(false);
     setSelectedEmployeeId(null);
   };
+
+  const openEmailModal = (employeeId) => {
+    console.log("Message button")
+    const employee = employees.find((emp) => emp.id === employeeId);
+    setIsEmailModalEmployee(employeeId);
+    setIsEmailModalOpen(true);
+    console.log("Message working button")
+
+  }
+
+  const closeEmailModal = () => {
+    setIsEmailModalOpen(false);
+    setEmailMessage('');
+  }
+
+  const handleSubmitEmailMessage = async () => {
+    // Validation
+    if (!emailMessage.trim()) {
+      setSubmitError('Message cannot be empty');
+      return;
+    }
+
+    if (!isEmailModalEmployee) {
+      setSubmitError('No employee selected');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError('');
+
+    try {
+      const employee = employees.find(emp => emp.id === isEmailModalEmployee);
+
+      const messageData = {
+        employeeId: isEmailModalEmployee,
+        employeeName: employee?.name || 'Unknown',
+        employeeCode: employee?.employeeCode || employee?.ecode || 'N/A',
+        employeeEmail: employee?.emailaddress || "No Email Provided",
+        message: emailMessage.trim(),
+        sentAt: new Date().toISOString(),
+        sentBy: user.name // You might want to get this from your auth context
+      };
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/employee/messaging`,
+        messageData,)
+    
+      closeEmailModal();
+
+
+    } catch (error) {
+      console.error('Error sending message:', error);
+
+      if (error.response) {
+        // Server responded with error
+        setSubmitError(error.response.data.message || 'Failed to send message');
+      } else if (error.request) {
+        // Network error
+        setSubmitError('Network error. Please check your connection.');
+      } else {
+        // Other error
+        setSubmitError('An unexpected error occurred');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelEmailModal = () => {
+    closeEmailModal();
+  }
 
   const confirmBlockEmployee = async () => {
     if (employeeToBlock) {
@@ -503,10 +582,13 @@ const List = () => {
                 className=" text-neutralDGray w-5 h-5"
               />
             </button>
-            <button className="w-14 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center">
+            <button
+              onClick={() => openEmailModal(row.employeeId || row.id)}  // ← Pass the ID
+              className="w-14 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center"
+            >
               <FaEnvelope
                 title="Message"
-                className=" text-neutralDGray w-5 h-5"
+                className="text-neutralDGray w-5 h-5"
               />
             </button>
             <button
@@ -768,6 +850,101 @@ const List = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal Overlay */}
+      {isEmailModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-6 border-b">
+              <h2 className="text-xl font-semibold text-gray-800">Send Message</h2>
+              <button
+                onClick={handleCancelEmailModal}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                disabled={isSubmitting}
+              >
+                <FaTimes className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              {/* Employee Information */}
+              <div className="mb-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-gray-600">Employee Name:</span>
+                    <span className="text-sm text-gray-800">
+                      {employees.find(emp => emp.id === isEmailModalEmployee)?.name || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-600">Employee Code:</span>
+                    <span className="text-sm text-gray-800">
+                      {employees.find(emp => emp.id === isEmailModalEmployee)?.employeeCode ||
+                        employees.find(emp => emp.id === isEmailModalEmployee)?.ecode || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-600">Sent to:</span>
+                    <span className="text-sm text-gray-800">
+                      {employees.find(emp => emp.id === isEmailModalEmployee)?.emailaddress ||'NO Email'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {submitError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-600">{submitError}</p>
+                </div>
+              )}
+
+              {/* Message Input */}
+              <div className="mb-6">
+                <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                  Message <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  id="message"
+                  rows="4"
+                  value={emailMessage}
+                  onChange={(e) => {
+                    setEmailMessage(e.target.value);
+                    if (submitError) setSubmitError(''); // Clear error on input
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  placeholder="Type your message here..."
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={handleCancelEmailModal}
+                  className="px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitEmailMessage}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting && (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  )}
+                  {isSubmitting ? 'Sending...' : 'Submit'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Employee ID Modal */}
       <EmployeeIDCard

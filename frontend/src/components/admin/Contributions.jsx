@@ -71,57 +71,59 @@ const renderActiveShape = (props) => {
 };
 
 const Contributions = () => {
-  const [employeeData, setEmployeeData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [employeeShare, setEmployeeShare] = useState([]);
+  const [contributions, setContributions] = useState(null);
 
   useEffect(() => {
-    fetchEmployeeData();
-    fetchEmployeeContribution();
+    fetchContributions();
   }, [])
 
   // Fetch data from backend
-
-  const fetchEmployeeData = async () => {
+  const fetchContributions = async () => {
     setLoading(true);
-    try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee`);
-      setEmployeeData(response.data.employees);
+     try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/contribution`);
+      setContributions(response.data);
+      console.log("data of contributions", response.data);
     } catch (error) {
       console.error("Error fetching contributions:", error);
     } finally {
       setLoading(false);
     }
+  }
+
+  // If no data loaded yet, show loading
+  if (!contributions) {
+    return (
+      <div className="p-6 h-[calc(100vh-150px)] flex justify-center items-center">
+        <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
+          <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
+          Loading data...
+        </div>
+      </div>
+    );
+  }
+
+  // Get employee data from API response
+  const employeeData = contributions.data.employees.map(employee => ({
+    name: employee.name,
+    sss: employee.contributions.sss.total,
+    philhealth: employee.contributions.philhealth.total,
+    pagibig: employee.contributions.pagibig.total,
+    employeeShare: employee.grandTotal / 2, // Assuming 50/50 split
+    employerShare: employee.grandTotal / 2,  // Assuming 50/50 split
+    employmentstatus: 'ACTIVE' // Default status since not provided in API
+  }));
+
+  // Use summary data from API for totals
+  const totalContributions = {
+    sss: contributions.data.summary.totalSSS,
+    philhealth: contributions.data.summary.totalPhilhealth,
+    pagibig: contributions.data.summary.totalPagibig,
+    employeeTotal: contributions.data.summary.grandTotal / 2,
+    employerTotal: contributions.data.summary.grandTotal / 2
   };
-
-  const fetchEmployeeContribution = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/history`);
-      setEmployeeShare(response.data.payslips);
-      console.log("data of employee shares history", employeeShare);
-    } catch (error) {
-      console.error("Error fetching employee history:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-
-  // Calculate totals from employee data
-  const totalContributions = employeeData.reduce(
-    (acc, employee) => {
-      acc.sss += employee.sss || 0;
-      acc.philhealth += employee.philhealth || 0;
-      acc.pagibig += employee.pagibig || 0;
-      acc.employeeTotal += employee.employeeShare || 0;
-      acc.employerTotal += employee.employerShare || 0;
-      return acc;
-    },
-    { sss: 0, philhealth: 0, pagibig: 0, employeeTotal: 0, employerTotal: 0 }
-  );
 
   // Pie chart data
   const pieData = [

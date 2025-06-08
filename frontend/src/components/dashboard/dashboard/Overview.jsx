@@ -336,31 +336,52 @@ const Overview = () => {
     }
   };
 
-  const handleReleaseRequest = async () => {
-    if (!safePayslips.length) {
-      alert("No payslips available!");
-      return;
-    }
-
-    setSending(true);
-    setMessage("");
-    try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/payslip/request-release`,
-        { status: "pending" }
-      );
-
-      if (response.data.success) {
-        setMessage("✅ Payroll release request sent to Admin!");
-      } else {
-        setMessage("❌ Failed to send request.");
-      }
-    } catch (error) {
-      setMessage("❌ An error occurred while sending the request.");
-    } finally {
-      setSending(false);
-    }
+const parseCutoffDate = (cutoffDate) => {
+  const [month, day, year] = cutoffDate.split('/');
+  return {
+    month: parseInt(month),
+    year: parseInt(year),
+    day: parseInt(day)
   };
+};
+
+// Filter function
+const filterPayslips = (payslipData, filterMonth, filterYear) => {
+  if (!filterMonth && !filterYear) {
+    return payslipData; // No filters applied, return all data
+  }
+
+  return payslipData.filter(payslip => {
+    const { month: payslipMonth, year: payslipYear } = parseCutoffDate(payslip.cutoffDate);
+    
+    // Check month filter
+    const monthMatches = !filterMonth || payslipMonth === parseInt(filterMonth);
+    
+    // Check year filter
+    const yearMatches = !filterYear || payslipYear === parseInt(filterYear);
+    
+    return monthMatches && yearMatches;
+  });
+};
+
+
+// Fetch payslips function (modify your existing fetch function)
+const fetchPayslips = async () => {
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/history`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    
+    if (response.data.success) {
+      setPayslips(response.data.payslips);
+      setFilteredPayslips(response.data.payslips); // Initially show all
+    }
+  } catch (error) {
+    console.error('Error fetching payslips:', error);
+  }
+};
 
   function toProperCase(str) {
     return str

@@ -23,7 +23,13 @@ const PayrollChangeRequest = sequelize.define("PayrollChangeRequest", {
   status: {
     type: DataTypes.ENUM("Pending", "Approved", "Rejected"),
     defaultValue: "Pending"
+  },
+  employee_name: {
+    type: DataTypes.STRING(255),
+    allowNull: false
   }
+
+  
 });
 
 

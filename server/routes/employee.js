@@ -16,6 +16,7 @@ import {
   reviewPayrollChange,
   rejectPayrollChange,
   approvePayrollChange,
+  messageEmployee
 } from "../controllers/employeeController.js";
 
 const router = express.Router();
@@ -83,5 +84,7 @@ router.put("/update-details/:id", upload.fields([
 // GENERIC ROUTES LAST
 router.get("/", getEmployees); // This should be after specific routes
 router.get("/:id", getEmployee); // This MUST be the very last route
+
+router.post('/messaging', messageEmployee);
 
 export default router;
