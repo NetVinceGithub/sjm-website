@@ -1164,7 +1164,7 @@ export const getContributions = async (req, res) => {
     const whereClause = whereConditions.length > 0 ? 
       `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    // Fixed SQL query with correct column names and table references
+    // Fixed SQL query with correct table name (Employees with capital E)
     const query = `
       SELECT 
         e.id as employeeId,
@@ -1185,8 +1185,8 @@ export const getContributions = async (req, res) => {
         COUNT(CASE WHEN CAST(ph.sss AS DECIMAL(10,2)) > 0 THEN 1 END) as sssCount,
         COUNT(CASE WHEN CAST(ph.phic AS DECIMAL(10,2)) > 0 THEN 1 END) as philhealthCount,
         COUNT(CASE WHEN CAST(ph.hdmf AS DECIMAL(10,2)) > 0 THEN 1 END) as pagibigCount
-      FROM employees e
-      LEFT JOIN paysliphistories ph ON e.id = ph.employee_id
+      FROM Employees e
+      LEFT JOIN paysliphistory ph ON e.id = ph.employee_id
       ${whereClause}
       GROUP BY e.id, e.name, e.ecode, e.sss, e.philhealth, e.pagibig
       ORDER BY e.name
