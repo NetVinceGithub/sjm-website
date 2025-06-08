@@ -68,59 +68,6 @@ const fillTemplate = (template, data) => {
 
 
 
-// Add this debugging before launching Puppeteer:
-console.log('🔍 Checking Chrome installation...');
-const chromePath = '/opt/render/.cache/puppeteer/chrome/linux-131.0.6778.204/chrome-linux64/chrome';
-
-try {
-  // Check if file exists
-  const exists = fs.existsSync(chromePath);
-  console.log('📁 Chrome file exists:', exists);
-  
-  if (exists) {
-    // Check file permissions
-    const stats = fs.statSync(chromePath);
-    console.log('🔒 Chrome file permissions:', stats.mode.toString(8));
-    console.log('📊 Chrome file size:', stats.size);
-    
-    // Check if it's executable
-    try {
-      fs.accessSync(chromePath, fs.constants.F_OK | fs.constants.X_OK);
-      console.log('✅ Chrome is executable');
-    } catch (e) {
-      console.log('❌ Chrome is not executable');
-      // Try to make it executable
-      try {
-        execSync(`chmod +x ${chromePath}`);
-        console.log('✅ Made Chrome executable');
-      } catch (chmodError) {
-        console.log('❌ Failed to make Chrome executable:', chmodError.message);
-      }
-    }
-    
-    // List the directory contents
-    try {
-      const dirContents = fs.readdirSync('/opt/render/.cache/puppeteer/chrome/linux-131.0.6778.204/chrome-linux64/');
-      console.log('📂 Chrome directory contents:', dirContents);
-    } catch (e) {
-      console.log('❌ Could not list Chrome directory');
-    }
-    
-  } else {
-    console.log('❌ Chrome file does not exist at expected path');
-    
-    // Check if the cache directory exists
-    try {
-      const cacheContents = fs.readdirSync('/opt/render/.cache/puppeteer/');
-      console.log('📂 Puppeteer cache contents:', cacheContents);
-    } catch (e) {
-      console.log('❌ Could not access puppeteer cache directory');
-    }
-  }
-} catch (error) {
-  console.log('❌ Error checking Chrome:', error.message);
-}
-
 const generatePayslipPDF = async (payslip) => {
   // In your generatePayslipPDF function, add this before launching:
   console.log('🔍 Checking Puppeteer executable path...');
