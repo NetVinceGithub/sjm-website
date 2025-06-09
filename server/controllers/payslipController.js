@@ -122,7 +122,7 @@ const generatePayslipPDF = async (payslip) => {
       project_site: payslip.project || "N/A",
       daily_rate: `₱${payslip.dailyrate ? Number(payslip.dailyrate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
       position: payslip.position || "N/A",
-      cutoff_date: payslip.cutoff_date || "N/A",
+      cutoff_date: payslip.cutoffDate || "N/A",
       basic_pay: `₱${payslip.basic_pay ? Number(payslip.basic_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
       no_of_days: parseInt(payslip.no_of_days, 10) || "0",
       overtime_pay: `₱${payslip.overtime_pay ? Number(payslip.overtime_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
