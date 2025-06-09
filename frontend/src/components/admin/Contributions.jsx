@@ -108,14 +108,19 @@ const Contributions = () => {
   // Get employee data from API response
   const employeeData = contributions.data.employees.map(employee => ({
     name: employee.name,
+    sssAccount: employee.employeeSSS,
+    philhealthAccount: employee.employeePhilhealth,
+    pagibigAccount: employee.employeePagibig,
+    employmentstatus: 'ACTIVE', // Default status since not provided in API
     sss: employee.contributions.sss.total,
     philhealth: employee.contributions.philhealth.total,
     pagibig: employee.contributions.pagibig.total,
     employeeShare: employee.grandTotal / 2, // Assuming 50/50 split
     employerShare: employee.grandTotal / 2,  // Assuming 50/50 split
-    employmentstatus: 'ACTIVE' // Default status since not provided in API
   }));
 
+
+  
   // Use summary data from API for totals
   const totalContributions = {
     sss: contributions.data.summary.totalSSS,
@@ -180,17 +185,17 @@ const Contributions = () => {
     },
     {
       name: "SSS",
-      selector: (row) => `${(row.sss || 0).toLocaleString()}`,
+      selector: (row) => `${(row.sssAccount || 0).toLocaleString()}`,
       sortable: true,
     },
     {
       name: "PhilHealth",
-      selector: (row) => `${(row.philhealth || 0).toLocaleString()}`,
+      selector: (row) => `${(row.philhealthAccount || 0).toLocaleString()}`,
       sortable: true,
     },
     {
       name: "Pag-IBIG",
-      selector: (row) => `${(row.pagibig || 0).toLocaleString()}`,
+      selector: (row) => `${(row.pagibigAccount || 0).toLocaleString()}`,
       sortable: true,
     },
     {

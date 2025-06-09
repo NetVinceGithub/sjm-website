@@ -1173,6 +1173,7 @@ export const getContributions = async (req, res) => {
         e.sss as employeeSSS,
         e.philhealth as employeePhilhealth,
         e.pagibig as employeePagibig,
+        e.employmentstatus as employeeStatus
         COUNT(ph.id) as payslipCount,
         COALESCE(SUM(CAST(ph.sss AS DECIMAL(10,2))), 0) as totalSSS,
         COALESCE(SUM(CAST(ph.phic AS DECIMAL(10,2))), 0) as totalPhilhealth,
@@ -1202,6 +1203,7 @@ export const getContributions = async (req, res) => {
       employeeId: row.employeeId,
       employeeCode: row.employeeCode,
       name: row.name,
+      status: row.employeeStatus,
       employeeSSS: row.employeeSSS,
       employeePhilhealth: row.employeePhilhealth,
       employeePagibig: row.employeePagibig,
