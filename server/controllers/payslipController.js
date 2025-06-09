@@ -209,23 +209,23 @@ const ControlNumberHistory = sequelize.define('ControlNumberHistory', {
     allowNull: false,
   }
 }, {
-  // Composite primary key to ensure unique combination of monthYear and batchId
-  indexes: [
-    {
-      unique: true,
-      fields: ['monthYear', 'batchId']
-    },
-    {
-      unique: true,
-      fields: ['batchId'] // Ensure batchId is globally unique
-    }
-  ]
-});
+    // Composite primary key to ensure unique combination of monthYear and batchId
+    indexes: [
+      {
+        unique: true,
+        fields: ['monthYear', 'batchId']
+      },
+      {
+        unique: true,
+        fields: ['batchId'] // Ensure batchId is globally unique
+      }
+    ]
+  });
 
 export const sendPayslips = async (req, res) => {
   try {
     const { payslips } = req.body;
-    console.log("📨 Received request to send payslips:", payslips?.length || 0, "payslips");
+    console.log("📨 Received request to send payslips:", payslips ?.length || 0, "payslips");
 
     if (!payslips || payslips.length === 0) {
       return res.status(400).json({ success: false, message: "No payslips provided." });
@@ -1136,16 +1136,16 @@ export const releasePayrollByProject = async (req, res) => {
 export const getContributions = async (req, res) => {
   try {
     const { employeeId, startDate, endDate, year, month } = req.query;
-    
+
     // Build WHERE conditions for filtering
     let whereConditions = [];
     let replacements = {};
-    
+
     if (employeeId) {
       whereConditions.push('e.id = :employeeId');
       replacements.employeeId = employeeId;
     }
-    
+
     // Fix date filtering - use 'date' column from PayslipHistory
     if (startDate && endDate) {
       whereConditions.push('ph.date BETWEEN :startDate AND :endDate');
@@ -1154,45 +1154,44 @@ export const getContributions = async (req, res) => {
     } else if (year) {
       whereConditions.push('YEAR(ph.date) = :year');
       replacements.year = year;
-      
+
       if (month) {
         whereConditions.push('MONTH(ph.date) = :month');
         replacements.month = month;
       }
     }
-    
-    const whereClause = whereConditions.length > 0 ? 
+
+    const whereClause = whereConditions.length > 0 ?
       `WHERE ${whereConditions.join(' AND ')}` : '';
 
     // Fixed SQL query with correct table name (Employees with capital E)
     const query = `
-      SELECT 
+    SELECT
         e.id as employeeId,
         e.name,
         e.ecode as employeeCode,
         e.sss as employeeSSS,
         e.philhealth as employeePhilhealth,
         e.pagibig as employeePagibig,
-        e.employmentstatus as employeeStatus
+        e.employmentstatus as employeeStatus,
         COUNT(ph.id) as payslipCount,
         COALESCE(SUM(CAST(ph.sss AS DECIMAL(10,2))), 0) as totalSSS,
         COALESCE(SUM(CAST(ph.phic AS DECIMAL(10,2))), 0) as totalPhilhealth,
         COALESCE(SUM(CAST(ph.hdmf AS DECIMAL(10,2))), 0) as totalPagibig,
         COALESCE(SUM(
-          CAST(ph.sss AS DECIMAL(10,2)) + 
-          CAST(ph.phic AS DECIMAL(10,2)) + 
-          CAST(ph.hdmf AS DECIMAL(10,2))
+            CAST(ph.sss AS DECIMAL(10,2)) +
+            CAST(ph.phic AS DECIMAL(10,2)) +
+            CAST(ph.hdmf AS DECIMAL(10,2))
         ), 0) as grandTotal,
         COUNT(CASE WHEN CAST(ph.sss AS DECIMAL(10,2)) > 0 THEN 1 END) as sssCount,
         COUNT(CASE WHEN CAST(ph.phic AS DECIMAL(10,2)) > 0 THEN 1 END) as philhealthCount,
         COUNT(CASE WHEN CAST(ph.hdmf AS DECIMAL(10,2)) > 0 THEN 1 END) as pagibigCount
-      FROM Employees e
-      LEFT JOIN paysliphistories ph ON e.id = ph.employee_id
-      ${whereClause}
-      GROUP BY e.id, e.name, e.ecode, e.sss, e.philhealth, e.pagibig
-      ORDER BY e.name
+    FROM Employees e
+    LEFT JOIN paysliphistories ph ON e.id = ph.employee_id
+    ${whereClause}
+    GROUP BY e.id, e.name, e.ecode, e.sss, e.philhealth, e.pagibig
+    ORDER BY e.name
     `;
-
     const results = await sequelize.query(query, {
       replacements,
       type: QueryTypes.SELECT
@@ -1234,12 +1233,12 @@ export const getContributions = async (req, res) => {
       acc.grandTotal += employee.grandTotal;
       return acc;
     }, {
-      totalEmployees: 0,
-      totalSSS: 0,
-      totalPhilhealth: 0,
-      totalPagibig: 0,
-      grandTotal: 0
-    });
+        totalEmployees: 0,
+        totalSSS: 0,
+        totalPhilhealth: 0,
+        totalPagibig: 0,
+        grandTotal: 0
+      });
 
     // Format summary numbers
     Object.keys(overallSummary).forEach(key => {
@@ -1315,7 +1314,7 @@ export const getEmployeeContributions = async (req, res) => {
     }
 
     const payslips = employee.PayslipHistories || [];
-    
+
     // Calculate totals
     const totals = payslips.reduce((acc, payslip) => {
       acc.totalSSS += parseFloat(payslip.sss || 0);
@@ -1323,10 +1322,10 @@ export const getEmployeeContributions = async (req, res) => {
       acc.totalPagibig += parseFloat(payslip.pagibig || 0);
       return acc;
     }, {
-      totalSSS: 0,
-      totalPhilhealth: 0,
-      totalPagibig: 0
-    });
+        totalSSS: 0,
+        totalPhilhealth: 0,
+        totalPagibig: 0
+      });
 
     const grandTotal = totals.totalSSS + totals.totalPhilhealth + totals.totalPagibig;
 
