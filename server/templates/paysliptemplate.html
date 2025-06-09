@@ -37,7 +37,7 @@
 
 
 
-        <table class="border-collapse w-[44rem] text-xs mx-auto font-sans text-center">
+        <table class="border-collapse text-xs mx-auto font-sans text-center">
             <tr>
                 <th class="border  h-7 w-[10rem]  uppercase bg-gray-400 border-black font-bold">E-code</th>
                 <th class="border h-7 w-[20rem] uppercase bg-gray-400 border-black font-bold">Employee Name</th>
@@ -110,7 +110,8 @@
             </tr>
             <tr>
                 <td class="border  border-t-0  border-b-0  border-black h-7 px-2">Holiday Pay</td>
-                <td class="border border-black h-7 px-2 border-t-0  border-b-0 ">{{holidayPay}}</td>
+      holiday_pay: `₱${payslip.holiday_pay ? Number(payslip.holiday_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+                <td class="border border-black h-7 px-2 border-t-0  border-b-0 ">{{holiday_pay}}</td>
                 <td class="border border-black h-7 px-2 border-t-0  border-b-0 ">Pag-IBIG Loan</td>
                 <td class="border border-black h-7 px-2 border-t-0  border-b-0 "></td>
             </tr>
@@ -188,11 +189,11 @@
                         <span>sjmajore@gmail.com</span>
                         <span>✉ </span>
                     </div>
-                    <div class="mb-1 flex  text-xs  justify-end items-center gap-2">
+                    <div class="mb-1 flex  text-[10px]  justify-end items-center gap-2">
                         <span>(043) 575 - 5675 | 0917-185-1909</span>
                         <span>✆ </span>
                     </div>
-                    <div class="mb-1 flex  text-[11px]  justify-end items-center gap-2">
+                    <div class="mb-1 flex  text-[10px]  justify-end items-center gap-2">
                         <span>#8 De Villa St., Poblacion, San Juan, Batangas</span>
                         <span>⚲ </span>
                     </div>
