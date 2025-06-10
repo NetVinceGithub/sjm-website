@@ -37,6 +37,7 @@ const List = () => {
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isEmailModalEmployee, setIsEmailModalEmployee] = useState(null);
   const [emailMessage, setEmailMessage] = useState();
+  const [subject, setSubject] = useState("");
   const [attachment, setAttachment] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -140,6 +141,7 @@ const List = () => {
         employeeName: employee?.name || 'Unknown',
         employeeCode: employee?.employeeCode || employee?.ecode || 'N/A',
         employeeEmail: employee?.emailaddress || "No Email Provided",
+        subject: subject || 'No subject provided',
         message: emailMessage.trim(),
         sentAt: new Date().toISOString(),
         sentBy: user.name // You might want to get this from your auth context
@@ -901,6 +903,17 @@ const List = () => {
 
               {/* Message Input */}
               <div className="mb-6 relative">
+                <label htmlFor="message" className="block text-xs font-medium text-gray-700 -mt-4 mb-2">
+                  Subject <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  id="message"
+                  rows="1"
+                  className="w-full text-xs px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  placeholder="Type your email subject here..."
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                />
                 <label htmlFor="message" className="block text-xs font-medium text-gray-700 mb-2">
                   Message <span className="text-red-500">*</span>
                 </label>
