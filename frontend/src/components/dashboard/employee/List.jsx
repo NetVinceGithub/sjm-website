@@ -6,7 +6,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import defaultProfile from "../../../../src/assets/default-profile.png"; // Adjust path as needed
 // import { EmployeeButtons } from "../../../utils/EmployeeHelper";
-import { FaSearch, FaSyncAlt, FaIdCard } from "react-icons/fa";
+import { FaSearch, FaSyncAlt, FaIdCard, FaPaperclip } from "react-icons/fa";
 import EmployeeIDCard from "../EmployeeIDCard";
 import Breadcrumb from "../dashboard/Breadcrumb";
 import { FaPrint, FaRegFileExcel, FaRegFilePdf, FaRegEnvelope } from "react-icons/fa6";
@@ -14,12 +14,13 @@ import { FaEnvelope, FaMinusSquare, FaTimes } from "react-icons/fa";
 import BlockEmployeeModal from "../modals/BlockEmployeeModal";
 import UnBlockEmployeeModal from "../modals/UnblockEmployeeModal";
 import ActivateEmployeeModal from "../modals/ActivateEmployeeModal";
+import BulkEmployeeMessageModal from "../modals/BulkEmployeeMessageModal"
 import { toast } from 'react-toastify';
 import { useAuth } from "../../../context/authContext";
 
 const List = () => {
   const { user } = useAuth();
-  
+
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -36,12 +37,22 @@ const List = () => {
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isEmailModalEmployee, setIsEmailModalEmployee] = useState(null);
   const [emailMessage, setEmailMessage] = useState();
+  const [attachment, setAttachment] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [showBulkMessage, setShowBulkMessage] = useState(false);
 
   useEffect(() => {
     fetchEmployees();
   }, []);
+
+  const bulkMessage = () => {
+    setShowBulkMessage(true);  // ✅ This is correct
+  };
+
+  const handleCloseBulk = () => {
+    setShowBulkMessage(false); // ✅ This is correct
+  };
 
   const fetchEmployees = async () => {
     setLoading(true);
@@ -137,7 +148,7 @@ const List = () => {
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/employee/messaging`,
         messageData,)
-    
+
       closeEmailModal();
 
 
@@ -306,10 +317,6 @@ const List = () => {
     });
 
     doc.save("Employee_List.pdf");
-  };
-
-  const printTable = () => {
-    window.print();
   };
 
   const customStyles = {
@@ -719,7 +726,7 @@ const List = () => {
           {/* Button Group - Centered Vertically */}
           <div className="inline-flex border border-neutralDGray rounded h-8">
             <button
-              onClick={printTable} // Print the table
+              onClick={bulkMessage}
               className="px-3 w-20 h-full border-r border-neutralDGray hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
             >
               <FaRegEnvelope
@@ -846,44 +853,45 @@ const List = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
             {/* Modal Header */}
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-semibold text-gray-800">Send Message</h2>
+            <div className="flex justify-between items-center h-10 border-b px-4">
+              <h2 className="text-sm mt-2 text-gray-800">Send Message</h2>
               <button
                 onClick={handleCancelEmailModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 w-fit h-fit flex-justify-end hover:text-gray-600 transition-colors"
                 disabled={isSubmitting}
               >
-                <FaTimes className="w-5 h-5" />
+                <FaTimes className="w-4 h-4 flex justify-end" />
               </button>
             </div>
+
 
             {/* Modal Body */}
             <div className="p-6">
               {/* Employee Information */}
-              <div className="mb-4">
-                <div className="bg-gray-50 rounded-lg p-4">
+              <div className="mb-2 -mt-3">
+                <div className="rounded-lg">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-600">Employee Name:</span>
-                    <span className="text-sm text-gray-800">
+                    <span className="text-xs font-medium text-gray-600">Employee Name:</span>
+                    <span className="text-xs text-gray-800">
                       {employees.find(emp => emp.id === isEmailModalEmployee)?.name || 'N/A'}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-600">Employee Code:</span>
-                    <span className="text-sm text-gray-800">
+                  <div className="flex justify-between -mt-2 items-center">
+                    <span className="text-xs font-medium text-gray-600">Employee Code:</span>
+                    <span className="text-xs text-gray-800">
                       {employees.find(emp => emp.id === isEmailModalEmployee)?.employeeCode ||
                         employees.find(emp => emp.id === isEmailModalEmployee)?.ecode || 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-600">Sent to:</span>
-                    <span className="text-sm text-gray-800">
-                      {employees.find(emp => emp.id === isEmailModalEmployee)?.emailaddress ||'NO Email'}
+                    <span className="text-xs font-medium text-gray-600">Sent to:</span>
+                    <span className="text-xs text-gray-800">
+                      {employees.find(emp => emp.id === isEmailModalEmployee)?.emailaddress || 'NO Email'}
                     </span>
                   </div>
                 </div>
               </div>
-
+              <hr />
               {/* Error Message */}
               {submitError && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
@@ -892,8 +900,8 @@ const List = () => {
               )}
 
               {/* Message Input */}
-              <div className="mb-6">
-                <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="mb-6 relative">
+                <label htmlFor="message" className="block text-xs font-medium text-gray-700 mb-2">
                   Message <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -902,26 +910,56 @@ const List = () => {
                   value={emailMessage}
                   onChange={(e) => {
                     setEmailMessage(e.target.value);
-                    if (submitError) setSubmitError(''); // Clear error on input
+                    if (submitError) setSubmitError('');
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full text-xs px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   placeholder="Type your message here..."
                   disabled={isSubmitting}
                 />
+
+                {/* Paperclip + File name + Remove */}
+                <div className="absolute bottom-2 right-2">
+                  <label htmlFor="attachment" className="cursor-pointer text-gray-400 hover:text-gray-600">
+                    <FaPaperclip className="w-4 h-4" />
+                  </label>
+                  <input
+                    id="attachment"
+                    type="file"
+                    onChange={(e) => setAttachment(e.target.files[0])}
+                    className="hidden"
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                {/* File name and remove below textarea */}
+                {attachment && (
+                  <div className="-mt-4 ml-2 flex items-center gap-2 text-[11px] text-gray-400">
+                    <span className="truncate max-w-[200px]" title={attachment.name}>
+                      {attachment.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setAttachment(null)}
+                      className="text-gray-400 hover:text-red-500"
+                    >
+                      <FaTimes className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={handleCancelEmailModal}
-                  className="px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                  className="px-4 w-1/2 h-fit text-xs text-center py-2 text-gray-600 border-gray-100 border rounded-md hover:bg-red-200 hover:text-white transition-colors"
                   disabled={isSubmitting}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSubmitEmailMessage}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  className="px-4 w-1/2 h-fit text-xs flex justify-center items-center text-center py-2 text-gray-600 border-gray-100 border rounded-md hover:text-white  hover:bg-green-200 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors gap-2"
                   disabled={isSubmitting}
                 >
                   {isSubmitting && (
@@ -933,7 +971,8 @@ const List = () => {
             </div>
           </div>
         </div>
-      )}
+      )
+      }
 
 
       {/* Employee ID Modal */}
@@ -943,6 +982,7 @@ const List = () => {
         employeeId={selectedEmployeeId}
         refreshEmployees={fetchEmployees} // Pass the function as a prop
       />
+
       <BlockEmployeeModal
         isOpen={isBlockModalOpen}
         onClose={() => setIsBlockModalOpen(false)}
@@ -957,14 +997,18 @@ const List = () => {
         employee={employeeToBlock} // Corrected prop name
       />
 
-
       <UnBlockEmployeeModal
         isOpen={isUnBlockModalOpen}
         onClose={() => setIsUnBlockModalOpen(false)}
         onConfirm={confirmUnblockEmployee}
         employee={employeeToBlock}
       />
-    </div>
+
+      <BulkEmployeeMessageModal
+        show={showBulkMessage}       // ✅ Correct prop name
+        handleCloseBulk={handleCloseBulk}  // ✅ Correct prop name
+      />
+    </div >
   );
 };
 
