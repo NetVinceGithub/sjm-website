@@ -9,7 +9,7 @@ import defaultProfile from "../../../../src/assets/default-profile.png"; // Adju
 import { FaSearch, FaSyncAlt, FaIdCard } from "react-icons/fa";
 import EmployeeIDCard from "../EmployeeIDCard";
 import Breadcrumb from "../dashboard/Breadcrumb";
-import { FaPrint, FaRegFileExcel, FaRegFilePdf } from "react-icons/fa6";
+import { FaPrint, FaRegFileExcel, FaRegFilePdf, FaRegEnvelope } from "react-icons/fa6";
 import { FaEnvelope, FaMinusSquare, FaTimes } from "react-icons/fa";
 import BlockEmployeeModal from "../modals/BlockEmployeeModal";
 import UnBlockEmployeeModal from "../modals/UnblockEmployeeModal";
@@ -720,27 +720,17 @@ const List = () => {
           <div className="inline-flex border border-neutralDGray rounded h-8">
             <button
               onClick={printTable} // Print the table
-              className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
+              className="px-3 w-20 h-full border-r border-neutralDGray hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
             >
-              <FaPrint
+              <FaRegEnvelope
                 title="Print"
                 className="text-neutralDGray] transition-all duration-300"
               />
             </button>
 
             <button
-              onClick={exportToExcel} // Add the onClick event
-              className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center"
-            >
-              <FaRegFileExcel
-                title="Export to Excel"
-                className=" text-neutralDGray"
-              />
-            </button>
-
-            <button
               onClick={exportToPDF} // Export as PDF
-              className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center"
+              className="px-3 w-20 h-full hover:bg-neutralSilver border-l-0 transition-all duration-300 rounded-r flex items-center justify-center"
             >
               <FaRegFilePdf
                 title="Export to PDF"

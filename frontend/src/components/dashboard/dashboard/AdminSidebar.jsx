@@ -7,7 +7,7 @@ import {
   FaPoll, FaScroll, FaPrint, FaFolderOpen, FaChevronDown, FaChevronUp, FaBookOpen,
   FaClipboardList, FaUserPlus, FaCalendarPlus, FaCalendarCheck, FaFileInvoiceDollar, FaCalculator
 } from 'react-icons/fa';
-import { FaCalendarXmark } from "react-icons/fa6";
+import { FaCalendarXmark, FaRegEnvelope } from "react-icons/fa6";
 import Logo from '/public/logo-rembg.png';
 
 const AdminSidebar = () => {
@@ -398,6 +398,30 @@ const AdminSidebar = () => {
             >
               <FaScroll />
               <span>Invoice</span>
+            </NavLink>
+          ) : (
+              <button
+                onClick={handleRestrictedAccess}
+                className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+              >
+                <FaScroll />
+                <span>Invoice</span>
+              </button>
+            )}
+
+            {/* Invoice */}
+          {isApprover || isAdmin ? (
+            <NavLink
+              to="/admin-dashboard/invoice-list"
+              className={({ isActive }) =>
+                `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                isActive ? "bg-[#5f2e3d] font-bold border-l-4" : "hover:bg-[#924F64]"
+                }`
+              }
+              end
+            >
+              <FaScroll />
+              <span>Client</span>
             </NavLink>
           ) : (
               <button
