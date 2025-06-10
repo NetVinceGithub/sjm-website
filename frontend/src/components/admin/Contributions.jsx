@@ -171,7 +171,7 @@ const Contributions = () => {
     {
       when: row => row.employmentstatus === 'RESIGNED',
       style: {
-        display: 'none', // This will completely hide the row
+        display: 'none',
       },
     },
   ];
