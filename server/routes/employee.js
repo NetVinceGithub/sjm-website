@@ -41,14 +41,14 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only image files are allowed!"), false);
-    }
-  },
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+  // fileFilter: (req, file, cb) => {
+  //   if (file.mimetype.startsWith("image/")) {
+  //     cb(null, true);
+  //   } else {
+  //     cb(new Error("Only image files are allowed!"), false);
+  //   }
+  // },
+  limits: { fileSize: 100 * 1024 * 1024 } // 100mb limit
 });
 
 // SPECIFIC ROUTES FIRST (most specific to least specific)
@@ -85,6 +85,6 @@ router.put("/update-details/:id", upload.fields([
 router.get("/", getEmployees); // This should be after specific routes
 router.get("/:id", getEmployee); // This MUST be the very last route
 
-router.post('/messaging', messageEmployee);
+router.post('/messaging', upload.array('attachments', 10), messageEmployee);
 
 export default router;

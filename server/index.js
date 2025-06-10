@@ -66,14 +66,15 @@ const storage = multer.diskStorage({
 
 export const upload = multer({
   storage: storage,
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
-    }
-  },
-  limits: { fileSize: 5 * 1024 * 1024 }
+  // Remove the fileFilter to allow all file types (use with caution!)
+  // fileFilter: (req, file, cb) => {
+  //   if (file.mimetype.startsWith("image/")) {
+  //     cb(null, true);
+  //   } else {
+  //     cb(new Error("Only image files are allowed!"), false);
+  //   }
+  // },
+  limits: { fileSize: 100 * 1024 * 1024 } // 100mb limit
 });
 
 setupAssociations();
@@ -124,7 +125,7 @@ app.get('/api/devices', async (req, res) => {
     const response = await axios.get('https://api.us.crosschexcloud.com/v2/device/list', {
       headers: {
         Authorization: `Bearer ${token}`
-      }      
+      }
     });
     res.json(response.data);
   } catch (error) {
