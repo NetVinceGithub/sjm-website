@@ -12,6 +12,7 @@ import {
   FaRegFileExcel,
   FaRegFilePdf,
   FaXmark,
+  FaPenToSquare,
 } from "react-icons/fa6";
 import { Modal, Button } from "react-bootstrap";
 import Logo from '../../../assets/logo.png'
@@ -1003,13 +1004,7 @@ const InvoiceList = () => {
                         onClick={printInvoices}
                         className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded flex items-center justify-center"
                       >
-                        <FaPrint title="Print" className="text-neutralDGray w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={downloadExcel}
-                        className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded flex items-center justify-center"
-                      >
-                        <FaRegFileExcel title="Export to Excel" className="text-neutralDGray w-5 h-5" />
+                        <FaPenToSquare title="Print" className="text-neutralDGray w-5 h-5" />
                       </button>
                       <button
                         onClick={downloadPDF}
