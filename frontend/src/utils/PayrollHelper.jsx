@@ -184,8 +184,8 @@ export const PayrollButtons = ({ Id, refreshData }) => {
                         }
                         className="w-72 text-[12px] p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                       >
-                        <option value="Regular">Housekeeper</option>
-                        <option value="Team Leader">Team Leader</option>
+                        <option value="Regular">Supervisor/Officer</option>
+                        <option value="Team Leader">Rank & File</option>
                       </select>
                     ) : (
                       <input

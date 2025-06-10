@@ -10,8 +10,57 @@ import { QueryTypes } from "sequelize";
 import nodemailer from "nodemailer";
 import User from "../models/User.js";
 import LoginRecord from "../models/LoginRecord.js";
+import multer from 'multer';
 
 dotenv.config();
+
+// Load allowed types from environment variable (optional)
+const allowedTypesEnv = process.env.ALLOWED_FILE_TYPES;
+const defaultAllowedTypes = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/csv'
+];
+
+const allowedTypes = allowedTypesEnv ? allowedTypesEnv.split(',') : defaultAllowedTypes;
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Ensure 'uploads/' directory exists
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const fileExt = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + fileExt);
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 10MB per file
+    files: 10 // Maximum 10 files
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypesLower = allowedTypes.map(type => type.toLowerCase()); // Convert to lowercase once
+
+    if (allowedTypesLower.includes(file.mimetype.toLowerCase())) {
+      cb(null, true);
+    } else {
+      console.log(`Rejected file type: ${file.mimetype}`);
+      cb(new Error(`File type ${file.mimetype} not allowed. Allowed types are: ${allowedTypes.join(', ')}`), false);
+    }
+  }
+});
+
 
 const SHEET_URL = process.env.GOOGLE_SHEET_URL; // Store API Key securely in .env
 
@@ -801,6 +850,10 @@ export const bulkRejectPayrollChanges = async (req, res) => {
   }
 };
 
+
+// Create a transporter object using your email provider's SMTP settings
+
+
 export const messageEmployee = async (req, res) => {
   try {
     const {
@@ -814,12 +867,11 @@ export const messageEmployee = async (req, res) => {
       sentBy,
     } = req.body;
 
-    console.log(req.body);
+    console.log('Request body:', req.body);
+    console.log('Files received:', req.files ? req.files.length : 0);
 
     // Validate required fields
-
     if (!employeeId || !employeeName || !employeeCode || !employeeEmail || !subject || !message || !sentAt || !sentBy) {
-
       return res.status(400).json({
         success: false,
         message: "All fields are required",
@@ -835,127 +887,177 @@ export const messageEmployee = async (req, res) => {
       });
     }
 
+    // Process attachments - handle only FormData files
+    let attachments = [];
+    if (req.files && req.files.length > 0) {
+      attachments = req.files.map(file => ({
+        filename: file.originalname,
+        content: file.buffer,
+        contentType: file.mimetype,
+        size: file.size
+      }));
+      console.log(`Processing ${attachments.length} file attachments`);
+    }
+
+    // Validate attachments
+    if (attachments.length > 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Maximum 10 attachments allowed",
+      });
+    }
+
+    // Validate file sizes (max 100MB per file)
+    const maxFileSize = 100 * 1024 * 1024; // 100MB
+    const oversizedFiles = attachments.filter(file => file.size > maxFileSize);
+    if (oversizedFiles.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Files exceed 10MB limit: ${oversizedFiles.map(f => f.filename).join(', ')}`,
+      });
+    }
+
     // Configure email content
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: employeeEmail,
       subject: `${subject}`,
       html: `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${subject}</title>
-      <style>
-        /* Reset styles for better email client compatibility */
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
-        
-        body {
-          margin: 0;
-          padding: 0;
-          -webkit-text-size-adjust: 100%;
-          -ms-text-size-adjust: 100%;
-        }
-        
-        table {
-          border-collapse: collapse;
-          mso-table-lspace: 0pt;
-          mso-table-rspace: 0pt;
-        }
-        
-        img {
-          border: 0;
-          height: auto;
-          line-height: 100%;
-          outline: none;
-          text-decoration: none;
-          -ms-interpolation-mode: bicubic;
-        }
-        
-        @media only screen and (max-width: 600px) {
-          .email-container {
-            width: 100% !important;
-            max-width: 100% !important;
-          }
-          .header-footer-image {
-            width: 100% !important;
-            height: auto !important;
-          }
-          .content-padding {
-            padding: 15px !important;
-          }
-        }
-      </style>
-    </head>
-    <body style="margin: 0; padding: 0; background-color: #f9f9f9;">
-      
-      <div class="email-container" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; width: 100%;">
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${subject}</title>
+          <style>
+            /* Reset styles for better email client compatibility */
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            
+            body {
+              margin: 0;
+              padding: 0;
+              -webkit-text-size-adjust: 100%;
+              -ms-text-size-adjust: 100%;
+            }
+            
+            table {
+              border-collapse: collapse;
+              mso-table-lspace: 0pt;
+              mso-table-rspace: 0pt;
+            }
+            
+            img {
+              border: 0;
+              height: auto;
+              line-height: 100%;
+              outline: none;
+              text-decoration: none;
+              -ms-interpolation-mode: bicubic;
+            }
+            
+            @media only screen and (max-width: 600px) {
+              .email-container {
+                width: 100% !important;
+                max-width: 100% !important;
+              }
+              .header-footer-image {
+                width: 100% !important;
+                height: auto !important;
+              }
+              .content-padding {
+                padding: 15px !important;
+              }
+              .disclaimer-padding {
+                padding: 10px 15px !important;
+              }
+            }
+          </style>
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #f9f9f9;">
+          
+          <div class="email-container" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; width: 100%;">
 
-        <!-- Header Image -->
-        <div style="width: 100%; overflow: hidden;">
-          <img src="https://stjohnmajore.com/images/HEADER.png" 
-               alt="Header Image" 
-               class="header-footer-image"
-               style="width: 100%; max-width: 600px; height: auto; display: block;" />
-        </div>
+            <!-- Header Image -->
+            <div style="width: 100%; overflow: hidden;">
+              <img src="https://stjohnmajore.com/images/HEADER.png" 
+                  alt="Header Image" 
+                  class="header-footer-image"
+                  style="width: 100%; max-width: 600px; height: auto; display: block;" />
+            </div>
 
-        <!-- Content Section -->
-        <div class="content-padding" style="padding: 20px;">
-          <div style="background-color: #fff; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <p style="line-height: 1.6; margin-bottom: 15px; color: #333;">${message}</p>
-            <p style="margin-top: 20px; color: #666;">
-              Best regards,<br />
-              <strong style="color: #333;">${sentBy}</strong>
-            </p>
+            <!-- Content Section -->
+            <div class="content-padding" style="padding: 20px;">
+              <div style="background-color: #fff; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <p style="line-height: 1.6; margin-bottom: 15px; color: #333;">${message}</p>
+                
+                <p style="margin-top: 20px; color: #666;">
+                  Best regards,<br />
+                  <strong style="color: #333;">${sentBy}</strong>
+                </p>
+              </div>
+            </div>
+
+            <!-- Disclaimer Section -->
+            <div class="disclaimer-padding" style="padding: 15px 20px; background-color: #f0f0f0; border-top: 1px solid #ddd;">
+              <p style="font-size: 12px; line-height: 1.4; color: #666; text-align: center; margin: 0;">
+                <strong>This is an automated email—please do not reply.</strong><br />
+                Kindly keep this message for your records and reference purposes.
+              </p>
+            </div>
+
+            <!-- Footer Image -->
+            <div style="width: 100%; overflow: hidden;">
+              <img src="https://stjohnmajore.com/images/FOOTER.png" 
+                  alt="Footer Image" 
+                  class="header-footer-image"
+                  style="width: 100%; max-width: 600px; height: auto; display: block;" />
+            </div>
           </div>
-        </div>
-
-        <!-- Footer Image -->
-        <div style="width: 100%; overflow: hidden;">
-          <img src="https://stjohnmajore.com/images/FOOTER.png" 
-               alt="Footer Image" 
-               class="header-footer-image"
-               style="width: 100%; max-width: 600px; height: auto; display: block;" />
-        </div>
-      </div>
-      
-    </body>
-    </html>
-  `,
+          
+        </body>
+        </html>
+      `,
       // Plain text version for email clients that don't support HTML
       text: `
-      Message for ${employeeName} (${employeeCode})
+Message for ${employeeName} (${employeeCode})
 
-      Employee Details:
-      Name: ${employeeName}
-      Employee Code: ${employeeCode}
-      Email: ${employeeEmail}
+Employee Details:
+Name: ${employeeName}
+Employee Code: ${employeeCode}
+Email: ${employeeEmail}
 
-      Subject: ${subject}
+Subject: ${subject}
 
-      Message:
-      ${message}
+Message:
+${message}
 
-      Best regards,
-      ${sentBy}
+${attachments.length > 0 ? `
+Attachments (${attachments.length}):
+${attachments.map(file => `• ${file.filename} (${(file.size / 1024).toFixed(1)} KB)`).join('\n')}
+` : ''}
 
-      Sent at: ${new Date(sentAt).toLocaleString()}
-     `,
-      // Optional: Add attachments support if needed
-      // attachments: attachment ? [{
-      //   filename: attachment.originalname,
-      //   content: attachment.buffer
-      // }] : []
+Best regards,
+${sentBy}
+
+Sent at: ${new Date(sentAt).toLocaleString()}
+      `,
+      // Multiple attachments support
+      attachments: attachments.length > 0 ? attachments.map(file => ({
+        filename: file.filename,
+        content: file.content,
+        contentType: file.contentType
+      })) : []
     };
 
-    // Send email
+    console.log("mailOptions:", JSON.stringify(mailOptions, null, 2)); // Log mailOptions
+
     const info = await transporter.sendMail(mailOptions);
     console.log("Email sent:", info.messageId);
+    console.log(`Email sent with ${attachments.length} attachments`);
 
     // Return success response
     res.status(200).json({
@@ -965,37 +1067,20 @@ export const messageEmployee = async (req, res) => {
         messageId: info.messageId,
         recipient: employeeEmail,
         sentAt: new Date().toISOString(),
+        attachmentCount: attachments.length,
+        attachments: attachments.map(file => ({
+          filename: file.filename,
+          size: file.size,
+          contentType: file.contentType
+        }))
       },
     });
   } catch (error) {
-
     console.error('Error sending email:', error);
-
-
-    // Handle nodemailer specific errors
-    if (error.code === "EAUTH") {
-      return res.status(500).json({
-        success: false,
-        message:
-          "Email authentication failed. Please check your email credentials.",
-      });
-    }
-
-
-    if (error.code === 'ENOTFOUND') {
-
-      return res.status(500).json({
-        success: false,
-        message:
-          "Email server not found. Please check your SMTP configuration.",
-      });
-    }
-
-    // Handle other errors
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to send email",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+      error: error.message // Include the error message
     });
   }
 };

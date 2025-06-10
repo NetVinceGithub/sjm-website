@@ -111,7 +111,7 @@ const Contributions = () => {
     sssAccount: employee.employeeSSS,
     philhealthAccount: employee.employeePhilhealth,
     pagibigAccount: employee.employeePagibig,
-    employmentstatus: 'ACTIVE', // Default status since not provided in API
+    status: employee.status,// Default status since not provided in API
     sss: employee.contributions.sss.total,
     philhealth: employee.contributions.philhealth.total,
     pagibig: employee.contributions.pagibig.total,
@@ -169,7 +169,7 @@ const Contributions = () => {
   const dataWithTotal = [...employeeData];
   const conditionalRowStyles = [
     {
-      when: row => row.employmentstatus === 'RESIGNED',
+      when: row => row.status === 'RESIGNED',
       style: {
         display: 'none',
       },
@@ -182,46 +182,55 @@ const Contributions = () => {
       name: "Employee Name",
       selector: (row) => row.name || "",
       sortable: true,
+      width: '220px'
     },
     {
       name: "SSS",
       selector: (row) => `${(row.sssAccount || 0).toLocaleString()}`,
       sortable: true,
+      width: '150px'
     },
     {
       name: "PhilHealth",
       selector: (row) => `${(row.philhealthAccount || 0).toLocaleString()}`,
       sortable: true,
+      width: '150px'
     },
     {
       name: "Pag-IBIG",
       selector: (row) => `${(row.pagibigAccount || 0).toLocaleString()}`,
       sortable: true,
+      width: '150px'
     },
     {
-      name: "Employee Share",
+      name: "Employee Share (SSS)",
       selector: (row) => `₱${(row.employeeShare || 0).toLocaleString()}`,
       sortable: true,
+      width: '150px'
     },
     {
-      name: "Employer Share",
+      name: "Employer Share (SSS)",
       selector: (row) => `₱${(row.employerShare || 0).toLocaleString()}`,
       sortable: true,
+      width: '150px'
     },
     {
       name: "SSS Share",
       selector: (row) => `₱${(row.sss || 0).toLocaleString()}`,
       sortable: true,
+      width: '150px'
     },
     {
       name: "Phil Health Share",
       selector: (row) => `₱${(row.philhealth || 0).toLocaleString()}`,
       sortable: true,
+      width: '150px'
     },
     {
       name: "PAGIBIG Share",
       selector: (row) => `₱${(row.pagibig || 0).toLocaleString()}`,
       sortable: true,
+      width: '150px'
     },
   ];
 
