@@ -406,18 +406,30 @@ export const requestPayrollChange = async (req, res) => {
     const successfulEmails = [];
 
     for (const approver of approvers) {
+   
+
+
       const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: approver.email,
-        subject: `New Payroll Change Request Submitted`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h3>Hello ${approver.name},</h3>
-            <p>A new payroll change request by ${requested_by} is awaiting your review.</p>
-            <p><strong>Employee:</strong> ${employee_name}</p>
-            <p><strong>Reason:</strong> ${reason || "No reason provided"}</p>
-            <p><strong>Changes:</strong></p>
-            <ul>
+      from: process.env.EMAIL_USER,
+      to: approver.email,
+      subject: `New Payroll Change Request Submitted`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Change Request</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
+          <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
+            <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
+            <p style="color: #333; font-size: 16px;">Hello ${approver.name},</p>
+            <p style="color: #333; font-size: 15px;">A new payroll change request by ${requested_by} is awaiting your review.</p>
+            <p style="color: #333; font-size: 15px;"><strong>Employee:</strong> ${employee_name}</p>
+            <p style="color: #333; font-size: 15px;"><strong>Reason:</strong> ${reason || "No reason provided"}</p>
+            <p style="color: #333; font-size: 15px;"><strong><strong>Changes:</strong></p>
+             <ul>
 
               ${Object.entries(changes)
                 .map(
@@ -430,12 +442,15 @@ export const requestPayrollChange = async (req, res) => {
                 .join("")}
 
             </ul>
-            <p>Please login to the payroll system to review and take appropriate action.</p>
-            <br />
-            <p>Best regards,<br />SJM Payroll System</p>
-          </div>
-        `,
-      };
+            <p style="color: #333; font-size: 15px;">Please login to <a href="https://payroll.stjohnmajore.com/">https://payroll.stjohnmajore.com/</a> to review and take appropriate action.</p>
+            
+            <p style="color: #333; font-size: 15px;">Best regards,<br />SJM Payroll System</p>
+            <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
+            <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
+              <strong>This is an automated email—please do not reply.</strong><br />
+              Keep this message for your records.
+            </div>`
+    };
 
       try {
         await transporter.sendMail(mailOptions);
@@ -640,6 +655,69 @@ export const approvePayrollChange = async (req, res) => {
         .json({ success: false, message: "Change request already processed" });
     }
 
+
+    const employeeEmail = changeRequest.employee_email;
+    const employeeName = changeRequest.employee_name;
+    const sentBy = changeRequest.requested_by;
+    const subject = "Payroll Change Request Approved";
+    const message = `Dear ${sentBy},<br><br>Your payroll change request for ${employeeName}has been reviewed and <strong></strong>.<br><br><em>The request has been approved.</em>`;
+    const sentAt = new Date();
+    const attachments = []; // Add attachments if needed
+
+    console.log(`✅ Payroll change request ${id} approved and applied`);
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employeeEmail,
+      subject: subject,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>${subject}</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
+          <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
+            <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
+            <p style="color: #333; font-size: 16px;">Dear ${sentBy},</p>
+            <p style="color: #333; font-size: 15px;">Your payroll change request for ${employeeName} has been reviewed and <strong style="color:green;">approved</strong>.</p>
+            <p style="color: #555; font-size: 14px;">The request has been approved.</p>
+            <p style="margin-top: 20px; color: #333;">Best regards,<br><strong>${sentBy}</strong></p>
+            <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
+            <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
+              <strong>This is an automated email—please do not reply.</strong><br />
+              Keep this message for your records.
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+        Dear ${sentBy},
+
+        Your payroll change request has been reviewed and approved.
+
+        The request has been approved.
+
+        Best regards,
+        ${sentBy}
+
+        Sent at: ${new Date(sentAt).toLocaleString()}
+      `,
+      attachments: attachments.map((file) => ({
+        filename: file.filename,
+        content: file.content,
+        contentType: file.contentType,
+      })),
+    };
+
+
+    const info = await transporter.sendMail(mailOptions);
+
+
+
     // Update the actual payroll information with the requested changes
     const payrollInfo = await PayrollInformation.findByPk(
       changeRequest.payroll_info_id
@@ -718,7 +796,7 @@ export const approvePayrollChange = async (req, res) => {
       reviewed_at: new Date(),
     });
 
-    console.log(`✅ Payroll change request ${id} approved and applied`);
+
     res
       .status(200)
       .json({ success: true, message: "Change request approved successfully" });
@@ -795,7 +873,7 @@ export const rejectPayrollChange = async (req, res) => {
           <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
             <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
             <p style="color: #333; font-size: 16px;">Dear ${sentBy},</p>
-            <p style="color: #333; font-size: 15px;">Your payroll change request has been reviewed and <strong style="color:red;">rejected</strong>.</p>
+            <p style="color: #333; font-size: 15px;">Your payroll change request for ${employeeName} has been reviewed and <strong style="color:red;">rejected</strong>.</p>
             <p style="color: #555; font-size: 14px;">The request has been rejected.</p>
             <p style="margin-top: 20px; color: #333;">Best regards,<br><strong>${sentBy}</strong></p>
             <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
