@@ -506,7 +506,7 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
                   <p className="user-position">{employee.positiontitle}</p>
                 </div>
                 <div>
-                  <img src={signature} alt="user" className="user-sig" />
+                  
                 </div>
                 <div className="user-signature">Signature</div>
               </div>
@@ -657,46 +657,13 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
               )}
             </Form.Group>
 
-            {/* E-signature Upload */}
-            <Form.Group className="mb-1">
-              <Form.Label className="text-xs">E Signature</Form.Label>
-              <Form.Check
-                type="checkbox"
-                label="Remove background automatically"
-                checked={removeBgSignature}
-                onChange={(e) => setRemoveBgSignature(e.target.checked)}
-                className="mb-1 text-xs text-neutral-600"
-              />
-              <Form.Control
-                type="file"
-                accept="image/*"
-                onChange={(e) =>
-                  removeBgSignature
-                    ? handleImageWithBackgroundRemoval(e, setImage2)
-                    : handleImageChange(e, setImage2)
-                }
-                disabled={isProcessing}
-                className="text-[12px] h-8"
-              />
-              {isProcessing && (
-                <small className="text-info block mt-0.5">Processing image... Please wait.</small>
-              )}
-            </Form.Group>
-
             {/* Image Previews */}
-            {(image1 || image2) && (
+            {(image1) && (
               <div className="mt-2 flex gap-4">
                 {image1 && (
                   <img
                     src={URL.createObjectURL(image1)}
                     alt="Profile Preview"
-                    className="w-28 h-auto rounded shadow"
-                  />
-                )}
-                {image2 && (
-                  <img
-                    src={URL.createObjectURL(image2)}
-                    alt="Signature Preview"
                     className="w-28 h-auto rounded shadow"
                   />
                 )}
