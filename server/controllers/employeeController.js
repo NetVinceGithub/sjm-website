@@ -10,57 +10,65 @@ import { QueryTypes } from "sequelize";
 import nodemailer from "nodemailer";
 import User from "../models/User.js";
 import LoginRecord from "../models/LoginRecord.js";
-import multer from 'multer';
+import multer from "multer";
 
 dotenv.config();
 
 // Load allowed types from environment variable (optional)
 const allowedTypesEnv = process.env.ALLOWED_FILE_TYPES;
 const defaultAllowedTypes = [
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'text/plain',
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/gif',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'text/csv'
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/csv",
 ];
 
-const allowedTypes = allowedTypesEnv ? allowedTypesEnv.split(',') : defaultAllowedTypes;
+const allowedTypes = allowedTypesEnv
+  ? allowedTypesEnv.split(",")
+  : defaultAllowedTypes;
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Ensure 'uploads/' directory exists
+    cb(null, "uploads/"); // Ensure 'uploads/' directory exists
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     const fileExt = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + fileExt);
-  }
+    cb(null, file.fieldname + "-" + uniqueSuffix + fileExt);
+  },
 });
 
 const upload = multer({
   storage: storage,
   limits: {
     fileSize: 100 * 1024 * 1024, // 10MB per file
-    files: 10 // Maximum 10 files
+    files: 10, // Maximum 10 files
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypesLower = allowedTypes.map(type => type.toLowerCase()); // Convert to lowercase once
+    const allowedTypesLower = allowedTypes.map((type) => type.toLowerCase()); // Convert to lowercase once
 
     if (allowedTypesLower.includes(file.mimetype.toLowerCase())) {
       cb(null, true);
     } else {
       console.log(`Rejected file type: ${file.mimetype}`);
-      cb(new Error(`File type ${file.mimetype} not allowed. Allowed types are: ${allowedTypes.join(', ')}`), false);
+      cb(
+        new Error(
+          `File type ${
+            file.mimetype
+          } not allowed. Allowed types are: ${allowedTypes.join(", ")}`
+        ),
+        false
+      );
     }
-  }
+  },
 });
-
 
 const SHEET_URL = process.env.GOOGLE_SHEET_URL; // Store API Key securely in .env
 
@@ -108,7 +116,8 @@ const fetchAndSaveEmployees = async () => {
       sheetEmployeeIds.push(savedEmployeeRecord.id);
 
       console.log(
-        `✅ Employee Saved/Updated: ${savedEmployeeRecord.name || "Unknown Employee"
+        `✅ Employee Saved/Updated: ${
+          savedEmployeeRecord.name || "Unknown Employee"
         }`
       );
 
@@ -261,13 +270,11 @@ export const updatePayrollInformation = async (req, res) => {
 
     await payrollInfo.update(updatedData);
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Payroll information updated successfully",
-        payrollInfo,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Payroll information updated successfully",
+      payrollInfo,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -354,12 +361,19 @@ export const requestPayrollChange = async (req, res) => {
     const employee_name = `${payrollInfo.name}`;
     console.log(employee_name);
 
+    const user = await User.findOne({ where: { name: requested_by } });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
     const result = await PayrollChangeRequest.create({
       payroll_info_id,
       changes,
       reasons: reason,
       requested_by,
       employee_name,
+      employee_email: user.email,
     });
 
     console.log(result);
@@ -405,9 +419,15 @@ export const requestPayrollChange = async (req, res) => {
             <p><strong>Changes:</strong></p>
             <ul>
 
-              ${Object.entries(changes).map(([key, value]) =>
-          `<li><strong>${key.replace(/_/g, ' ')}:</strong> ${value}</li>`
-        ).join('')}
+              ${Object.entries(changes)
+                .map(
+                  ([key, value]) =>
+                    `<li><strong>${key.replace(
+                      /_/g,
+                      " "
+                    )}:</strong> ${value}</li>`
+                )
+                .join("")}
 
             </ul>
             <p>Please login to the payroll system to review and take appropriate action.</p>
@@ -710,14 +730,14 @@ export const approvePayrollChange = async (req, res) => {
       .json({ success: false, message: error.message, error: error.stack });
   }
 };
-
 export const rejectPayrollChange = async (req, res) => {
   const { id } = req.params;
   const { reviewed_by, rejection_reason } = req.body;
+  console.log("in rehectPayrollChange function", reviewed_by);
 
   try {
     console.log(`💡 Rejecting payroll change request ${id}`);
-    console.log("Request body:", req.body); // Add this for debugging
+    console.log("Request body:", req.body);
 
     // Find the change request
     const changeRequest = await PayrollChangeRequest.findByPk(id);
@@ -738,21 +758,85 @@ export const rejectPayrollChange = async (req, res) => {
         .json({ success: false, message: "Change request already processed" });
     }
 
+    // Simulated employee details from the changeRequest
+    const employeeName = changeRequest.employee_name || "Unknown Employee";
+    const employeeEmail = changeRequest.employee_email || "noemail@domain.com";
+
+    const subject = "Payroll Change Request Rejected";
+    const message = `Dear ${employeeName},<br><br>Your payroll change request has been reviewed and <strong>rejected</strong>.<br><br><em>The request has been rejected.</em>`;
+    const sentBy = changeRequest.requested_by || "Admin";
+    const sentAt = new Date();
+    const attachments = []; // Add attachments if needed
+
     // Update the change request status
     await changeRequest.update({
       status: "Rejected",
-      reviewed_by: reviewed_by || "Admin",
-      reviewed_at: new Date(),
+      reviewed_by: sentBy,
+      reviewed_at: sentAt,
       rejection_reason: rejection_reason || "No reason provided",
     });
 
     console.log(`✅ Payroll change request ${id} rejected`);
+
+    // Email content setup
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employeeEmail,
+      subject: subject,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>${subject}</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
+          <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
+            <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
+            <p style="color: #333; font-size: 16px;">Dear ${sentBy},</p>
+            <p style="color: #333; font-size: 15px;">Your payroll change request has been reviewed and <strong style="color:red;">rejected</strong>.</p>
+            <p style="color: #555; font-size: 14px;">The request has been rejected.</p>
+            <p style="margin-top: 20px; color: #333;">Best regards,<br><strong>${sentBy}</strong></p>
+            <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
+            <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
+              <strong>This is an automated email—please do not reply.</strong><br />
+              Keep this message for your records.
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+        Dear ${sentBy},
+
+        Your payroll change request has been reviewed and rejected.
+
+        The request has been rejected.
+
+        Best regards,
+        ${sentBy}
+
+        Sent at: ${new Date(sentAt).toLocaleString()}
+      `,
+      attachments: attachments.map((file) => ({
+        filename: file.filename,
+        content: file.content,
+        contentType: file.contentType,
+      })),
+    };
+
+    console.log("📧 Sending rejection email...");
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ Email sent:", employeeEmail);
+    console.log("✅ Email Name:", sentBy);
+    console.log("✅ Email Content name:", employeeName);
+
     res
       .status(200)
       .json({ success: true, message: "Change request rejected successfully" });
   } catch (error) {
     console.error("❌ Error rejecting payroll change:", error);
-    console.error("❌ Error stack:", error.stack); // Add full stack trace
     res
       .status(500)
       .json({ success: false, message: error.message, error: error.stack });
@@ -850,9 +934,7 @@ export const bulkRejectPayrollChanges = async (req, res) => {
   }
 };
 
-
 // Create a transporter object using your email provider's SMTP settings
-
 
 export const messageEmployee = async (req, res) => {
   try {
@@ -867,11 +949,20 @@ export const messageEmployee = async (req, res) => {
       sentBy,
     } = req.body;
 
-    console.log('Request body:', req.body);
-    console.log('Files received:', req.files ? req.files.length : 0);
+    console.log("Request body:", req.body);
+    console.log("Files received:", req.files ? req.files.length : 0);
 
     // Validate required fields
-    if (!employeeId || !employeeName || !employeeCode || !employeeEmail || !subject || !message || !sentAt || !sentBy) {
+    if (
+      !employeeId ||
+      !employeeName ||
+      !employeeCode ||
+      !employeeEmail ||
+      !subject ||
+      !message ||
+      !sentAt ||
+      !sentBy
+    ) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
@@ -890,11 +981,11 @@ export const messageEmployee = async (req, res) => {
     // Process attachments - handle only FormData files
     let attachments = [];
     if (req.files && req.files.length > 0) {
-      attachments = req.files.map(file => ({
+      attachments = req.files.map((file) => ({
         filename: file.originalname,
         content: file.buffer,
         contentType: file.mimetype,
-        size: file.size
+        size: file.size,
       }));
       console.log(`Processing ${attachments.length} file attachments`);
     }
@@ -909,11 +1000,15 @@ export const messageEmployee = async (req, res) => {
 
     // Validate file sizes (max 100MB per file)
     const maxFileSize = 100 * 1024 * 1024; // 100MB
-    const oversizedFiles = attachments.filter(file => file.size > maxFileSize);
+    const oversizedFiles = attachments.filter(
+      (file) => file.size > maxFileSize
+    );
     if (oversizedFiles.length > 0) {
       return res.status(400).json({
         success: false,
-        message: `Files exceed 10MB limit: ${oversizedFiles.map(f => f.filename).join(', ')}`,
+        message: `Files exceed 10MB limit: ${oversizedFiles
+          .map((f) => f.filename)
+          .join(", ")}`,
       });
     }
 
@@ -1035,10 +1130,16 @@ Subject: ${subject}
 Message:
 ${message}
 
-${attachments.length > 0 ? `
+${
+  attachments.length > 0
+    ? `
 Attachments (${attachments.length}):
-${attachments.map(file => `• ${file.filename} (${(file.size / 1024).toFixed(1)} KB)`).join('\n')}
-` : ''}
+${attachments
+  .map((file) => `• ${file.filename} (${(file.size / 1024).toFixed(1)} KB)`)
+  .join("\n")}
+`
+    : ""
+}
 
 Best regards,
 ${sentBy}
@@ -1046,11 +1147,14 @@ ${sentBy}
 Sent at: ${new Date(sentAt).toLocaleString()}
       `,
       // Multiple attachments support
-      attachments: attachments.length > 0 ? attachments.map(file => ({
-        filename: file.filename,
-        content: file.content,
-        contentType: file.contentType
-      })) : []
+      attachments:
+        attachments.length > 0
+          ? attachments.map((file) => ({
+              filename: file.filename,
+              content: file.content,
+              contentType: file.contentType,
+            }))
+          : [],
     };
 
     console.log("mailOptions:", JSON.stringify(mailOptions, null, 2)); // Log mailOptions
@@ -1068,19 +1172,19 @@ Sent at: ${new Date(sentAt).toLocaleString()}
         recipient: employeeEmail,
         sentAt: new Date().toISOString(),
         attachmentCount: attachments.length,
-        attachments: attachments.map(file => ({
+        attachments: attachments.map((file) => ({
           filename: file.filename,
           size: file.size,
-          contentType: file.contentType
-        }))
+          contentType: file.contentType,
+        })),
       },
     });
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error("Error sending email:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to send email",
-      error: error.message // Include the error message
+      error: error.message, // Include the error message
     });
   }
 };
