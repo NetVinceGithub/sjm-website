@@ -32,6 +32,7 @@ import PayslipHistory from "./components/dashboard/dashboard/PayslipHistory";
 import EmployeePayslipHistory from "./components/dashboard/payroll/EmployeePayslipHistory";
 import EmployeePayrollInformationsList from "./components/dashboard/employee/EmployeePayrollInformationsList";
 import InvoiceList from "./components/dashboard/invoice/InvoiceList";
+import ClientList from "./components/dashboard/invoice/ClientList";
 import Attendance from "./components/dashboard/attendance/Attendance";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -126,6 +127,7 @@ function AppContent() {
           <Route path="attendance/history" element={<History />} />
           <Route path="attendance-conversion" element={<Conversion />} />
           <Route path="invoice-list" element={<InvoiceList />} />
+          <Route path="client-list" element={<ClientList />} />
           <Route path="projects" element={<Projects />} />
           <Route path="add-project" element={<AddProject />} />
           <Route path="edit-project/:id" element={<EditProject />} />
