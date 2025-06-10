@@ -467,7 +467,7 @@ const InvoiceList = () => {
                   <div className="p-2">
                     <p className="flex justify-center text-center items-center mt-2 font-semibold">BILLING SUMMARY</p>
                     <div>
-                      {nextBillingSummary !== null ? (
+                      {/* {nextBillingSummary !== null ? (
                         <p className="text-lg font-semibold text-red-500 text-center">
                           {String(nextBillingSummary).padStart(5, "0")}
                         </p>
@@ -475,7 +475,7 @@ const InvoiceList = () => {
                         <p className="text-lg font-semibold text-gray-400 text-center">
                           Loading...
                         </p>
-                      )}
+                      )} */}
                     </div>
                   </div>
                 </div>
@@ -750,14 +750,13 @@ const InvoiceList = () => {
                               BILLING SUMMARY
                             </p>
 
-                            {uniqueBillingSummaries.map((invoice) => (
+                            {/* {uniqueBillingSummaries.map((invoice) => (
                               <div key={invoice.billingSummary}>
                                 <p className="text-lg font-semibold -mt-3  text-red-500 text-center">
                                   {String(invoice.billingSummary).padStart(5, "0")}
                                 </p>
-                                {/* Display other batch-level details if needed */}
                               </div>
-                            ))}
+                            ))} */}
 
                           </div>
                         </div>
