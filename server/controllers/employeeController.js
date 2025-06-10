@@ -7,7 +7,7 @@ import PayrollChangeRequest from "../models/PayrollChangeRequest.js";
 
 import sequelize from "../db/db.js";
 import { QueryTypes } from "sequelize";
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 import User from "../models/User.js";
 import LoginRecord from "../models/LoginRecord.js";
 
@@ -24,18 +24,20 @@ const fetchAndSaveEmployees = async () => {
       return;
     }
 
-    const headers = rows[0].map(header => header.toLowerCase().replace(/\s+/g, ""));
-    const validEmployees = rows.slice(1).map(row => {
+    const headers = rows[0].map((header) =>
+      header.toLowerCase().replace(/\s+/g, "")
+    );
+    const validEmployees = rows.slice(1).map((row) => {
       const employeeObj = {};
       headers.forEach((header, colIndex) => {
-        employeeObj[header] = row[colIndex] || "";
+        employeeObj[header] = row[colIndex]?.trim() || "";
       });
       return employeeObj;
     });
 
     // Get all current employee ids from your database
     const existingEmployees = await Employee.findAll();
-    const existingEmployeeIds = existingEmployees.map(e => e.id);
+    const existingEmployeeIds = existingEmployees.map((e) => e.id);
 
     // Track the IDs of employees in the sheet
     const sheetEmployeeIds = [];
@@ -46,7 +48,9 @@ const fetchAndSaveEmployees = async () => {
       await Employee.upsert(employee);
 
       // Then fetch employee by unique field
-      const savedEmployeeRecord = await Employee.findOne({ where: { ecode: employee.ecode } });
+      const savedEmployeeRecord = await Employee.findOne({
+        where: { ecode: employee.ecode },
+      });
       if (!savedEmployeeRecord) {
         console.error("Failed to find employee after upsert:", employee.ecode);
         continue; // skip this employee to avoid crash
@@ -54,11 +58,15 @@ const fetchAndSaveEmployees = async () => {
 
       sheetEmployeeIds.push(savedEmployeeRecord.id);
 
-      console.log(`✅ Employee Saved/Updated: ${savedEmployeeRecord.name || "Unknown Employee"}`);
+      console.log(
+        `✅ Employee Saved/Updated: ${
+          savedEmployeeRecord.name || "Unknown Employee"
+        }`
+      );
 
       // Check payroll info
       const existingPayroll = await PayrollInformation.findOne({
-        where: { employee_id: savedEmployeeRecord.id }
+        where: { employee_id: savedEmployeeRecord.id },
       });
 
       if (!existingPayroll) {
@@ -83,7 +91,9 @@ const fetchAndSaveEmployees = async () => {
           loan: 0,
         });
 
-        console.log(`✅ PayrollInformation Created for ${savedEmployeeRecord.ecode}`);
+        console.log(
+          `✅ PayrollInformation Created for ${savedEmployeeRecord.ecode}`
+        );
       } else {
         // Only update employee-identifying fields without resetting payroll numbers
         await existingPayroll.update({
@@ -94,35 +104,41 @@ const fetchAndSaveEmployees = async () => {
           email: savedEmployeeRecord.emailaddress || "N/A",
         });
 
-        console.log(`🔄 PayrollInformation Updated for ${savedEmployeeRecord.ecode}`);
+        console.log(
+          `🔄 PayrollInformation Updated for ${savedEmployeeRecord.ecode}`
+        );
       }
-
     }
 
-
     // OPTIONAL: Remove employees not in the sheet anymore
-    const employeesToRemove = existingEmployees.filter(e => !sheetEmployeeIds.includes(e.id));
+    const employeesToRemove = existingEmployees.filter(
+      (e) => !sheetEmployeeIds.includes(e.id)
+    );
     for (const emp of employeesToRemove) {
       await PayrollInformation.destroy({ where: { employee_id: emp.id } });
       await Employee.destroy({ where: { id: emp.id } });
       console.log(`🗑 Employee and Payroll removed: ${emp.name || emp.id}`);
     }
 
-    console.log("🎉 All employees & payroll data have been imported and synced successfully!");
-
+    console.log(
+      "🎉 All employees & payroll data have been imported and synced successfully!"
+    );
   } catch (error) {
     console.error("❌ Error fetching employees:", error);
   }
 };
 
-
 // API Endpoint
 export const importEmployeesFromGoogleSheet = async (req, res) => {
   try {
     await fetchAndSaveEmployees();
-    res.status(201).json({ success: true, message: "Employees imported successfully" });
+    res
+      .status(201)
+      .json({ success: true, message: "Employees imported successfully" });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Error syncing employees" });
+    res
+      .status(500)
+      .json({ success: false, message: "Error syncing employees" });
   }
 };
 
@@ -148,7 +164,9 @@ export const getEmployee = async (req, res) => {
   try {
     const employee = await Employee.findByPk(id);
     if (!employee) {
-      return res.status(404).json({ success: false, message: "Employee not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Employee not found" });
     }
     res.status(200).json({ success: true, employee });
   } catch (error) {
@@ -156,28 +174,29 @@ export const getEmployee = async (req, res) => {
   }
 };
 
-
 export const getPayrollInformations = async (req, res) => {
   try {
     const payrollInformations = await PayrollInformation.findAll();
     res.status(200).json({ success: true, payrollInformations });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message })
+    res.status(500).json({ success: false, message: error.message });
   }
-}
+};
 
 export const getPayrollInformationsById = async (req, res) => {
   const { id } = req.params;
   try {
     const payrollInformation = await PayrollInformation.findByPk(id);
     if (!payrollInformation) {
-      return res.status(404).json({ success: true, message: "Payroll Data not found" });
+      return res
+        .status(404)
+        .json({ success: true, message: "Payroll Data not found" });
     }
     res.status(200).json({ success: true, payrollInformation });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
-}
+};
 
 export const updatePayrollInformation = async (req, res) => {
   const { id } = req.params;
@@ -187,12 +206,20 @@ export const updatePayrollInformation = async (req, res) => {
     const payrollInfo = await PayrollInformation.findByPk(id);
 
     if (!payrollInfo) {
-      return res.status(404).json({ success: false, message: "Payroll data not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Payroll data not found" });
     }
 
     await payrollInfo.update(updatedData);
 
-    res.status(200).json({ success: true, message: "Payroll information updated successfully", payrollInfo });
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Payroll information updated successfully",
+        payrollInfo,
+      });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -205,10 +232,9 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
   tls: {
-    rejectUnauthorized: false,  // <-- add this line
+    rejectUnauthorized: false, // <-- add this line
   },
 });
-
 
 // Verify  connection once
 transporter.verify((error, success) => {
@@ -222,7 +248,7 @@ transporter.verify((error, success) => {
 export const requestPayrollChange = async (req, res) => {
   const { payroll_info_id, changes, reason, requested_by } = req.body;
   const ipAddress = req.ip || req.connection.remoteAddress;
-  const userAgent = req.get('User-Agent');
+  const userAgent = req.get("User-Agent");
 
   console.log("Received data:", req.body);
 
@@ -230,23 +256,25 @@ export const requestPayrollChange = async (req, res) => {
     if (!payroll_info_id || !changes || !requested_by) {
       // Log failed attempt
       await LoginRecord.logActivity({
-        userName: requested_by || 'Unknown',
-        email: req.user?.email || 'unknown@example.com',
-        role: req.user?.role || 'User',
-        action: 'payroll_change_request',
+        userName: requested_by || "Unknown",
+        email: req.user?.email || "unknown@example.com",
+        role: req.user?.role || "User",
+        action: "payroll_change_request",
         success: false,
-        errorMessage: 'Missing required fields',
+        errorMessage: "Missing required fields",
         actionDetails: {
           payroll_info_id,
           hasChanges: !!changes,
-          hasRequestedBy: !!requested_by
+          hasRequestedBy: !!requested_by,
         },
         ipAddress,
         userAgent,
-        sessionId: req.session?.id
+        sessionId: req.session?.id,
       });
 
-      return res.status(400).json({ success: false, message: "Missing required fields" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required fields" });
     }
 
     const payrollInfo = await PayrollInformation.findByPk(payroll_info_id);
@@ -255,22 +283,24 @@ export const requestPayrollChange = async (req, res) => {
       // Log failed attempt - payroll not found
       await LoginRecord.logActivity({
         userName: requested_by,
-        email: req.user?.email || 'unknown@example.com',
-        role: req.user?.role || 'User',
-        action: 'payroll_change_request',
+        email: req.user?.email || "unknown@example.com",
+        role: req.user?.role || "User",
+        action: "payroll_change_request",
         success: false,
-        errorMessage: 'Payroll information not found',
+        errorMessage: "Payroll information not found",
         targetResource: `payroll_id:${payroll_info_id}`,
         actionDetails: {
           payroll_info_id,
-          changes
+          changes,
         },
         ipAddress,
         userAgent,
-        sessionId: req.session?.id
+        sessionId: req.session?.id,
       });
 
-      return res.status(404).json({ success: false, message: "Payroll information not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Payroll information not found" });
     }
 
     const employee_name = `${payrollInfo.name}`;
@@ -281,7 +311,7 @@ export const requestPayrollChange = async (req, res) => {
       changes,
       reasons: reason,
       requested_by,
-      employee_name
+      employee_name,
     });
 
     console.log(result);
@@ -289,9 +319,9 @@ export const requestPayrollChange = async (req, res) => {
     // Log successful payroll change request
     await LoginRecord.logActivity({
       userName: requested_by,
-      email: req.user?.email || 'unknown@example.com',
-      role: req.user?.role || 'User',
-      action: 'payroll_change_request',
+      email: req.user?.email || "unknown@example.com",
+      role: req.user?.role || "User",
+      action: "payroll_change_request",
       success: true,
       targetResource: `payroll_id:${payroll_info_id}`,
       actionDetails: {
@@ -299,15 +329,17 @@ export const requestPayrollChange = async (req, res) => {
         employee_name,
         changes,
         reason,
-        request_id: result.id
+        request_id: result.id,
       },
       ipAddress,
       userAgent,
-      sessionId: req.session?.id
+      sessionId: req.session?.id,
     });
 
     // Get all users with the role 'approver'
-    const approvers = await User.findAll({ where: { role: 'approver', isBlocked: false } });
+    const approvers = await User.findAll({
+      where: { role: "approver", isBlocked: false },
+    });
 
     const successfulEmails = [];
 
@@ -321,18 +353,24 @@ export const requestPayrollChange = async (req, res) => {
             <h3>Hello ${approver.name},</h3>
             <p>A new payroll change request by ${requested_by} is awaiting your review.</p>
             <p><strong>Employee:</strong> ${employee_name}</p>
-            <p><strong>Reason:</strong> ${reason || 'No reason provided'}</p>
+            <p><strong>Reason:</strong> ${reason || "No reason provided"}</p>
             <p><strong>Changes:</strong></p>
             <ul>
-              ${Object.entries(changes).map(([key, value]) => 
-                `<li><strong>${key.replace(/_/g, ' ')}:</strong> ${value}</li>`
-              ).join('')}
+              ${Object.entries(changes)
+                .map(
+                  ([key, value]) =>
+                    `<li><strong>${key.replace(
+                      /_/g,
+                      " "
+                    )}:</strong> ${value}</li>`
+                )
+                .join("")}
             </ul>
             <p>Please login to the payroll system to review and take appropriate action.</p>
             <br />
             <p>Best regards,<br />SJM Payroll System</p>
           </div>
-        `
+        `,
       };
 
       try {
@@ -341,23 +379,23 @@ export const requestPayrollChange = async (req, res) => {
         successfulEmails.push(approver.email);
       } catch (emailError) {
         console.error(`Failed to send email to ${approver.email}:`, emailError);
-        
+
         // Log email failure
         await LoginRecord.logActivity({
-          userName: 'System',
-          email: 'system@company.com',
-          role: 'Admin',
-          action: 'payroll_change_request',
+          userName: "System",
+          email: "system@company.com",
+          role: "Admin",
+          action: "payroll_change_request",
           success: false,
           errorMessage: `Failed to send notification to ${approver.email}`,
           actionDetails: {
-            type: 'email_notification',
+            type: "email_notification",
             recipient: approver.email,
             payroll_info_id,
-            request_id: result.id
+            request_id: result.id,
           },
           ipAddress,
-          userAgent
+          userAgent,
         });
       }
     }
@@ -365,58 +403,55 @@ export const requestPayrollChange = async (req, res) => {
     // Log email notification results
     if (successfulEmails.length > 0) {
       await LoginRecord.logActivity({
-        userName: 'System',
-        email: 'system@company.com',
-        role: 'Admin',
-        action: 'payroll_change_request',
+        userName: "System",
+        email: "system@company.com",
+        role: "Admin",
+        action: "payroll_change_request",
         success: true,
         actionDetails: {
-          type: 'email_notifications_sent',
+          type: "email_notifications_sent",
           recipients: successfulEmails,
           payroll_info_id,
           request_id: result.id,
           total_approvers: approvers.length,
-          successful_notifications: successfulEmails.length
+          successful_notifications: successfulEmails.length,
         },
         ipAddress,
-        userAgent
+        userAgent,
       });
     }
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Request submitted", 
+    res.status(200).json({
+      success: true,
+      message: "Request submitted",
       notified: successfulEmails,
-      request_id: result.id
+      request_id: result.id,
     });
-
   } catch (error) {
     console.error("Error saving payroll change request:", error);
-    
+
     // Log the error
     await LoginRecord.logActivity({
-      userName: requested_by || 'Unknown',
-      email: req.user?.email || 'unknown@example.com',
-      role: req.user?.role || 'User',
-      action: 'payroll_change_request',
+      userName: requested_by || "Unknown",
+      email: req.user?.email || "unknown@example.com",
+      role: req.user?.role || "User",
+      action: "payroll_change_request",
       success: false,
       errorMessage: error.message,
       actionDetails: {
         payroll_info_id,
         changes,
         reason,
-        error_stack: error.stack
+        error_stack: error.stack,
       },
       ipAddress,
       userAgent,
-      sessionId: req.session?.id
+      sessionId: req.session?.id,
     });
 
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
-
-
 
 export const reviewPayrollChange = async (req, res) => {
   console.log("💡 Hit reviewPayrollChange route");
@@ -431,7 +466,6 @@ export const reviewPayrollChange = async (req, res) => {
   }
 };
 
-
 export const updateIDDetails = async (req, res) => {
   console.log("Received Files:", req.files); // Log all uploaded files
   console.log("Files Object Keys:", Object.keys(req.files)); // See which fields are present
@@ -442,7 +476,9 @@ export const updateIDDetails = async (req, res) => {
   try {
     const employee = await Employee.findByPk(id);
     if (!employee) {
-      return res.status(404).json({ success: false, message: "Employee not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Employee not found" });
     }
 
     if (req.files) {
@@ -469,9 +505,6 @@ export const updateIDDetails = async (req, res) => {
   }
 };
 
-
-
-
 export const getEmployeeStatus = async (req, res) => {
   try {
     console.log("Fetching all employees...");
@@ -485,10 +518,11 @@ export const getEmployeeStatus = async (req, res) => {
     res.status(200).json(employees);
   } catch (error) {
     console.error("Database Query Error:", error);
-    res.status(500).json({ message: "Internal Server Error", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
   }
 };
-
 
 export const toggleEmployeeStatus = async (req, res) => {
   try {
@@ -518,32 +552,44 @@ export const approvePayrollChange = async (req, res) => {
 
   try {
     console.log(`💡 Approving payroll change request ${id}`);
-    console.log('Request body:', req.body);
-    console.log('Request params:', req.params);
+    console.log("Request body:", req.body);
+    console.log("Request params:", req.params);
 
     // Find the change request
     const changeRequest = await PayrollChangeRequest.findByPk(id);
     if (!changeRequest) {
       console.log(`❌ Change request ${id} not found`);
-      return res.status(404).json({ success: false, message: "Change request not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Change request not found" });
     }
 
-    console.log('Found change request:', changeRequest.toJSON());
+    console.log("Found change request:", changeRequest.toJSON());
 
     // Check if already processed
-    if (changeRequest.status !== 'Pending') {
-      console.log(`❌ Change request ${id} already processed with status: ${changeRequest.status}`);
-      return res.status(400).json({ success: false, message: "Change request already processed" });
+    if (changeRequest.status !== "Pending") {
+      console.log(
+        `❌ Change request ${id} already processed with status: ${changeRequest.status}`
+      );
+      return res
+        .status(400)
+        .json({ success: false, message: "Change request already processed" });
     }
 
     // Update the actual payroll information with the requested changes
-    const payrollInfo = await PayrollInformation.findByPk(changeRequest.payroll_info_id);
+    const payrollInfo = await PayrollInformation.findByPk(
+      changeRequest.payroll_info_id
+    );
     if (!payrollInfo) {
-      console.log(`❌ Payroll information not found for ID: ${changeRequest.payroll_info_id}`);
-      return res.status(404).json({ success: false, message: "Payroll information not found" });
+      console.log(
+        `❌ Payroll information not found for ID: ${changeRequest.payroll_info_id}`
+      );
+      return res
+        .status(404)
+        .json({ success: false, message: "Payroll information not found" });
     }
 
-    console.log('Current payroll info (before):', payrollInfo.toJSON());
+    console.log("Current payroll info (before):", payrollInfo.toJSON());
 
     // Parse changes if it's a string (because it might be stored as JSON string)
     let changes = changeRequest.changes;
@@ -552,19 +598,40 @@ export const approvePayrollChange = async (req, res) => {
         changes = JSON.parse(changes);
       } catch (err) {
         console.error("❌ Failed to parse changes JSON:", err);
-        return res.status(400).json({ success: false, message: "Invalid changes format" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid changes format" });
       }
     }
 
-    console.log('Requested changes:', changes);
+    console.log("Requested changes:", changes);
 
     // Define allowed fields to update (only fields that exist in PayrollInformation)
     const allowedFields = [
-      'daily_rate', 'hourly_rate', 'ot_hourly_rate', 'ot_rate_sp_holiday', 'ot_rate_reg_holiday',
-      'special_hol_rate', 'regular_hol_ot_rate', 'overtime_pay', 'holiday_pay', 'night_differential',
-      'allowance', 'tardiness', 'tax_deduction', 'sss_contribution', 'pagibig_contribution',
-      'philhealth_contribution', 'loan', 'otherDeductions', 'adjustment', 'positiontitle', 'area_section',
-      'designation', 'ecode', 'name'
+      "daily_rate",
+      "hourly_rate",
+      "ot_hourly_rate",
+      "ot_rate_sp_holiday",
+      "ot_rate_reg_holiday",
+      "special_hol_rate",
+      "regular_hol_ot_rate",
+      "overtime_pay",
+      "holiday_pay",
+      "night_differential",
+      "allowance",
+      "tardiness",
+      "tax_deduction",
+      "sss_contribution",
+      "pagibig_contribution",
+      "philhealth_contribution",
+      "loan",
+      "otherDeductions",
+      "adjustment",
+      "positiontitle",
+      "area_section",
+      "designation",
+      "ecode",
+      "name",
     ];
 
     // Filter changes to update only allowed fields
@@ -578,25 +645,27 @@ export const approvePayrollChange = async (req, res) => {
     // Update payroll info
     await payrollInfo.update(filteredChanges);
 
-    console.log('Payroll info (after):', payrollInfo.toJSON());
+    console.log("Payroll info (after):", payrollInfo.toJSON());
 
     // Update the change request status
     await changeRequest.update({
-      status: 'Approved',
-      reviewed_by: reviewed_by || 'Admin',
-      reviewed_at: new Date()
+      status: "Approved",
+      reviewed_by: reviewed_by || "Admin",
+      reviewed_at: new Date(),
     });
 
     console.log(`✅ Payroll change request ${id} approved and applied`);
-    res.status(200).json({ success: true, message: "Change request approved successfully" });
-
+    res
+      .status(200)
+      .json({ success: true, message: "Change request approved successfully" });
   } catch (error) {
     console.error("❌ Error approving payroll change:", error);
     console.error("❌ Error stack:", error.stack);
-    res.status(500).json({ success: false, message: error.message, error: error.stack });
+    res
+      .status(500)
+      .json({ success: false, message: error.message, error: error.stack });
   }
 };
-
 
 export const rejectPayrollChange = async (req, res) => {
   const { id } = req.params;
@@ -604,36 +673,45 @@ export const rejectPayrollChange = async (req, res) => {
 
   try {
     console.log(`💡 Rejecting payroll change request ${id}`);
-    console.log('Request body:', req.body); // Add this for debugging
+    console.log("Request body:", req.body); // Add this for debugging
 
     // Find the change request
     const changeRequest = await PayrollChangeRequest.findByPk(id);
     if (!changeRequest) {
       console.log(`❌ Change request ${id} not found`);
-      return res.status(404).json({ success: false, message: "Change request not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Change request not found" });
     }
 
     // Check if already processed
-    if (changeRequest.status !== 'Pending') {
-      console.log(`❌ Change request ${id} already processed with status: ${changeRequest.status}`);
-      return res.status(400).json({ success: false, message: "Change request already processed" });
+    if (changeRequest.status !== "Pending") {
+      console.log(
+        `❌ Change request ${id} already processed with status: ${changeRequest.status}`
+      );
+      return res
+        .status(400)
+        .json({ success: false, message: "Change request already processed" });
     }
 
     // Update the change request status
     await changeRequest.update({
-      status: 'Rejected',
-      reviewed_by: reviewed_by || 'Admin',
+      status: "Rejected",
+      reviewed_by: reviewed_by || "Admin",
       reviewed_at: new Date(),
-      rejection_reason: rejection_reason || 'No reason provided'
+      rejection_reason: rejection_reason || "No reason provided",
     });
 
     console.log(`✅ Payroll change request ${id} rejected`);
-    res.status(200).json({ success: true, message: "Change request rejected successfully" });
-
+    res
+      .status(200)
+      .json({ success: true, message: "Change request rejected successfully" });
   } catch (error) {
     console.error("❌ Error rejecting payroll change:", error);
     console.error("❌ Error stack:", error.stack); // Add full stack trace
-    res.status(500).json({ success: false, message: error.message, error: error.stack });
+    res
+      .status(500)
+      .json({ success: false, message: error.message, error: error.stack });
   }
 };
 
@@ -645,35 +723,40 @@ export const bulkApprovePayrollChanges = async (req, res) => {
 
     // Get all pending requests
     const pendingRequests = await PayrollChangeRequest.findAll({
-      where: { status: 'Pending' }
+      where: { status: "Pending" },
     });
 
     if (pendingRequests.length === 0) {
-      return res.status(200).json({ success: true, message: "No pending requests to approve" });
+      return res
+        .status(200)
+        .json({ success: true, message: "No pending requests to approve" });
     }
 
     // Process each request
     for (const request of pendingRequests) {
       // Update the actual payroll information
-      const payrollInfo = await PayrollInformation.findByPk(request.payroll_info_id);
+      const payrollInfo = await PayrollInformation.findByPk(
+        request.payroll_info_id
+      );
       if (payrollInfo) {
         await payrollInfo.update(request.changes);
       }
 
       // Update the request status
       await request.update({
-        status: 'Approved',
-        reviewed_by: reviewed_by || 'Admin',
-        reviewed_at: new Date()
+        status: "Approved",
+        reviewed_by: reviewed_by || "Admin",
+        reviewed_at: new Date(),
       });
     }
 
-    console.log(`✅ Bulk approved ${pendingRequests.length} payroll change requests`);
+    console.log(
+      `✅ Bulk approved ${pendingRequests.length} payroll change requests`
+    );
     res.status(200).json({
       success: true,
-      message: `Successfully approved ${pendingRequests.length} change requests`
+      message: `Successfully approved ${pendingRequests.length} change requests`,
     });
-
   } catch (error) {
     console.error("❌ Error bulk approving payroll changes:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -688,39 +771,40 @@ export const bulkRejectPayrollChanges = async (req, res) => {
 
     // Get all pending requests
     const pendingRequests = await PayrollChangeRequest.findAll({
-      where: { status: 'Pending' }
+      where: { status: "Pending" },
     });
 
     if (pendingRequests.length === 0) {
-      return res.status(200).json({ success: true, message: "No pending requests to reject" });
+      return res
+        .status(200)
+        .json({ success: true, message: "No pending requests to reject" });
     }
 
     // Update all pending requests to rejected
     await PayrollChangeRequest.update(
       {
-        status: 'Rejected',
-        reviewed_by: reviewed_by || 'Admin',
+        status: "Rejected",
+        reviewed_by: reviewed_by || "Admin",
         reviewed_at: new Date(),
-        rejection_reason: rejection_reason || 'Bulk rejection'
+        rejection_reason: rejection_reason || "Bulk rejection",
       },
       {
-        where: { status: 'Pending' }
+        where: { status: "Pending" },
       }
     );
 
-    console.log(`✅ Bulk rejected ${pendingRequests.length} payroll change requests`);
+    console.log(
+      `✅ Bulk rejected ${pendingRequests.length} payroll change requests`
+    );
     res.status(200).json({
       success: true,
-      message: `Successfully rejected ${pendingRequests.length} change requests`
+      message: `Successfully rejected ${pendingRequests.length} change requests`,
     });
-
   } catch (error) {
     console.error("❌ Error bulk rejecting payroll changes:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-
 
 export const messageEmployee = async (req, res) => {
   try {
@@ -731,16 +815,24 @@ export const messageEmployee = async (req, res) => {
       employeeEmail,
       message,
       sentAt,
-      sentBy
+      sentBy,
     } = req.body;
 
     console.log(req.body);
 
     // Validate required fields
-    if (!employeeId || !employeeName || !employeeCode || !employeeEmail || !message || !sentAt || !sentBy) {
+    if (
+      !employeeId ||
+      !employeeName ||
+      !employeeCode ||
+      !employeeEmail ||
+      !message ||
+      !sentAt ||
+      !sentBy
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'All fields are required'
+        message: "All fields are required",
       });
     }
 
@@ -749,7 +841,7 @@ export const messageEmployee = async (req, res) => {
     if (!emailRegex.test(employeeEmail)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid email format'
+        message: "Invalid email format",
       });
     }
 
@@ -776,7 +868,9 @@ export const messageEmployee = async (req, res) => {
           
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
             <p><strong>Sent by:</strong> ${sentBy}</p>
-            <p><strong>Sent at:</strong> ${new Date(sentAt).toLocaleString()}</p>
+            <p><strong>Sent at:</strong> ${new Date(
+              sentAt
+            ).toLocaleString()}</p>
           </div>
         </div>
       `,
@@ -794,47 +888,48 @@ export const messageEmployee = async (req, res) => {
         
         Sent by: ${sentBy}
         Sent at: ${new Date(sentAt).toLocaleString()}
-      `
+      `,
     };
 
     // Send email
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info.messageId);
+    console.log("Email sent:", info.messageId);
 
     // Return success response
     res.status(200).json({
       success: true,
-      message: 'Email sent successfully',
+      message: "Email sent successfully",
       data: {
         messageId: info.messageId,
         recipient: employeeEmail,
-        sentAt: new Date().toISOString()
-      }
+        sentAt: new Date().toISOString(),
+      },
     });
-
   } catch (error) {
-    console.error('Error sending email:', error);
-    
+    console.error("Error sending email:", error);
+
     // Handle nodemailer specific errors
-    if (error.code === 'EAUTH') {
+    if (error.code === "EAUTH") {
       return res.status(500).json({
         success: false,
-        message: 'Email authentication failed. Please check your email credentials.'
+        message:
+          "Email authentication failed. Please check your email credentials.",
       });
     }
-    
-    if (error.code === 'ENOTFOUND') {
+
+    if (error.code === "ENOTFOUND") {
       return res.status(500).json({
         success: false,
-        message: 'Email server not found. Please check your SMTP configuration.'
+        message:
+          "Email server not found. Please check your SMTP configuration.",
       });
     }
 
     // Handle other errors
     res.status(500).json({
       success: false,
-      message: 'Failed to send email',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Failed to send email",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
