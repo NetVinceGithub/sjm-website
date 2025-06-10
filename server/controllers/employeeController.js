@@ -993,16 +993,7 @@ export const messageEmployee = async (req, res) => {
             <div class="content-padding" style="padding: 20px;">
               <div style="background-color: #fff; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <p style="line-height: 1.6; margin-bottom: 15px; color: #333;">${message}</p>
-                ${attachments.length > 0 ? `
-                <div style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #007bff;">
-                  <p style="margin: 0 0 10px 0; font-weight: bold; color: #333;">📎 Attachments (${attachments.length}):</p>
-                  ${attachments.map(file => `
-                    <p style="margin: 5px 0; color: #666; font-size: 14px;">
-                      • ${file.filename} <span style="color: #999;">(${(file.size / 1024).toFixed(1)} KB)</span>
-                    </p>
-                  `).join('')}
-                </div>
-                ` : ''}
+                
                 <p style="margin-top: 20px; color: #666;">
                   Best regards,<br />
                   <strong style="color: #333;">${sentBy}</strong>
