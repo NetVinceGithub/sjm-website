@@ -42,6 +42,7 @@ const List = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [showBulkMessage, setShowBulkMessage] = useState(false);
+  const [expandedRows, setExpandedRows] = useState({});
 
   useEffect(() => {
     fetchEmployees();
@@ -376,7 +377,6 @@ const List = () => {
       },
     },
   ];
-
 
   // Define columns with sticky positioning for Options column
   const columns = [
@@ -842,7 +842,19 @@ const List = () => {
                     </div>
                   }
                   pagination
-                  conditionalRowStyles={conditionalRowStyles}
+                  expandableRows={true}
+                  expandableRowExpanded={(row) => expandedRows[row.id] === true}
+                  expandableRowsComponent={({ data }) =>
+                    data.employmentstatus === 'REHIRED' ? (
+                      <div className="p-3 ml-5 text-neutralDGray/60 text-xs font-medium">
+                        <span>Notes:</span>
+                        <li className="ml-5">This employee has been rehired on (date).</li>
+                      </div>
+                    ) : null
+                  }
+                  expandOnRowClicked={false}
+                  // Add this function to control which rows can be expanded
+                  expandableRowDisabled={(row) => row.employmentstatus !== 'REHIRED'}
                 />
               </div>
             </div>
