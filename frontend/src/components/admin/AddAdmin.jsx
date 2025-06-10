@@ -209,7 +209,7 @@ const AddAdmin = () => {
   }
 
   return (
-    <div className="p-6  h-[calc(100vh-150px)]">
+    <div className="p-6  h-[calc(100vh-150px)] overflow-auto">
       <div className="flex h-[calc(100vh-220px)] flex-col">
         <div className="border rounded p-2 ">
           <h2 className="text-lg font-bold mb-3 flex text-neutralDGray items-center gap-2">
@@ -299,7 +299,7 @@ const AddAdmin = () => {
                 <h4 className="text-[14px] mt-1 text-brandPrimary italic">
                   Active Users
               </h4>
-                <ul className="border rounded-md p-1 mb-1 overflow-auto">
+                <ul className="border rounded-md p-1 mb-1">
                   {users
                     .filter((user) => !user.isBlocked)
                     .map((user, index) => (
@@ -387,7 +387,7 @@ const AddAdmin = () => {
               <div className="w-1/2">
                 {/* Blocked Users */}
                 <h4 className="mt-2 text-[14px] text-red-500 italic">Blocked Users</h4>
-                <ul className="border rounded-md bg-red-50 overflow-auto">
+                <ul className="border rounded-md bg-red-50">
                   {users
                     .filter((user) => user.isBlocked)
                     .map((user, index) => (
