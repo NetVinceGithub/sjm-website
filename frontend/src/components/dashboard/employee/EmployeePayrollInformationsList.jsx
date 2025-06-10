@@ -362,7 +362,7 @@ const EmployeePayrollInformationsList = () => {
                     </div>
                     <div className="flex gap-2">
                       <button
-                        className="px-2 py-1 text-xs border h-8 w-36 text-sm text-neutralDGray rounded hover:bg-green-400 hover:text-white"
+                        className="px-2 py-1 text-xs border h-8 w-36 text-neutralDGray rounded hover:bg-green-400 hover:text-white"
                       >
                         Select All
                         </button>
