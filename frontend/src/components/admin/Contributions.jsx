@@ -14,16 +14,24 @@ import {
   Sector,
 } from "recharts";
 import DataTable from "react-data-table-component";
-import axios from 'axios';
+import axios from "axios";
 const COLORS = ["#4191D6", "#9D426E", "#80B646"];
 const BAR_COLORS = ["#80B646", "#9D426E"];
 
 const renderActiveShape = (props) => {
   const RADIAN = Math.PI / 180;
   const {
-    cx, cy, midAngle, innerRadius, outerRadius,
-    startAngle, endAngle, fill, payload,
-    percent, value,
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    startAngle,
+    endAngle,
+    fill,
+    payload,
+    percent,
+    value,
   } = props;
   const sin = Math.sin(-RADIAN * midAngle);
   const cos = Math.cos(-RADIAN * midAngle);
@@ -37,7 +45,14 @@ const renderActiveShape = (props) => {
 
   return (
     <g>
-      <text x={cx} y={cy} dy={8} textAnchor="middle" fill={fill} fontWeight="bold">
+      <text
+        x={cx}
+        y={cy}
+        dy={8}
+        textAnchor="middle"
+        fill={fill}
+        fontWeight="bold"
+      >
         {payload.name}
       </text>
       <Sector
@@ -58,12 +73,28 @@ const renderActiveShape = (props) => {
         outerRadius={outerRadius + 10}
         fill={fill}
       />
-      <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
+      <path
+        d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`}
+        stroke={fill}
+        fill="none"
+      />
       <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
-      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#333" fontWeight="bold">
+      <text
+        x={ex + (cos >= 0 ? 1 : -1) * 12}
+        y={ey}
+        textAnchor={textAnchor}
+        fill="#333"
+        fontWeight="bold"
+      >
         ₱{value.toLocaleString()}
       </text>
-      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#999">
+      <text
+        x={ex + (cos >= 0 ? 1 : -1) * 12}
+        y={ey}
+        dy={18}
+        textAnchor={textAnchor}
+        fill="#999"
+      >
         {(percent * 100).toFixed(2)}%
       </text>
     </g>
@@ -77,13 +108,15 @@ const Contributions = () => {
 
   useEffect(() => {
     fetchContributions();
-  }, [])
+  }, []);
 
   // Fetch data from backend
   const fetchContributions = async () => {
     setLoading(true);
-     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/contribution`);
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/payslip/contribution`
+      );
       setContributions(response.data);
       console.log("data of contributions", response.data);
     } catch (error) {
@@ -91,7 +124,7 @@ const Contributions = () => {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   // If no data loaded yet, show loading
   if (!contributions) {
@@ -106,28 +139,26 @@ const Contributions = () => {
   }
 
   // Get employee data from API response
-  const employeeData = contributions.data.employees.map(employee => ({
+  const employeeData = contributions.data.employees.map((employee) => ({
     name: employee.name,
     sssAccount: employee.employeeSSS,
     philhealthAccount: employee.employeePhilhealth,
     pagibigAccount: employee.employeePagibig,
-    status: employee.status,// Default status since not provided in API
+    status: employee.status, // Default status since not provided in API
     sss: employee.contributions.sss.total,
     philhealth: employee.contributions.philhealth.total,
     pagibig: employee.contributions.pagibig.total,
     employeeShare: employee.grandTotal / 2, // Assuming 50/50 split
-    employerShare: employee.grandTotal / 2,  // Assuming 50/50 split
+    employerShare: employee.grandTotal / 2, // Assuming 50/50 split
   }));
 
-
-  
   // Use summary data from API for totals
   const totalContributions = {
     sss: contributions.data.summary.totalSSS,
     philhealth: contributions.data.summary.totalPhilhealth,
     pagibig: contributions.data.summary.totalPagibig,
     employeeTotal: contributions.data.summary.grandTotal / 2,
-    employerTotal: contributions.data.summary.grandTotal / 2
+    employerTotal: contributions.data.summary.grandTotal / 2,
   };
 
   // Pie chart data
@@ -163,15 +194,15 @@ const Contributions = () => {
     pagibig: totalContributions.pagibig,
     employerShare: "", // Optional blank for unrelated columns
     employeeShare: "",
-    isTotalRow: true,  // Custom flag to identify it in the row rendering
+    isTotalRow: true, // Custom flag to identify it in the row rendering
   };
 
   const dataWithTotal = [...employeeData];
   const conditionalRowStyles = [
     {
-      when: row => row.status === 'RESIGNED',
+      when: (row) => row.status === "RESIGNED",
       style: {
-        display: 'none',
+        display: "none",
       },
     },
   ];
@@ -182,55 +213,67 @@ const Contributions = () => {
       name: "Employee Name",
       selector: (row) => row.name || "",
       sortable: true,
-      width: '220px'
+      width: "220px",
     },
     {
       name: "SSS",
       selector: (row) => `${(row.sssAccount || 0).toLocaleString()}`,
       sortable: true,
-      width: '150px'
+      width: "150px",
     },
     {
       name: "PhilHealth",
       selector: (row) => `${(row.philhealthAccount || 0).toLocaleString()}`,
       sortable: true,
-      width: '150px'
+      width: "150px",
     },
     {
       name: "Pag-IBIG",
       selector: (row) => `${(row.pagibigAccount || 0).toLocaleString()}`,
       sortable: true,
-      width: '150px'
+      width: "150px",
     },
     {
-      name: "Employee Share (SSS)",
+      name: (
+        <div style={{ textAlign: "center" }}>
+          Employer Share
+          <br />
+          (SSS)
+        </div>
+      ),
       selector: (row) => `₱${(row.employeeShare || 0).toLocaleString()}`,
       sortable: true,
-      width: '150px'
+      width: "150px",
     },
     {
-      name: "Employer Share (SSS)",
+      name: (
+        <div style={{ textAlign: "center" }}>
+          Employee Share
+          <br />
+          (SSS)
+        </div>
+      ),
       selector: (row) => `₱${(row.employerShare || 0).toLocaleString()}`,
       sortable: true,
-      width: '150px'
+      width: "150px",
     },
     {
-      name: "SSS Share",
-      selector: (row) => `₱${(row.sss || 0).toLocaleString()}`,
-      sortable: true,
-      width: '150px'
-    },
-    {
-      name: "Phil Health Share",
+      name: (
+        <div style={{ textAlign: "center" }}>
+          PhilHealth Employer Share
+          <br />
+          (SSS)
+        </div>
+      ),
       selector: (row) => `₱${(row.philhealth || 0).toLocaleString()}`,
       sortable: true,
-      width: '150px'
+      width: "150px",
     },
     {
       name: "PAGIBIG Share",
       selector: (row) => `₱${(row.pagibig || 0).toLocaleString()}`,
       sortable: true,
-      width: '150px'
+      width: "150px",
     },
   ];
 
@@ -240,7 +283,6 @@ const Contributions = () => {
 
   return (
     <div className="p-6 h-[calc(100vh-150px)]">
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 -mt-3">
         {/* PIE CHART */}
         <div className="lg:col-span-1 space-y-6">
@@ -264,11 +306,19 @@ const Contributions = () => {
                   cursor="pointer"
                 >
                   {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ fontSize: "12px" }} formatter={(value) => `₱${value.toLocaleString()}`} />
-                <Legend wrapperStyle={{ fontSize: "12px", marginTop: "10px" }} />
+                <Tooltip
+                  contentStyle={{ fontSize: "12px" }}
+                  formatter={(value) => `₱${value.toLocaleString()}`}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: "12px", marginTop: "10px" }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -282,13 +332,17 @@ const Contributions = () => {
               <BarChart
                 data={barChartData}
                 margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" tick={{ fontSize: "12px" }} />
                 <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip contentStyle={{ fontSize: "12px" }} formatter={(value) => `₱${value.toLocaleString()}`} />
-                <Legend wrapperStyle={{ fontSize: "12px", marginTop: "10px" }} />
+                <Tooltip
+                  contentStyle={{ fontSize: "12px" }}
+                  formatter={(value) => `₱${value.toLocaleString()}`}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: "12px", marginTop: "10px" }}
+                />
                 <Bar dataKey="Employee" fill={BAR_COLORS[0]} />
                 <Bar dataKey="Employer" fill={BAR_COLORS[1]} />
               </BarChart>
@@ -306,7 +360,6 @@ const Contributions = () => {
             data={dataWithTotal}
             progressPending={loading}
             conditionalRowStyles={conditionalRowStyles}
-
             progressComponent={
               <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
                 <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
