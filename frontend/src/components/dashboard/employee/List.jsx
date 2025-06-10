@@ -38,7 +38,7 @@ const List = () => {
   const [isEmailModalEmployee, setIsEmailModalEmployee] = useState(null);
   const [emailMessage, setEmailMessage] = useState();
   const [subject, setSubject] = useState("");
-  const [attachment, setAttachment] = useState(null);
+  const [attachments, setAttachments] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [showBulkMessage, setShowBulkMessage] = useState(false);
@@ -119,6 +119,7 @@ const List = () => {
     setEmailMessage('');
   }
 
+  // Updated submit function
   const handleSubmitEmailMessage = async () => {
     // Validation
     if (!emailMessage.trim()) {
@@ -137,35 +138,56 @@ const List = () => {
     try {
       const employee = employees.find(emp => emp.id === isEmailModalEmployee);
 
-      const messageData = {
-        employeeId: isEmailModalEmployee,
-        employeeName: employee?.name || 'Unknown',
-        employeeCode: employee?.employeeCode || employee?.ecode || 'N/A',
-        employeeEmail: employee?.emailaddress || "No Email Provided",
-        subject: subject || 'No subject provided',
-        message: emailMessage.trim(),
-        sentAt: new Date().toISOString(),
-        sentBy: user.name // You might want to get this from your auth context
-      };
+      // Create FormData to handle file uploads
+      const formData = new FormData();
+
+      // Add text fields
+      formData.append('employeeId', isEmailModalEmployee);
+      formData.append('employeeName', employee?.name || 'Unknown');
+      formData.append('employeeCode', employee?.employeeCode || employee?.ecode || 'N/A');
+      formData.append('employeeEmail', employee?.emailaddress || "No Email Provided");
+      formData.append('subject', subject || 'No subject provided');
+      formData.append('message', emailMessage.trim());
+      formData.append('sentAt', new Date().toISOString());
+      formData.append('sentBy', user.name);
+
+      // Add files to FormData
+      attachments.forEach((file) => {
+        formData.append('attachments', file); // Note: 'attachments' should match your backend multer field name
+      });
+
+      console.log('Sending FormData with', attachments.length, 'attachments');
 
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/employee/messaging`,
-        messageData,)
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            console.log(`Upload Progress: ${percentCompleted}%`);
+          }
+        }
+      );
 
+      console.log('Email sent successfully:', response.data);
+
+      // Clear attachments after successful send
+      setAttachments([]);
+      setEmailMessage('');
+      setSubject('');
       closeEmailModal();
-
 
     } catch (error) {
       console.error('Error sending message:', error);
 
       if (error.response) {
-        // Server responded with error
         setSubmitError(error.response.data.message || 'Failed to send message');
       } else if (error.request) {
-        // Network error
         setSubmitError('Network error. Please check your connection.');
       } else {
-        // Other error
         setSubmitError('An unexpected error occurred');
       }
     } finally {
@@ -174,8 +196,12 @@ const List = () => {
   };
 
   const handleCancelEmailModal = () => {
+    setAttachments([]);
+    setEmailMessage('');
+    setSubject('');
+    setSubmitError('');
     closeEmailModal();
-  }
+  };
 
   const confirmBlockEmployee = async () => {
     if (employeeToBlock) {
@@ -715,6 +741,40 @@ const List = () => {
     }
   };
 
+
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+
+    // Validate file count
+    if (files.length + attachments.length > 10) {
+      setSubmitError('Maximum 10 files allowed');
+      return;
+    }
+
+    // Validate file sizes (20MB per file)
+    const maxSize = 100 * 1024 * 1024; // 20MB
+    const oversizedFiles = files.filter(file => file.size > maxSize);
+
+    if (oversizedFiles.length > 0) {
+      setSubmitError(`Files exceed 20MB limit: ${oversizedFiles.map(f => f.name).join(', ')}`);
+      return;
+    }
+
+    // Add new files to existing attachments
+    setAttachments(prev => [...prev, ...files]);
+    setSubmitError(''); // Clear any previous errors
+
+    // Clear the input so the same file can be selected again if needed
+    e.target.value = '';
+  };
+
+
+
+
+  const removeAttachment = (index) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
       <Breadcrumb
@@ -835,6 +895,7 @@ const List = () => {
                   columns={columns}
                   data={filteredEmployees}
                   progressPending={loading}
+                  conditionalRowStyles={conditionalRowStyles}
                   progressComponent={
                     <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
                       <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
@@ -915,18 +976,20 @@ const List = () => {
 
               {/* Message Input */}
               <div className="mb-6 relative">
-                <label htmlFor="message" className="block text-xs font-medium text-gray-700 -mt-4 mb-2">
+                <label htmlFor="subject" className="block text-xs font-medium text-gray-700 -mt-2 mb-2">
                   Subject <span className="text-red-500">*</span>
                 </label>
                 <textarea
-                  id="message"
+                  id="subject"
                   rows="1"
                   className="w-full text-xs px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   placeholder="Type your email subject here..."
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
+                  disabled={isSubmitting}
                 />
-                <label htmlFor="message" className="block text-xs font-medium text-gray-700 mb-2">
+
+                <label htmlFor="message" className="block text-xs font-medium text-gray-700 mb-2 mt-4">
                   Message <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -942,7 +1005,6 @@ const List = () => {
                   disabled={isSubmitting}
                 />
 
-                {/* Paperclip + File name + Remove */}
                 <div className="absolute bottom-2 right-2">
                   <label htmlFor="attachment" className="cursor-pointer text-gray-400 hover:text-gray-600">
                     <FaPaperclip className="w-4 h-4" />
@@ -950,28 +1012,40 @@ const List = () => {
                   <input
                     id="attachment"
                     type="file"
-                    onChange={(e) => setAttachment(e.target.files[0])}
+                    multiple
+                    onChange={handleFileChange}
                     className="hidden"
                     disabled={isSubmitting}
+                    accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.xlsx,.xls,.csv"
                   />
                 </div>
-
-                {/* File name and remove below textarea */}
-                {attachment && (
-                  <div className="-mt-4 ml-2 flex items-center gap-2 text-[11px] text-gray-400">
-                    <span className="truncate max-w-[200px]" title={attachment.name}>
-                      {attachment.name}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setAttachment(null)}
-                      className="text-gray-400 hover:text-red-500"
-                    >
-                      <FaTimes className="w-3 h-3" />
-                    </button>
-                  </div>
-                )}
               </div>
+
+              {/* File attachments preview - UPDATED */}
+              {attachments.length > 0 && (
+                <div className="mb-4 p-3 bg-gray-50 rounded-md">
+                  <h4 className="text-xs font-medium text-gray-700 mb-2">
+                    Attachments ({attachments.length}/10)
+                  </h4>
+                  <div className="space-y-2">
+                    {attachments.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-600 truncate max-w-[200px]" title={file.name}>
+                          {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(index)}
+                          className="text-red-500 hover:text-red-700 ml-2"
+                          disabled={isSubmitting}
+                        >
+                          <FaTimes className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex gap-3 justify-end">
@@ -984,7 +1058,7 @@ const List = () => {
                 </button>
                 <button
                   onClick={handleSubmitEmailMessage}
-                  className="px-4 w-1/2 h-fit text-xs flex justify-center items-center text-center py-2 text-gray-600 border-gray-100 border rounded-md hover:text-white  hover:bg-green-200 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors gap-2"
+                  className="px-4 w-1/2 h-fit text-xs flex justify-center items-center text-center py-2 text-gray-600 border-gray-100 border rounded-md hover:text-white hover:bg-green-200 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors gap-2"
                   disabled={isSubmitting}
                 >
                   {isSubmitting && (
