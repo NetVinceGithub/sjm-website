@@ -67,7 +67,7 @@ const ClientList = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-3 overflow-y-auto h-[calc(100%-60px)]">
+        <div className="grid grid-cols-4 p-3 gap-3 overflow-y-auto h-[calc(100%-60px)]">
           {clients.map((client) => (
             <div
               key={client.id}
@@ -125,7 +125,7 @@ const ClientList = () => {
               <div className="flex space-x-2">
                 <button 
                   onClick={() => handleViewProfile(client)}
-                  className="flex-1 h-8 flex justify-center items-center text-center text-neutralDGray border py-2 px-3 rounded-md text-sm font-medium hover:bg-green-300 hover:text-white transition-colors"
+                  className="flex-1 h-8 flex justify-center items-center text-center text-neutralDGray border py-2 px-3 rounded-md text-sm font-medium hover:bg-green-400 hover:text-white transition-colors"
                 >
                   View Profile
                 </button>

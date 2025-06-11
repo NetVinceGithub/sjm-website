@@ -1034,7 +1034,7 @@ const Requests = () => {
           {/* Payroll Detail Modal */}
           {showPayrollDetailModal && selectedPayrollRequest && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg w-96 max-w-lg max-h-[80vh] overflow-y-auto">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-[26rem] max-w-lg max-h-[80vh] overflow-y-auto">
                 <h3 className="text-[18px] mb-3">Payroll Request Details</h3>
                 <hr />
                 <div className="space-y-3">
@@ -1042,10 +1042,10 @@ const Requests = () => {
                     <p className="text-sm">Batch ID: {selectedPayrollRequest.batchId}</p>
                   </div>
                   <div>
-                    <p className="text-sm">Requested By: {selectedPayrollRequest.requestedBy}</p>
+                    <p className="text-sm -mt-3">Requested By: {selectedPayrollRequest.requestedBy}</p>
                   </div>
                   <div>
-                    <p className="text-sm">
+                    <p className="text-sm -mt-3">
                       Status:
                       <span className={`font-semibold ${selectedPayrollRequest.uniqueStatuses[0] === "pending" ? "text-orange-500" : selectedPayrollRequest.uniqueStatuses[0] === "rejected" ? "text-red-600" : "text-green-600"}`}>
                         {selectedPayrollRequest.uniqueStatuses[0].charAt(0).toUpperCase() + selectedPayrollRequest.uniqueStatuses[0].slice(1)}
@@ -1056,9 +1056,9 @@ const Requests = () => {
                     <div className="bg-gray-100 p-2 rounded space-y-2">
                       <p className="text-sm italic mb-1">Employees in Payroll:</p>
                       {selectedPayrollRequest.payslips.map((payslip, index) => (
-                        <div key={index} className="text-sm">
+                        <div key={index} className="text-xs">
                           <p>
-                            <span className="font-medium">{payslip.name}:</span> ₱ {parseFloat(payslip.netPay).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            <span className="font-medium ml-5">{payslip.name}:</span> ₱ {parseFloat(payslip.netPay).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </p>
                         </div>
                       ))}
@@ -1075,7 +1075,7 @@ const Requests = () => {
                   ))}
 
                 </div>
-                <div className="flex justify-end gap-2 mt-6">
+                <div className="flex justify-end text-xs gap-2 mt-6">
                   <button
                     onClick={() => setShowPayrollDetailModal(false)}
                     className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-gray-400 hover:text-white transition-all"
