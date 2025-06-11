@@ -5,76 +5,69 @@ import axios from "axios";
 import { Modal, Button, Form, ModalFooter } from "react-bootstrap";
 import html2pdf from "html2pdf.js";
 
-const PayslipHistoryModal
-  = ({ isOpen, onClose, employeeId }) => {
-    const [payslip, setPayslip] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const payslipRef = useRef();
+const PayslipHistoryModal = ({ isOpen, onClose, employeeId }) => {
+  const [payslip, setPayslip] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const payslipRef = useRef();
 
+  useEffect(() => {
+    if (!isOpen || !employeeId) {
+      console.log("Payslip modal is closed or employeeId is missing.");
+      return;
+    }
 
-    useEffect(() => {
-      if (!isOpen || !employeeId) {
-        console.log("Payslip modal is closed or employeeId is missing.");
-        return;
+    console.log(`Fetching payslip for Employee ID: ${employeeId}`);
+
+    const fetchPayslip = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/payslip/history/${employeeId}`
+        );
+
+        console.log("API Response:", response.data);
+        setPayslip(response.data?.payslip ?? []);
+      } catch (err) {
+        console.error("Error fetching payslip:", err);
+        setError("Failed to load payslip.");
+      } finally {
+        setLoading(false);
       }
-
-      console.log(`Fetching payslip for Employee ID: ${employeeId}`);
-
-      const fetchPayslip = async () => {
-        setLoading(true);
-        setError(null);
-
-        try {
-          const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/payslip/history/${employeeId}`
-          );
-
-          console.log("API Response:", response.data);
-          setPayslip(response.data?.payslip ?? []);
-        } catch (err) {
-          console.error("Error fetching payslip:", err);
-          setError("Failed to load payslip.");
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchPayslip();
-    }, [isOpen, employeeId]);
-
-
-
-
-    const downloadPDF = () => {
-      if (!payslip) return alert("Payslip data is not available!");
-
-      const element = payslipRef.current;
-      const options = {
-        margin: 10,
-        filename: `payslip_${payslip?.ecode || "employee"}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      };
-
-      html2pdf().from(element).set(options).save();
     };
 
+    fetchPayslip();
+  }, [isOpen, employeeId]);
 
-    if (!isOpen) return null;
+  const downloadPDF = () => {
+    if (!payslip) return alert("Payslip data is not available!");
 
-    return (
+    const element = payslipRef.current;
+    const options = {
+      margin: 10,
+      filename: `payslip_${payslip?.ecode || "employee"}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    };
 
-      <>
+    html2pdf().from(element).set(options).save();
+  };
 
-        <Modal show={isOpen} onHide={onClose} centered size="xl" scrollable>
-          <Modal.Header className="py-2 px-3 text-[12px]" closeButton  >
+  if (!isOpen) return null;
 
-            <Modal.Title as="h6" className="text-lg">Employee Payslip</Modal.Title>
-
-          </Modal.Header>
-          <Modal.Body>
+  return (
+    <>
+      <Modal show={isOpen} onHide={onClose} centered size="xl" scrollable>
+        <Modal.Header className="py-2 px-3 text-[12px]" closeButton>
+          <Modal.Title as="h6" className="text-lg">
+            Employee Payslip
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="w-1/2">
             {loading ? (
               <p>Loading payslip...</p>
             ) : error ? (
@@ -82,161 +75,306 @@ const PayslipHistoryModal
             ) : !payslip ? (
               <p>No payslip data found.</p>
             ) : (
-              <div ref={payslipRef}>
-                <div className="relative h-24 rounded-tr-lg rounded-tl-lg border bg-[#0093DD] mb-3 overflow-hidden p-4 text-white">
-                  <img src={Logo}
-                    alt="company-logo" className="absolute top-0 left-0 m-2 w-20" />
-
-                  <div className="ml-20 -mt-2">
-                    <p style={{ fontFamily: "'AR Julian', sans-serif" }} className="font-semibold text-2xl">ST. JOHN MAJORE</p>
-                    <p className="text-sm -mt-4 italic">SERVICES COMPANY INC.</p>
+              <div className="w-[105mm] h-[148mm] bg-white p-4 overflow-hidden text-[10px] font-sans">
+                <div id="downloadpayslip">
+                  <div className="relative w-full mb-3">
+                    <img
+                      src="https://stjohnmajore.com/images/header_payslip.png"
+                      alt="St. John Majore Header"
+                      className="w-full h-full object-contain max-h-32 sm:max-h-40 md:max-h-48"
+                      style={{
+                        imageRendering: "crisp-edges",
+                        imageRendering: "-webkit-optimize-contrast",
+                        imageRendering: "optimize-contrast",
+                        msInterpolationMode: "nearest-neighbor",
+                      }}
+                      loading="eager"
+                      decoding="sync"
+                      crossOrigin="anonymous"
+                    />
                   </div>
-                  <p className="absolute bottom-0 text-right right-0 mx-3 my-1 font-semibold">Electronic Payslip <br /><span
-                    className="text-sm">Payslip No.:</span></p>
-                </div>
-                <table className="border-collapse text-xs mx-auto font-sans text-center">
-                  <tr>
-                    <td className="border-2 h-8 w-[5rem] border-[#AA396F] font-bold">E-code</td>
-                    <td className="border-2 h-8 w-64 border-[#AA396F] font-bold">Employee Name</td>
-                    <td className="border-2 h-8 w-56 border-[#AA396F] font-bold">Project Site</td>
-                    <td className="border-2 h-8 w-[7rem] border-[#AA396F] font-bold">Rate</td>
-                  </tr>
-                  <tr>
-                    <td className="border-2 h-8 w- border-[#AA396F]">{payslip.ecode || "N/A"}</td>
-                    <td className="border-2 h-8 w- border-[#AA396F]">{payslip.name || "N/A"}</td>
-                    <td className="border-2 h-8 w- border-[#AA396F]">{payslip.project || "N/A"}</td>
-                    <td className="border-2 h-8 w- border-[#AA396F]">{formatNumber(payslip.dailyrate)}</td>
-                  </tr>
-                </table>
-                <table className="border-collapse -mt-8 text-xs mx-auto text-center font-sans">
-                  <tr>
-                    <td colspan="2" className="border-2 h-8 w-[21rem] border-[#AA396F] font-bold">Position</td>
-                    <td colspan="2" className="border-2 h-8 w-[21rem] border-[#AA396F] font-bold">Cutoff Date</td>
-                  </tr>
-                  <tr>
-                    <td colspan="2" className="border-2 h-8 border-[#AA396F]">{payslip.position || "N/A"}</td>
-                    <td colspan="2" className="border-2 h-8 border-[#AA396F]">{payslip.cutoffDate || "N/A"}</td>
-                  </tr>
-                </table>
-                <table className="border-collapse -mt-8 text-xs mx-auto font-sans">
-                  <tr>
-                    <td className="border-2 h-8 w-[16rem] border-[#AA396F] px-2 font-bold">Earnings</td>
-                    <td className="border-2 h-8 w-[5rem] border-[#AA396F] px-2 font-bold">Figures</td>
-                    <td className="border-2 h-8 w-[14rem] border-[#AA396F] px-2 font-bold">Deductions</td>
-                    <td className="border-2 h-8 w-[7rem] border-[#AA396F] px-2 font-bold">Figures</td>
-                  </tr>
-                  <tr>
-                    <td className="border-r-2 border-l-2 border-[#AA396F] px-2">Basic Pay</td>
-                    <td className="border-r-2 border-l-2 border-[#AA396F] px-2 ">{formatNumber(payslip.dailyrate)}</td>
-                    <td className="border-r-2 border-l-2  h-8 border-[#AA396F] px-2 w-[14rem] p-0 border-t-0  border-b-0">
-                      <div className="text-xs bg-[#AA396F] px-5 py-1 flex justify-center items-center text-white rounded-lg font-bold">
-                        GOV'T CONTRIBUTION
-                      </div>
-                    </td>
-                    <td className=" border-[#AA396F] h-8 border-r-2 border-l-2"></td>
-                  </tr>
-                  <tr>
-                    <td className="border-r-2 border-l-2 border-[#AA396F] h-8 px-2">No. of Days</td>
-                    <td className="border-r-2 border-l-2 border-b-0  border-[#AA396F] h-8 px-2">{payslip.noOfDays || "0"}</td>
-                    <td className="border-r-2 border-l-2 border-t-0 border-[#AA396F] h-8 px-2">SSS</td>
-                    <td className="border-r-2 border-l-2  border-b-0  border-[#AA396F] h-8 px-2">{formatNumber(payslip.sss)}</td>
-                  </tr>
-                  <tr>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2">Overtime Pay</td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">{formatNumber(payslip.overtimePay)}</td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">PHIC</td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">{formatNumber(payslip.phic)}</td>
-                  </tr>
-                  <tr>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2">Overtime Hours</td>
-                    <td className=" border-[#AA396F] h-8 px-2 border-r-2 border-l-2  ">{payslip.totalOvertime || "0.00"}</td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">HDMF</td>
-                    <td className="border-r-2 border-l-2   border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">{formatNumber(payslip.hdmf)}</td>
-                  </tr>
-                  <tr>
-                    <td className="border-r-2 border-l-2   border-t-0  border-b-0  border-[#AA396F] h-8 px-2">Holiday Pay</td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">{formatNumber(payslip.holidayPay)}</td>
-                    <td className="border-r-2 border-l-2 border-t-2  border-[#AA396F] h-8 px-2  border-b-0 ">Cash Advance/Loan</td>
-                    <td className="border-r-2 border-l-2 border-t-2  border-[#AA396F] h-8 px-2 border-b-0 ">{formatNumber(payslip.loan)}</td>
-                  </tr>
-                  <tr>
-                    <td className="border-r-2 border-l-2   border-t-0  border-b-0  border-[#AA396F] h-8 px-2">Night Differential</td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">{formatNumber(payslip.nightDifferential)}</td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">Tardiness</td>
-                    <td className="border-r-2 border-l-2 border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">{formatNumber(payslip.totalTardiness)}</td>
-                  </tr>
-                  <tr>
-                    <td className="border-r-2 border-l-2   border-t-0  border-b-0 px-2 border-[#AA396F] h-8">Allowance</td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">{formatNumber(payslip.allowance)}</td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">Other Deductions</td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">{formatNumber(payslip.otherDeductions)}</td>
-                  </tr>
-                  <tr>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] border-t-0  border-b-0  h-8 px-2"></td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] border-t-0  border-b-0  h-8 px-2"></td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">Total Deductions</td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">{formatNumber(payslip.totalDeductions)}</td>
-                  </tr>
-                  <tr>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 border-t-0  border-b-0  px-2"></td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 border-t-0  border-b-0  px-2"></td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">Adjustments</td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 px-2 border-t-0  border-b-0 ">{formatNumber(payslip.adjusment)}</td>
-                  </tr>
-                  <tr>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 border-t-0    px-2"></td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 border-t-0    px-2"></td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 border-t-0   px-2"></td>
-                    <td className="border-r-2 border-l-2  border-[#AA396F] h-8 border-t-0   px-2"></td>
-                  </tr>
-                </table>
-                <table className="border-collapse -mt-8 mx-auto text-xs font-sans">
-                  <tr>
-                    <td colspan="2" className="border-2 border-[#AA396F] font-bold h-8 w-[21rem] text-center">Netpay</td>
-                    <td colspan="2" className="border-2 border-[#AA396F] font-bold h-8 w-[21rem] text-center">Amount</td>
-                  </tr>
-                </table>
-                <table className="border-collapse -mt-8 text-xs mx-auto font-sans">
-                  <tr>
-                    <td colspan="2" className="border-2 border-[#AA396F] h-8 w-[21rem] px-2">Netpay: NETPAY: ₱{formatNumber(payslip.netPay)}</td>
-                    <td colspan="2" className="border-2 border-[#AA396F] h-8 w-[21rem] px-2">{formatNumber(payslip.totalDeductions)}</td>
-                  </tr>
-                </table>
 
-                <div className=" bg-[#bbe394] border rounded-br-lg rounded-bl-lg mt-5 py-4">
-                  <table className="w-[40rem] border-collapse text-xs mx-auto font-sans">
+                  <table className="border-collapse text-xs mx-auto font-sans text-center">
                     <tr>
-                      <td className="px-2 w-[5rem]  font-bold ">Company</td>
-                      <td className="px-2 w-64  text-nowrap">St. John Majore Services Company Inc.</td>
-                      <td className="px-2 w-[21rem]" rowspan="3">
-                        <strong>Address:</strong><br />
-                        Patron Central Plaza 8, De Villa St.,<br />
-                        Poblacion San Juan Batangas
+                      <th className="border  h-7 w-[10rem]  uppercase bg-gray-400 border-black font-bold">
+                        E-code
+                      </th>
+                      <th className="border h-7 w-[20rem] uppercase bg-gray-400 border-black font-bold">
+                        Employee Name
+                      </th>
+                      <th className="border h-7 w-[14rem] uppercase bg-gray-400 border-black font-bold">
+                        Position
+                      </th>
+                    </tr>
+                    <tr>
+                      <td className="border h-7  border-black">
+                        {payslip?.ecode || "N/A"}
+                      </td>
+                      <td className="border h-7  border-black">
+                        {payslip?.name || "N/A"}
+                      </td>
+                      <td className="border h-7  border-black">
+                        {payslip?.position || "N/A"}
+                      </td>
+                    </tr>
+                  </table>
+                  <table className="border-collapse text-xs -mt-7 mx-auto text-center font-sans">
+                    <tr>
+                      <td className="border h-7  w-[10rem]  uppercase bg-gray-400 border-black font-bold">
+                        Daily Rate
+                      </td>
+                      <td className="border h-7 w-[20rem] uppercase bg-gray-400 border-black font-bold">
+                        Project Site
+                      </td>
+                      <td className="border h-7 w-[14rem] uppercase bg-gray-400 border-black font-bold">
+                        Cut-off date
                       </td>
                     </tr>
                     <tr>
-                      <td className="px-2 font-bold  w-[5rem]">Email</td>
-                      <td className="px-2  w-[14rem]">sjmajore@gmail.com</td>
-                    </tr>
-                    <tr>
-                      <td className="px-2 font-bold  w-[5rem]">Web</td>
-                      <td className="px-2  w-[14rem]">www.stjohnmajore.com</td>
+                      <td className="border h-7 border-black">
+                        {formatNumber(payslip?.dailyrate)}
+                      </td>
+                      <td className="border h-7 border-black"></td>
+                      <td className="border h-7 border-black">
+                        {payslip?.cutoffDate || "N/A"}
+                      </td>
                     </tr>
                   </table>
+                  <table className="border-collapse text-xs mx-auto -mt-7 font-sans">
+                    <tr>
+                      <td className="border  w-[14rem] h-7  uppercase bg-gray-400 border-black px-2  text-center font-bold">
+                        Earnings
+                      </td>
+                      <td className="border w-[7rem] px-2 h-7  uppercase bg-gray-400 border-black  text-center  font-bold">
+                        Figures
+                      </td>
+                      <td className="border  w-[14rem] px-2 h-7  uppercase bg-gray-400 border-black text-center  font-bold">
+                        Deductions
+                      </td>
+                      <td className="border w-[7rem]  px-2 h-7  uppercase bg-gray-400 border-black text-center  font-bold">
+                        Figures
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border h-7 border-b-0 border-black px-2">
+                        Basic Pay
+                      </td>
+                      <td className="border h-7 border-black px-2 border-t-0  border-b-0">
+                        {formatNumber(payslip?.dailyrate)}
+                      </td>
+                      <td className="border h-7 border-black px-2 w-[14rem] border-t-0  border-b-0">
+                        <div className="text-[9px] bg-[#AA396F] h-fit w-fit flex justify-center items-center text-white rounded-lg text-center font-bold">
+                          <p>GOVERNMENT CONTRIBUTIONS</p>
+                        </div>
+                      </td>
+                      <td className="border border-black h-7 border-t-0  border-b-0 "></td>
+                    </tr>
+                    <tr>
+                      <td className="border border-t-0  border-b border-black h-7 px-2">
+                        No. of Days Worked
+                      </td>
+                      <td className="border border-t-0  border-b-0  border-black h-7 px-2">
+                        {payslip?.noOfDays || "0"}
+                      </td>
+                      <td className="border  border-t-0  border-b-0  border-black h-7 px-2">
+                        SSS
+                      </td>
+                      <td className="border  border-t-0  border-b-0  border-black h-7 px-2">
+                        {formatNumber(payslip?.sss)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border  border-t-0  border-b-0  border-black h-7 px-2">
+                        Overtime Pay
+                      </td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 ">
+                        {formatNumber(payslip?.overtimePay)}
+                      </td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 ">
+                        PHIC
+                      </td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 ">
+                        {formatNumber(payslip?.phic)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border  border-t-0  border-b-0  border-black h-7 px-2">
+                        Overtime Hours
+                      </td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 ">
+                        {payslip?.totalOvertime || "0.00"}
+                      </td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 ">
+                        HDMF
+                      </td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 ">
+                        {formatNumber(payslip?.hdmf)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border  border-t-0  border-b border-black h-7 px-2">
+                        Night Differential
+                      </td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 ">
+                        {formatNumber(payslip?.nightDifferential)}
+                      </td>
+                      <td className="border border-black h-7 px-2  border-b-0 ">
+                        SSS Loan
+                      </td>
+                      <td className="border border-black h-7 px-2 border-b-0 ">
+                        {formatNumber(payslip?.loan)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border  border-t-0  border-b-0  border-black h-7 px-2">
+                        Holiday Pay
+                      </td>
+
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 ">
+                        {formatNumber(payslip?.holidayPay)}
+                      </td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 ">
+                        Pag-IBIG Loan
+                      </td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 "></td>
+                    </tr>
+                    <tr>
+                      <td className="border  border-t-0  border-b-0 px-2 border-black h-7">
+                        - Regular
+                      </td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 "></td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 ">
+                        Tardiness
+                      </td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 ">
+                        {formatNumber(payslip?.totalTardiness)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-black border-t-0  border-b  h-7 px-2">
+                        - Special non-working
+                      </td>
+                      <td className="border border-black border-t-0  border-b-0  h-7 px-2"></td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 ">
+                        Other Deductions
+                      </td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 ">
+                        {formatNumber(payslip?.otherDeductions)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-black h-7 border-t-0  border-b-0  px-2">
+                        Allowances
+                      </td>
+                      <td className="border border-black h-7 border-t-0  border-b-0  px-2">
+                        {formatNumber(payslip?.allowance)}
+                      </td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 "></td>
+                      <td className="border border-black h-7 px-2 border-t-0  border-b-0 "></td>
+                    </tr>
+                    <tr>
+                      <td className="border border-black h-7 border-t-0  border-b-0   px-2"></td>
+                      <td className="border border-black h-7 border-t-0   border-b-0   px-2"></td>
+                      <td className="border border-black h-7 border-t-0  border-b-0  font-bold px-2">
+                        Total Deductions
+                      </td>
+                      <td className="border border-black h-7 border-t-0   border-b-0  px-2">
+                        {formatNumber(payslip?.totalDeductions)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-black h-7 border-t-0  border-b-0  px-2"></td>
+                      <td className="border border-black h-7 border-t-0  border-b-0  px-2"></td>
+                      <td className="border border-black h-7 border-t-0 italic border-b-0 px-2">
+                        Adjustments
+                      </td>
+                      <td className="border border-black h-7 border-t-0  border-b-0 px-2">
+                        {formatNumber(payslip?.adjusment)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-black h-7 border-t-0    px-2"></td>
+                      <td className="border border-black h-7 border-t-0    px-2"></td>
+                      <td className="border border-black h-7 border-t-0 italic  px-2"></td>
+                      <td className="border border-black h-7 border-t-0   px-2"></td>
+                    </tr>
+                  </table>
+                  <table className="border-collapse mx-auto -mt-7 text-xs font-sans">
+                    <tr>
+                      <td
+                        colSpan="2"
+                        className="border border-black border-t-0 font-bold w-[22rem] uppercase bg-gray-400 text-center"
+                      ></td>
+                      <td
+                        colSpan="2"
+                        className="border border-black border-t-0 font-bold h-2 w-[22rem] uppercase bg-gray-400  text-center"
+                      ></td>
+                    </tr>
+                    <tr>
+                      <td
+                        colSpan="2"
+                        className="border border-t-0 text-center border-black h-7 w-[22rem] px-2"
+                      >
+                        Gross Pay
+                      </td>
+                      <td
+                        colSpan="2"
+                        className="border border-t-0 text-center border-black h-7 w-[22rem] px-2"
+                      >
+                        Net Pay
+                      </td>
+                    </tr>
+                  </table>
+                  <table className="border-collapse -mt-7 text-xs mx-auto font-sans">
+                    <tr>
+                      <td
+                        colSpan="2"
+                        className="border-t-0 border text-center border-black h-7 w-[22rem] px-2"
+                      >
+                        {formatNumber(payslip?.grossPay)}
+                      </td>
+                      <td
+                        colSpan="2"
+                        className="border border-t-0 text-center border-black h-7 w-[22rem] px-2"
+                      >
+                        {formatNumber(payslip?.netPay)}
+                      </td>
+                    </tr>
+                  </table>
+
+                  <div>
+                    <img
+                      src="https://stjohnmajore.com/images/FOOTER.png"
+                      alt="St. John Majore Footer"
+                      className="w-full h-auto object-contain"
+                      style={{
+                        imageRendering: "crisp-edges",
+                        imageRendering: "-webkit-optimize-contrast",
+                        imageRendering: "optimize-contrast",
+                        msInterpolationMode: "nearest-neighbor",
+                      }}
+                      loading="eager"
+                      decoding="sync"
+                      crossOrigin="anonymous"
+                    />
+                  </div>
                 </div>
               </div>
             )}
-          </Modal.Body>
-          <ModalFooter>
-            <Button onClick={downloadPDF} className="ms-[40rem] w-fit h-fit border bg-transparent border-neutralDGray hover:bg-gray-500" style={{ color: "#4d4d4d" }}>
-              Download PDF
-            </Button>
-          </ModalFooter>
-        </Modal>
-
-
-      </>
-    );
-  };
+          </div>
+        </Modal.Body>
+        <ModalFooter>
+          <Button
+            onClick={downloadPDF}
+            className="ms-[40rem] w-fit h-fit border bg-transparent border-neutralDGray hover:bg-gray-500"
+            style={{ color: "#4d4d4d" }}
+          >
+            Download PDF
+          </Button>
+        </ModalFooter>
+      </Modal>
+    </>
+  );
+};
 
 export default PayslipHistoryModal;

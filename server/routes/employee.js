@@ -18,7 +18,9 @@ import {
   approvePayrollChange,
   messageEmployee,
   bulkMessaging,
-  bulkRequestPayrollChange
+  bulkRequestPayrollChange,
+  rejectBatchChange,
+  getBatchDetails
 } from "../controllers/employeeController.js";
 
 const router = express.Router();
@@ -80,5 +82,13 @@ router.get("/:id", getEmployee); // This MUST be the very last route
 // Messaging routes
 router.post('/messaging', upload.array('attachments', 10), messageEmployee);
 router.post('/bulk-messaging', createBulkMessagingUpload(10), bulkMessaging);
+
+
+router.put('/approve-batch-change/:batchId',approvePayrollChange);
+router.put('/reject-batch-change/:batchId', rejectBatchChange);
+router.get('/batch-details/:batchId', getBatchDetails);
+
+
+
 
 export default router;

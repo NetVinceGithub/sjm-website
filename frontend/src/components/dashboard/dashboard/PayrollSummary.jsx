@@ -12,12 +12,13 @@ import PayslipModal from "../payroll/PayslipModal";
 import NoAttendanceModal from "../modals/NoAttendanceModal";
 import * as XLSX from "xlsx";
 import { Modal, Button } from "react-bootstrap";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 import { useAuth } from "../../../context/authContext";
+import FilterComponent from "../modals/FilterComponent";
 
 const PayrollSummary = () => {
   const { user } = useAuth();
-  
+  const [filterComponentModal, setFilterComponentModal] = useState(false);
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -33,12 +34,46 @@ const PayrollSummary = () => {
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [individualOvertime, setIndividualOvertime] = useState({});
+  const [payrollType, setPayrollType] = useState("biweekly"); // Default to bi-weekly
   const [filteredEmployeesOvertime, setFilteredEmployeesOvertime] = useState(
     []
   );
   const [maxOvertime, setMaxOvertime] = useState("");
+  const [selectedSchedules, setSelectedSchedules] = useState([]);
+
 
   const navigate = useNavigate();
+
+  const formatCutoffDisplay = (date) => {
+    if (!date) {
+      return date;
+    }
+
+    try {
+      const selectedDate = new Date(date);
+      const day = selectedDate.getDate();
+      const month = selectedDate.toLocaleDateString("en-US", { month: "long" });
+      const year = selectedDate.getFullYear();
+
+      if (payrollType === "weekly") {
+        return `${month} ${day}, ${year}`;
+      }
+
+      if (day >= 1 && day <= 15) {
+        return `${month} 1-15, ${year}`;
+      } else {
+        // Get the last day of the month
+        const lastDay = new Date(
+          year,
+          selectedDate.getMonth() + 1,
+          0
+        ).getDate();
+        return `${month} 16-${lastDay}, ${year}`;
+      }
+    } catch (error) {
+      return date; // Return original date if parsing fails
+    }
+  };
 
   // Function to filter employees based on search term
   const filterEmployeesForOvertime = () => {
@@ -65,8 +100,8 @@ const PayrollSummary = () => {
 
       // Initialize individual overtime values with default maxOvertime
       const initialOvertime = {};
-      allEcodes.forEach(ecode => {
-        initialOvertime[ecode] = maxOvertime || '0';
+      allEcodes.forEach((ecode) => {
+        initialOvertime[ecode] = maxOvertime || "0";
       });
       setIndividualOvertime(initialOvertime);
     }
@@ -96,7 +131,7 @@ const PayrollSummary = () => {
       } catch (error) {
         console.error(
           "❌ Error fetching attendance:",
-          error.response ?.data || error
+          error.response?.data || error
         );
       }
     };
@@ -111,13 +146,17 @@ const PayrollSummary = () => {
     setModalOpen(true);
   };
 
+  const openFilter = () => {
+    setFilterComponentModal(true);
+  };
+
   const handleCheckboxChange = (ecode) => {
     setSelectedOvertime((prevSelected) => {
       const isCurrentlySelected = prevSelected.includes(ecode);
 
       if (isCurrentlySelected) {
         // Remove from selection and clear their overtime value
-        setIndividualOvertime(prev => {
+        setIndividualOvertime((prev) => {
           const updated = { ...prev };
           delete updated[ecode];
           return updated;
@@ -125,9 +164,9 @@ const PayrollSummary = () => {
         return prevSelected.filter((id) => id !== ecode);
       } else {
         // Add to selection and set default overtime value
-        setIndividualOvertime(prev => ({
+        setIndividualOvertime((prev) => ({
           ...prev,
-          [ecode]: maxOvertime || '0'
+          [ecode]: maxOvertime || "0",
         }));
         return [...prevSelected, ecode];
       }
@@ -137,7 +176,9 @@ const PayrollSummary = () => {
   const fetchPayslips = async () => {
     try {
       setLoading(true); // Ensure loading state is set
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/payslip`
+      );
       setPayslips([...response.data]); // Force a new reference to trigger re-render
     } catch (error) {
       console.error("Error fetching payslips:", error);
@@ -165,51 +206,100 @@ const PayrollSummary = () => {
     setPayslips(records);
   };
 
-  // Compute and generate payslips
-  const handleCreatePayroll = async () => {
-    try {
-      setMessage("Loading data...");
+// Enhanced handleCreatePayroll function
+const handleCreatePayroll = async () => {
+  try {
+    // Validate that schedules are selected
+    if (!selectedSchedules || selectedSchedules.length === 0) {
+      setMessage("Please select at least one schedule before creating payroll.");
+      setFilterComponentModal(true); // Open filter modal to let user select schedules
+      return;
+    }
 
-      // Fetch both datasets at once
-      const [employeeResponse, attendanceResponse] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_URL}/api/employee`),
-        axios.get(`${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`),
-        axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`)
-      ]);
+    setLoading(true);
+    setMessage("Loading data...");
 
-      const employeeData = employeeResponse.data.employees || [];
-      const attendanceData = attendanceResponse.data.attendance || [];
+    // Fetch all required data
+    const [employeeResponse, attendanceResponse, holidaysResponse] = await Promise.all([
+      axios.get(`${import.meta.env.VITE_API_URL}/api/employee`),
+      axios.get(`${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`),
+      axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`),
+    ]);
 
-      if (!employeeData.length) {
-        setMessage("No employees available.");
-        return;
-      }
+    const employeeData = employeeResponse.data.employees || [];
+    const attendanceData = attendanceResponse.data.attendance || [];
+    const holidaysData = holidaysResponse.data.holidays || [];
 
-      // Filter employees with attendance records
-      const validEcodes = new Set(attendanceData.map(record => record.ecode));
-      const availableEmployees = employeeData.filter(
-        employee => validEcodes.has(employee.ecode) && employee.status !== "Inactive"
-      );
+    if (!employeeData.length) {
+      setMessage("No employees available.");
+      setLoading(false);
+      return;
+    }
 
-      if (!availableEmployees.length) {
-        setMessage("No employees with attendance records found.");
-        return;
-      }
+    // Filter employees based on selected schedules
+    const employeesWithSelectedSchedules = employeeData.filter(employee => 
+      selectedSchedules.includes(employee.schedule) && employee.status !== "Inactive"
+    );
 
+    if (!employeesWithSelectedSchedules.length) {
+      setMessage(`No active employees found for the selected schedule(s): ${selectedSchedules.join(', ')}`);
+      setLoading(false);
+      return;
+    }
+
+    // Filter employees with attendance records
+    const validEcodes = new Set(attendanceData.map((record) => record.ecode));
+    const availableEmployees = employeesWithSelectedSchedules.filter(employee =>
+      validEcodes.has(employee.ecode)
+    );
+
+    if (!availableEmployees.length) {
+      setMessage("No employees with attendance records found for the selected schedule(s).");
+      setLoading(false);
+      return;
+    }
+
+    // Prepare payroll data for API
+    const payrollData = {
+      cutoffDate: cutoffDate,
+      selectedSchedules: selectedSchedules,
+      employees: availableEmployees.map(emp => ({
+        ecode: emp.ecode,
+        name: emp.name,
+        schedule: emp.schedule,
+        // Add other necessary employee fields
+      })),
+      attendanceData: attendanceData.filter(record => 
+        availableEmployees.some(emp => emp.ecode === record.ecode)
+      ),
+      holidaysData: holidaysData
+    };
+
+    // Send to API
+    const payrollResponse = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/payroll/create`,
+      payrollData
+    );
+
+    if (payrollResponse.status === 200) {
       // Set all data at once
       setEmployeeList(employeeData);
       setFilteredEmployees(availableEmployees);
       setFilteredEmployeesOvertime(availableEmployees);
-      setMessage("");
+      setMessage(`Payroll created successfully for ${selectedSchedules.length} schedule(s) and ${availableEmployees.length} employees.`);
       setShow(true);
-
-    } catch (error) {
-      setMessage("Failed to load data");
     }
-  };
+
+  } catch (error) {
+    console.error("Payroll creation error:", error);
+    setMessage("Failed to create payroll. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const proceedWithPayroll = async (selectedEmployees) => {
-
     if (!cutoffDate) {
       return;
     }
@@ -245,7 +335,7 @@ const PayrollSummary = () => {
 
         return {
           ...record,
-          overtimeHours: Math.min(record.overtimeHours, employeeOvertime) // Apply individual overtime limit
+          overtimeHours: Math.min(record.overtimeHours, employeeOvertime), // Apply individual overtime limit
         };
       });
 
@@ -256,8 +346,8 @@ const PayrollSummary = () => {
           cutoffDate: cutoffDate.trim(),
           selectedEmployees,
           attendanceData: updatedAttendanceData,
-          individualOvertime, 
-          requestedBy: user.name// Send individual overtime values instead of maxOvertime
+          individualOvertime,
+          requestedBy: user.name, // Send individual overtime values instead of maxOvertime
         }
       );
 
@@ -270,55 +360,56 @@ const PayrollSummary = () => {
         } else {
           setPayslips(response.data.payslips);
           toast.success(
-            <div style={{ fontSize: '0.9rem'}}>
-             Payroll successfully generated.
+            <div style={{ fontSize: "0.9rem" }}>
+              Payroll successfully generated.
             </div>,
             {
-              autoClose: 3000,        // auto close after 3 seconds
+              autoClose: 3000, // auto close after 3 seconds
               closeOnClick: true,
               pauseOnHover: true,
               draggable: true,
               closeButton: false,
-              position: "top-right",  // position of the toast
+              position: "top-right", // position of the toast
             }
           );
           setShow(false);
         }
       } else {
         toast.error(
-          <div style={{ fontSize: '0.9rem'}}>
-           Failed to generate payroll: {response?.data?.message || "Unknown error"}
+          <div style={{ fontSize: "0.9rem" }}>
+            Failed to generate payroll:{" "}
+            {response?.data?.message || "Unknown error"}
           </div>,
           {
-            autoClose: 3000,        // auto close after 3 seconds
+            autoClose: 3000, // auto close after 3 seconds
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: false,
-            position: "top-right",  // position of the toast
+            position: "top-right", // position of the toast
           }
         );
       }
     } catch (error) {
-      console.error("❌ Full error response:", error.response ?.data || error);
+      console.error("❌ Full error response:", error.response?.data || error);
       toast.error(
-        <div style={{ fontSize: '0.9rem'}}>
-         {error?.response?.data?.message || "An error occurred while generating payroll."}
+        <div style={{ fontSize: "0.9rem" }}>
+          {error?.response?.data?.message ||
+            "An error occurred while generating payroll."}
         </div>,
         {
-          autoClose: 3000,        // auto close after 3 seconds
+          autoClose: 3000, // auto close after 3 seconds
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
           closeButton: false,
-          position: "top-right",  // position of the toast
+          position: "top-right", // position of the toast
         }
       );
     } finally {
       setLoading(false);
     }
   };
-
 
   const handleApprovalModal = (message) => {
     setShow(true);
@@ -348,46 +439,44 @@ const PayrollSummary = () => {
 
       if (response.data.success) {
         toast.success(
-          <div style={{ fontSize: '0.9rem'}}>
-           Payroll release request sent to Admin!
+          <div style={{ fontSize: "0.9rem" }}>
+            Payroll release request sent to Admin!
           </div>,
           {
-            autoClose: 3000,        // auto close after 3 seconds
+            autoClose: 3000, // auto close after 3 seconds
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: false,
-            position: "top-right",  // position of the toast
+            position: "top-right", // position of the toast
           }
         );
       } else {
         toast.error(
-          <div style={{ fontSize: '0.9rem'}}>
-           Failed to send request.
-          </div>,
+          <div style={{ fontSize: "0.9rem" }}>Failed to send request.</div>,
           {
-            autoClose: 3000,        // auto close after 3 seconds
+            autoClose: 3000, // auto close after 3 seconds
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: false,
-            position: "top-right",  // position of the toast
+            position: "top-right", // position of the toast
           }
         );
       }
     } catch (error) {
       console.error("Error sending request:", error);
       toast.error(
-        <div style={{ fontSize: '0.9rem'}}>
-         An error occurred while sending the request.
+        <div style={{ fontSize: "0.9rem" }}>
+          An error occurred while sending the request.
         </div>,
         {
-          autoClose: 3000,        // auto close after 3 seconds
+          autoClose: 3000, // auto close after 3 seconds
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
           closeButton: false,
-          position: "top-right",  // position of the toast
+          position: "top-right", // position of the toast
         }
       );
     } finally {
@@ -430,7 +519,9 @@ const PayrollSummary = () => {
 
   const handleDeletePayroll = async () => {
     try {
-      const response = await axios.delete(`${import.meta.env.VITE_API_URL}/api/payslip`);
+      const response = await axios.delete(
+        `${import.meta.env.VITE_API_URL}/api/payslip`
+      );
       if (response.data.success) {
         setPayslips([]);
       }
@@ -510,7 +601,7 @@ const PayrollSummary = () => {
 
   const columns1 = [
     {
-      name: '', // No header for the checkbox column
+      name: "", // No header for the checkbox column
       cell: (row) => (
         <input
           type="checkbox"
@@ -519,36 +610,40 @@ const PayrollSummary = () => {
           onChange={() => handleCheckboxChange(row.ecode)}
         />
       ),
-      width: '60px',
+      width: "60px",
       ignoreRowClick: true,
       allowOverflow: true,
       button: true,
     },
     {
-      name: 'Name',
+      name: "Name",
       selector: (row) => row.name,
       sortable: true,
     },
     {
-      name: 'Employee Code',
+      name: "Employee Code",
       selector: (row) => row.ecode,
       sortable: true,
     },
     {
-      name: 'Approved Overtime (hrs)',
+      name: "Approved Overtime (hrs)",
       cell: (row) => (
         <input
           type="number"
           min="0"
           step="0.5"
           className="w-20 px-2 py-1 mt-1 mb-1 h-8 text-xs border rounded"
-          value={selectedOvertime.includes(row.ecode) ? (individualOvertime[row.ecode] || '0') : '0'}
+          value={
+            selectedOvertime.includes(row.ecode)
+              ? individualOvertime[row.ecode] || "0"
+              : "0"
+          }
           disabled={!selectedOvertime.includes(row.ecode)}
           onChange={(e) => {
             if (selectedOvertime.includes(row.ecode)) {
-              setIndividualOvertime(prev => ({
+              setIndividualOvertime((prev) => ({
                 ...prev,
-                [row.ecode]: e.target.value
+                [row.ecode]: e.target.value,
               }));
             }
           }}
@@ -558,7 +653,7 @@ const PayrollSummary = () => {
       ignoreRowClick: true,
       allowOverflow: true,
       button: true,
-      width: '150px',
+      width: "150px",
     },
   ];
 
@@ -607,18 +702,66 @@ const PayrollSummary = () => {
         <div className="flex  flex-wrap gap-4 -mt-1 flex-grow overflow-hidden">
           {/* Left Section */}
           <div className="w-full lg:w-[70%]  h-full bg-white border-gray-900 rounded gap-2 shadow-sm p-3">
-            <label className="block text-sm font-medium text-gray-700">
-              Cutoff Date:
-            </label>
+            <div className="flex justify-between">
+              <label className="block text-sm font-medium text-gray-700">
+                Cutoff Date:
+              </label>
 
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mt-2 gap-3">
+              {/* Radio Button Section */}
+              <div className="flex gap-6 mb-4 justify-end">
+                <div className="flex items-center">
+                  <input
+                    type="radio"
+                    name="payrollType"
+                    id="weekly"
+                    value="weekly"
+                    checked={payrollType === "weekly"}
+                    onChange={(e) => setPayrollType(e.target.value)}
+                    className="mr-2"
+                  />
+                  <label htmlFor="weekly" className="text-sm text-gray-700">
+                    Weekly
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="radio"
+                    name="payrollType"
+                    id="biweekly"
+                    value="biweekly"
+                    checked={payrollType === "biweekly"}
+                    onChange={(e) => setPayrollType(e.target.value)}
+                    className="mr-2"
+                  />
+                  <label htmlFor="biweekly" className="text-sm text-gray-700">
+                    Bi-Weekly
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between -mt-1 gap-3">
               {/* Cutoff Input */}
               <div className="w-full lg:w-auto flex-1">
                 <input
                   type="text"
-                  value={cutoffDate}
-                  readOnly
-                  className="p-2 border h-8 rounded w-full bg-gray-100 cursor-not-allowed"
+                  value={formatCutoffDisplay(cutoffDate)}
+                  onChange={
+                    payrollType === "weekly"
+                      ? (e) => setCutoffDate(e.target.value)
+                      : undefined
+                  }
+                  readOnly={payrollType !== "weekly"}
+                  className={`p-2 border h-8 rounded w-full ${
+                    payrollType === "weekly"
+                      ? "bg-white cursor-text"
+                      : "bg-gray-100 cursor-not-allowed"
+                  }`}
+                  placeholder={
+                    payrollType === "weekly"
+                      ? "Enter payroll date"
+                      : "Select date from calendar"
+                  }
                 />
               </div>
 
@@ -630,18 +773,16 @@ const PayrollSummary = () => {
                     cutoffDate
                       ? "hover:bg-green-400 hover:text-white"
                       : "bg-neutralGray cursor-not-allowed opacity-50"
-                    }`}
+                  }`}
                   disabled={loading || !cutoffDate}
                 >
                   {loading ? "Generating..." : "Create Payroll"}
                 </button>
                 <button
-                  onClick={() =>
-                    navigate("/admin-dashboard/attendance-computation")
-                  }
+                  onClick={() => setFilterComponentModal(true)}
                   className="px-4 py-1 rounded text-sm w-full border lg:w-32 h-8 hover:bg-green-400 text-neutralDGray hover:text-neutralDGray"
                 >
-                  Attendance
+                  Filters
                 </button>
                 <button
                   onClick={() => setShowConfirmModal(true)}
@@ -676,7 +817,7 @@ const PayrollSummary = () => {
                     <button
                       onClick={handleDownloadExcel}
                       className="px-3 w-20 h-full text-[13px]  border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center"
-                    > 
+                    >
                       <FaRegFileExcel
                         title="Export to Excel"
                         className="text-neutralDGray"
@@ -709,11 +850,15 @@ const PayrollSummary = () => {
 
                 {/* Table Section - Modified */}
                 {/* Table Section with both horizontal and vertical scrolling */}
-                <div className="h-[calc(100vh-350px)] w-full overflow-auto bg-white">
+                <div className="h-[calc(100vh-350px)] w-full bg-white">
                   {loading ? (
-                    <p className="mt-6 text-center text-gray-300">Loading payslips...</p>
+                    <p className="mt-6 text-center text-gray-300">
+                      Loading payslips...
+                    </p>
                   ) : payslips.length > 0 ? (
-                    <div className="inline-block"> {/* or larger width */}
+                    <div className="inline-block w-full overflow-auto">
+                      {" "}
+                      {/* or larger width */}
                       <DataTable
                         columns={columns}
                         className="w-full -mt-3 text-sm"
@@ -724,19 +869,21 @@ const PayrollSummary = () => {
                       />
                     </div>
                   ) : (
-                        <p className="mt-6 text-center text-gray-300">
-                          No payslip records available.
-                        </p>
-                      )}
+                    <p className="mt-6 text-center text-gray-300">
+                      No payslip records available.
+                    </p>
+                  )}
                 </div>
-
               </div>
             </div>
           </div>
 
           {/* Calendar Section */}
           <div className="w-full lg:w-[28%]">
-            <CustomCalendar onDateChange={setCutoffDate} />
+            <CustomCalendar
+              onDateChange={setCutoffDate}
+              payrollType={payrollType}
+            />
           </div>
         </div>
 
@@ -751,26 +898,33 @@ const PayrollSummary = () => {
           onClose={() => setNoAttendanceModalOpen(false)}
         />
 
+        <FilterComponent
+          show={filterComponentModal} // ✅ Correct - this is the boolean state
+          onClose={() => setFilterComponentModal(false)}
+        />
+
         {/* Overtime Approval Modal */}
         <Modal show={show} onHide={handleClose} centered size="lg" scrollable>
           <Modal.Header className="py-2 px-3 text-[12px]" closeButton>
-            <Modal.Title as="h6" className="text-lg">Overtime Approval Sheet</Modal.Title>
+            <Modal.Title as="h6" className="text-lg">
+              Overtime Approval Sheet
+            </Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <div className="flex flex-col">
               <div className="w-full max-w-3xl bg-white p-6 border border-gray-300 rounded-md shadow-md min-h-[500px]">
                 {filteredEmployeesOvertime.length > 0 ? (
                   <>
-                     <div className="flex rounded justify-end items-center -mt-2">
-                        <input
-                          type="text"
-                          placeholder="Search employee by name or ID"
-                          value={searchTerm}
-                          className="px-2 h-8 w-80 text-sm font-normal rounded py-0.5 border"
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                        <FaSearch className="ml-[-20px] text-neutralDGray" />
-                      </div>
+                    <div className="flex rounded justify-end items-center -mt-2">
+                      <input
+                        type="text"
+                        placeholder="Search employee by name or ID"
+                        value={searchTerm}
+                        className="px-2 h-8 w-80 text-sm font-normal rounded py-0.5 border"
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                      <FaSearch className="ml-[-20px] text-neutralDGray" />
+                    </div>
 
                     <label className="block text-xs font-medium text-gray-500 mb-2">
                       Set Default Overtime (hrs) for All Selected Employees:
@@ -787,9 +941,11 @@ const PayrollSummary = () => {
                         type="button"
                         className="px-3 py-1 h-8 text-xs border rounded text-neutralDGray hover:bg-green-400 hover:text-white"
                         onClick={() => {
-                          const defaultValue = maxOvertime || '0';
-                          const newIndividualOvertime = { ...individualOvertime };
-                          selectedOvertime.forEach(ecode => {
+                          const defaultValue = maxOvertime || "0";
+                          const newIndividualOvertime = {
+                            ...individualOvertime,
+                          };
+                          selectedOvertime.forEach((ecode) => {
                             newIndividualOvertime[ecode] = defaultValue;
                           });
                           setIndividualOvertime(newIndividualOvertime);
@@ -798,7 +954,10 @@ const PayrollSummary = () => {
                         Apply to Selected
                       </button>
                     </div>
-                    <p className="text-xs text-red-300 text-center italic">**Note: You can batch edit or you can edit overtime indivually.**</p>
+                    <p className="text-xs text-red-300 text-center italic">
+                      **Note: You can batch edit or you can edit overtime
+                      indivually.**
+                    </p>
                     <div className="border border-neutralDGray rounded p-2  overflow-auto">
                       <div className="flex justify-between mb-3 ">
                         <div>
@@ -808,7 +967,7 @@ const PayrollSummary = () => {
                         </div>
                         <div className="flex gap-2">
                           <button
-                            className="px-2 py-1 text-xs border h-8 w-36 text-sm text-neutralDGray rounded hover:bg-green-400 hover:text-white"
+                            className="px-2 py-1 text-xs border h-8 w-36 text-neutralDGray rounded hover:bg-green-400 hover:text-white"
                             onClick={() =>
                               setSelectedOvertime(
                                 filteredEmployeesOvertime.map((e) => e.ecode)
@@ -816,13 +975,13 @@ const PayrollSummary = () => {
                             }
                           >
                             Select All
-                        </button>
+                          </button>
                           <button
                             className="px-2 text-xs py-1 border h-8 w-36 text-neutralDGray rounded hover:bg-red-400 hover:text-white"
                             onClick={() => setSelectedOvertime([])}
                           >
                             Deselect All
-                        </button>
+                          </button>
                         </div>
                       </div>
                       <DataTable
@@ -835,17 +994,15 @@ const PayrollSummary = () => {
                         selectableRows={false} // we're using custom checkboxes
                         noHeader // hide the default header if you're using a custom title
                       />
-
-
                     </div>
                   </>
                 ) : (
-                    <p className="text-center text-gray-500">
-                      {searchTerm
-                        ? "No employees found matching your search."
-                        : "No employees available."}
-                    </p>
-                  )}
+                  <p className="text-center text-gray-500">
+                    {searchTerm
+                      ? "No employees found matching your search."
+                      : "No employees available."}
+                  </p>
+                )}
               </div>
             </div>
           </Modal.Body>

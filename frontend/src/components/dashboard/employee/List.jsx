@@ -530,6 +530,24 @@ const List = () => {
       width: "130px",
     },
     {
+      name: "Contact Name",
+      selector: (row) => row.contact_name,
+      sortable: true,
+      width: "130px",
+    },
+    {
+      name: "Contact Number",
+      selector: (row) => row.contact_number,
+      sortable: true,
+      width: "130px",
+    },
+    {
+      name: "Contact Address",
+      selector: (row) => row.contact_address,
+      sortable: true,
+      width: "130px",
+    },
+    {
       name: "Permanent Address",
       selector: (row) => row.permanentaddress || "N/A",
       sortable: true,

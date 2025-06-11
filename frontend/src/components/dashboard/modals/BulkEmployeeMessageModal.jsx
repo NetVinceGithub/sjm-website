@@ -314,7 +314,7 @@ export default function BulkEmployeeMessageModal({ show, isOpen, handleCloseBulk
                         )}
 
                         <p className="text-xs -mt-5 text-red-400 text-center italic mb-3">
-                            **Note: You can batch message or you can message employee individually. Multiple files supported (Max: 100MB per file, 500MB total).**
+                            **Note: You can batch message or you can message employee individually.**
                         </p>
 
                         <div className="border border-gray-400 rounded p-3 overflow-auto">
