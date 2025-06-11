@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ChevronDown, ChevronUp, X, Plus, Trash2 } from "lucide-react";
 
-const FilterComponent = ({ show, onClose }) => {
+const FilterComponent = ({ show, onClose, onSchedulesSelected }) => {
   const [isOpen, setIsOpen] = useState({
     schedules: true,
   });
@@ -144,8 +144,20 @@ const FilterComponent = ({ show, onClose }) => {
 
   const handleApplyFilters = () => {
     const selectedSchedules = getSelectedSchedules();
-    console.log("Selected schedules for backend:", selectedSchedules);
-    // You can pass this data to your parent component or make API call here
+    console.log("✅ FilterComponent - Selected schedules:", selectedSchedules);
+    
+    // Ensure we're passing a consistent data structure
+    const formattedSchedules = selectedSchedules.map(schedule => ({
+      key: schedule.key,
+      label: schedule.label,
+      value: schedule.value,
+      color: scheduleOptions.find(opt => opt.key === schedule.key)?.color || 'bg-gray-500'
+    }));
+    
+    if (onSchedulesSelected) {
+      onSchedulesSelected(formattedSchedules);
+    }
+    
     onClose();
   };
 
