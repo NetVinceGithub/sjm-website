@@ -14,10 +14,11 @@ import * as XLSX from "xlsx";
 import { Modal, Button } from "react-bootstrap";
 import { toast } from "react-toastify";
 import { useAuth } from "../../../context/authContext";
+import FilterComponent from "../modals/FilterComponent";
 
 const PayrollSummary = () => {
   const { user } = useAuth();
-
+  const [filterComponentModal, setFilterComponentModal] = useState(false);
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -38,6 +39,8 @@ const PayrollSummary = () => {
     []
   );
   const [maxOvertime, setMaxOvertime] = useState("");
+  const [selectedSchedules, setSelectedSchedules] = useState([]);
+
 
   const navigate = useNavigate();
 
@@ -143,6 +146,10 @@ const PayrollSummary = () => {
     setModalOpen(true);
   };
 
+  const openFilter = () => {
+    setFilterComponentModal(true);
+  };
+
   const handleCheckboxChange = (ecode) => {
     setSelectedOvertime((prevSelected) => {
       const isCurrentlySelected = prevSelected.includes(ecode);
@@ -199,50 +206,98 @@ const PayrollSummary = () => {
     setPayslips(records);
   };
 
-  // Compute and generate payslips
-  const handleCreatePayroll = async () => {
-    try {
-      setMessage("Loading data...");
+// Enhanced handleCreatePayroll function
+const handleCreatePayroll = async () => {
+  try {
+    // Validate that schedules are selected
+    if (!selectedSchedules || selectedSchedules.length === 0) {
+      setMessage("Please select at least one schedule before creating payroll.");
+      setFilterComponentModal(true); // Open filter modal to let user select schedules
+      return;
+    }
 
-      // Fetch both datasets at once
-      const [employeeResponse, attendanceResponse] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_URL}/api/employee`),
-        axios.get(
-          `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`
-        ),
-        axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`),
-      ]);
+    setLoading(true);
+    setMessage("Loading data...");
 
-      const employeeData = employeeResponse.data.employees || [];
-      const attendanceData = attendanceResponse.data.attendance || [];
+    // Fetch all required data
+    const [employeeResponse, attendanceResponse, holidaysResponse] = await Promise.all([
+      axios.get(`${import.meta.env.VITE_API_URL}/api/employee`),
+      axios.get(`${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`),
+      axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`),
+    ]);
 
-      if (!employeeData.length) {
-        setMessage("No employees available.");
-        return;
-      }
+    const employeeData = employeeResponse.data.employees || [];
+    const attendanceData = attendanceResponse.data.attendance || [];
+    const holidaysData = holidaysResponse.data.holidays || [];
 
-      // Filter employees with attendance records
-      const validEcodes = new Set(attendanceData.map((record) => record.ecode));
-      const availableEmployees = employeeData.filter(
-        (employee) =>
-          validEcodes.has(employee.ecode) && employee.status !== "Inactive"
-      );
+    if (!employeeData.length) {
+      setMessage("No employees available.");
+      setLoading(false);
+      return;
+    }
 
-      if (!availableEmployees.length) {
-        setMessage("No employees with attendance records found.");
-        return;
-      }
+    // Filter employees based on selected schedules
+    const employeesWithSelectedSchedules = employeeData.filter(employee => 
+      selectedSchedules.includes(employee.schedule) && employee.status !== "Inactive"
+    );
 
+    if (!employeesWithSelectedSchedules.length) {
+      setMessage(`No active employees found for the selected schedule(s): ${selectedSchedules.join(', ')}`);
+      setLoading(false);
+      return;
+    }
+
+    // Filter employees with attendance records
+    const validEcodes = new Set(attendanceData.map((record) => record.ecode));
+    const availableEmployees = employeesWithSelectedSchedules.filter(employee =>
+      validEcodes.has(employee.ecode)
+    );
+
+    if (!availableEmployees.length) {
+      setMessage("No employees with attendance records found for the selected schedule(s).");
+      setLoading(false);
+      return;
+    }
+
+    // Prepare payroll data for API
+    const payrollData = {
+      cutoffDate: cutoffDate,
+      selectedSchedules: selectedSchedules,
+      employees: availableEmployees.map(emp => ({
+        ecode: emp.ecode,
+        name: emp.name,
+        schedule: emp.schedule,
+        // Add other necessary employee fields
+      })),
+      attendanceData: attendanceData.filter(record => 
+        availableEmployees.some(emp => emp.ecode === record.ecode)
+      ),
+      holidaysData: holidaysData
+    };
+
+    // Send to API
+    const payrollResponse = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/payroll/create`,
+      payrollData
+    );
+
+    if (payrollResponse.status === 200) {
       // Set all data at once
       setEmployeeList(employeeData);
       setFilteredEmployees(availableEmployees);
       setFilteredEmployeesOvertime(availableEmployees);
-      setMessage("");
+      setMessage(`Payroll created successfully for ${selectedSchedules.length} schedule(s) and ${availableEmployees.length} employees.`);
       setShow(true);
-    } catch (error) {
-      setMessage("Failed to load data");
     }
-  };
+
+  } catch (error) {
+    console.error("Payroll creation error:", error);
+    setMessage("Failed to create payroll. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const proceedWithPayroll = async (selectedEmployees) => {
     if (!cutoffDate) {
@@ -724,12 +779,10 @@ const PayrollSummary = () => {
                   {loading ? "Generating..." : "Create Payroll"}
                 </button>
                 <button
-                  onClick={() =>
-                    navigate("/admin-dashboard/attendance-computation")
-                  }
+                  onClick={() => setFilterComponentModal(true)}
                   className="px-4 py-1 rounded text-sm w-full border lg:w-32 h-8 hover:bg-green-400 text-neutralDGray hover:text-neutralDGray"
                 >
-                  Attendance
+                  Filters
                 </button>
                 <button
                   onClick={() => setShowConfirmModal(true)}
@@ -827,7 +880,10 @@ const PayrollSummary = () => {
 
           {/* Calendar Section */}
           <div className="w-full lg:w-[28%]">
-            <CustomCalendar onDateChange={setCutoffDate} payrollType={payrollType} />
+            <CustomCalendar
+              onDateChange={setCutoffDate}
+              payrollType={payrollType}
+            />
           </div>
         </div>
 
@@ -840,6 +896,11 @@ const PayrollSummary = () => {
         <NoAttendanceModal
           isOpen={noAttendanceModalOpen}
           onClose={() => setNoAttendanceModalOpen(false)}
+        />
+
+        <FilterComponent
+          show={filterComponentModal} // ✅ Correct - this is the boolean state
+          onClose={() => setFilterComponentModal(false)}
         />
 
         {/* Overtime Approval Modal */}

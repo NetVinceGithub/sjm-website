@@ -1,7 +1,6 @@
 import {DataTypes} from 'sequelize';
 import sequelize from '../db/db.js';
 
-
 // models/PayrollChangeRequest.js
 const PayrollChangeRequest = sequelize.define("PayrollChangeRequest", {
   payroll_info_id: {
@@ -31,12 +30,19 @@ const PayrollChangeRequest = sequelize.define("PayrollChangeRequest", {
   employee_email: {
     type: DataTypes.STRING(255),
     allowNull: true
+  },
+  // New column for batch operations
+  batch_affected_employee_ids: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    comment: 'Array of employee IDs affected by this batch change request'
+  },
+  // Optional: Add batch identifier for grouping related requests
+  batch_id: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Unique identifier for grouping batch requests together'
   }
-
-  
 });
-
-
-
 
 export default PayrollChangeRequest;
