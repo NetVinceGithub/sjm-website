@@ -50,8 +50,6 @@ const login = async (req, res) => {
   }
 };
 
-
-
 const verify = (req, res) => {
   return res.status(200).json({ success: true, user: req.user });
 };
@@ -72,20 +70,54 @@ const forgotPassword = async (req, res) => {
     user.resetCode = resetCode;
     await user.save();
 
-    // Configure email
+    // Configure email with SSL/TLS options - SOLUTION 1: Proper SSL configuration
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
+      // SSL/TLS configuration options
+      secure: true, // Use SSL
+      tls: {
+        // Don't fail on invalid certs (for development only)
+        rejectUnauthorized: false,
+        // Minimum TLS version
+        minVersion: 'TLSv1.2'
+      }
     });
+
+    // Alternative configuration if the above doesn't work - SOLUTION 2
+    // const transporter = nodemailer.createTransporter({
+    //   host: 'smtp.gmail.com',
+    //   port: 587,
+    //   secure: false, // Use STARTTLS
+    //   auth: {
+    //     user: process.env.EMAIL_USER,
+    //     pass: process.env.EMAIL_PASS,
+    //   },
+    //   tls: {
+    //     rejectUnauthorized: false
+    //   }
+    // });
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
       subject: 'SJM Payroll: Password Reset Code',
-      text: `Your password reset code is: ${resetCode}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Password Reset Request</h2>
+          <p>You have requested to reset your password for SJM Payroll.</p>
+          <div style="background-color: #f4f4f4; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="margin: 0; color: #333;">Your reset code is:</h3>
+            <h1 style="font-size: 36px; color: #007bff; margin: 10px 0; letter-spacing: 5px;">${resetCode}</h1>
+          </div>
+          <p>This code will expire in 15 minutes for security reasons.</p>
+          <p>If you didn't request this reset, please ignore this email.</p>
+        </div>
+      `,
+      text: `Your password reset code is: ${resetCode}. This code will expire in 15 minutes.`
     };
 
     await transporter.sendMail(mailOptions);
@@ -93,7 +125,16 @@ const forgotPassword = async (req, res) => {
     res.json({ success: true, message: 'Reset code sent to your email.' });
   } catch (error) {
     console.error('Forgot Password Error:', error);
-    res.status(500).json({ success: false, error: 'Server Error' });
+    
+    // More detailed error logging
+    if (error.code === 'ESOCKET') {
+      console.error('SSL/TLS Connection Error - Check your email configuration');
+    }
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to send reset email. Please try again later.' 
+    });
   }
 };
 
@@ -116,18 +157,19 @@ const verifyCode = async (req, res) => {
 };
 
 const resetPassword = async (req, res) => {
-
   const { email, newPassword } = req.body;
+  
   try {
-
     const user = await User.findOne({ where: { email: email } });
 
     if (!user) {
-      return res.status(400).json({ success: false, error: 'Invalid or expired token' });
+      return res.status(400).json({ success: false, error: 'User not found' });
     }
 
+    // Clear the reset code after successful password reset
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
+    user.resetCode = null; // Clear the reset code
     await user.save();
 
     res.json({ success: true, message: 'Password successfully reset' });
@@ -136,7 +178,5 @@ const resetPassword = async (req, res) => {
     res.status(500).json({ success: false, error: 'Server error' });
   }
 };
-
-
 
 export { login, verify, forgotPassword, resetPassword, verifyCode };

@@ -260,9 +260,9 @@ const Contributions = () => {
     {
       name: (
         <div style={{ textAlign: "center" }}>
-          PhilHealth Employer Share
+          Employer Share
           <br />
-          (SSS)
+          (PhilHealth)
         </div>
       ),
       selector: (row) => `₱${(row.philhealth || 0).toLocaleString()}`,
@@ -270,7 +270,37 @@ const Contributions = () => {
       width: "150px",
     },
     {
-      name: "PAGIBIG Share",
+      name: (
+        <div style={{ textAlign: "center" }}>
+          Employee Share
+          <br />
+          (PhilHealth)
+        </div>
+      ),
+      selector: (row) => `₱${(row.philhealth || 0).toLocaleString()}`,
+      sortable: true,
+      width: "150px",
+    },
+    {
+      name: (
+        <div style={{ textAlign: "center" }}>
+          Employeer Share
+          <br />
+          (Pag-IBIG)
+        </div>
+      ),
+      selector: (row) => `₱${(row.pagibig || 0).toLocaleString()}`,
+      sortable: true,
+      width: "150px",
+    },
+    {
+      name: (
+        <div style={{ textAlign: "center" }}>
+          Employee Share
+          <br />
+          (Pag-IBIG)
+        </div>
+      ),
       selector: (row) => `₱${(row.pagibig || 0).toLocaleString()}`,
       sortable: true,
       width: "150px",

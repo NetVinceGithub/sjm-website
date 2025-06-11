@@ -12,6 +12,7 @@ import {
   FaRegFileExcel,
   FaRegFilePdf,
   FaXmark,
+  FaPenToSquare,
 } from "react-icons/fa6";
 import { Modal, Button } from "react-bootstrap";
 import Logo from '../../../assets/logo.png'
@@ -466,7 +467,7 @@ const InvoiceList = () => {
                   <div className="p-2">
                     <p className="flex justify-center text-center items-center mt-2 font-semibold">BILLING SUMMARY</p>
                     <div>
-                      {nextBillingSummary !== null ? (
+                      {/* {nextBillingSummary !== null ? (
                         <p className="text-lg font-semibold text-red-500 text-center">
                           {String(nextBillingSummary).padStart(5, "0")}
                         </p>
@@ -474,7 +475,7 @@ const InvoiceList = () => {
                         <p className="text-lg font-semibold text-gray-400 text-center">
                           Loading...
                         </p>
-                      )}
+                      )} */}
                     </div>
                   </div>
                 </div>
@@ -667,7 +668,7 @@ const InvoiceList = () => {
             </div>
           </div>
 
-          <div className="mt-3 border border-neutralDGray h-[31rem] rounded overflow-x-auto">
+          <div className="mt-3 border border-neutralDGray h-[95%]  rounded overflow-x-auto">
             <DataTable
               columns={[
                 {
@@ -749,14 +750,13 @@ const InvoiceList = () => {
                               BILLING SUMMARY
                             </p>
 
-                            {uniqueBillingSummaries.map((invoice) => (
+                            {/* {uniqueBillingSummaries.map((invoice) => (
                               <div key={invoice.billingSummary}>
                                 <p className="text-lg font-semibold -mt-3  text-red-500 text-center">
                                   {String(invoice.billingSummary).padStart(5, "0")}
                                 </p>
-                                {/* Display other batch-level details if needed */}
                               </div>
-                            ))}
+                            ))} */}
 
                           </div>
                         </div>
@@ -1003,13 +1003,7 @@ const InvoiceList = () => {
                         onClick={printInvoices}
                         className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded flex items-center justify-center"
                       >
-                        <FaPrint title="Print" className="text-neutralDGray w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={downloadExcel}
-                        className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded flex items-center justify-center"
-                      >
-                        <FaRegFileExcel title="Export to Excel" className="text-neutralDGray w-5 h-5" />
+                        <FaPenToSquare title="Print" className="text-neutralDGray w-5 h-5" />
                       </button>
                       <button
                         onClick={downloadPDF}
