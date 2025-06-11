@@ -27,6 +27,10 @@ const PayrollChangeRequest = sequelize.define("PayrollChangeRequest", {
   employee_name: {
     type: DataTypes.STRING(255),
     allowNull: false
+  },
+  employee_email: {
+    type: DataTypes.STRING(255),
+    allowNull: true
   }
 
   

@@ -16,7 +16,9 @@ import {
   reviewPayrollChange,
   rejectPayrollChange,
   approvePayrollChange,
-  messageEmployee
+  messageEmployee,
+  bulkMessaging,
+  bulkRequestPayrollChange
 } from "../controllers/employeeController.js";
 
 const router = express.Router();
@@ -27,29 +29,22 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure Multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const fileExt = path.extname(file.originalname);
-    cb(null, file.fieldname + "-" + uniqueSuffix + fileExt);
-  }
-});
+// Configure Multer for memory storage (since your controller expects file.buffer)
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
-  // fileFilter: (req, file, cb) => {
-  //   if (file.mimetype.startsWith("image/")) {
-  //     cb(null, true);
-  //   } else {
-  //     cb(new Error("Only image files are allowed!"), false);
-  //   }
-  // },
-  limits: { fileSize: 100 * 1024 * 1024 } // 100mb limit
+  limits: { fileSize: 100 * 1024 * 1024 } // 100mb limit per file
 });
+
+// Create a dynamic fields configuration for bulk messaging
+const createBulkMessagingUpload = (maxFiles = 10) => {
+  const fields = [];
+  for (let i = 0; i < maxFiles; i++) {
+    fields.push({ name: `attachment_${i}`, maxCount: 1 });
+  }
+  return upload.fields(fields);
+};
 
 // SPECIFIC ROUTES FIRST (most specific to least specific)
 
@@ -64,15 +59,12 @@ router.put("/payroll-informations/:id", updatePayrollInformation);
 
 // Payroll change request routes - VERY SPECIFIC ROUTES FIRST
 router.post("/payroll-change-requests", requestPayrollChange);
+router.post("/bulk-payroll-change-requests", bulkRequestPayrollChange);
 router.get("/payroll-change-requests", reviewPayrollChange);
 
 // Approval/Rejection routes - THESE NEED TO BE BEFORE /:id
 router.post("/approve-payroll-change/:id", approvePayrollChange);
 router.post("/reject-payroll-change/:id", rejectPayrollChange);
-
-// Bulk operations (if you have them)
-// router.post("/bulk-approve-payroll-changes", bulkApprovePayrollChanges);
-// router.post("/bulk-reject-payroll-changes", bulkRejectPayrollChanges);
 
 // Employee status and update routes
 router.put("/toggle-status/:id", toggleEmployeeStatus);
@@ -85,6 +77,8 @@ router.put("/update-details/:id", upload.fields([
 router.get("/", getEmployees); // This should be after specific routes
 router.get("/:id", getEmployee); // This MUST be the very last route
 
+// Messaging routes
 router.post('/messaging', upload.array('attachments', 10), messageEmployee);
+router.post('/bulk-messaging', createBulkMessagingUpload(10), bulkMessaging);
 
 export default router;
