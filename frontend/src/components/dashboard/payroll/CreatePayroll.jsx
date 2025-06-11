@@ -14,7 +14,7 @@ const CreatePayroll = () => {
     const fetchEmployees = async () => {
       setEmpLoading(true);
       try {
-        const response = await axios.get("http://localhost:5000/api/employee", {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -25,7 +25,7 @@ const CreatePayroll = () => {
             ...emp,
             profileImage: emp.profileImage
               ? `${emp.profileImage}` // Use the full URL provided by the backend
-              : "http://localhost:5000/uploads/default-profile.png", // Default profile image
+              : `${import.meta.env.VITE_API_URL}/uploads/default-profile.png`, // Default profile image
             action: <PayrollButtons Id={emp._id} />, // Add action buttons
           }));
 
@@ -58,7 +58,7 @@ const CreatePayroll = () => {
           alt="Profile"
           className="w-12 h-12 rounded-full border object-cover"
           onError={(e) => {
-            e.target.src = "http://localhost:5000/uploads/default-profile.png"; // Fallback image
+            e.target.src = `${import.meta.env.VITE_API_URL}/uploads/default-profile.png`; // Fallback image
           }}
         />
       </div>
@@ -77,7 +77,7 @@ const CreatePayroll = () => {
           onChange={handleFilter}
           className="px-4 py-0.5 border"
         />
-        
+
       </div>
       <div className="mt-6">
         <DataTable
@@ -114,8 +114,14 @@ const CreatePayroll = () => {
             },
           ]}
           data={filteredEmployee}
-          
-          progressPending={empLoading}
+
+          progressPending={loading}
+          progressComponent={
+            <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
+              <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
+              Loading data...
+            </div>
+          }
         />
       </div>
     </div>

@@ -17,10 +17,14 @@ const Login = () => {
   useEffect(() => {
     // Check if user has 'Remember me' set in localStorage
     const savedEmail = localStorage.getItem('email');
+    const savedPassword = localStorage.getItem('password'); // Add this line
     const savedChecked = localStorage.getItem('rememberMe') === 'true';
     
     if (savedEmail && savedChecked) {
       setEmail(savedEmail);
+      if (savedPassword) {
+        setPassword(savedPassword); // Add this line to set the password
+      }
       setIsChecked(true);
     }
   }, []);
@@ -28,7 +32,7 @@ const Login = () => {
   const handleSubmit = async (e) => { 
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", { email, password });
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, { email, password });
 
       if (response.data.success) {
         login(response.data.user);
@@ -38,6 +42,7 @@ const Login = () => {
         // If "Remember me" is checked, save email to localStorage
         if (isChecked) {
           localStorage.setItem('email', email);
+          localStorage.setItem('password', password);
           localStorage.setItem('rememberMe', 'true');
         } else {
           localStorage.removeItem('email');
@@ -48,7 +53,7 @@ const Login = () => {
         if (response.data.user.role === "admin") {
           navigate('/admin-dashboard');
         } else {
-          navigate('/admin-dashboard/employees'); 
+          navigate('/admin-dashboard'); 
         }
       }
     } catch (error) {
@@ -112,8 +117,10 @@ const Login = () => {
               onFocus={() => setIsPasswordFocused(true)}
               onBlur={() => setIsPasswordFocused(false)}
               onChange={(e) => setPassword(e.target.value)}
+              value={password}
               required
               autoComplete="current-password"
+            
             />
           </div>
 

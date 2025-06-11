@@ -1,5 +1,13 @@
 @import url(https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap);
 
+@font-face {
+    font-family: "AR JULIAN";
+    src: url("/fonts/ARJULIAN.woff2") format("woff2"),
+      url("fonts/ARJULIAN.woff") format("woff");
+    font-weight: 100;
+    font-style: normal;
+    font-display: swap;
+  }  
 
 body {
     font-family: 'Inter', sans-serif;
@@ -41,3 +49,8 @@ header {
     z-index: 1;
     overflow: hidden;
   }
+
+  .recharts-default-legend text {
+    font-size: 0.5rem; /* Tailwind's text-sm size */
+  }
+  

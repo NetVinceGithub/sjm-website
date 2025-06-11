@@ -37,7 +37,7 @@ const PayslipHistory = () => {
         console.log("Stored Token:", token);
 
         const response = await axios.get(
-          "http://localhost:5000/api/payslip/history",
+          `${import.meta.env.VITE_API_URL}/api/payslip/history`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -182,7 +182,7 @@ const PayslipHistory = () => {
   ];
 
   return (
-    <div className="fixed p-6 pt-16">
+    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
       <>
         <Breadcrumb
           items={[
@@ -195,7 +195,7 @@ const PayslipHistory = () => {
             { label: "Payroll History", href: "/admin-dashboard/employees" },
           ]}
         />
-        <div className="bg-white p-3 w-[77rem] h-[37rem] rounded shadow-sm border -mt-3">
+        <div className="bg-white p-3  rounded shadow-sm border -mt-3">
           {loading ? (
             <div>Loading...</div>
           ) : (
@@ -239,7 +239,7 @@ const PayslipHistory = () => {
               <hr />
               <div className="mt-3 border h-[31rem] border-neutralDGray rounded overflow-auto">
                 <div className="w-full overflow-x-auto">
-                  <DataTable columns={columns} data={filteredPayslips} />
+                  <DataTable columns={columns} data={filteredPayslips} pagination />
                 </div>
               </div>
             </div>

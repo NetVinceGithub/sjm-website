@@ -101,7 +101,7 @@ const Add = () => {
   
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/employee/add",
+        `${import.meta.env.VITE_API_URL}/api/employee/add`,
         formDataToSend,
         {
           headers: {
@@ -129,7 +129,7 @@ const Add = () => {
   const renderProfileImage = (row) => {
     if (!row.profileImage) return "No Image";
   
-    const imageUrl = `http://localhost:5000/uploads/${row.profileImage}`;
+    const imageUrl = `${import.meta.env.VITE_API_URL}/uploads/${row.profileImage}`;
   
     return (
       <img

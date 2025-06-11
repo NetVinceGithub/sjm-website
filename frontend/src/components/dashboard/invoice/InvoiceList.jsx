@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import DataTable from "react-data-table-component";
-import { jsPDF } from "jspdf";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { FaSearch, FaSyncAlt } from "react-icons/fa";
@@ -11,8 +12,11 @@ import {
   FaRegFileExcel,
   FaRegFilePdf,
   FaXmark,
+  FaPenToSquare,
 } from "react-icons/fa6";
-import {Modal, Button} from "react-bootstrap";
+import { Modal, Button } from "react-bootstrap";
+import Logo from '../../../assets/logo.png'
+import LongLogo from '../../../assets/long-logo.png'
 
 const InvoiceList = () => {
   const [invoices, setInvoices] = useState([]);
@@ -21,20 +25,62 @@ const InvoiceList = () => {
   const [selectedCutoff, setSelectedCutoff] = useState(null);
   const [filteredInvoices, setFilteredInvoices] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [particular, setParticular] = useState("");
   const [selectedGroup, setSelectedGroup] = useState({
     cutoffDate: null,
     project: null,
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const [particulars, setParticulars] = useState([]);
+  const [currentParticular, setCurrentParticular] = useState({
+    description: "",
+    quantity: "",
+    unitPrice: "",
+    amount: 0
+  });
+  const [invoiceNumber, setInvoiceNumber] = useState(1); // or fetch from a DB/API
+  const [nextControlNumber, setNextControlNumber] = useState(1);
+  const [currentIndex, setCurrentIndex] = useState(1);
+  const [nextBillingSummary, setNextBillingSummary] = useState(1);
+
+
 
 
   useEffect(() => {
     const fetchInvoices = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/invoice");
-        console.log(response.data);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/invoice`);
+        console.log("this is the data", response.data);
         if (response.data.success && Array.isArray(response.data.invoice)) {
           setInvoices(response.data.invoice);
+
+          const nextBillingSummary = response.data.invoice.reduce((max, invoice) => {
+            return invoice.billingSummary > max ? invoice.billingSummary : max;
+          }, 0);
+
+          // Get the latest control number and calculate the next one
+          const latestControlNumber = response.data.invoice.reduce((latest, invoice) => {
+            return invoice.controlNumber > latest ? invoice.controlNumber : latest;
+          }, "");
+
+          // Extract last 4 digits, convert to number, add 1, and format back with full prefix
+          const getNextControlNumber = (currentNumber) => {
+            if (!currentNumber) return "SJM 2025-06-0001"; // Default if no existing numbers
+
+            const lastFourDigits = currentNumber.slice(-4);
+            const nextNumber = parseInt(lastFourDigits, 10) + 1;
+            const nextNumberFormatted = nextNumber.toString().padStart(4, '0');
+
+            // Keep the prefix (everything except last 4 digits) and append new number
+            const prefix = currentNumber.slice(0, -4);
+            return prefix + nextNumberFormatted;
+          };
+
+          const nextControlNumberFormatted = getNextControlNumber(latestControlNumber);
+
+          setNextControlNumber(nextControlNumberFormatted);
+          setNextBillingSummary(nextBillingSummary + 1);  // next available index
+          console.log("next control number", nextControlNumberFormatted);
         } else {
           console.error("API response is not an array", response.data);
         }
@@ -47,15 +93,42 @@ const InvoiceList = () => {
     fetchInvoices();
   }, []);
 
+  console.log('currentIndex', currentIndex);
+
+
+  const getControlNumber = (invoices = []) => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+
+    // Defensive: default invoices to empty array if undefined
+    const invoicesThisMonth = invoices.filter((invoice) => {
+      const invoiceDate = new Date(invoice.createdAt); // or invoice.date
+      return (
+        invoiceDate.getFullYear() === year &&
+        String(invoiceDate.getMonth() + 1).padStart(2, "0") === month
+      );
+    });
+
+    const nextNumber = invoicesThisMonth.length + 1;
+    const paddedNumber = String(nextNumber).padStart(4, "0");
+
+    return `SJM${year}-${month}-${paddedNumber}`;
+  };
+
+
+
+
   const handleSearch = (event) => {
     setSearchTerm(event.target.value);
   };
-  const groupByCutoffAndProject = () => {
+
+  const groupByBatchId = () => {
     const groups = {};
     invoices.forEach((invoice) => {
-      const key = `${invoice.cutoffDate}-${invoice.project}`;
-      if (!groups[key]) {
-        groups[key] = {
+      if (!groups[invoice.batchId]) {
+        groups[invoice.batchId] = {
+          batchId: invoice.batchId,
           cutoffDate: invoice.cutoffDate,
           project: invoice.project,
         };
@@ -64,9 +137,11 @@ const InvoiceList = () => {
     return Object.values(groups);
   };
 
-  const filteredProjects = groupByCutoffAndProject().filter((group) =>
+
+  const filteredProjects = groupByBatchId().filter(group =>
     group.project.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
 
   const handleCutoffClick = (cutoffDate) => {
     const filtered = invoices.filter(
@@ -77,15 +152,36 @@ const InvoiceList = () => {
     setIsModalOpen(true);
   };
 
-  const handleGroupClick = (cutoffDate, project) => {
-    const filtered = invoices.filter(
-      (invoice) =>
-        invoice.cutoffDate === cutoffDate && invoice.project === project
-    );
+
+
+
+  const handleGroupClick = (batchId) => {
+    console.log("Clicked batchId:", batchId);
+
+    const filtered = invoices
+      .filter((invoice) => {
+        if (Array.isArray(invoice.batchId)) {
+          return invoice.batchId.includes(batchId);
+        }
+        return invoice.batchId === batchId;
+      })
+      .map((invoice, index) => ({
+        ...invoice,
+        index, // assign index in filtered list
+      }));
+
     setFilteredInvoices(filtered);
-    setSelectedGroup({ cutoffDate, project });
+
+    // Optional: if you still want to highlight one item (like the first)
+    if (filtered.length > 0) {
+      const sample = filtered[0];
+      setSelectedGroup(sample); // now includes index
+    }
+
     setIsModalOpen(true);
   };
+
+
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -96,63 +192,116 @@ const InvoiceList = () => {
 
 
 
-    /** =================== PDF Export Function =================== */
-    const downloadPDF = () => {
-      const doc = new jsPDF();
-      doc.text(
-        `Invoices for Cutoff Date: ${selectedGroup.cutoffDate} | Project: ${selectedGroup.project}`,
-        10,
-        10
-      );
-      autoTable(doc, {
-        startY: 20,
-        head: [
-          [
-            "Ecode",
-            "Name",
-            "Position",
-            "Daily Rate",
-            "OT Hours",
-            "OT Amount",
-            "Normal Hours",
-            "Normal Amount",
-            "Gross Pay",
-            "Total Deductions",
-            "Net Pay",
-          ],
-        ],
-        body: filteredInvoices.map((invoice) => [
-          invoice.ecode,
-          invoice.name,
-          invoice.position,
-          invoice.dailyrate,
-          invoice.totalOvertime,
-          invoice.overtimePay,
-          invoice.totalHours,
-          invoice.totalEarnings,
-          invoice.gross_pay,
-          invoice.totalDeductions,
-          invoice.netPay,
-        ]),
+  /** =================== PDF Export Function =================== */
+  const downloadPDF = async () => {
+    try {
+      // Create new PDF document with A5 size for the first page (portrait by default)
+      const doc = new jsPDF({
+        format: 'a5',
+        unit: 'mm'
       });
-      doc.save(`Invoices_${selectedGroup.cutoffDate}_${selectedGroup.project}.pdf`);
-    };
-  
-    /** =================== Excel Export Function =================== */
-    const downloadExcel = () => {
-      const worksheet = XLSX.utils.json_to_sheet(filteredInvoices);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Invoices");
-      XLSX.writeFile(
-        workbook,
-        `Invoices_${selectedGroup.cutoffDate}_${selectedGroup.project}.xlsx`
-      );
-    };
-  
-    /** =================== Print Function =================== */
-    const printInvoices = () => {
-      const printWindow = window.open("", "_blank");
-      const tableContent = `
+
+      // A5 dimensions in mm
+      const a5Width = 148;
+      const a5Height = 210;
+
+      // Get the billing summary element (first div in modal body)
+      const billingSummaryElement = document.querySelector('.modal-body > div:first-child');
+
+      if (billingSummaryElement) {
+        const originalStyle = billingSummaryElement.style.cssText;
+
+        // Style to match A5 size (in inches for CSS)
+        billingSummaryElement.style.width = '5.8in';
+        billingSummaryElement.style.height = '8.3in';
+
+        const summaryCanvas = await html2canvas(billingSummaryElement, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          width: 5.8 * 96, // Convert to px at 96 DPI
+          height: 8.3 * 96
+        });
+
+        const summaryImgData = summaryCanvas.toDataURL('image/png');
+
+        doc.addImage(
+          summaryImgData,
+          'PNG',
+          0, // Start at top-left of page
+          0,
+          a5Width,
+          a5Height
+        );
+
+        billingSummaryElement.style.cssText = originalStyle;
+      }
+
+      // PAGE 2: Billing Details (Landscape orientation)
+      doc.addPage('legal', 'landscape');
+
+      const billingDetailsElement = document.querySelector('.modal-body > div:nth-child(3)');
+
+      if (billingDetailsElement) {
+        const originalStyle = billingDetailsElement.style.cssText;
+
+        billingDetailsElement.style.width = '8in';
+        billingDetailsElement.style.maxWidth = '8in';
+        billingDetailsElement.style.transform = 'scale(1)';
+        billingDetailsElement.style.transformOrigin = 'top left';
+
+        const detailsCanvas = await html2canvas(billingDetailsElement, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          width: 13 * 96,
+          height: 8.5 * 96
+        });
+
+        const detailsImgData = detailsCanvas.toDataURL('image/png');
+
+        const landscapeWidth = 297;
+        const landscapeHeight = 210;
+
+        const imgWidth = landscapeWidth - 20;
+        const imgHeight = (detailsCanvas.height * imgWidth) / detailsCanvas.width;
+
+        doc.addImage(
+          detailsImgData,
+          'PNG',
+          10,
+          10,
+          imgWidth,
+          Math.min(imgHeight, landscapeHeight - 20)
+        );
+
+        billingDetailsElement.style.cssText = originalStyle;
+      }
+
+      doc.save(`Billing_Invoice_${selectedGroup.cutoffDate}_${selectedGroup.project.replace(/\s+/g, '_')}.pdf`);
+
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    }
+  };
+
+
+  /** =================== Excel Export Function =================== */
+  const downloadExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(filteredInvoices);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Invoices");
+    XLSX.writeFile(
+      workbook,
+      `Invoices_${selectedGroup.cutoffDate}_${selectedGroup.project}.xlsx`
+    );
+  };
+
+  /** =================== Print Function =================== */
+  const printInvoices = () => {
+    const printWindow = window.open("", "_blank");
+    const tableContent = `
         <h3>Invoices for Cutoff Date: ${selectedGroup.cutoffDate} | Project: ${selectedGroup.project}</h3>
         <table border="1" style="width: 100%; border-collapse: collapse; text-align: center;">
           <tr>
@@ -169,8 +318,8 @@ const InvoiceList = () => {
             <th>Net Pay</th>
           </tr>
           ${filteredInvoices
-            .map(
-              (invoice) => `
+        .map(
+          (invoice) => `
             <tr>
               <td>${invoice.ecode}</td>
               <td>${invoice.name}</td>
@@ -185,155 +334,690 @@ const InvoiceList = () => {
               <td>${invoice.netPay}</td>
             </tr>
           `
-            )
-            .join("")}
+        )
+        .join("")}
         </table>
       `;
-      printWindow.document.write(tableContent);
-      printWindow.document.close();
-      printWindow.print();
+    printWindow.document.write(tableContent);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  const customStyles = {
+    table: {
+      style: {
+        fontWeight: "bold",
+        backgroundColor: "#fff",
+        width: "100%",
+        margin: "0 auto",
+      },
+    },
+    headRow: {
+      style: {
+        height: "40px", // consistent height
+      },
+    },
+    rows: {
+      style: {
+        height: "40px", // consistent row height
+      },
+    },
+    headCells: {
+      style: {
+        backgroundColor: "#fff",
+        color: "#333",
+        fontWeight: "bold",
+        fontSize: "13px", // text-sm
+        display: "flex",
+        alignItems: "center",
+        padding: "4px 8px",
+      },
+    },
+    cells: {
+      style: {
+        fontSize: "12px", // text-sm
+        padding: "4px 8px",
+        display: "flex",
+        alignItems: "center",
+        height: "100%", // ensures it fills the row height
+      },
+    },
+  };
+
+  const addParticular = () => {
+    if (currentParticular.description.trim() === "") return;
+
+    const quantity = parseFloat(currentParticular.quantity) || 0;
+    const unitPrice = parseFloat(currentParticular.unitPrice) || 0;
+    const amount = quantity * unitPrice;
+
+    const newParticular = {
+      id: Date.now(),
+      description: currentParticular.description,
+      quantity: quantity,
+      unitPrice: unitPrice,
+      amount: amount
     };
 
+    setParticulars([...particulars, newParticular]);
+    setCurrentParticular({
+      description: "",
+      quantity: "",
+      unitPrice: "",
+      amount: 0
+    });
+    setParticular("");
+  };
+
+  const removeParticular = (id) => {
+    setParticulars(particulars.filter(item => item.id !== id));
+  };
+
+  const calculateTotal = () => {
+    return particulars.reduce((total, item) => total + item.amount, 0).toFixed(2);
+  };
+
+  const handleParticularChange = (field, value) => {
+    const updatedParticular = { ...currentParticular, [field]: value };
+
+    if (field === 'quantity' || field === 'unitPrice') {
+      const quantity = parseFloat(field === 'quantity' ? value : updatedParticular.quantity) || 0;
+      const unitPrice = parseFloat(field === 'unitPrice' ? value : updatedParticular.unitPrice) || 0;
+      updatedParticular.amount = quantity * unitPrice;
+    }
+
+    setCurrentParticular(updatedParticular);
+  };
+
+
+  const uniqueBillingSummaries = filteredInvoices.reduce((acc, invoice) => {
+    if (!acc.some(item => item.billingSummary === invoice.billingSummary)) {
+      acc.push(invoice);
+    }
+    return acc;
+  }, []);
+
+
+
+
+
   return (
-    <div className="p-6 pt-20">
-      <div className="bg-white w-[77rem] -mt-3 py-3 p-2 rounded-lg shadow">
-        <div className="flex -mt-3 justify-between">
-          <h6 className="p-3 mb-0 ml-1 text-md text-neutralDGray">
-            <strong>Invoice List</strong>
-          </h6>
-          <div className="flex items-center gap-3">
-            <div className="flex rounded items-center">
-              <input
-                type="text"
-                placeholder="Search Project"
-                className="px-2 rounded py-0.5 text-sm border"
-                value={searchTerm}
-                onChange={handleSearch}
-              />
-              <FaSearch className="ml-[-20px] mr-3 text-neutralDGray" />
+    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-20">
+      <div className="flex flex-row gap-4 w-full">
+        <div className="w-1/2 bg-white rounded shadow-lg p-3 h-[calc(100vh-100px)] overflow-auto">
+          <div className="w-full border overflow-auto">
+            <div className=" w-[47rem] h-[40rem]">
+              <div className="flex mr-5 gap-2 mt-3 p-2 justify-between items-center">
+                <div>
+                  <div className="flex flex-row gap-2 justify-center items center">
+                    <img src={Logo} className="w-20 h-20" />
+                    <div>
+                      <p className="font-semibold text-[#9D426E] text-[10px]">ST. JOHN MAJORE SERVICES COMPANY, INC.</p>
+                      <p className="italic text-[9px] -mt-3">Registered DOLE D.O. RO4A-BPO-DO174-0225-005-N</p>
+                      <p className="text-[9px] -mt-3">Batangas, 4226, PHILIPPINES</p>
+                      <p className="text-[9px] -mt-3">Cel No.: 0917-185-1909 • Tel. No.:(043) 575-5675</p>
+                      <p className="text-[9px] -mt-3">www.stjohnmajore.com</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="border-black border rounded-lg flex flex-col divide-y divide-black">
+                  <div className="p-2">
+                    <p className="text-[9px] mb-0">VAT REGISTERED TIN: 010-837-591-000</p>
+                  </div>
+                  <div className="p-2">
+                    <p className="flex justify-center text-center items-center mt-2 font-semibold">BILLING SUMMARY</p>
+                    <div>
+                      {/* {nextBillingSummary !== null ? (
+                        <p className="text-lg font-semibold text-red-500 text-center">
+                          {String(nextBillingSummary).padStart(5, "0")}
+                        </p>
+                      ) : (
+                        <p className="text-lg font-semibold text-gray-400 text-center">
+                          Loading...
+                        </p>
+                      )} */}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <table className="border-collapse my-8 text-xs font-sans">
+                <tbody>
+                  <tr>
+                    <td></td>
+                    <td className="border-r border-l border-t border-black p-2 text-center align-middle font-semibold">
+
+                    </td>
+
+                    {nextControlNumber !== null ? (
+                      <td colSpan={2} className="p-2 border-t border-r w-20 border-black italic text-[10px]">
+                        {nextControlNumber}
+                      </td>
+                    ) : (
+                      <td className="text-lg font-semibold text-gray-400 text-center">
+                        Loading...
+                      </td>
+                    )}
+
+                    {/* <td colSpan={2} className="p-2 border-t border-r w-20 border-black italic text-[11px]">
+                      Control #: {getControlNumber()}
+                    </td> */}
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td className="border-r border-l border-black p-2 text-center align-middle w-20 font-semibold text-xs">
+                      Date:
+                    </td>
+                    <td colSpan={2} className="p-2 border-t border-r w-20 border-black italic text-xs">
+                      {new Date().toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </td>
+
+                  </tr>
+                  <tr className="border p-2 border-black font-semibold">
+                    <td>
+                      SOLD TO:
+                    </td>
+                  </tr>
+                  <tr className="border-l border-r p-2 border-black">
+                    <td className="px-2 py-1">Registered Name:</td>
+                    <td></td>
+                  </tr>
+                  <tr className="border-l border-r p-2 border-black">
+                    <td className="px-2 py-1">TIN:</td>
+                    <td>
+                    </td>
+                  </tr>
+                  <tr className="border-l border-r p-2 border-black">
+                    <td className="px-2 py-1">Business Address:</td>
+                    <td>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th className="border border-black p-2 text-center">Particulars</th>
+                    <th className="border border-black p-2 text-center">Quantity</th>
+                    <th className="border border-black p-2 w-20 text-center">Unit Price</th>
+                    <th className="border border-black p-2 w-20 text-center">Amount</th>
+                  </tr>
+                  {particulars.map((item) => (
+                    <tr key={item.id}>
+                      <td className="border-r border-l w-72 border-black p-2 text-center">{item.description}</td>
+                      <td className="border-r border-l border-black p-2 text-center">{item.quantity}</td>
+                      <td className="border-r border-l border-black p-2 text-center">{item.unitPrice}</td>
+                      <td className="border-r border-black p-2 text-center flex items-center justify-between">
+                        <span className="text-xs">{item.amount.toFixed(2)}</span>
+                        <button
+                          onClick={() => removeParticular(item.id)}
+                          className="border w-6 h-6 rounded hover:bg-red-400 hover:text-white text-xs"
+                        >
+                          -
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+
+                  <tr>
+                    <td className="flex flex-row border-b gap-1 h-10 p-1 border-r border-l border-black">
+                      <input
+                        type="text"
+                        value={particular}
+                        onChange={(e) => {
+                          setParticular(e.target.value);
+                          handleParticularChange('description', e.target.value);
+                        }}
+                        placeholder="Enter particulars"
+                        className="w-full h-full px-2 border rounded text-xs"
+                      />
+                      <button
+                        onClick={addParticular}
+                        className="border w-9 h-full  rounded hover:bg-green-400 hover:text-white"
+                      >
+                        +
+                      </button>
+                    </td>
+                    <td className="border-r border-b border-black">
+                      {particular && (
+                        <input
+                          type="number"
+                          value={currentParticular.quantity}
+                          onChange={(e) => handleParticularChange('quantity', e.target.value)}
+                          placeholder="Qty"
+                          className="w-full h-full px-2 border rounded text-xs"
+                        />
+                      )}
+                    </td>
+                    <td className="border-r border-b border-black">
+                      {particular && (
+                        <input
+                          type="number"
+                          value={currentParticular.unitPrice}
+                          onChange={(e) => handleParticularChange('unitPrice', e.target.value)}
+                          placeholder="Price"
+                          className="w-full h-full px-2 border rounded text-sm"
+                        />
+                      )}
+                    </td>
+                    <td className="border-r border-b border-black">
+                      {particular && (
+                        <input
+                          type="number"
+                          value={currentParticular.amount.toFixed(2)}
+                          placeholder="Amount"
+                          className="w-full h-full px-2 border rounded text-sm"
+                          readOnly
+                        />
+                      )}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td colSpan={2} className="border-l border-r border-b text-right font-semibold border-black">TOTAL AMOUNT DUE:</td>
+                    <td className="border-r border-black border-b">₱{calculateTotal()}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div className="flex flex-row gap-4 -mt-14">
+                <div flex flex-col>
+                  <div >
+                    <table className="w-64">
+                      <tr colSpan={2} className="border border-black text-sm">
+                        <td>Prepared by:</td>
+                      </tr>
+                      <tr colSpan={2} className="border border-black text-sm">
+                        <td>Received by:</td>
+                      </tr>
+                      <tr colSpan={2} className="border border-black text-sm">
+                        <td>Date Received:</td>
+                      </tr>
+                    </table>
+                  </div>
+                  <div className="ml-7">
+                    <p className="text-decoration-underline font-semibold  text-[10px] -mt-3">"THIS DOCUMENT IS NOT VALID FOR CLAIMING INPUT TAX."</p>
+                    <p className="text-[8px] -mt-3 font-semibold">THIS BILLING INVOICE SHALL BE VALID FOR FIVE (5) YEARS FROM THE DATE OF ATP.</p>
+                  </div>
+                </div>
+
+                <img src={LongLogo} className="w-36 h-24 -ml-3 mt-5" />
+              </div>
             </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button className="w-32 text-sm bg-brandPrimary h-8 hover:bg-neutralDGray text-white py-1 px-2 rounded mt-3">Create Invoice</button>
           </div>
         </div>
 
-        <div className="mt-2 border h-[31rem]  border-neutralDGray rounded overflow-x-auto">
-          <DataTable
-            columns={[
-              {
-                name: "Cutoff Date",
-                selector: (row) => row.cutoffDate,
-                sortable: true,
-              },
-              {
-                name: "Project",
-                selector: (row) => row.project,
-                sortable: true,
-              },
-              {
-                name: "Action",
-                cell: (row) => (
-                  <button
-                    className="w-10 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center"
-                    onClick={() =>
-                      handleGroupClick(row.cutoffDate, row.project)
-                    }
-                  >
-                    <FaArrowUpRightFromSquare
-                    title="View Details"
-                    className="text-neutralDGray w-5 h-5"
-                  />
-                  </button>
-                ),
-              },
-            ]}
-            data={filteredProjects}
-            highlightOnHover
-            striped
-          />
-        </div>
-
-        {isModalOpen && selectedGroup && (
-          <Modal 
-          show={isModalOpen} 
-          onHide={closeModal} 
-          backdrop="static" 
-          centered
-        >
-          <div 
-            className="modal-dialog" 
-            style={{ 
-              maxWidth: "80vw", 
-              width: "80vw", 
-              maxHeight: "80vh", 
-              height: "80vh", 
-              zIndex: "1051", 
-              position: "fixed",  // Ensures it stays in place
-              top: "50%",         // Centers it vertically
-              left: "58%",        // Centers it horizontally
-              transform: "translate(-50%, -50%)" // Adjusts centering
-            }}
-          >
-
-            <div 
-              className="modal-content" 
-              style={{ 
-                maxHeight: "80vh", 
-                height: "100vh", 
-                display: "flex", 
-                flexDirection: "column",
-                zIndex: "1052" 
-              }}
-            >
-              <Modal.Header closeButton>
-                <Modal.Title>
-                  Invoices for Cutoff Date: {selectedGroup.cutoffDate} | Project: {selectedGroup.project}
-                </Modal.Title>
-              </Modal.Header>
-              <Modal.Body style={{ overflowY: "auto", flex: "1" }}>
-                <DataTable 
-                  data={filteredInvoices} 
-                  columns={[
-                    { name: "Ecode", selector: (row) => row.ecode },
-                    { name: "Name", selector: (row) => row.name, width: "200px" },
-                    { name: "Position", selector: (row) => row.position, width: "200px" },
-                    { name: "Daily Rate", selector: (row) => row.dailyrate, width: "130px" },
-                    { name: "Ot hours", selector: (row) => row.totalOvertime, width: "130px" },
-                    { name: "Amount", selector: (row) => row.overtimePay, width: "130px" },
-                    { name: "Normal Hours", selector: (row) => row.totalHours, width: "130px" },
-                    { name: "Normal Amount", selector: (row) => row.totalEarnings, width: "130px" },
-                    { name: "Gross Pay", selector: (row) => row.gross_pay, width: "130px" },
-                    { name: "Total Deductions", selector: (row) => row.totalDeductions, width: "130px" },
-                    { name: "Net Pay", selector: (row) => row.netPay, width: "130px" },
-                  ]} 
-                  highlightOnHover 
-                  striped 
+        <div className="bg-white w-1/2 py-4 px-3 rounded-lg shadow">
+          <div className="flex justify-between items-center">
+            <h6 className="text-md text-neutralDGray font-bold">Invoice List</h6>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center border rounded px-1 py-1">
+                <input
+                  type="text"
+                  placeholder="Search Project"
+                  className="text-xs h-5 border-white focus:outline-none"
+                  value={searchTerm}
+                  onChange={handleSearch}
                 />
-              </Modal.Body>
-              <Modal.Footer>
-                <button
-                  onClick={closeModal}
-                  className="flex items-center h-auto w-auto justify-center px-4 py-2 border border-neutralDGray rounded hover:bg-neutralSilver"
-                >
-                  <FaXmark className="mr-2 text-neutralDGray" />
-                  Close
-                </button>
-          
-                <button onClick={printInvoices} className="w-20 h-8 border hover:bg-neutralSilver rounded-l-md border-neutralDGray border-l-0 flex items-center justify-center">
-                  <FaPrint title="Print" className="text-neutralDGray w-5 h-5" />
-                </button>
-                <button onClick={downloadExcel} className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray border-l-0 flex items-center justify-center">
-                  <FaRegFileExcel title="Export to Excel" className="text-neutralDGray w-5 h-5" />
-                </button>
-                <button onClick={downloadPDF} className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-r border-l-0 flex items-center justify-center transition">
-                  <FaRegFilePdf title="Export to PDF" className="text-neutralDGray w-5 h-5" />
-                </button>
-              </Modal.Footer>
+                <FaSearch className="ml-2 text-neutralDGray" />
+              </div>
             </div>
           </div>
-        </Modal>
-        
-        
-        )}
 
+          <div className="mt-3 border border-neutralDGray h-[95%]  rounded overflow-x-auto">
+            <DataTable
+              columns={[
+                {
+                  name: "Project",
+                  selector: row => row.project,
+                  sortable: true,
+                  width: "300px",
+                },
+                {
+                  name: "Cutoff Date",
+                  selector: row => row.cutoffDate,
+                  sortable: true,
+                  width: "200px",
+                },
+                {
+                  name: "Action",
+                  cell: (row) => {
+                    console.log("Row data:", row);
+                    return (
+                      <button
+                        className="w-8 h-8 border hover:bg-neutralSilver border-neutralDGray rounded flex items-center justify-center"
+                        onClick={() => handleGroupClick(row.batchId)}
+                      >
+                        <FaArrowUpRightFromSquare
+                          title="View Details"
+                          className="text-neutralDGray w-5 h-5"
+                        />
+                      </button>
+                    );
+                  },
+                  width: "100px",
+                  center: true,
+                },
+              ]}
+              data={filteredProjects}
+              highlightOnHover
+              striped
+              pagination
+              customStyles={customStyles}
+            />
+          </div>
+
+          {isModalOpen && selectedGroup && (
+            <Modal
+              show={isModalOpen}
+              onHide={closeModal}
+              backdrop="static"
+              centered
+            >
+              <div className=" fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[80vw] max-h-[80vh] z-[1051]">
+                <div className="modal-content flex flex-col h-[80vh] z-[1052]">
+                  <Modal.Header className="py-2 px-3 text-[12px]" closeButton>
+                    <Modal.Title as="h6" className="text-lg">
+                      Invoices for Cutoff Date: {selectedGroup.cutoffDate} | Project: {selectedGroup.project}
+                    </Modal.Title>
+                  </Modal.Header>
+
+                  <Modal.Body className="overflow-y-auto flex-1">
+                    <div className="w-1/2">
+                      <div className="flex mr-5 gap-2 mt-3 p-2 justify-between items-center">
+                        <div>
+                          <div className="flex flex-row gap-2 justify-center items center">
+                            <img src={Logo} className="w-20 h-20" />
+                            <div>
+                              <p className="font-semibold text-[#9D426E] text-[10px]">ST. JOHN MAJORE SERVICES COMPANY, INC.</p>
+                              <p className="italic text-[9px] -mt-3">Registered DOLE D.O. RO4A-BPO-DO174-0225-005-N</p>
+                              <p className="text-[9px] -mt-3">Batangas, 4226, PHILIPPINES</p>
+                              <p className="text-[9px] -mt-3">Cel No.: 0917-185-1909 • Tel. No.:(043) 575-5675</p>
+                              <p className="text-[9px] -mt-3">www.stjohnmajore.com</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="border-black border rounded-lg flex flex-col divide-y divide-black">
+                          <div className="p-2">
+                            <p className="text-[9px] mb-0">VAT REGISTERED TIN: 010-837-591-000</p>
+                          </div>
+                          <div className="p-2">
+                            <p className="flex justify-center text-center items-center -mt-1 font-semibold">
+                              BILLING SUMMARY
+                            </p>
+
+                            {/* {uniqueBillingSummaries.map((invoice) => (
+                              <div key={invoice.billingSummary}>
+                                <p className="text-lg font-semibold -mt-3  text-red-500 text-center">
+                                  {String(invoice.billingSummary).padStart(5, "0")}
+                                </p>
+                              </div>
+                            ))} */}
+
+                          </div>
+                        </div>
+
+                      </div>
+
+                      <table className="border-collapse my-8 text-xs font-sans">
+
+                        <tbody>
+                          <tr>
+                            <td></td>
+                            <td className="border-r border-l border-t border-black p-2 text-center align-middle font-semibold">
+
+                            </td>
+                            {filteredInvoices
+                              .filter((invoice, index, self) =>
+                                index === self.findIndex(inv => inv.controlNumber === invoice.controlNumber)
+                              )
+                              .map((invoice) => (
+                                <td key={invoice.controlNumber} colSpan={2} className="p-2 border-t border-r w-20 border-black italic text-[10px]">
+                                  Control #: {invoice.controlNumber}
+                                </td>
+                              ))}
+
+                          </tr>
+
+                          <tr>
+                            <td></td>
+                            <td className="border-r border-l border-black p-2 text-center align-middle w-20 font-semibold text-xs">
+                              Date:
+                            </td>
+                            <td colSpan={2} className="p-2 border-t border-r w-20 border-black italic text-xs">
+                              {new Date(selectedGroup.cutoffDate).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })}
+                            </td>
+
+                          </tr>
+                          <tr className="border p-2 border-black font-semibold">
+                            <td>
+                              SOLD TO:
+                            </td>
+                          </tr>
+                          <tr className="border-l border-r p-2 border-black">
+                            <td className="px-2 py-1">Registered Name:</td>
+                            <td></td>
+                          </tr>
+                          <tr className="border-l border-r p-2 border-black">
+                            <td className="px-2 py-1">TIN:</td>
+                            <td>
+                            </td>
+                          </tr>
+                          <tr className="border-l border-r p-2 border-black">
+                            <td className="px-2 py-1">Business Address:</td>
+                            <td>
+                            </td>
+                          </tr>
+                          <tr>
+                            <th className="border border-black p-2 text-center">Particulars</th>
+                            <th className="border border-black p-2   text-center">Quantity</th>
+                            <th className="border border-black p-2 w-20 text-center">Unit Price</th>
+                            <th className="border border-black p-2 w-20 text-center">Amount</th>
+                          </tr>
+                          <tr>
+                            <td className="border h-64 w-72 border-black p-2 text-center"></td>
+                            <td className="border border-black p-2 text-center"></td>
+                            <td className="border border-black p-2 text-center"></td>
+                            <td className="border border-black p-2 text-center"></td>
+                          </tr>
+
+                          <tr>
+                            <td></td>
+                            <td colSpan={2} className="border-l border-r border-b text-right font-semibold border-black">TOTAL AMOUNT DUE:</td>
+                            <td className="border-r border-black border-b">₱ [Total]</td>
+                          </tr>
+                        </tbody>
+
+                      </table>
+
+                      <div className="flex flex-row gap-4 -mt-14">
+                        <div flex flex-col>
+                          <div >
+                            <table className="w-64">
+                              <tr colSpan={2} className="border border-black text-sm">
+                                <td>Prepared by:</td>
+                              </tr>
+                              <tr colSpan={2} className="border border-black text-sm">
+                                <td>Received by:</td>
+                              </tr>
+                              <tr colSpan={2} className="border border-black text-sm">
+                                <td>Date Received:</td>
+                              </tr>
+                            </table>
+                          </div>
+                          <div className="ml-7">
+                            <p className="text-decoration-underline font-semibold  text-[10px] -mt-3">"THIS DOCUMENT IS NOT VALID FOR CLAIMING INPUT TAX."</p>
+                            <p className="text-[8px] -mt-3 font-semibold">THIS BILLING INVOICE SHALL BE VALID FOR FIVE (5) YEARS FROM THE DATE OF ATP.</p>
+                          </div>
+                        </div>
+
+                        <img src={LongLogo} className="w-36 h-24 -ml-3 mt-5" />
+                      </div>
+                    </div>
+
+                    <div className="mt- mb-10">
+                      <hr />
+                    </div>
+
+                    <div className="">
+                      <div>
+                        <p className="italic font-semibold text-[#9D426E] text-sm">ST. JOHN MAJORE SERVICES COMPANY, INC.</p>
+                        <p className="text-xs -mt-3">Details of Billing Invoice</p>
+                        <p className="text-xs -mt-3">For the period of {selectedGroup.cutoffDate}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm mt-5">Principal: {selectedGroup.project}</p>
+                      </div>
+
+                      <div>
+                        <table className="min-w-full -ml-0 table-auto border-separate border border-black text-sm mt-5">
+                          <thead>
+                            <tr>
+                              <th className=" border border-black text-center py-1 text-nowrap" rowSpan="2">NO.</th>
+                              <th className=" border border-black text-center py-1 text-nowrap" rowSpan="2">EMPLOYEE NAME</th>
+                              <th className=" border border-black text-center  py-1 text-nowrap" rowSpan="2">DESCRIPTION</th>
+                              <th className=" border border-black text-center  py-1 text-nowrap" rowSpan="2">PAYROLL RATE</th>
+                              <th className=" border border-black text-center py-1" colSpan="2">REGULAR OVERTIME (excess in 8/hrs/day)</th>
+                              <th className=" border border-black text-center py-1" rowSpan="2">GROSS PAY (DUE TO EMPLOYEES)</th>
+                              <th className=" border border-black text-center py-1 text-nowrap" rowSpan="2">ADMIN FEE (10%)</th>
+                              <th className=" border border-black text-center  py-1 text-nowrap" rowSpan="2">TOTAL AMOUNT</th>
+                              <th className=" border border-black text-center py-1" rowSpan="2">12% VALUE ADDED TAX</th>
+                              <th className=" border border-black text-center  py-1 text-nowrap" rowSpan="2">TOTAL AMOUNT DUE</th>
+                            </tr>
+                            <tr>
+                              <th className=" border border-black text-center  py-1">Hrs</th>
+                              <th className=" border border-black text-center  py-1">Amount</th>
+                            </tr>
+                          </thead>
+
+                          <tbody>
+                            {(() => {
+                              // Initialize totals
+                              let totalDailyRate = 0;
+                              let totalOvertimeHours = 0;
+                              let totalOvertimeAmount = 0;
+                              let totalGrossPay = 0;
+                              let totalAdminFee = 0;
+                              let totalAmount = 0;
+                              let totalVat = 0;
+                              let totalAmountDue = 0;
+
+                              // Map rows and compute totals at the same time
+                              const rows = filteredInvoices.map((invoice, index) => {
+                                const dailyRate = parseFloat(invoice.dailyrate || 0);
+                                const overtimeHours = parseFloat(invoice.totalOvertime || 0);
+                                const overtimeAmount = parseFloat(invoice.overtimePay || 0);
+                                const grossPay = parseFloat(invoice.gross_pay || 0);
+                                const adminFee = grossPay * 0.10;
+                                const subtotal = grossPay + adminFee;
+                                const vat = subtotal * 0.12;
+                                const totalDue = subtotal + vat;
+
+                                // Accumulate totals
+                                totalDailyRate += dailyRate;
+                                totalOvertimeHours += overtimeHours;
+                                totalOvertimeAmount += overtimeAmount;
+                                totalGrossPay += grossPay;
+                                totalAdminFee += adminFee;
+                                totalAmount += subtotal;
+                                totalVat += vat;
+                                totalAmountDue += totalDue;
+
+                                return (
+                                  <tr key={invoice.id}>
+                                    <td className="border border-black text-center px-4 py-2 text-xs text-nowrap">{index + 1}</td>
+                                    <td className="border border-black text-left px-4 py-2 text-xs text-nowrap">{invoice.name}</td>
+                                    <td className="border border-black text-left px-4 py-2 text-xs text-nowrap">{invoice.position || '—'}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{dailyRate.toFixed(2)}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{overtimeHours.toFixed(2)}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{overtimeAmount.toFixed(2)}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{grossPay.toFixed(2)}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{adminFee.toFixed(2)}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{subtotal.toFixed(2)}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{vat.toFixed(2)}</td>
+                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">{totalDue.toFixed(2)}</td>
+                                  </tr>
+                                );
+                              });
+
+                              // Append totals row
+                              rows.push(
+                                <tr key="totals">
+                                  <td className="border border-black font-semibold text-center px-4 py-2" colSpan="3">TOTAL AMOUNT</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalDailyRate.toFixed(2)}</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalOvertimeHours.toFixed(2)}</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalOvertimeAmount.toFixed(2)}</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalGrossPay.toFixed(2)}</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalAdminFee.toFixed(2)}</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalAmount.toFixed(2)}</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalVat.toFixed(2)}</td>
+                                  <td className="border border-black text-right px-4 py-2">{totalAmountDue.toFixed(2)}</td>
+                                </tr>
+                              );
+
+                              return rows;
+                            })()}
+                          </tbody>
+
+                        </table>
+
+                        <table className="table-fixed border border-black text-xs w-fit">
+                          <tbody>
+                            <tr>
+                              <td className="px-2 border-r border-black">TOTAL APPROVED MAN HOURS</td>
+                              <td className="px-2 w-32 text-right">1</td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+
+                        <div className="grid grid-cols-3 gap-4 text-center mt-20">
+                          <div>
+                            <p className="text-xs text-left mb-2">Prepared by:</p>
+                            <div className="border-t border-black h-6"></div>
+                            <p className="text-xs -mt-3">Ms. Paula Jane Y. Castillo</p>
+                            <p className="text-xs -mt-3">Billing Head</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-left mb-2">Received by:</p>
+                            <div className="border-t border-black h-6"></div>
+                            <p className="text-xs -mt-3">Client</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Modal.Body>
+
+                  <Modal.Footer className="flex justify-between flex-wrap gap-2">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={printInvoices}
+                        className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded flex items-center justify-center"
+                      >
+                        <FaPenToSquare title="Print" className="text-neutralDGray w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={downloadPDF}
+                        className="w-20 h-8 border hover:bg-neutralSilver border-neutralDGray rounded flex items-center justify-center"
+                      >
+                        <FaRegFilePdf title="Export to PDF" className="text-neutralDGray w-5 h-5" />
+                      </button>
+                    </div>
+                  </Modal.Footer>
+                </div>
+              </div>
+            </Modal>
+          )}
+        </div>
       </div>
     </div>
   );

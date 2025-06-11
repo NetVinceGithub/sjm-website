@@ -15,7 +15,7 @@ const AttendanceForComputation = () => {
   const fetchAttendance = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/attendance/get-attendance"
+        `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`
       );
       console.log("Fetched Attendance Data:", response.data);
 
@@ -34,7 +34,7 @@ const AttendanceForComputation = () => {
   const fetchSummary = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/attendance/get-summary"
+        `${import.meta.env.VITE_API_URL}/api/attendance/get-summary`
       );
       console.log("Fetched Summary Data:", response.data);
 
@@ -55,7 +55,7 @@ const AttendanceForComputation = () => {
   const deleteAllAttendance = async () => {
     try {
       const response = await fetch(
-        "http://localhost:5000/api/attendance/delete-all-attendance",
+        `${import.meta.env.VITE_API_URL}/api/attendance/delete-all-attendance`,
         { method: "DELETE" }
       );
       if (!response.ok) throw new Error("Failed to delete");
@@ -74,7 +74,7 @@ const AttendanceForComputation = () => {
   if (error) return <p style={{ color: "red" }}>{error}</p>;
 
   return (
-    <div className="fixed p-6 pt-16">
+    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
       <Breadcrumb
         items={[
           { label: "Attendance", href: "/admin-dashboard/attendance" },
@@ -84,80 +84,87 @@ const AttendanceForComputation = () => {
       />
       <div className="-mt-2 bg-white p-3 py-3 rounded-lg shadow">
         <div className="mt-4 overflow-x-auto">
-          <div className="w-[75rem]">
-            <div className="h-[33rem] overflow-y-auto text-neutralDGray border rounded-md">
-              <p className="italic font-poppins text-neutralDGray p-2">* This is the summary of attendance, that contains useful info for payroll generation.</p>
-              <table
-                className="w-[70rem] mb-1 mt-2 border-collapse overflow-auto rounded-lg"
-                border="1"
-                cellPadding="5"
-                cellSpacing="0"
-              >
-                <thead>
-                  <tr>
-                    <th className="border text-center px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg">
-                      Ecode
-                    </th>
-                    <th className="border text-center px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg">
-                      No. of Days Present
-                    </th>
-                    <th className="border text-center  px-4 py-2">
-                      Total Tardiness
-                    </th>
-                    <th className="border text-center  px-4 py-2">
-                      Total Hours
-                    </th>
-                    <th className="border text-center  px-4 py-2">
-                      Total Overtime
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attendanceSummary?.length > 0 ? (
-                    attendanceSummary.map((record) => (
-                      <tr key={record.id}>
-                        <td className="border text-center  px-4 py-2">
-                          {record.ecode}
-                        </td>
-                        <td className="border text-center  px-4 py-2">
-                          {record.daysPresent}
-                        </td>
-                        <td className="border text-center  px-4 py-2">
-                          {record.totalTardiness}
-                        </td>
-                        <td className="border text-center  px-4 py-2">
-                          {record.totalHours || "N/A"}
-                        </td>
-                        <td className="border text-center  px-4 py-2">
-                          {record.totalOvertime || "N/A"}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
+          <div className="">
+            <div className=" overflow-y-auto text-neutralDGray border rounded-md">
+              <p className="italic text-xs font-poppins text-neutralDGray p-2">* This is the summary of attendance, that contains useful info for payroll generation.</p>
+              <div className="flex justify-center">
+                <table
+                  className="w-[70rem] mb-1 mt-2 border-collapse overflow-auto  rounded-lg"
+                  border="1"
+                  cellPadding="5"
+                  cellSpacing="0"
+                >
+                  <thead>
                     <tr>
-                      <td colSpan="4">No attendance summary found</td>
+                      <th className="border text-center px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg">
+                        Ecode
+                      </th>
+                      <th className="border text-center px-4 py-2 first:rounded-tl-lg last:rounded-tr-lg">
+                        Date
+                      </th>
+                      <th className="border text-center  px-4 py-2">
+                        Duty End
+                      </th>
+                      <th className="border text-center  px-4 py-2">
+                        Duty Start
+                      </th>
+                      <th className="border text-center  px-4 py-2">
+                        Punch In
+                      </th>
+                      <th className="border text-center  px-4 py-2">
+                        Punch Out
+                      </th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-
+                  </thead>
+                  <tbody>
+                    {attendanceData?.length > 0 ? (
+                      attendanceData.map((record) => (
+                        <tr key={record.id}>
+                          <td className="border text-center  px-4 py-2">
+                            {record.ecode}
+                          </td>
+                          <td className="border text-center  px-4 py-2">
+                            {record.date}
+                          </td>
+                          <td className="border text-center  px-4 py-2">
+                            {record.dutyEnd}
+                          </td>
+                          <td className="border text-center  px-4 py-2">
+                            {record.dutyStart}
+                          </td>
+                          <td className="border text-center  px-4 py-2">
+                            {record.punchIn}
+                          </td>
+                          <td className="border text-center  px-4 py-2">
+                            {record.punchOut}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="4">No attendance summary found</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
               <div className="flex justify-end gap-2 mb-3 mr-4">
                 <button
                   onClick={() => navigate("/admin-dashboard/payroll-summary")}
-                  className="mt-4 h-auto px-3 py-2 border text-neutralDGray rounded hover:bg-neutralSilver"
+                  className="mt-4 h-fit w-fit px-3 py-2 border text-xs text-neutralDGray rounded hover:bg-neutralSilver"
                 >
                   Generate Payroll
                 </button>
 
                 <button
                   onClick={() => navigate("/admin-dashboard/attendance")}
-                  className="mt-4 h-auto px-3 py-2 border text-neutralDGray rounded  hover:bg-neutralSilver"
+                  className="mt-4 h-fit px-3 py-2 border fit w-fit text-xs text-neutralDGray rounded  hover:bg-neutralSilver"
                 >
                   Add Attendance
                 </button>
 
                 <button
-                  className="mt-4 h-auto px-3 py-2 border text-neutralDGray rounded  hover:bg-neutralSilver"
+                  className="mt-4 h-fit w-fit text-xs px-3 py-2 border text-neutralDGray rounded  hover:bg-neutralSilver"
                   onClick={() => setIsModalOpen(true)} // Open modal
                 >
                   Delete Attendance

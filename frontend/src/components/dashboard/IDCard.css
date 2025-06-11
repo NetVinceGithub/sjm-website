@@ -1,7 +1,18 @@
+@font-face {
+  font-family: "AR JULIAN";
+  src: url("/fonts/ARJULIAN.woff2") format("woff2"),
+    url("fonts/ARJULIAN.woff") format("woff");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
 .id-container {
   display: inline-flex;
-  justify-content: space-between;
+  justify-content: space-between; 
   align-items: flex-start;
+  transform: scale(1);
+  zoom: 1;
   gap: 20px;
 }
 
@@ -41,7 +52,7 @@
 }
 
 .id-content, .id-content-back {
-  background-image: url('../src/assets/img-bg.png');
+  background-image: url('../../assets/img-bg.png');
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -61,10 +72,11 @@
 }
 
 .user-img {
-  width: 140px;
-  height: 140px;
-  margin: 60px auto 0;
+  width: 120px;
+  height: 120px;
+  margin: 60px auto -10px;
 }
+
 
 .user-info, .user-info-back, .emergency {
   font-size: 12px;
@@ -78,7 +90,11 @@
   text-align: center;
   margin-top: 30px;
   line-height: 5px;
-  margin-left: 30px;
+  margin-left: 10px;
+}
+
+.user-position {
+  font-size: 10px;
 }
 
 .user-name {
@@ -91,10 +107,25 @@
 
 .user-signature {
   font-size: 12px;
-  margin-top: -80px;
+  margin-top: 60px;      /* Negative margin can cause overlap; use carefully */
   text-align: center;
-  margin-left: 30px;
+  margin-left: 130px;
+  width: 100px;
+  height: 100px;
+  /* Consider adding display:inline-block or block if needed */
 }
+
+.user-sig {
+  width: 100px;
+  height: auto;
+  position: absolute;
+  top: 65%;
+  left: 55%;
+  transform: translate(-55%, 30%);
+  z-index: 1;
+  pointer-events: none;
+}
+
 
 .address {
   margin-left: 10px;
@@ -127,12 +158,13 @@
   width: 200px;
   height: auto;
   position: absolute;
-  top: 50%;
+  top: 37%;
   left: 50%;
   transform: translate(-55%, 30%);
   z-index: 1;
   pointer-events: none;
 }
+
 .hr-name {
   font-size: 15px;
   font-weight: bold;

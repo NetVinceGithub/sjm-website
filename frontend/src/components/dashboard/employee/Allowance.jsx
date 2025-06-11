@@ -9,7 +9,7 @@ const Allowance = () => {
   useEffect(()=>{
     const fetchAllowance = async () => {
       try{
-        const response = await axios.get(`http://localhost:5000/api/allowance/${id}`, {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/allowance/${id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },

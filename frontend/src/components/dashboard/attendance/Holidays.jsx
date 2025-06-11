@@ -1,139 +1,519 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import Calendar from 'react-calendar';
-import 'react-calendar/dist/Calendar.css';
-import './CalendarStyles.css'; // Add custom styling here
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { Calendar, momentLocalizer } from "react-big-calendar";
+import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import "./CalendarStyles.css"; // Add custom styling here
+import Breadcrumb from "../dashboard/Breadcrumb";
+import DataTable from "react-data-table-component";
+
+// Setup the localizer for React Big Calendar
+const localizer = momentLocalizer(moment);
 
 const Holidays = () => {
   const [holidays, setHolidays] = useState([]);
-  const [name, setName] = useState('');
-  const [date, setDate] = useState('');
-  const [type, setType] = useState('');
+  const [name, setName] = useState("");
+  const [date, setDate] = useState("");
+  const [type, setType] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedHoliday, setSelectedHoliday] = useState('');
+  const [selectedHoliday, setSelectedHoliday] = useState("");
+  const [showDateModal, setShowDateModal] = useState(false);
+
+  // Added state for holiday rates modal and rates data
+  const [showRateModal, setShowRateModal] = useState(false);
+  const [holidayRates, setHolidayRates] = useState({
+    regular: 0,
+    special: 0,
+    specialNonWorking: 0,
+  });
+  const [loadingRates, setLoadingRates] = useState(false);
 
   useEffect(() => {
     fetchHolidays();
+    fetchHolidayRates();
   }, []);
 
   const fetchHolidays = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/holidays');
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`);
       setHolidays(response.data.holidays || []);
     } catch (error) {
-      console.error('Error fetching holidays:', error);
+      console.error("Error fetching holidays:", error);
       setHolidays([]);
     }
   };
 
   const addHoliday = async () => {
     try {
-      await axios.post('http://localhost:5000/api/holidays/add', { name, date, type });
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/holidays/add`, {
+        name,
+        date,
+        type,
+      });
       fetchHolidays();
-      setName('');
-      setDate('');
-      setType('');
+      setName("");
+      setDate("");
+      setType("");
     } catch (error) {
-      console.error('Error adding holiday:', error);
+      console.error("Error adding holiday:", error);
     }
   };
+
+  const columns = [
+    {
+      name: "Date",
+      selector: (row) => row.date,
+      sortable: true,
+    },
+    {
+      name: "Holiday Name",
+      selector: (row) => row.name,
+      sortable: true,
+    },
+    {
+      name: "Type",
+      selector: (row) => row.type,
+      sortable: true,
+    },
+    {
+      name: "Actions",
+      cell: (row) => (
+        <button
+          onClick={() => deleteHoliday(row.id)}
+          className="bg-red-500/40 text-white h-10 w-18 py-1 px-3 rounded-lg hover:bg-red-600 transition duration-200"
+        >
+          Delete
+        </button>
+      ),
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+    },
+  ];
 
   const deleteHoliday = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/holidays/delete/${id}`);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/holidays/delete/${id}`);
       fetchHolidays();
     } catch (error) {
-      console.error('Error deleting holiday:', error);
+      console.error("Error deleting holiday:", error);
     }
   };
 
-  const handleDateClick = (date) => {
-    setSelectedDate(date);
-    const holiday = holidays.find((h) => new Date(h.date).toDateString() === date.toDateString());
-    setSelectedHoliday(holiday ? `${holiday.name} (${holiday.type})` : 'No holiday');
+  // Transform holidays data for React Big Calendar
+  const calendarEvents = holidays.map(holiday => ({
+    id: holiday.id,
+    title: holiday.name,
+    start: new Date(holiday.date),
+    end: new Date(holiday.date),
+    allDay: true,
+    resource: {
+      type: holiday.type,
+      originalData: holiday
+    }
+  }));
+
+  // Handle event selection in Big Calendar
+  const handleSelectEvent = (event) => {
+    setSelectedDate(event.start);
+    setSelectedHoliday(`${event.title} (${event.resource.type})`);
+    setShowDateModal(true);
   };
 
-  const tileClassName = ({ date }) => {
-    const holiday = holidays.find(h => new Date(h.date).toDateString() === date.toDateString());
-    if (holiday) {
-      return holiday.type === 'Regular' ? 'holiday-regular' : 'holiday-special';
+  // Handle date selection (clicking on empty date)
+  const handleSelectSlot = (slotInfo) => {
+    setSelectedDate(slotInfo.start);
+    const holiday = holidays.find(
+      (h) => new Date(h.date).toDateString() === slotInfo.start.toDateString()
+    );
+    setSelectedHoliday(
+      holiday ? `${holiday.name} (${holiday.type})` : "No holiday"
+    );
+    setShowDateModal(true);
+  };
+
+  // Close date modal
+  const closeDateModal = () => {
+    setShowDateModal(false);
+    setSelectedDate(null);
+    setSelectedHoliday("");
+  };
+
+  // Custom event style based on holiday type
+  const eventStyleGetter = (event) => {
+    let backgroundColor = '#3174ad';
+    let borderColor = '#3174ad';
+
+    switch (event.resource.type) {
+      case 'Regular':
+        backgroundColor = '#dc2626'; // Red for regular holidays
+        borderColor = '#dc2626';
+        break;
+      case 'Special':
+        backgroundColor = '#16a34a'; // Green for special holidays
+        borderColor = '#16a34a';
+        break;
+      case 'Special Non-Working':
+        backgroundColor = '#ea580c'; // Orange for special non-working
+        borderColor = '#ea580c';
+        break;
+      default:
+        backgroundColor = '#3174ad';
+        borderColor = '#3174ad';
     }
-    return '';
+
+    return {
+      style: {
+        backgroundColor,
+        borderColor,
+        color: 'white',
+        border: `2px solid ${borderColor}`,
+        borderRadius: '4px',
+        fontSize: '12px',
+        fontWeight: 'bold'
+      }
+    };
+  };
+
+  // --- HOLIDAY RATE FUNCTIONS (unchanged) ---
+
+  // Fetch current holiday rates from backend or use defaults
+  const fetchHolidayRates = async () => {
+    setLoadingRates(true);
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/holidays/holiday-rates`);
+      if (res.data && res.data.rates) {
+        setHolidayRates({
+          regular: res.data.rates.regular ?? 1,
+          special: res.data.rates.special ?? 1,
+          specialNonWorking: res.data.rates.specialNonWorking ?? 1,
+        });
+      } else {
+        setHolidayRates({ regular: 1, special: 1, specialNonWorking: 1 });
+      }
+    } catch (err) {
+      console.error("Failed to load holiday rates, using defaults", err);
+      setHolidayRates({ regular: 1, special: 1, specialNonWorking: 1 });
+    } finally {
+      setLoadingRates(false);
+    }
+  };
+
+  // Open modal and fetch current rates
+  const openRateModal = () => {
+    fetchHolidayRates();
+    setShowRateModal(true);
+  };
+
+  // Close modal
+  const closeRateModal = () => {
+    setShowRateModal(false);
+  };
+
+  // Handle input changes inside modal
+  const handleRateChange = (e) => {
+    const { name, value } = e.target;
+    setHolidayRates((prev) => ({
+      ...prev,
+      [name]: Number(value),
+    }));
+  };
+
+  // Save holiday rates to backend
+  const saveHolidayRates = async () => {
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/holidays/holiday-rates`, holidayRates);
+      alert("Holiday rates saved successfully!");
+      closeRateModal();
+    } catch (error) {
+      console.error("Error saving holiday rates:", error);
+      alert("Failed to save holiday rates.");
+    }
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg">
-      <h3 className="text-2xl font-bold text-center mb-4">📆 Holiday Calendar</h3>
-
-      <Calendar 
-        onClickDay={handleDateClick}
-        tileClassName={tileClassName}
-        className="custom-calendar"
-      />
-
-      {selectedDate && (
-        <div className="mt-4 p-4 bg-gray-100 rounded-lg text-center">
-          <p className="text-lg font-semibold">📅 {selectedDate.toDateString()}</p>
-          <p className="text-blue-500 text-xl font-bold">{selectedHoliday}</p>
-        </div>
-      )}
-
-      {/* Add Holiday */}
-      <div className="flex flex-col gap-4 mt-6">
-        <input
-          type="text"
-          placeholder="Holiday Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
+      <div className="h-[calc(100vh-100px)] overflow-auto">
+        <Breadcrumb
+          items={[
+            { label: "Attendance", href: "/admin-dashboard/attendance" },
+            { label: "Add Attendance", href: "/admin-dashboard/employees" },
+            { label: "Attendance Computation", href: "/admin-dashboard/attendance-computation" },
+            { label: "History", href: "" },
+            { label: "Holidays", href: "" },
+          ]}
         />
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        >
-          <option value="">Select Type</option>
-          <option value="Regular">Regular Holiday</option>
-          <option value="Special">Special Holiday</option>
-        </select>
-        <button
-          onClick={addHoliday}
-          className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-200"
-        >
-          ➕ Add Holiday
-        </button>
-      </div>
 
-      {/* List Holidays */}
-      <ul className="space-y-3 mt-6 max-h-96 overflow-y-auto">
-        {holidays.length > 0 ? (
-          holidays.map((holiday) => (
-            <li
-              key={holiday.id}
-              className="flex justify-between items-center bg-gray-100 p-4 rounded-lg shadow-sm hover:bg-gray-200 transition-all duration-200"
-            >
-              <span className="font-medium text-gray-800">
-                {holiday.date} - <span className="text-blue-600">{holiday.name}</span> 
-                <span className="ml-2 text-sm text-gray-500">({holiday.type})</span>
-              </span>
-              <button
-                onClick={() => deleteHoliday(holiday.id)}
-                className="bg-red-500 text-white py-1 px-3 rounded-lg hover:bg-red-600 transition duration-200"
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Big Calendar on the left */}
+          <div className="lg:w-2/3">
+            <div className="bg-white p-3 rounded-lg">
+              <h2 className="text-xl mb-4 text-neutralDGrey">Holiday Calendar</h2>
+
+              {/* Legend */}
+              <div className="flex flex-wrap gap-4 mb-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-600 rounded"></div>
+                  <span>Regular Holiday</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-600 rounded"></div>
+                  <span>Special Holiday</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-orange-600 rounded"></div>
+                  <span>Special Non-Working</span>
+                </div>
+              </div>
+
+              {/* React Big Calendar */}
+              <div style={{ height: '500px' }}>
+                <Calendar
+                  localizer={localizer}
+                  events={calendarEvents}
+                  startAccessor="start"
+                  endAccessor="end"
+                  onSelectEvent={handleSelectEvent}
+                  onSelectSlot={handleSelectSlot}
+                  selectable
+                  eventPropGetter={eventStyleGetter}
+                  views={['month', 'week', 'day', 'agenda']}
+                  defaultView="month"
+                  popup
+                  tooltipAccessor="title"
+                  showMultiDayTimes
+                  step={60}
+                  showAllEvents
+                  components={{
+                    toolbar: ({ label, onNavigate, onView, view, views }) => (
+                      <div className="rbc-toolbar flex items-center justify-between mb-2 p-2 ">
+                        <div className="flex items-center">
+                          <button
+                            onClick={() => onNavigate('PREV')}
+                            className="px-3 py-1 h-10 w-fit bg-white border  hover:bg-gray-100 text-sm"
+                          >
+                            Back
+                          </button>
+                          <button
+                            onClick={() => onNavigate('TODAY')}
+                            className="px-3 py-1  h-10 w-fit bg-blue-500 text-neutralDGray  hover:bg-blue-600 text-sm"
+                          >
+                            Today
+                          </button>
+                          <button
+                            onClick={() => onNavigate('NEXT')}
+                            className="px-3 py-1  h-10 w-fit bg-white border  hover:bg-gray-100 text-sm"
+                          >
+                            Next
+                          </button>
+                        </div>
+
+                        <div className="rbc-toolbar-label text-lg ">
+                          {label}
+                        </div>
+
+                        <div className="flex">
+                          {views.map(viewName => (
+                            <button
+                              key={viewName}
+                              onClick={() => onView(viewName)}
+                              className={`px-2 py-1  h-10 w-fit text-xs capitalize transition-colors ${view === viewName
+                                ? 'bg-blue-500 text-neutralDGray'
+                                : 'bg-white border hover:bg-gray-100'
+                                }`}
+                            >
+                              {viewName}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Add Holiday Form on the right */}
+          <div className="lg:w-1/3 bg-white p-4 rounded-lg">
+            <h3 className="text-lg mb-4 text-neutralDGray">Add Holiday</h3>
+            <div className="flex flex-col gap-3">
+              <input
+                type="text"
+                placeholder="Holiday Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="p-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="p-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                className="p-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
-                ❌ Delete
+                <option value="">Select Type</option>
+                <option value="Regular">Regular Holiday</option>
+                <option value="Special">Special Holiday</option>
+                <option value="Special Non-Working">
+                  Special Non-Working Holiday
+                </option>
+              </select>
+
+              <button
+                onClick={addHoliday}
+                className="p-2 text-sm h-10 w-full text-neutralDGray border hover:text-white hover:bg-green-400 rounded flex items-center justify-center transition duration-200"
+              >
+                Add Holiday
               </button>
-            </li>
-          ))
-        ) : (
-          <p className="text-center text-gray-500 font-medium">No holidays available.</p>
+
+              {/* Holiday Rates Display */}
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <div className="text-sm font-medium text-neutralDGray mb-2">Current Rates:</div>
+                <div className="text-sm text-neutralDGray space-y-1">
+                  <div>Regular: <strong>{holidayRates.regular}x</strong></div>
+                  <div>Special: <strong>{holidayRates.special}x</strong></div>
+                  <div>Special Non-Working: <strong>{holidayRates.specialNonWorking}x</strong></div>
+                </div>
+              </div>
+
+              <button
+                onClick={openRateModal}
+                className="p-2 text-sm h-10 w-full text-neutralDGray border hover:text-white hover:bg-blue-400 rounded flex items-center justify-center transition duration-200"
+              >
+                Edit Holiday Rates
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* List Holidays */}
+        <div className="bg-white p-3 mt-6 rounded-lg">
+          <h3 className="text-lg mb-4 text-neutralDGray">Holiday List</h3>
+          <div className="text-sm">
+            <DataTable
+              columns={columns}
+              data={holidays}
+              noDataComponent="No holidays available."
+              pagination
+              paginationRowsPerPageOptions={[10, 15, 20, 30]}
+              dense
+              highlightOnHover
+              striped
+            />
+          </div>
+        </div>
+
+        {/* Date Selection Modal */}
+        {showDateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+              <h3 className="text-base mb-3">Date Information</h3>
+              <div className="p-4 h-fit bg-blue-50 rounded-lg">
+                <p className="text-sm font-medium text-gray-700 mb-1">Selected Date:</p>
+                <p className="text-lg italic text-blue-800">
+                  {selectedDate?.toDateString()}
+                </p>
+              </div>
+
+              <div className="p-4 bg-gray-50 mt-2 rounded-lg">
+                <p className="text-sm  font-medium text-gray-700 mb-1">Holiday Status:</p>
+                <p className="text-sm italic font-medium text-gray-800">
+                  {selectedHoliday}
+                </p>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={closeDateModal}
+                  className="px-4 py-2 w-full h-10 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-gray-100 transition-all"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
         )}
-      </ul>
+
+        {/* Holiday Rates Modal */}
+        {showRateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+              <h3 className="text-lg mb-4">Edit Holiday Rates</h3>
+
+              {loadingRates ? (
+                <div className="text-center py-4">Loading rates...</div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Regular Holiday Rate (multiplier)
+                    </label>
+                    <input
+                      type="number"
+                      name="regular"
+                      value={holidayRates.regular}
+                      onChange={handleRateChange}
+                      step="0.1"
+                      min="0"
+                      className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Special Holiday Rate (multiplier)
+                    </label>
+                    <input
+                      type="number"
+                      name="special"
+                      value={holidayRates.special}
+                      onChange={handleRateChange}
+                      step="0.1"
+                      min="0"
+                      className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Special Non-Working Rate (multiplier)
+                    </label>
+                    <input
+                      type="number"
+                      name="specialNonWorking"
+                      value={holidayRates.specialNonWorking}
+                      onChange={handleRateChange}
+                      step="0.1"
+                      min="0"
+                      className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={saveHolidayRates}
+                  disabled={loadingRates}
+                  className="px-4 py-2n w-1/2 h-10 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+                >
+                  Save Rates
+                </button>
+                <button
+                  onClick={closeRateModal}
+                  className="px-4 py-2 w-1/2 h-10 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

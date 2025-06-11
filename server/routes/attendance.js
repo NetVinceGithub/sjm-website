@@ -1,7 +1,11 @@
 import express from "express";
-import { saveAttendance, saveAttendanceSummary, getAttendance, getAttendanceSummary, getAttendanceHistory, deleteAllAttendance } from "../controllers/attendanceController.js";
-
+import { saveAttendance, saveAttendanceSummary, getAttendance, getAttendanceSummary, getAttendanceHistory, deleteAllAttendance, uploadAttendanceFile } from "../controllers/attendanceController.js";
+import multer from 'multer';
+const upload = multer({ storage: multer.memoryStorage() });
 const router = express.Router();
+
+router.post("/upload", upload.single('attendanceFile'), uploadAttendanceFile);
+
 
 router.post("/add-attendance", saveAttendance);
 router.post("/add-attendance-summary", saveAttendanceSummary);
