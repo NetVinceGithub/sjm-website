@@ -10,7 +10,7 @@ const RatesDashboard = () => {
   useEffect(() => {
     const fetchRates = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/rates", {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/rates`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },

@@ -1,66 +1,92 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../db/db.js";
-import moment from "moment"; // Import moment.js for date formatting
+import moment from "moment";
 
-const AttendanceHistory = sequelize.define("AttendanceHistory", {
-  id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
-  },
-  ecode: {
-    type: DataTypes.STRING(50),
-    allowNull: false,
-  },
-  ea_txndte: {
-    type: DataTypes.DATEONLY,
-    allowNull: false,
-    set(value) {
-      this.setDataValue("ea_txndte", moment(value, ["DD-MMM-YY", "YYYY-MM-DD"]).format("YYYY-MM-DD"));
+const AttendanceHistory = sequelize.define(
+  "AttendanceHistory",
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    ecode: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+    },
+    date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
+    dutyStart: {
+      type: DataTypes.TIME,
+      allowNull: true,
+      field: "duty_start",
+    },
+    dutyEnd: {
+      type: DataTypes.TIME,
+      allowNull: true,
+      field: "duty_end",
+    },
+    punchIn: {
+      type: DataTypes.TIME,
+      allowNull: true,
+      field: "punch_in",
+    },
+    punchOut: {
+      type: DataTypes.TIME,
+      allowNull: true,
+      field: "punch_out",
+    },
+    workTime: {
+      type: DataTypes.TIME,
+      allowNull: true,
+      field: "work_time",
+    },
+    lateTime: {
+      type: DataTypes.TIME,
+      allowNull: true,
+      field: "late_time",
+    },
+    overtime: {
+      type: DataTypes.TIME,
+      allowNull: true,
+      field: "overtime",
+    },
+    absentTime: {
+      type: DataTypes.TIME,
+      allowNull: true,
+      field: "absent_time",
+    },
+    isAbsent: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      field: "is_absent",
+    },
+    status: {
+      type: DataTypes.ENUM("present", "absent", "late", "holiday"),
+      defaultValue: "present",
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
     },
   },
-  ea_day: {
-    type: DataTypes.VIRTUAL,
-    get() {
-      return moment(this.getDataValue("ea_txndte")).format("DD");
-    },
-  },
-  ea_month: {
-    type: DataTypes.VIRTUAL,
-    get() {
-      return moment(this.getDataValue("ea_txndte")).format("MM");
-    },
-  },
-  ea_year: {
-    type: DataTypes.VIRTUAL,
-    get() {
-      return moment(this.getDataValue("ea_txndte")).format("YYYY");
-    },
-  },
-  schedin: DataTypes.STRING(10),
-  schedout: DataTypes.STRING(10),
-  timein: DataTypes.STRING(10),
-  timeout2: DataTypes.STRING(10),
-  tardiness: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-  },
-  total_hours: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: false,
-    defaultValue: 0.0,
-  },
-  overtime: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: false,
-    defaultValue: 0.0,
-  },
-}, {
-  tableName: "attendancehistory",
-  timestamps: false,
-  freezeTableName: true,
-});
+  {
+    tableName: "attendancehistory",
+    timestamps: true,
+    // Remove the unique index to allow duplicates
+   indexes: [
+    { fields: ['ecode'] },
+    { fields: ['date'] }
+  ],
+  }
+);
 
 export default AttendanceHistory;
-

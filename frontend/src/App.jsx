@@ -1,11 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import EmployeeDashboard from "./pages/EmloyeeDashboard";
 import PrivateRoutes from "./utils/PrivateRoutes";
 import RoleBaseRoutes from "./utils/RoleBaseRoutes";
-import AdminSummary from "./components/dashboard/dashboard/PayrollSummary";
 import DepartmentList from "./components/dashboard/department/DepartmentList";
 import AddDepartment from "./components/dashboard/department/AddDepartment";
 import EditDepartment from "./components/dashboard/department/EditDepartment";
@@ -31,6 +32,7 @@ import PayslipHistory from "./components/dashboard/dashboard/PayslipHistory";
 import EmployeePayslipHistory from "./components/dashboard/payroll/EmployeePayslipHistory";
 import EmployeePayrollInformationsList from "./components/dashboard/employee/EmployeePayrollInformationsList";
 import InvoiceList from "./components/dashboard/invoice/InvoiceList";
+import ClientList from "./components/dashboard/invoice/ClientList";
 import Attendance from "./components/dashboard/attendance/Attendance";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -125,6 +127,7 @@ function AppContent() {
           <Route path="attendance/history" element={<History />} />
           <Route path="attendance-conversion" element={<Conversion />} />
           <Route path="invoice-list" element={<InvoiceList />} />
+          <Route path="client-list" element={<ClientList />} />
           <Route path="projects" element={<Projects />} />
           <Route path="add-project" element={<AddProject />} />
           <Route path="edit-project/:id" element={<EditProject />} />
@@ -138,6 +141,7 @@ function AppContent() {
         <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
       </Routes>
 
+      <ToastContainer position="top-right" autoClose={5000} />
       {/* Show footer only in public routes */}
     </>
   );

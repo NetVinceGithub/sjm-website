@@ -21,7 +21,7 @@ const ViewSalary = () => {
   useEffect(() => {
     const fetchEmployee = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/employee/${id}`, {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee/${id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
@@ -58,7 +58,7 @@ const ViewSalary = () => {
           >
             <div className="flex flex-col items-center">
               <img
-                src={`http://localhost:5000/${employee.userId.profileImage}`}
+                src={`${import.meta.env.VITE_API_URL}/${employee.userId.profileImage}`}
                 className="rounded-full border w-32 h-32 mb-5"
                 alt="Employee Profile"
               />

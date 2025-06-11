@@ -1,26 +1,33 @@
 import { sequelize, connectToDatabase } from './db/db.js';
 import User from './models/User.js';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
-const userRegister = async () => {
-  await connectToDatabase(); // Ensure the database is connected
+export const userRegister = async () => {
+  await connectToDatabase();
 
   try {
-    const hashPassword = await bcrypt.hash("admin", 10);
+    const hashPassword = await bcrypt.hash("vince", 10);
 
-    // Create admin user
-    const newUser = await User.create({
-      name: "Admin",
-      email: "admin@gmail.com",
-      password: hashPassword,
-      role: "admin",
+    // Avoid duplicates
+    const [adminUser, created] = await User.findOrCreate({
+      where: { email: "vjmalicsi08@gmail.com" },
+      defaults: {
+        name: "Vince",
+        password: hashPassword,
+        role: "approver",
+      }
     });
 
-    console.log("✅ Admin user created successfully:", newUser.toJSON());
+    if (created) {
+      console.log("✅ Approver user created:", adminUser.toJSON());
+    } else {
+      console.log("⚠️ Approver user already exists.");
+    }
+
   } catch (error) {
-    console.error("❌ Error inserting admin user:", error);
+    console.error("❌ Error inserting approver user:", error);
   } finally {
-    await sequelize.close(); // Close DB connection after seeding
+    // await sequelize.close();
   }
 };
 

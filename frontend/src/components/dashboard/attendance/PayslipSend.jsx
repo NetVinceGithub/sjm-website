@@ -13,7 +13,7 @@ const PayslipSend = () => {
 
     const fetchPayslip = async() =>{
         try{
-            const response = await axios.get("http://localhost:5000/api/payslip");
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
             console.log(response.data);
         } catch (error) {
             console.log(error);
@@ -160,14 +160,6 @@ const PayslipSend = () => {
                         </tbody>
                       </table>
                       <div className="footer">
-                        <div className="block">
-                          <h6 className="font-bold text-[14px] text-center">
-                            Mia Mary Sora
-                          </h6>
-                          <p className="-mt-3 text-[12px] text-center">
-                            Human Resource Head
-                          </p>
-                        </div>
                         <div className="grid grid-cols-2 gap-4 text-[12px] -mt-1">
                           <div>
                             <p>

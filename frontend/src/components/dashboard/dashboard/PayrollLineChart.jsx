@@ -23,7 +23,7 @@ export default function PayrollLineChart() {
   useEffect(() => {
     const fetchPayslips = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/payslip");
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
         const payslipData = response.data;
 
         // Calculate total payroll, gross salary, and benefits
@@ -67,12 +67,12 @@ export default function PayrollLineChart() {
   }, []);
 
   return (
-    <div className="p-4 bg-white shadow-sm rounded border border-neutral-300">
+    <div className="p-2 bg-white shadow-sm rounded border border-neutral-300">
       {/* Payroll Chart */}
-      <h2 className="text-lg font-semibold text-neutralDGray mb-2">
+      <h2 className="text-lg -mt-1 text-sm text-neutralDGray mb-3">
         Payroll Overview
       </h2>
-      <ResponsiveContainer width="100%" height={220}>
+      <ResponsiveContainer width="100%" height={250}>
         <BarChart data={payslips}>
           <XAxis
             dataKey="date"

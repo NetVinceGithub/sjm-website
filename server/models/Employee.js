@@ -192,6 +192,10 @@ const Employee = sequelize.define("Employee", {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
+  permanentaddress: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
   contactno: {
     type: DataTypes.STRING,
     defaultValue: "N/A",
@@ -246,6 +250,18 @@ const Employee = sequelize.define("Employee", {
   status: {
     type: DataTypes.STRING,
     defaultValue: "active",
+  },
+ attendedtrainingandseminar: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+ 
+  dateofseparation: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
+    medical: {
+    type: DataTypes.STRING,
   },
 }, { timestamps: false });
 

@@ -12,7 +12,7 @@ const EmployeePayslipHistory = () => {
       console.log('Fetching payslips for ecode:', id);  // Log the ecode
       const fetchPayslipHistories = async () => {
           try {
-              const response = await axios.get(`http://localhost:5000/api/payslip/history/${id}`, {
+              const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/history/${id}`, {
                   headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
               });
   
