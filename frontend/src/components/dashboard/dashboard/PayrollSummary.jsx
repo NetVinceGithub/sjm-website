@@ -827,7 +827,7 @@ const PayrollSummary = () => {
 
           {/* Calendar Section */}
           <div className="w-full lg:w-[28%]">
-            <CustomCalendar onDateChange={setCutoffDate} />
+            <CustomCalendar onDateChange={setCutoffDate} payrollType={payrollType} />
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import { notifyPayrollRequests } from '../../../utils/toastHelpers';
 import { notifyChangeRequests } from '../../../utils/toastHelper2';
 import { toast } from 'react-toastify';
 import { isWithinInterval, isSameDay, isAfter } from 'date-fns';
+import { Plus, Check } from "lucide-react";
 import {
   FaUsers,
   FaCashRegister,
@@ -688,14 +689,14 @@ const fetchPayslips = async () => {
                         <button
                           onClick={saveEdit}
                           title="Update"
-                          className="bg-brandPrimary h-8 w-fit p-2 text-white rounded hover:bg-neutralDGray text-[12px]"
+                          className="bg-brandPrimary flex justify-center items-center h-8 w-8 p-2 text-white rounded hover:bg-neutralDGray text-[12px]"
                         >
                           <FaArrowRotateRight />
                         </button>
                         <button
                           onClick={cancelEdit}
                           title="Cancel"
-                          className="bg-gray-300 h-8 p-2 w-fit text-gray-700 rounded hover:bg-gray-400 text-[12px]"
+                          className="bg-gray-300 flex justify-center items-center h-8 p-2 w-8 text-gray-700 rounded hover:bg-gray-400 text-[12px]"
                         >
                           <FaXmark />
                         </button>
@@ -703,9 +704,9 @@ const fetchPayslips = async () => {
                     ) : (
                       <button
                         onClick={handleAddNote}
-                        className="bg-brandPrimary h-8 px-3 text-white rounded hover:bg-neutralDGray text-[12px] flex items-center justify-center"
+                        className="bg-brandPrimary h-8 w-8 p-1.5 text-white rounded hover:bg-neutralDGray text-[12px] flex items-center justify-center"
                       >
-                        {showTitleInput ? "Save" : "Add"}
+                        {showTitleInput ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                       </button>
                     )}
                   </div>

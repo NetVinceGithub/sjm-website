@@ -668,7 +668,7 @@ const InvoiceList = () => {
             </div>
           </div>
 
-          <div className="mt-3 border border-neutralDGray h-[31rem] rounded overflow-x-auto">
+          <div className="mt-3 border border-neutralDGray h-[95%]  rounded overflow-x-auto">
             <DataTable
               columns={[
                 {

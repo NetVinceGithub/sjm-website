@@ -141,21 +141,6 @@ const Logins = () => {
 
   const columns = [
     {
-      name: '',
-      cell: (row) => (
-        <button
-          onClick={() => toggleRowExpansion(row.id, row.userId, row.sessionId)}
-          className="text-gray-500 hover:text-gray-700 p-1 rounded"
-          title="View session activities"
-        >
-          {expandedRows[row.id] ? '▼' : '▶'}
-        </button>
-      ),
-      width: '50px',
-      allowOverflow: true,
-      button: true,
-    },
-    {
       name: 'User',
       selector: row => row.userName,
       sortable: true,
@@ -218,7 +203,6 @@ const Logins = () => {
             <ActivityRow activities={expandedRows[data.id]} />
           )}
           expandableRowExpanded={(row) => !!expandedRows[row.id]}
-          paginationPerPage={12}
           progressPending={loading}
           progressComponent={
             <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
@@ -226,6 +210,7 @@ const Logins = () => {
               Loading data...
             </div>
           }
+          paginationPerPage={12}
           pagination
           responsive
           highlightOnHover
