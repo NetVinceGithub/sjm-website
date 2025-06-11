@@ -144,6 +144,10 @@ const Employee = sequelize.define("Employee", {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
+  project: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
   positiontitle: {
     type: DataTypes.STRING,
     defaultValue: "N/A",

@@ -84,6 +84,7 @@ const fetchAndSaveEmployees = async () => {
     const headers = rows[0].map((header) =>
       header.toLowerCase().replace(/\s+/g, "")
     );
+
     const validEmployees = rows.slice(1).map((row) => {
       const employeeObj = {};
       headers.forEach((header, colIndex) => {
@@ -92,98 +93,206 @@ const fetchAndSaveEmployees = async () => {
       return employeeObj;
     });
 
-    // Get all current employee ids from your database
+    // Helper to clean email (return null if empty or invalid)
+    const cleanEmail = (email) => {
+      if (!email || typeof email !== "string") return null;
+      const trimmed = email.trim();
+      return trimmed === "" ? null : trimmed;
+    };
+
+    // Helper to clean string fields (handle empty strings and trim)
+    const cleanString = (value) => {
+      if (!value || typeof value !== "string") return null;
+      const trimmed = value.trim();
+      return trimmed === "" ? null : trimmed;
+    };
+
+    // Helper to clean integer fields (convert '' or invalid to null)
+    const cleanInt = (value) => {
+      if (value === "" || value === null || value === undefined) return null;
+      const intVal = parseInt(value, 10);
+      return isNaN(intVal) ? null : intVal;
+    };
+
+    // Helper to clean decimal fields (for rates, amounts, etc.)
+    const cleanDecimal = (value) => {
+      if (value === "" || value === null || value === undefined) return null;
+      const floatVal = parseFloat(value);
+      return isNaN(floatVal) ? null : floatVal;
+    };
+
+    // List your integer fields here — adjust to your schema
+    const integerFields = [
+      "hc",
+      "age",
+      "tenuritytoclient(inmonths)",
+      "sss",
+      "philhealth",
+      "pagibig",
+      "tardiness",
+      "loan",
+      "deployedemployees",
+      // add more integer fields as needed
+    ];
+
+    // List string fields that need cleaning (contact info, names, etc.)
+    const stringFields = [
+      "contactnumber",
+      "contactname", 
+      "emergencycontact",
+      "emergencycontactnumber",
+      "name",
+      "firstname",
+      "lastname",
+      "middlename",
+      "address",
+      "city",
+      "province",
+      "department",
+      "positiontitle",
+      "status",
+      // add more string fields as needed
+    ];
+
+    // List decimal fields that might be in your sheet
+    const decimalFields = [
+      "dailyrate",
+      "overtimepay",
+      "holidaypay",
+      "nightdifferential",
+      "allowance",
+      "taxdeduction",
+      "ssscontribution",
+      "pagibigcontribution",
+      "philhealthcontribution",
+      // add more decimal fields as needed
+    ];
+
+    // Fetch existing employees from DB
     const existingEmployees = await Employee.findAll();
     const existingEmployeeIds = existingEmployees.map((e) => e.id);
-
-    // Track the IDs of employees in the sheet
     const sheetEmployeeIds = [];
 
     for (const employee of validEmployees) {
-      // Upsert employee (insert or update)
-      // Remove duplicate upsert call here
-      await Employee.upsert(employee);
+      // Clean email
+      employee.emailaddress = cleanEmail(employee.emailaddress);
 
-      // Then fetch employee by unique field
-      const savedEmployeeRecord = await Employee.findOne({
-        where: { ecode: employee.ecode },
+      // Clean string fields (including contact info)
+      stringFields.forEach((field) => {
+        if (employee.hasOwnProperty(field)) {
+          employee[field] = cleanString(employee[field]);
+        }
       });
+
+      // Clean integer fields
+      integerFields.forEach((field) => {
+        if (employee.hasOwnProperty(field)) {
+          employee[field] = cleanInt(employee[field]);
+        }
+      });
+
+      // Clean decimal fields
+      decimalFields.forEach((field) => {
+        if (employee.hasOwnProperty(field)) {
+          employee[field] = cleanDecimal(employee[field]);
+        }
+      });
+
+      // **ENHANCED**: Use updateOnDuplicate to ensure ALL fields are updated
+      const [savedEmployeeRecord, created] = await Employee.upsert(employee, {
+        updateOnDuplicate: Object.keys(employee), // Update all fields that exist in the sheet data
+        returning: true
+      });
+
       if (!savedEmployeeRecord) {
         console.error("Failed to find employee after upsert:", employee.ecode);
-        continue; // skip this employee to avoid crash
+        continue; // Skip this record
       }
 
       sheetEmployeeIds.push(savedEmployeeRecord.id);
 
+      const action = created ? 'Created' : 'Updated';
       console.log(
-        `✅ Employee Saved/Updated: ${
-          savedEmployeeRecord.name || "Unknown Employee"
-        }`
+        `✅ Employee ${action}: ${savedEmployeeRecord.name || "Unknown Employee"} (${savedEmployeeRecord.ecode})`
       );
+      
+      // Log contact info changes specifically
+      if (!created && (employee.contactnumber || employee.contactname)) {
+        console.log(`   📞 Contact Info - Number: ${employee.contactnumber || 'N/A'}, Name: ${employee.contactname || 'N/A'}`);
+      }
 
-      // Check payroll info
+      // **ENHANCED**: Payroll info sync with better field mapping and updates
       const existingPayroll = await PayrollInformation.findOne({
         where: { employee_id: savedEmployeeRecord.id },
       });
 
+      // Prepare payroll data with fallbacks from sheet data or defaults
+      const payrollData = {
+        employee_id: savedEmployeeRecord.id,
+        ecode: savedEmployeeRecord.ecode,
+        name: savedEmployeeRecord.name,
+        positiontitle: savedEmployeeRecord.positiontitle || "N/A",
+        area_section: savedEmployeeRecord.department || "N/A",
+        email: savedEmployeeRecord.emailaddress || "N/A",
+        // Use sheet data if available, otherwise use defaults
+        daily_rate: employee.dailyrate || savedEmployeeRecord.dailyrate || 520,
+        overtime_pay: employee.overtimepay || savedEmployeeRecord.overtimepay || 81.25,
+        holiday_pay: employee.holidaypay || savedEmployeeRecord.holidaypay || 520,
+        night_differential: employee.nightdifferential || savedEmployeeRecord.nightdifferential || 150,
+        allowance: employee.allowance || savedEmployeeRecord.allowance || 1040,
+        tardiness: employee.tardiness || 0,
+        tax_deduction: employee.taxdeduction || savedEmployeeRecord.taxdeduction || 0,
+        sss_contribution: employee.ssscontribution || savedEmployeeRecord.ssscontribution || 0,
+        pagibig_contribution: employee.pagibigcontribution || savedEmployeeRecord.pagibigcontribution || 200,
+        philhealth_contribution: employee.philhealthcontribution || savedEmployeeRecord.philhealthcontribution || 338,
+        loan: employee.loan || 0,
+      };
+
       if (!existingPayroll) {
-        // Create payroll info if missing, including default payroll values
-        await PayrollInformation.create({
-          employee_id: savedEmployeeRecord.id,
-          ecode: savedEmployeeRecord.ecode,
-          name: savedEmployeeRecord.name,
-          positiontitle: savedEmployeeRecord.positiontitle || "N/A",
-          area_section: savedEmployeeRecord.department || "N/A",
-          email: savedEmployeeRecord.emailaddress || "N/A",
-          daily_rate: 520,
-          overtime_pay: 81.25,
-          holiday_pay: 520,
-          night_differential: 150,
-          allowance: 1040,
-          tardiness: 0,
-          tax_deduction: 0,
-          sss_contribution: 0,
-          pagibig_contribution: 200,
-          philhealth_contribution: 338,
-          loan: 0,
-        });
-
-        console.log(
-          `✅ PayrollInformation Created for ${savedEmployeeRecord.ecode}`
-        );
+        await PayrollInformation.create(payrollData);
+        console.log(`✅ PayrollInformation Created for ${savedEmployeeRecord.ecode}`);
       } else {
-        // Only update employee-identifying fields without resetting payroll numbers
-        await existingPayroll.update({
-          ecode: savedEmployeeRecord.ecode,
-          name: savedEmployeeRecord.name,
-          positiontitle: savedEmployeeRecord.positiontitle || "N/A",
-          area_section: savedEmployeeRecord.department || "N/A",
-          email: savedEmployeeRecord.emailaddress || "N/A",
-        });
-
-        console.log(
-          `🔄 PayrollInformation Updated for ${savedEmployeeRecord.ecode}`
-        );
+        // **ENHANCED**: Update ALL fields in payroll, not just basic info
+        await existingPayroll.update(payrollData);
+        console.log(`🔄 PayrollInformation Updated for ${savedEmployeeRecord.ecode}`);
       }
     }
 
-    // OPTIONAL: Remove employees not in the sheet anymore
+    // **ENHANCED**: More detailed logging for removals
     const employeesToRemove = existingEmployees.filter(
       (e) => !sheetEmployeeIds.includes(e.id)
     );
-    for (const emp of employeesToRemove) {
-      await PayrollInformation.destroy({ where: { employee_id: emp.id } });
-      await Employee.destroy({ where: { id: emp.id } });
-      console.log(`🗑 Employee and Payroll removed: ${emp.name || emp.id}`);
+    
+    if (employeesToRemove.length > 0) {
+      console.log(`🗑 Removing ${employeesToRemove.length} employees not found in sheet:`);
+      for (const emp of employeesToRemove) {
+        await PayrollInformation.destroy({ where: { employee_id: emp.id } });
+        await Employee.destroy({ where: { id: emp.id } });
+        console.log(`   └── Removed: ${emp.name || emp.ecode || emp.id}`);
+      }
     }
 
     console.log(
-      "🎉 All employees & payroll data have been imported and synced successfully!"
+      `🎉 Sync completed! Processed ${validEmployees.length} employees from sheet.`
     );
+    console.log(
+      `   📊 ${sheetEmployeeIds.length} employees synced, ${employeesToRemove.length} removed.`
+    );
+
   } catch (error) {
     console.error("❌ Error fetching employees:", error);
+    // **ENHANCED**: More detailed error logging
+    if (error.response) {
+      console.error("   └── Response error:", error.response.status, error.response.statusText);
+    } else if (error.request) {
+      console.error("   └── Request error:", error.message);
+    } else {
+      console.error("   └── Error details:", error.message);
+    }
   }
 };
+
+
 
 // API Endpoint
 export const importEmployeesFromGoogleSheet = async (req, res) => {
@@ -500,184 +609,7 @@ export const toggleEmployeeStatus = async (req, res) => {
   }
 };
 
-export const approvePayrollChange = async (req, res) => {
-  const { id } = req.params;
-  const { reviewed_by } = req.body;
 
-  try {
-    console.log(`💡 Approving payroll change request ${id}`);
-    console.log("Request body:", req.body);
-    console.log("Request params:", req.params);
-
-    // Find the change request
-    const changeRequest = await PayrollChangeRequest.findByPk(id);
-    if (!changeRequest) {
-      console.log(`❌ Change request ${id} not found`);
-      return res
-        .status(404)
-        .json({ success: false, message: "Change request not found" });
-    }
-
-    console.log("Found change request:", changeRequest.toJSON());
-
-    // Check if already processed
-    if (changeRequest.status !== "Pending") {
-      console.log(
-        `❌ Change request ${id} already processed with status: ${changeRequest.status}`
-      );
-      return res
-        .status(400)
-        .json({ success: false, message: "Change request already processed" });
-    }
-
-    const employeeEmail = changeRequest.employee_email;
-    const employeeName = changeRequest.employee_name;
-    const sentBy = changeRequest.requested_by;
-    const subject = "Payroll Change Request Approved";
-    const message = `Dear ${sentBy},<br><br>Your payroll change request for ${employeeName}has been reviewed and <strong></strong>.<br><br><em>The request has been approved.</em>`;
-    const sentAt = new Date();
-    const attachments = []; // Add attachments if needed
-
-    console.log(`✅ Payroll change request ${id} approved and applied`);
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: employeeEmail,
-      subject: subject,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <title>${subject}</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
-          <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
-            <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
-            <p style="color: #333; font-size: 16px;">Dear ${sentBy},</p>
-            <p style="color: #333; font-size: 15px;">Your payroll change request for ${employeeName} has been reviewed and <strong style="color:green;">approved</strong>.</p>
-            <p style="color: #555; font-size: 14px;">The request has been approved.</p>
-            <p style="margin-top: 20px; color: #333;">Best regards,<br><strong>${sentBy}</strong></p>
-            <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
-            <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
-              <strong>This is an automated email—please do not reply.</strong><br />
-              Keep this message for your records.
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
-      text: `
-        Dear ${sentBy},
-
-        Your payroll change request has been reviewed and approved.
-
-        The request has been approved.
-
-        Best regards,
-        ${sentBy}
-
-        Sent at: ${new Date(sentAt).toLocaleString()}
-      `,
-      attachments: attachments.map((file) => ({
-        filename: file.filename,
-        content: file.content,
-        contentType: file.contentType,
-      })),
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-
-    // Update the actual payroll information with the requested changes
-    const payrollInfo = await PayrollInformation.findByPk(
-      changeRequest.payroll_info_id
-    );
-    if (!payrollInfo) {
-      console.log(
-        `❌ Payroll information not found for ID: ${changeRequest.payroll_info_id}`
-      );
-      return res
-        .status(404)
-        .json({ success: false, message: "Payroll information not found" });
-    }
-
-    console.log("Current payroll info (before):", payrollInfo.toJSON());
-
-    // Parse changes if it's a string (because it might be stored as JSON string)
-    let changes = changeRequest.changes;
-    if (typeof changes === "string") {
-      try {
-        changes = JSON.parse(changes);
-      } catch (err) {
-        console.error("❌ Failed to parse changes JSON:", err);
-        return res
-          .status(400)
-          .json({ success: false, message: "Invalid changes format" });
-      }
-    }
-
-    console.log("Requested changes:", changes);
-
-    // Define allowed fields to update (only fields that exist in PayrollInformation)
-    const allowedFields = [
-      "daily_rate",
-      "hourly_rate",
-      "ot_hourly_rate",
-      "ot_rate_sp_holiday",
-      "ot_rate_reg_holiday",
-      "special_hol_rate",
-      "regular_hol_ot_rate",
-      "overtime_pay",
-      "holiday_pay",
-      "night_differential",
-      "allowance",
-      "tardiness",
-      "tax_deduction",
-      "sss_contribution",
-      "pagibig_contribution",
-      "philhealth_contribution",
-      "loan",
-      "otherDeductions",
-      "adjustment",
-      "positiontitle",
-      "area_section",
-      "designation",
-      "ecode",
-      "name",
-    ];
-
-    // Filter changes to update only allowed fields
-    const filteredChanges = {};
-    for (const key of allowedFields) {
-      if (changes.hasOwnProperty(key)) {
-        filteredChanges[key] = changes[key];
-      }
-    }
-
-    // Update payroll info
-    await payrollInfo.update(filteredChanges);
-
-    console.log("Payroll info (after):", payrollInfo.toJSON());
-
-    // Update the change request status
-    await changeRequest.update({
-      status: "Approved",
-      reviewed_by: reviewed_by || "Admin",
-      reviewed_at: new Date(),
-    });
-
-    res
-      .status(200)
-      .json({ success: true, message: "Change request approved successfully" });
-  } catch (error) {
-    console.error("❌ Error approving payroll change:", error);
-    console.error("❌ Error stack:", error.stack);
-    res
-      .status(500)
-      .json({ success: false, message: error.message, error: error.stack });
-  }
-};
 export const rejectPayrollChange = async (req, res) => {
   const { id } = req.params;
   const { reviewed_by, rejection_reason } = req.body;
@@ -1712,43 +1644,75 @@ const validateBulkRequestData = (data) => {
 };
 
 // Helper function to process bulk change requests with transaction support
+// Helper function to process bulk change requests with transaction support
+// Helper function to process bulk change requests with transaction support
 const processBulkChangeRequests = async (payrollInfos, field, value, reason, requestedBy, userEmail) => {
   const changes = { [field]: value };
-  const successfulRequests = [];
-  const failedRequests = [];
+  const transaction = await sequelize.transaction();
+  
+  try {
+    // Store affected employee IDs for tracking
+    const affectedEmployeeIds = payrollInfos.map(payrollInfo => payrollInfo.employee_id);
+    
+    // Generate unique batch ID for grouping related requests
+    const batchId = `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Prepare all requests data
+    const requestsData = payrollInfos.map(payrollInfo => ({
+      payroll_info_id: payrollInfo.id,
+      changes: changes,
+      reasons: reason || `Bulk update: ${field} to ${value}`,
+      requested_by: requestedBy,
+      employee_name: payrollInfo.name,
+      employee_email: userEmail,
+      batch_affected_employee_ids: affectedEmployeeIds, // Store all affected IDs in each record
+      batch_id: batchId // Group related requests
+    }));
 
-  // Process each request individually to handle partial failures
-  for (const payrollInfo of payrollInfos) {
-    try {
-      const result = await PayrollChangeRequest.create({
-        payroll_info_id: payrollInfo.id,
-        changes: changes,
-        reasons: reason || `Bulk update: ${field} to ${value}`,
-        requested_by: requestedBy,
-        employee_name: payrollInfo.name,
-        employee_email: userEmail,
-      });
+    // Create all requests in a single transaction
+    const createdRequests = await PayrollChangeRequest.bulkCreate(requestsData, {
+      transaction,
+      returning: true // Returns the created records
+    });
 
-      successfulRequests.push({
-        employee_id: payrollInfo.employee_id,
-        employee_name: payrollInfo.name,
-        request_id: result.id,
-        payroll_info_id: payrollInfo.id
-      });
+    // Commit the transaction
+    await transaction.commit();
 
-    } catch (error) {
-      console.error(`Failed to create request for employee ${payrollInfo.name}:`, error);
-      failedRequests.push({
-        employee_id: payrollInfo.employee_id,
-        employee_name: payrollInfo.name,
-        error: error.message
-      });
-    }
+    // Format successful response
+    const successfulRequests = createdRequests.map((request, index) => ({
+      employee_id: payrollInfos[index].employee_id,
+      employee_name: payrollInfos[index].name,
+      request_id: request.id,
+      payroll_info_id: request.payroll_info_id
+    }));
+
+    return { 
+      successfulRequests, 
+      failedRequests: [], // No partial failures with transaction approach
+      affectedEmployeeIds, // Return the list of affected employee IDs
+      batchId // Return batch ID for reference
+    };
+
+  } catch (error) {
+    // Rollback the transaction on any error
+    await transaction.rollback();
+    
+    console.error('Failed to create bulk change requests:', error);
+    
+    // All requests failed due to transaction rollback
+    const failedRequests = payrollInfos.map(payrollInfo => ({
+      employee_id: payrollInfo.employee_id,
+      employee_name: payrollInfo.name,
+      error: error.message
+    }));
+
+    return { 
+      successfulRequests: [], 
+      failedRequests,
+      affectedEmployeeIds: [] // Empty since transaction failed
+    };
   }
-
-  return { successfulRequests, failedRequests };
 };
-
 // Helper function to send notifications to approvers
 const sendApproverNotifications = async (successfulRequests, field, value, reason, requestedBy) => {
   try {
@@ -1885,3 +1849,378 @@ const buildSuccessResponse = (employeeIds, successfulRequests, failedRequests, f
 
   return response;
 };  
+
+export const approvePayrollChange = async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const { id } = req.params;
+    const approvedBy = req.body.approved_by || req.user?.name || 'System';
+
+    console.log(`💡 Approving payroll change request ${id}`);
+
+    // Find the change request
+    const changeRequest = await PayrollChangeRequest.findOne({
+      where: { id, status: 'Pending' },
+      transaction,
+    });
+
+    if (!changeRequest) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'No pending change request found' });
+    }
+
+    console.log('Found change request:', changeRequest.toJSON());
+
+    // Check if this is a batch request
+    const isBatchRequest = changeRequest.batch_affected_employee_ids && 
+                          Array.isArray(changeRequest.batch_affected_employee_ids) && 
+                          changeRequest.batch_affected_employee_ids.length > 0;
+
+    if (isBatchRequest) {
+      console.log(`🔄 Processing as BATCH request for ${changeRequest.batch_affected_employee_ids.length} employees`);
+      return await processBatchRequest(changeRequest, approvedBy, transaction, res);
+    } else {
+      console.log(`🔄 Processing as SINGLE request for employee ${changeRequest.payroll_info_id}`);
+      return await processSingleRequest(changeRequest, approvedBy, transaction, res);
+    }
+
+  } catch (error) {
+    await transaction.rollback();
+    console.error('❌ Error approving change request:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to approve change request.',
+      error: error.message,
+    });
+  }
+};
+
+// Helper function for batch processing
+const processBatchRequest = async (changeRequest, approvedBy, transaction, res) => {
+  const changes = changeRequest.changes;
+  const employeeIds = changeRequest.batch_affected_employee_ids;
+
+  // Fetch payroll records for all employeeIds
+  const payrollRecords = await PayrollInformation.findAll({
+    where: { employee_id: employeeIds },
+    transaction,
+  });
+
+  if (payrollRecords.length === 0) {
+    await transaction.rollback();
+    return res.status(404).json({ success: false, message: 'No payroll records found for employees' });
+  }
+
+  const foundEmployeeIds = payrollRecords.map(r => r.employee_id);
+  const missingEmployeeIds = employeeIds.filter(id => !foundEmployeeIds.includes(id));
+  
+  if (missingEmployeeIds.length > 0) {
+    console.log(`⚠️  Warning: Some employees not found in payroll records:`, missingEmployeeIds);
+  }
+  
+  console.log(`📊 Found ${payrollRecords.length} payroll records for employees:`, foundEmployeeIds);
+
+  // Process changes
+  const fieldsToUpdate = processChanges(changes);
+  
+  if (Object.keys(fieldsToUpdate).length === 0) {
+    await transaction.rollback();
+    return res.status(400).json({ 
+      success: false, 
+      message: 'No valid fields to update found in request' 
+    });
+  }
+
+  console.log(`🔧 Fields to update for all employees:`, fieldsToUpdate);
+
+  // Apply changes to all employees
+  let updatedCount = 0;
+  const updateResults = [];
+  
+  for (const record of payrollRecords) {
+    try {
+      console.log(`🔄 Updating employee ${record.employee_id} (${record.name || 'Unknown'})`);
+      
+      const [updateCount] = await PayrollInformation.update(fieldsToUpdate, {
+        where: { employee_id: record.employee_id },
+        transaction,
+      });
+      
+      if (updateCount > 0) {
+        updatedCount++;
+        updateResults.push({
+          employee_id: record.employee_id,
+          name: record.name || 'Unknown',
+          status: 'success'
+        });
+        console.log(`✅ Successfully updated employee ${record.employee_id}`);
+      } else {
+        updateResults.push({
+          employee_id: record.employee_id,
+          name: record.name || 'Unknown',
+          status: 'no_change'
+        });
+        console.log(`⚠️  No update applied for employee ${record.employee_id}`);
+      }
+    } catch (updateError) {
+      console.error(`❌ Error updating employee ${record.employee_id}:`, updateError.message);
+      throw updateError;
+    }
+  }
+
+  // Mark ALL requests in the batch as approved
+  const batchUpdateResult = await PayrollChangeRequest.update({
+    status: 'Approved',
+    approved_by: approvedBy,
+    approved_at: new Date(),
+  }, {
+    where: { 
+      batch_id: changeRequest.batch_id,
+      status: 'Pending'
+    },
+    transaction,
+  });
+
+  console.log(`✅ Marked ${batchUpdateResult[0]} batch requests as approved`);
+
+  await transaction.commit();
+
+  return res.json({
+    success: true,
+    message: `Successfully applied batch changes to ${updatedCount} out of ${payrollRecords.length} payroll records.`,
+    data: {
+      requestId: changeRequest.id,
+      batchId: changeRequest.batch_id,
+      totalEmployeesInBatch: employeeIds.length,
+      employeesFound: foundEmployeeIds.length,
+      employeesUpdated: updatedCount,
+      missingEmployees: missingEmployeeIds,
+      appliedChanges: fieldsToUpdate,
+      updateResults
+    }
+  });
+};
+
+// Helper function for single processing
+const processSingleRequest = async (changeRequest, approvedBy, transaction, res) => {
+  const payrollRecord = await PayrollInformation.findOne({
+    where: { id: changeRequest.payroll_info_id },
+    transaction,
+  });
+
+  if (!payrollRecord) {
+    await transaction.rollback();
+    return res.status(404).json({ success: false, message: 'Payroll record not found' });
+  }
+
+  // Process changes
+  const fieldsToUpdate = processChanges(changeRequest.changes);
+  
+  if (Object.keys(fieldsToUpdate).length === 0) {
+    await transaction.rollback();
+    return res.status(400).json({ 
+      success: false, 
+      message: 'No valid fields to update found in request' 
+    });
+  }
+
+  console.log(`🔧 Fields to update for employee ${payrollRecord.employee_id}:`, fieldsToUpdate);
+
+  // Update the payroll record
+  await PayrollInformation.update(fieldsToUpdate, {
+    where: { id: changeRequest.payroll_info_id },
+    transaction,
+  });
+
+  // Mark as approved
+  await PayrollChangeRequest.update({
+    status: 'Approved',
+    approved_by: approvedBy,
+    approved_at: new Date(),
+  }, {
+    where: { id: changeRequest.id },
+    transaction,
+  });
+
+  await transaction.commit();
+
+  return res.json({
+    success: true,
+    message: 'Payroll change request approved and applied successfully.',
+    data: {
+      requestId: changeRequest.id,
+      employeeId: payrollRecord.employee_id,
+      appliedChanges: fieldsToUpdate,
+    }
+  });
+};
+
+// Helper function to process changes WITHOUT calculating dependent rates
+const processChanges = (changes) => {
+  const numericFields = [
+    'daily_rate', 'hourly_rate', 'ot_hourly_rate', 'ot_rate_sp_holiday',
+    'ot_rate_reg_holiday', 'special_hol_rate', 'regular_hol_ot_rate',
+    'overtime_pay', 'holiday_pay', 'night_differential', 'allowance',
+    'tardiness', 'tax_deduction', 'sss_contribution', 'pagibig_contribution',
+    'philhealth_contribution', 'loan', 'otherDeductions', 'adjustment'
+  ];
+
+  // Convert to numbers
+  const converted = { ...changes };
+  for (const field of numericFields) {
+    if (converted[field] !== undefined && converted[field] !== null && converted[field] !== '') {
+      const val = parseFloat(converted[field]);
+      converted[field] = isNaN(val) ? 0 : val;
+    }
+  }
+
+  // Filter out undefined/null values
+  const fieldsToUpdate = {};
+  Object.keys(converted).forEach(key => {
+    if (converted[key] !== undefined && converted[key] !== null && converted[key] !== '') {
+      fieldsToUpdate[key] = converted[key];
+    }
+  });
+
+  return fieldsToUpdate;
+};
+
+export const rejectBatchChange = async (req, res) => {
+  try {
+    const { batchId } = req.params;
+    const { rejection_reason } = req.body;
+    const rejectedBy = req.body.rejected_by || req.user?.name || 'System';
+    
+    // Only update the request status - don't apply changes to payroll
+    const result = await PayrollChangeRequest.update(
+      { 
+        status: 'Rejected',
+        rejected_by: rejectedBy,
+        rejected_at: new Date(),
+        rejection_reason: rejection_reason || 'Batch rejection'
+      },
+      {
+        where: {
+          batch_id: batchId,
+          status: 'Pending'
+        }
+      }
+    );
+
+    if (result[0] === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No pending requests found for this batch'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully rejected ${result[0]} change requests in batch`,
+      data: { batchId, rejectedCount: result[0] }
+    });
+
+  } catch (error) {
+    console.error('Error rejecting batch change:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reject batch change requests',
+      error: error.message
+    });
+  }
+};
+
+// Helper function to validate batch changes before approval
+export const validateBatchChanges = async (batchId) => {
+  try {
+    const batchRequests = await PayrollChangeRequest.findAll({
+      where: {
+        batch_id: batchId,
+        status: 'Pending'
+      }
+    });
+
+    if (batchRequests.length === 0) {
+      return { valid: false, message: 'No pending requests found' };
+    }
+
+    // Check if all payroll records still exist
+    const payrollIds = batchRequests.map(req => req.payroll_info_id);
+    const existingPayrolls = await PayrollInfo.findAll({
+      where: {
+        id: payrollIds
+      },
+      attributes: ['id']
+    });
+
+    if (existingPayrolls.length !== payrollIds.length) {
+      return { 
+        valid: false, 
+        message: 'Some payroll records no longer exist' 
+      };
+    }
+
+    return { 
+      valid: true, 
+      requestCount: batchRequests.length,
+      changes: batchRequests[0].changes
+    };
+
+  } catch (error) {
+    return { 
+      valid: false, 
+      message: `Validation error: ${error.message}` 
+    };
+  }
+};
+
+// Get batch details
+export const getBatchDetails = async (req, res) => {
+  try {
+    const { batchId } = req.params;
+    
+    const requests = await PayrollChangeRequest.findAll({
+      where: { batch_id: batchId },
+      order: [['createdAt', 'ASC']]
+    });
+
+    if (requests.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Batch not found'
+      });
+    }
+
+    const firstRequest = requests[0];
+    const batchSummary = {
+      batchId: batchId,
+      totalRequests: requests.length,
+      affectedEmployeeIds: firstRequest.batch_affected_employee_ids,
+      changes: firstRequest.changes,
+      reason: firstRequest.reasons,
+      requestedBy: firstRequest.requested_by,
+      createdAt: firstRequest.createdAt,
+      status: firstRequest.status,
+      employeeDetails: requests.map(req => ({
+        id: req.id,
+        employee_name: req.employee_name,
+        employee_email: req.employee_email,
+        payroll_info_id: req.payroll_info_id
+      }))
+    };
+
+    res.json({
+      success: true,
+      data: batchSummary
+    });
+
+  } catch (error) {
+    console.error('Error fetching batch details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch batch details',
+      error: error.message
+    });
+  }
+};
