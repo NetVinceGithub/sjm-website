@@ -896,13 +896,13 @@ const Requests = () => {
   if (!isAuthorized) {
     return (
       <div className="p-6 h-[calc(100vh-150px)] flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-red-600">Access Denied</h2>
-          <p className="text-neutralDGray">
+        <div className="text-center border p-3 -mt-12 rounded-lg shadow-lg">
+          <h2 className="text-base text-red-600">Access Denied</h2>
+          <p className="text-sm text-neutralDGray">
             You don't have permission to access this page.
           </p>
-          <p className="text-sm italic text-gray-500 -mt-2">
-            Only approvers can manage user accounts.
+          <p className="text-xs italic text-gray-500 -mt-2">
+            Only approvers can view requests.
           </p>
         </div>
       </div>

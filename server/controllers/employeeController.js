@@ -489,11 +489,12 @@ export const requestPayrollChange = async (req, res) => {
             <p style="color: #333; font-size: 15px;">Please login to <a href="https://payroll.stjohnmajore.com/">https://payroll.stjohnmajore.com/</a> to review and take appropriate action.</p>
             
             <p style="color: #333; font-size: 15px;">Best regards,<br />SJM Payroll System</p>
-            <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
             <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
               <strong>This is an automated email—please do not reply.</strong><br />
               Keep this message for your records.
-            </div>`,
+            </div>
+            <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
+            `,
       };
 
       try {
