@@ -35,12 +35,9 @@ const PayrollSummary = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [individualOvertime, setIndividualOvertime] = useState({});
   const [payrollType, setPayrollType] = useState("biweekly"); // Default to bi-weekly
-  const [filteredEmployeesOvertime, setFilteredEmployeesOvertime] = useState(
-    []
-  );
+  const [filteredEmployeesOvertime, setFilteredEmployeesOvertime] = useState([]);
   const [maxOvertime, setMaxOvertime] = useState("");
   const [selectedSchedules, setSelectedSchedules] = useState([]);
-
 
   const navigate = useNavigate();
 
@@ -75,27 +72,98 @@ const PayrollSummary = () => {
     }
   };
 
-  // Function to filter employees based on search term
-  const filterEmployeesForOvertime = () => {
-    if (!searchTerm) {
-      // If no search term, return all filtered employees
-      setFilteredEmployeesOvertime(filteredEmployees);
+  // Fixed function to filter employees based on search term
+  const filterEmployeesBySearch = (employeeList = filteredEmployees) => {
+    console.log("🔍 Filtering employees by search term:", searchTerm);
+    console.log("📋 Employee list to filter:", employeeList.length);
+    
+    if (!searchTerm.trim()) {
+      setFilteredEmployeesOvertime(employeeList);
     } else {
-      // Filter employees by name or ecode, case-insensitive
-      const filtered = filteredEmployees.filter(
+      const filtered = employeeList.filter(
         (employee) =>
-          employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          employee.ecode.toLowerCase().includes(searchTerm.toLowerCase())
+          employee.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          employee.ecode?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredEmployeesOvertime(filtered);
+      console.log("✅ Filtered employees by search:", filtered.length);
     }
   };
 
-  // Use effect to run filtering when search term or filtered employees change
+  // Effect for search term filtering
   useEffect(() => {
-    if (show) {
+    console.log("🔄 Search term changed, filtering employees");
+    if (filteredEmployees.length > 0) {
+      filterEmployeesBySearch(filteredEmployees);
+    }
+  }, [searchTerm]); // Only depend on searchTerm
+
+  // Fixed effect for modal opening and employee pre-selection
+useEffect(() => {
+  const setupModalData = async () => {
+    if (!show) return; // Only run when modal is open
+
+    console.log("🚀 Setting up modal data...");
+    console.log("👥 Current employees count:", employees.length);
+
+    try {
+      // First, let's show all active employees (don't filter by attendance yet)
+      const activeEmployees = employees.filter(
+        (employee) => employee.status !== "Inactive"
+      );
+      
+      console.log("👥 Active employees:", activeEmployees.length);
+
+      // Try to fetch attendance data for additional filtering (optional)
+      try {
+        console.log("📩 Fetching attendance data...");
+        const attendanceResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`
+        );
+
+        const attendanceData = attendanceResponse.data.attendance || [];
+        console.log("📊 Attendance Data:", attendanceData.length, "records");
+
+        if (attendanceData.length > 0) {
+          const validEcodes = new Set(
+            attendanceData.map((record) => record.ecode)
+          );
+          console.log("✅ Valid employee codes from attendance:", validEcodes.size);
+
+          // Filter employees who have attendance records
+          const filtered = activeEmployees.filter((employee) =>
+            validEcodes.has(employee.ecode)
+          );
+          
+          console.log("👥 Employees with attendance records:", filtered.length);
+          
+          if (filtered.length > 0) {
+            setFilteredEmployees(filtered);
+            setFilteredEmployeesOvertime(filtered);
+          } else {
+            // If no employees have attendance, show all active employees
+            console.log("⚠️ No employees with attendance found, showing all active employees");
+            setFilteredEmployees(activeEmployees);
+            setFilteredEmployeesOvertime(activeEmployees);
+          }
+        } else {
+          // If no attendance data, show all active employees
+          console.log("⚠️ No attendance data found, showing all active employees");
+          setFilteredEmployees(activeEmployees);
+          setFilteredEmployeesOvertime(activeEmployees);
+        }
+      } catch (attendanceError) {
+        console.log("⚠️ Could not fetch attendance data, showing all active employees");
+        console.error("Attendance fetch error:", attendanceError);
+        setFilteredEmployees(activeEmployees);
+        setFilteredEmployeesOvertime(activeEmployees);
+      }
+
+      // Use the final filtered list for pre-selection
+      const finalEmployeeList = activeEmployees; // Start with active employees as minimum
+      
       // Pre-select all employees' ecode by default when the modal opens
-      const allEcodes = filteredEmployees.map((employee) => employee.ecode);
+      const allEcodes = finalEmployeeList.map((employee) => employee.ecode);
       setSelectedOvertime(allEcodes);
 
       // Initialize individual overtime values with default maxOvertime
@@ -104,42 +172,55 @@ const PayrollSummary = () => {
         initialOvertime[ecode] = maxOvertime || "0";
       });
       setIndividualOvertime(initialOvertime);
+
+      console.log("✅ Pre-selected employees:", allEcodes.length);
+      console.log("✅ Employee ecodes:", allEcodes);
+      
+    } catch (error) {
+      console.error("❌ Error setting up modal data:", error.response?.data || error);
+      setMessage("Error loading employee data for overtime approval");
+      
+      // Fallback: show all employees even if there's an error
+      const fallbackEmployees = employees.filter(
+        (employee) => employee.status !== "Inactive"
+      );
+      if (fallbackEmployees.length > 0) {
+        setFilteredEmployees(fallbackEmployees);
+        setFilteredEmployeesOvertime(fallbackEmployees);
+        const fallbackEcodes = fallbackEmployees.map((emp) => emp.ecode);
+        setSelectedOvertime(fallbackEcodes);
+      }
     }
-  }, [show, filteredEmployees, maxOvertime]);
+  };
+
+  setupModalData();
+}, [show, employees, maxOvertime]); // FIXED: Removed filteredEmployees from dependencies
 
   useEffect(() => {
-    const fetchAttendanceAndFilterEmployees = async () => {
-      try {
-        console.log("📩 Fetching attendance data...");
-        const attendanceResponse = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`
-        );
-
-        const attendanceData = attendanceResponse.data.attendance || [];
-        console.log("📊 Attendance Data:", attendanceData);
-
-        const validEcodes = new Set(
-          attendanceData.map((record) => record.ecode)
-        );
-
-        const filtered = employees.filter(
-          (employee) =>
-            validEcodes.has(employee.ecode) && employee.status !== "Inactive"
-        );
-
-        setFilteredEmployees(filtered);
-      } catch (error) {
-        console.error(
-          "❌ Error fetching attendance:",
-          error.response?.data || error
-        );
-      }
-    };
-
-    if (show) {
-      fetchAttendanceAndFilterEmployees();
+    console.log("📋 Filtered employees updated:", filteredEmployees.length);
+    if (filteredEmployees.length > 0 && !searchTerm.trim()) {
+      setFilteredEmployeesOvertime(filteredEmployees);
     }
-  }, [show, employees]);
+  }, [filteredEmployees]);
+
+  // Debug effect
+  useEffect(() => {
+    console.log("🔍 State Debug:", {
+      show,
+      employeesCount: employees.length,
+      filteredEmployeesCount: filteredEmployees.length,
+      filteredEmployeesOvertimeCount: filteredEmployeesOvertime.length,
+      searchTerm,
+      selectedOvertimeCount: selectedOvertime.length,
+    });
+  }, [
+    show,
+    employees,
+    filteredEmployees,
+    filteredEmployeesOvertime,
+    searchTerm,
+    selectedOvertime,
+  ]);
 
   const handleOpenModal = (employeeId) => {
     setSelectedEmployee(employeeId);
@@ -188,13 +269,6 @@ const PayrollSummary = () => {
   };
 
   useEffect(() => {
-    if (show) {
-      // Pre-select all employees' ecode by default when the modal opens
-      setSelectedOvertime(filteredEmployees.map((employee) => employee.ecode));
-    }
-  }, [show, filteredEmployees]);
-
-  useEffect(() => {
     fetchPayslips(); // Fetch when component mounts
   }, []);
 
@@ -206,101 +280,137 @@ const PayrollSummary = () => {
     setPayslips(records);
   };
 
-// Enhanced handleCreatePayroll function
+  useEffect(() => {
+    console.log(
+      "🔍 PayrollSummary - selectedSchedules changed:",
+      selectedSchedules
+    );
+  }, [selectedSchedules]);
+
+  const handleSchedulesSelected = (schedules) => {
+    console.log(
+      "📋 PayrollSummary - Received schedules from FilterComponent:",
+      schedules
+    );
+    setSelectedSchedules(schedules);
+    setFilterComponentModal(false); // Close modal after selection
+  };
+
 const handleCreatePayroll = async () => {
   try {
-    // Validate that schedules are selected
-    if (!selectedSchedules || selectedSchedules.length === 0) {
-      setMessage("Please select at least one schedule before creating payroll.");
-      setFilterComponentModal(true); // Open filter modal to let user select schedules
+    console.log("🚀 handleCreatePayroll called");
+    console.log("📅 cutoffDate:", cutoffDate);
+    console.log("📋 selectedSchedules:", selectedSchedules);
+
+    // Validate cutoff date
+    if (!cutoffDate) {
+      setMessage("Please select a cutoff date before creating payroll.");
       return;
     }
 
+    // Enhanced schedule validation
+    if (
+      !selectedSchedules ||
+      !Array.isArray(selectedSchedules) ||
+      selectedSchedules.length === 0
+    ) {
+      console.log("❌ No schedules selected");
+      setMessage(
+        "Please select at least one schedule from Filters for tardiness calculation."
+      );
+      setFilterComponentModal(true);
+      return;
+    }
+
+    console.log("✅ All validations passed, proceeding to load employee data");
+
     setLoading(true);
-    setMessage("Loading data...");
+    setMessage("Loading employee data...");
 
     // Fetch all required data
-    const [employeeResponse, attendanceResponse, holidaysResponse] = await Promise.all([
-      axios.get(`${import.meta.env.VITE_API_URL}/api/employee`),
-      axios.get(`${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`),
-      axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`),
-    ]);
+    const [employeeResponse, attendanceResponse, holidaysResponse] =
+      await Promise.all([
+        axios.get(`${import.meta.env.VITE_API_URL}/api/employee`),
+        axios.get(
+          `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`
+        ),
+        axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`),
+      ]);
 
     const employeeData = employeeResponse.data.employees || [];
     const attendanceData = attendanceResponse.data.attendance || [];
     const holidaysData = holidaysResponse.data.holidays || [];
 
+    console.log("📊 Loaded data:", {
+      employees: employeeData.length,
+      attendance: attendanceData.length,
+      holidays: holidaysData.length
+    });
+
+    // Validate we have employee data
     if (!employeeData.length) {
-      setMessage("No employees available.");
+      setMessage("No employee data found. Please check your employee records.");
       setLoading(false);
       return;
     }
 
-    // Filter employees based on selected schedules
-    const employeesWithSelectedSchedules = employeeData.filter(employee => 
-      selectedSchedules.includes(employee.schedule) && employee.status !== "Inactive"
+    // Set up employees list for modal
+    setEmployeeList(employeeData);
+
+    setLoading(false);
+    setMessage(
+      "Please configure overtime hours for employees in the Overtime Approval Sheet."
     );
 
-    if (!employeesWithSelectedSchedules.length) {
-      setMessage(`No active employees found for the selected schedule(s): ${selectedSchedules.join(', ')}`);
-      setLoading(false);
-      return;
-    }
+    // Show overtime modal
+    setShow(true);
 
-    // Filter employees with attendance records
-    const validEcodes = new Set(attendanceData.map((record) => record.ecode));
-    const availableEmployees = employeesWithSelectedSchedules.filter(employee =>
-      validEcodes.has(employee.ecode)
-    );
-
-    if (!availableEmployees.length) {
-      setMessage("No employees with attendance records found for the selected schedule(s).");
-      setLoading(false);
-      return;
-    }
-
-    // Prepare payroll data for API
-    const payrollData = {
-      cutoffDate: cutoffDate,
-      selectedSchedules: selectedSchedules,
-      employees: availableEmployees.map(emp => ({
-        ecode: emp.ecode,
-        name: emp.name,
-        schedule: emp.schedule,
-        // Add other necessary employee fields
-      })),
-      attendanceData: attendanceData.filter(record => 
-        availableEmployees.some(emp => emp.ecode === record.ecode)
-      ),
-      holidaysData: holidaysData
-    };
-
-    // Send to API
-    const payrollResponse = await axios.post(
-      `${import.meta.env.VITE_API_URL}/api/payroll/create`,
-      payrollData
-    );
-
-    if (payrollResponse.status === 200) {
-      // Set all data at once
-      setEmployeeList(employeeData);
-      setFilteredEmployees(availableEmployees);
-      setFilteredEmployeesOvertime(availableEmployees);
-      setMessage(`Payroll created successfully for ${selectedSchedules.length} schedule(s) and ${availableEmployees.length} employees.`);
-      setShow(true);
-    }
-
+    console.log("📊 Overtime modal opened for employee overtime configuration");
+    
   } catch (error) {
-    console.error("Payroll creation error:", error);
-    setMessage("Failed to create payroll. Please try again.");
-  } finally {
+    console.error("❌ Error loading employee data:", error);
+    setMessage(
+      `Failed to load employee data: ${
+        error.response?.data?.message || error.message
+      }`
+    );
     setLoading(false);
   }
 };
 
+  // Enhanced button validation
+  const isCreateButtonDisabled = () => {
+    const hasSchedules =
+      selectedSchedules &&
+      Array.isArray(selectedSchedules) &&
+      selectedSchedules.length > 0;
+    const hasCutoff = Boolean(cutoffDate);
+    const isLoading = loading;
+
+    return isLoading || !hasCutoff || !hasSchedules;
+  };
 
   const proceedWithPayroll = async (selectedEmployees) => {
+    // Validate cutoff date
     if (!cutoffDate) {
+      setMessage("Please select a cutoff date before generating payroll.");
+      return;
+    }
+
+    // Validate that schedules are selected
+    if (!selectedSchedules || selectedSchedules.length === 0) {
+      setMessage(
+        "Please select at least one schedule before generating payroll."
+      );
+      setFilterComponentModal(true);
+      return;
+    }
+
+    // Additional validation: ensure selected employees
+    if (!selectedEmployees || selectedEmployees.length === 0) {
+      setMessage(
+        "Please select at least one employee before generating payroll."
+      );
       return;
     }
 
@@ -335,19 +445,25 @@ const handleCreatePayroll = async () => {
 
         return {
           ...record,
-          overtimeHours: Math.min(record.overtimeHours, employeeOvertime), // Apply individual overtime limit
+          overtimeHours: Math.min(record.overtimeHours, employeeOvertime),
         };
       });
 
-      // Send request with individual overtime data
+      // Extract schedule values for API
+      const selectedScheduleValues = selectedSchedules.map(
+        (schedule) => schedule.value || schedule.key || schedule
+      );
+
+      // Send request with individual overtime data and selected schedules
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/payslip/generate`,
         {
           cutoffDate: cutoffDate.trim(),
           selectedEmployees,
+          selectedSchedules: selectedScheduleValues,
           attendanceData: updatedAttendanceData,
           individualOvertime,
-          requestedBy: user.name, // Send individual overtime values instead of maxOvertime
+          requestedBy: user.name,
         }
       );
 
@@ -361,15 +477,16 @@ const handleCreatePayroll = async () => {
           setPayslips(response.data.payslips);
           toast.success(
             <div style={{ fontSize: "0.9rem" }}>
-              Payroll successfully generated.
+              Payroll successfully generated for {selectedSchedules.length}{" "}
+              schedule(s).
             </div>,
             {
-              autoClose: 3000, // auto close after 3 seconds
+              autoClose: 3000,
               closeOnClick: true,
               pauseOnHover: true,
               draggable: true,
               closeButton: false,
-              position: "top-right", // position of the toast
+              position: "top-right",
             }
           );
           setShow(false);
@@ -381,12 +498,12 @@ const handleCreatePayroll = async () => {
             {response?.data?.message || "Unknown error"}
           </div>,
           {
-            autoClose: 3000, // auto close after 3 seconds
+            autoClose: 3000,
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: false,
-            position: "top-right", // position of the toast
+            position: "top-right",
           }
         );
       }
@@ -398,12 +515,12 @@ const handleCreatePayroll = async () => {
             "An error occurred while generating payroll."}
         </div>,
         {
-          autoClose: 3000, // auto close after 3 seconds
+          autoClose: 3000,
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
           closeButton: false,
-          position: "top-right", // position of the toast
+          position: "top-right",
         }
       );
     } finally {
@@ -411,77 +528,14 @@ const handleCreatePayroll = async () => {
     }
   };
 
-  const handleApprovalModal = (message) => {
-    setShow(true);
-  };
-
   const handleClose = () => {
     setShow(false);
-  };
-
-  const handleReleaseRequest = async () => {
-    if (!payslips.length) {
-      return;
-    }
-
-    setSending(true);
-    setMessage("");
-
-    try {
-      // Get requester (you might use the logged-in user)
-
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/payslip/request-release`,
-        {
-          requestedBy,
-        }
-      );
-
-      if (response.data.success) {
-        toast.success(
-          <div style={{ fontSize: "0.9rem" }}>
-            Payroll release request sent to Admin!
-          </div>,
-          {
-            autoClose: 3000, // auto close after 3 seconds
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            closeButton: false,
-            position: "top-right", // position of the toast
-          }
-        );
-      } else {
-        toast.error(
-          <div style={{ fontSize: "0.9rem" }}>Failed to send request.</div>,
-          {
-            autoClose: 3000, // auto close after 3 seconds
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            closeButton: false,
-            position: "top-right", // position of the toast
-          }
-        );
-      }
-    } catch (error) {
-      console.error("Error sending request:", error);
-      toast.error(
-        <div style={{ fontSize: "0.9rem" }}>
-          An error occurred while sending the request.
-        </div>,
-        {
-          autoClose: 3000, // auto close after 3 seconds
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          closeButton: false,
-          position: "top-right", // position of the toast
-        }
-      );
-    } finally {
-      setSending(false);
-    }
+    // Reset states when closing modal
+    setFilteredEmployees([]);
+    setFilteredEmployeesOvertime([]);
+    setSelectedOvertime([]);
+    setIndividualOvertime({});
+    setSearchTerm("");
   };
 
   const handleDownloadExcel = () => {
@@ -529,17 +583,38 @@ const handleCreatePayroll = async () => {
     } catch (error) {
       console.error("Error deleting payroll:", error);
     } finally {
-      setShowConfirmModal(false); // Close modal after action
+      setShowConfirmModal(false);
     }
   };
 
-  const selectAll = () => {
-    setSelectedOvertime(filteredEmployees.map((employee) => employee.ecode));
-  };
-
-  const deselectAll = () => {
-    setSelectedOvertime([]);
-  };
+  // const DebugInfo = () => {
+  //   if (process.env.NODE_ENV !== 'development') return null;
+    
+  //   return (
+  //     <div className="p-2 bg-gray-100 text-xs border rounded mb-4">
+  //       <p><strong>Debug Info:</strong></p>
+  //       <p>Total Employees: {employees.length}</p>
+  //       <p>Filtered Employees: {filteredEmployees.length}</p>
+  //       <p>Filtered Overtime Display: {filteredEmployeesOvertime.length}</p>
+  //       <p>Selected Overtime: {selectedOvertime.length}</p>
+  //       <p>Search Term: "{searchTerm}"</p>
+  //       <p>Modal Open: {show ? 'Yes' : 'No'}</p>
+  //       {employees.length > 0 && (
+  //         <details className="mt-2">
+  //           <summary className="cursor-pointer text-blue-600">View Employee Data</summary>
+  //           <div className="mt-1 text-xs bg-white p-2 rounded">
+  //             {employees.slice(0, 3).map((emp, idx) => (
+  //               <p key={idx}>
+  //                 {emp.name} ({emp.ecode}) - Status: {emp.status || 'N/A'}
+  //               </p>
+  //             ))}
+  //             {employees.length > 3 && <p>... and {employees.length - 3} more</p>}
+  //           </div>
+  //         </details>
+  //       )}
+  //     </div>
+  //   );
+  // };
 
   // Define table columns
   const columns = [
@@ -601,7 +676,7 @@ const handleCreatePayroll = async () => {
 
   const columns1 = [
     {
-      name: "", // No header for the checkbox column
+      name: "",
       cell: (row) => (
         <input
           type="checkbox"
@@ -765,24 +840,50 @@ const handleCreatePayroll = async () => {
                 />
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons - UPDATED WITH SCHEDULE VALIDATION */}
               <div className="flex gap-2 flex-wrap lg:flex-nowrap w-full lg:w-auto">
                 <button
                   onClick={handleCreatePayroll}
                   className={`px-2 py-1 text-sm border rounded w-full lg:w-36 h-8 text-neutralDGray ${
-                    cutoffDate
+                    cutoffDate &&
+                    selectedSchedules &&
+                    selectedSchedules.length > 0
                       ? "hover:bg-green-400 hover:text-white"
                       : "bg-neutralGray cursor-not-allowed opacity-50"
                   }`}
-                  disabled={loading || !cutoffDate}
+                  disabled={isCreateButtonDisabled()}
+                  title={
+                    !cutoffDate
+                      ? "Please select a cutoff date"
+                      : !selectedSchedules || selectedSchedules.length === 0
+                      ? "Please select at least one schedule from Filters"
+                      : `Create payroll for ${selectedSchedules.length} selected schedule(s)`
+                  }
                 >
                   {loading ? "Generating..." : "Create Payroll"}
                 </button>
+
+                {selectedSchedules && selectedSchedules.length > 0 && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-700">
+                      <strong>Selected Schedules:</strong>{" "}
+                      {selectedSchedules.map((s) => s.label).join(", ")}
+                    </p>
+                  </div>
+                )}
+
                 <button
                   onClick={() => setFilterComponentModal(true)}
-                  className="px-4 py-1 rounded text-sm w-full border lg:w-32 h-8 hover:bg-green-400 text-neutralDGray hover:text-neutralDGray"
+                  className={`px-4 py-1 rounded text-sm w-full border lg:w-32 h-8 text-neutralDGray hover:text-neutralDGray ${
+                    selectedSchedules && selectedSchedules.length > 0
+                      ? "hover:bg-green-400 bg-green-50 border-green-300"
+                      : "hover:bg-orange-400 hover:text-white border-orange-300"
+                  }`}
                 >
-                  Filters
+                  Filters{" "}
+                  {selectedSchedules &&
+                    selectedSchedules.length > 0 &&
+                    `(${selectedSchedules.length})`}
                 </button>
                 <button
                   onClick={() => setShowConfirmModal(true)}
@@ -793,8 +894,30 @@ const handleCreatePayroll = async () => {
               </div>
             </div>
 
+            {/* Enhanced Message Display */}
             {message && (
-              <p className="mt-4 text-center text-green-600">{message}</p>
+              <div
+                className={`mt-4 p-3 rounded-lg text-center text-sm ${
+                  message.includes("successfully") ||
+                  message.includes("Payroll created")
+                    ? "bg-green-50 text-green-700 border border-green-200"
+                    : message.includes("Please select") ||
+                      message.includes("No")
+                    ? "bg-orange-50 text-orange-700 border border-orange-200"
+                    : message.includes("Failed") || message.includes("error")
+                    ? "bg-red-50 text-red-700 border border-red-200"
+                    : "bg-blue-50 text-blue-700 border border-blue-200"
+                }`}
+              >
+                {message}
+              </div>
+            )}
+
+            {/* Schedule Status Indicator */}
+            {selectedSchedules?.length > 0 && (
+              <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+               
+              </div>
             )}
 
             {/* Payroll Details */}
@@ -869,9 +992,21 @@ const handleCreatePayroll = async () => {
                       />
                     </div>
                   ) : (
-                    <p className="mt-6 text-center text-gray-300">
-                      No payslip records available.
-                    </p>
+                    <div className="mt-6 text-center">
+                      {!selectedSchedules?.length ? (
+                        <div className="text-orange-500">
+                          <p className="text-lg">⚠️ No schedules selected</p>
+                          <p className="text-sm mt-2">
+                            Please select schedules from the Filters to view
+                            employee data
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-gray-300">
+                          No payslip records available.
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -899,8 +1034,9 @@ const handleCreatePayroll = async () => {
         />
 
         <FilterComponent
-          show={filterComponentModal} // ✅ Correct - this is the boolean state
+          show={filterComponentModal}
           onClose={() => setFilterComponentModal(false)}
+          onSchedulesSelected={handleSchedulesSelected} // ✅ Add this prop
         />
 
         {/* Overtime Approval Modal */}
@@ -913,7 +1049,14 @@ const handleCreatePayroll = async () => {
           <Modal.Body>
             <div className="flex flex-col">
               <div className="w-full max-w-3xl bg-white p-6 border border-gray-300 rounded-md shadow-md min-h-[500px]">
-                {filteredEmployeesOvertime.length > 0 ? (
+                {/* Add debug info in development */}
+                {/* <DebugInfo /> */}
+                
+                {loading ? (
+                  <div className="flex justify-center items-center h-64">
+                    <p>Loading employees...</p>
+                  </div>
+                ) : filteredEmployeesOvertime.length > 0 ? (
                   <>
                     <div className="flex rounded justify-end items-center -mt-2">
                       <input
@@ -942,9 +1085,7 @@ const handleCreatePayroll = async () => {
                         className="px-3 py-1 h-8 text-xs border rounded text-neutralDGray hover:bg-green-400 hover:text-white"
                         onClick={() => {
                           const defaultValue = maxOvertime || "0";
-                          const newIndividualOvertime = {
-                            ...individualOvertime,
-                          };
+                          const newIndividualOvertime = { ...individualOvertime };
                           selectedOvertime.forEach((ecode) => {
                             newIndividualOvertime[ecode] = defaultValue;
                           });
@@ -954,15 +1095,16 @@ const handleCreatePayroll = async () => {
                         Apply to Selected
                       </button>
                     </div>
+                    
                     <p className="text-xs text-red-300 text-center italic">
-                      **Note: You can batch edit or you can edit overtime
-                      indivually.**
+                      **Note: You can batch edit or you can edit overtime individually.**
                     </p>
-                    <div className="border border-neutralDGray rounded p-2  overflow-auto">
-                      <div className="flex justify-between mb-3 ">
+                    
+                    <div className="border border-neutralDGray rounded p-2 overflow-auto">
+                      <div className="flex justify-between mb-3">
                         <div>
                           <h5 className="text-neutralDGray text-base italic">
-                            List of Employees
+                            List of Employees ({filteredEmployeesOvertime.length})
                           </h5>
                         </div>
                         <div className="flex gap-2">
@@ -984,24 +1126,52 @@ const handleCreatePayroll = async () => {
                           </button>
                         </div>
                       </div>
+                      
                       <DataTable
-                        title="List of Employees"
                         columns={columns1}
                         data={filteredEmployeesOvertime}
                         dense
                         pagination
                         highlightOnHover
-                        selectableRows={false} // we're using custom checkboxes
-                        noHeader // hide the default header if you're using a custom title
+                        selectableRows={false}
+                        noHeader
+                        noDataComponent={
+                          <div className="p-4 text-center">
+                            <p className="text-gray-500">
+                              {searchTerm 
+                                ? `No employees found matching "${searchTerm}"`
+                                : "No employees with attendance records found"
+                              }
+                            </p>
+                          </div>
+                        }
                       />
                     </div>
                   </>
                 ) : (
-                  <p className="text-center text-gray-500">
-                    {searchTerm
-                      ? "No employees found matching your search."
-                      : "No employees available."}
-                  </p>
+                  <div className="flex flex-col items-center justify-center h-64">
+                    <p className="text-center text-gray-500 mb-4">
+                      {employees.length === 0 
+                        ? "No employees found in the system"
+                        : filteredEmployees.length === 0
+                        ? "No employees with attendance records found"
+                        : searchTerm
+                        ? `No employees found matching "${searchTerm}"`
+                        : "No employees available for overtime approval"
+                      }
+                    </p>
+                    {employees.length === 0 && (
+                      <button
+                        className="px-4 py-2 text-sm border rounded text-neutralDGray hover:bg-blue-400 hover:text-white"
+                        onClick={() => {
+                          setShow(false);
+                          navigate('/admin-dashboard/employees');
+                        }}
+                      >
+                        Go to Employee Management
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
