@@ -604,9 +604,29 @@ export const getPayslipByEmployeeId = async (req, res) => {
 
 
 export const generatePayroll = async (req, res) => {
-  const { cutoffDate, selectedEmployees = [], maxOvertime = 0, requestedBy } = req.body;
+  const { 
+    cutoffDate, 
+    selectedEmployees = [], 
+    selectedSchedules = [],
+    employees = [],
+    attendanceData = [],
+    holidaysData = [],
+    individualOvertime = {},
+    maxOvertime = 0, 
+    requestedBy 
+  } = req.body;
 
-  console.log("🔍 Incoming request:", { cutoffDate, selectedEmployees, maxOvertime, requestedBy });
+  console.log("🔍 Incoming request:", { 
+    cutoffDate, 
+    selectedEmployees, 
+    selectedSchedules,
+    employeesCount: employees.length,
+    attendanceCount: attendanceData.length,
+    holidaysCount: holidaysData.length,
+    individualOvertime,
+    maxOvertime, 
+    requestedBy 
+  });
 
   try {
     // 👇 Generate unique batch ID
@@ -614,27 +634,50 @@ export const generatePayroll = async (req, res) => {
     const batchId = `SJM-PayrollBatch-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${now.getTime()}`;
     console.log(`🔗 Generated batchId: ${batchId}`);
 
-    let employees, attendanceRecords, payrollInformations, holidays;
+    let employeesData, attendanceRecords, payrollInformations, holidays;
 
-    try {
-      employees = await Employee.findAll({
-        where: { status: { [Op.ne]: "Inactive" } }
-      });
-      console.log(`✅ Found ${employees.length} active employees`);
-    } catch (error) {
-      console.error("❌ Error fetching employees:", error);
-      employees = await Employee.findAll();
-      employees = employees.filter(emp => emp.status !== "Inactive");
+    // Use data from frontend if provided, otherwise fetch from database
+    if (employees.length > 0 && attendanceData.length > 0) {
+      console.log("📦 Using data provided by frontend");
+      employeesData = employees;
+      attendanceRecords = attendanceData;
+      holidays = holidaysData;
+    } else {
+      console.log("📦 Fetching data from database");
+      try {
+        employeesData = await Employee.findAll({
+          where: { status: { [Op.ne]: "Inactive" } }
+        });
+        console.log(`✅ Found ${employeesData.length} active employees`);
+      } catch (error) {
+        console.error("❌ Error fetching employees:", error);
+        employeesData = await Employee.findAll();
+        employeesData = employeesData.filter(emp => emp.status !== "Inactive");
+      }
+
+      try {
+        attendanceRecords = await Attendance.findAll();
+        console.log(`✅ Found ${attendanceRecords.length} attendance records`);
+      } catch (error) {
+        console.error("❌ Error fetching attendance records:", error);
+        attendanceRecords = [];
+      }
+
+      try {
+        holidays = await Holidays.findAll();
+        console.log(`✅ Found ${holidays.length} holidays`);
+      } catch (error) {
+        console.error("❌ Error fetching holidays:", error);
+        holidays = [];
+      }
     }
 
-    try {
-      attendanceRecords = await Attendance.findAll();
-      console.log(`✅ Found ${attendanceRecords.length} attendance records`);
-    } catch (error) {
-      console.error("❌ Error fetching attendance records:", error);
-      attendanceRecords = [];
-    }
+    // Remove the employee filtering by schedules - schedules are only for tardiness calculation
+    // Keep all active employees
+    employeesData = employeesData.filter(employee => employee.status !== "Inactive");
+    console.log(`✅ Processing ${employeesData.length} active employees`);
 
+    // Fetch payroll information from database
     try {
       payrollInformations = await PayrollInformation.findAll();
       console.log(`✅ Found ${payrollInformations.length} payroll information records`);
@@ -643,15 +686,7 @@ export const generatePayroll = async (req, res) => {
       payrollInformations = [];
     }
 
-    try {
-      holidays = await Holidays.findAll();
-      console.log(`✅ Found ${holidays.length} holidays`);
-    } catch (error) {
-      console.error("❌ Error fetching holidays:", error);
-      holidays = [];
-    }
-
-    if (!employees || employees.length === 0) {
+    if (!employeesData || employeesData.length === 0) {
       return res.status(400).json({
         success: false,
         message: "No active employees found!"
@@ -661,11 +696,11 @@ export const generatePayroll = async (req, res) => {
     const generatedPayslips = [];
     const errors = [];
 
-    for (let i = 0; i < employees.length; i++) {
-      const employee = employees[i];
+    for (let i = 0; i < employeesData.length; i++) {
+      const employee = employeesData[i];
 
       try {
-        console.log(`📝 Processing ${i + 1}/${employees.length}: ${employee.name} (${employee.ecode})`);
+        console.log(`📝 Processing ${i + 1}/${employeesData.length}: ${employee.name} (${employee.ecode})`);
 
         const employeeAttendance = attendanceRecords.filter(
           record => record.ecode === employee.ecode
@@ -682,7 +717,8 @@ export const generatePayroll = async (req, res) => {
 
         let attendanceMetrics;
         try {
-          attendanceMetrics = calculateAttendanceMetrics(employeeAttendance, holidays);
+          // Pass selectedSchedules to calculateAttendanceMetrics for tardiness calculation
+          attendanceMetrics = calculateAttendanceMetrics(employeeAttendance, holidays, selectedSchedules);
         } catch (error) {
           attendanceMetrics = getDefaultAttendanceMetrics();
         }
@@ -706,9 +742,19 @@ export const generatePayroll = async (req, res) => {
 
         const adjustment = Number(employeePayrollInfo.adjustment) || 0;
 
-        const totalOvertime = selectedEmployees.includes(employee.ecode)
-          ? Math.min(attendanceMetrics.totalOvertime || 0, Number(maxOvertime))
-          : 0;
+        // Use individual overtime if provided, otherwise use maxOvertime for selected employees
+        let totalOvertime = 0;
+        if (individualOvertime && individualOvertime[employee.ecode]) {
+          totalOvertime = Math.min(
+            attendanceMetrics.totalOvertime || 0, 
+            Number(individualOvertime[employee.ecode])
+          );
+        } else if (selectedEmployees.includes(employee.ecode)) {
+          totalOvertime = Math.min(
+            attendanceMetrics.totalOvertime || 0, 
+            Number(maxOvertime)
+          );
+        }
 
         const basicPay = (attendanceMetrics.totalRegularHours || 0) * rates.hourlyRate;
         const overtimePay = totalOvertime * rates.overtimeRate;
@@ -721,12 +767,13 @@ export const generatePayroll = async (req, res) => {
 
         const payslipData = {
           ecode: employee.ecode,
-          email: employee.emailaddress || '',
+          email: employee.emailaddress || employee.email || '',
           employeeId: employee.id,
           name: employee.name,
           project: employee["area/section"] || employee.area || employee.section || "N/A",
           position: employee.positiontitle || employee.position || "N/A",
           department: employee.department || "N/A",
+          schedule: employee.schedule || "N/A",
           cutoffDate,
           dailyrate: rates.dailyRate.toFixed(2),
           basicPay: basicPay.toFixed(2),
@@ -761,6 +808,7 @@ export const generatePayroll = async (req, res) => {
         generatedPayslips.push(newPayslip);
 
       } catch (employeeError) {
+        console.error(`❌ Error processing employee ${employee.name}:`, employeeError);
         errors.push({
           employee: employee.name,
           ecode: employee.ecode,
@@ -769,10 +817,15 @@ export const generatePayroll = async (req, res) => {
       }
     }
 
+    // Send email notifications to approvers
     const approvers = await User.findAll({ where: { role: 'approver', isBlocked: false } });
     const successfulEmails = [];
 
     for (const approver of approvers) {
+      const scheduleInfo = selectedSchedules.length > 0 
+        ? ` (using schedules: ${selectedSchedules.join(', ')} for tardiness calculation)` 
+        : '';
+      
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to: approver.email,
@@ -780,8 +833,10 @@ export const generatePayroll = async (req, res) => {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h3>Hello ${approver.name},</h3>
-            <p>Payroll has been successfully generated for the cutoff date <strong>${cutoffDate}</strong>.</p>
+            <p>Payroll has been successfully generated for the cutoff date <strong>${cutoffDate}</strong>${scheduleInfo}.</p>
             <p>Batch ID: <strong>${batchId}</strong></p>
+            <p>Total Payslips Generated: <strong>${generatedPayslips.length}</strong></p>
+            ${selectedSchedules.length > 0 ? `<p>Schedules used for tardiness calculation: <strong>${selectedSchedules.join(', ')}</strong></p>` : ''}
             <p>Please review the payslips in the payroll system.</p>
             <br />
             <p>Best regards,<br />SJM Payroll System</p>
@@ -800,24 +855,10 @@ export const generatePayroll = async (req, res) => {
         },
       });
 
-      transporter.verify((error, success) => {
-        if (error) {
-          console.error("❌ SMTP Connection Failed:", error);
-        } else {
-          console.log("✅ SMTP Server Ready!");
-        }
-      });
-
-      if (!cutoffDate) {
-        return res.status(400).json({
-          success: false,
-          message: "cutoffDate is required"
-        });
-      }
-
       try {
         await transporter.sendMail(mailOptions);
         successfulEmails.push(approver.email);
+        console.log(`✅ Email sent to ${approver.email}`);
       } catch (emailError) {
         console.error(`❌ Failed to send email to ${approver.email}:`, emailError);
       }
@@ -829,6 +870,7 @@ export const generatePayroll = async (req, res) => {
       batchId,
       payslips: generatedPayslips,
       notified: successfulEmails,
+      schedulesUsedForTardiness: selectedSchedules,
       errors: errors.length > 0 ? errors : undefined
     });
 
