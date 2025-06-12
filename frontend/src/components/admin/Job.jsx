@@ -94,20 +94,20 @@ const JobFormModal = ({
 
   // Reset form when the modal opens with initial data (for editing)
   useEffect(() => {
-    if (initialData) {
+    if (initialData && showModal) {
       setJobData({
         title: initialData.title || "",
         description: initialData.description || "",
         location: initialData.location || "",
-        requirements: initialData.requirements?.length
+        requirements: Array.isArray(initialData.requirements) && initialData.requirements.length > 0
           ? [...initialData.requirements]
           : [""],
-        responsibilities: initialData.responsibilities?.length
+        responsibilities: Array.isArray(initialData.responsibilities) && initialData.responsibilities.length > 0
           ? [...initialData.responsibilities]
           : [""],
         link: initialData.applicationLink || initialData.link || "",
       });
-    } else {
+    } else if (!initialData && showModal) {
       // Reset form for new job
       setJobData({
         title: "",
@@ -122,35 +122,39 @@ const JobFormModal = ({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setJobData({
-      ...jobData,
+    setJobData(prevData => ({
+      ...prevData,
       [name]: value,
-    });
+    }));
   };
 
   const handleListChange = (e, index, listType) => {
     const { value } = e.target;
-    const updatedList = [...jobData[listType]];
-    updatedList[index] = value;
-    setJobData({
-      ...jobData,
-      [listType]: updatedList,
+    setJobData(prevData => {
+      const updatedList = [...prevData[listType]];
+      updatedList[index] = value;
+      return {
+        ...prevData,
+        [listType]: updatedList,
+      };
     });
   };
 
   const addListItem = (listType) => {
-    setJobData({
-      ...jobData,
-      [listType]: [...jobData[listType], ""],
-    });
+    setJobData(prevData => ({
+      ...prevData,
+      [listType]: [...prevData[listType], ""],
+    }));
   };
 
   const removeListItem = (index, listType) => {
-    const updatedList = [...jobData[listType]];
-    updatedList.splice(index, 1);
-    setJobData({
-      ...jobData,
-      [listType]: updatedList,
+    setJobData(prevData => {
+      const updatedList = [...prevData[listType]];
+      updatedList.splice(index, 1);
+      return {
+        ...prevData,
+        [listType]: updatedList,
+      };
     });
   };
 
@@ -192,112 +196,119 @@ const JobFormModal = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="mt-4">
           <div className="mb-3">
-            <label className="block mb-1 font-medium">Job Title</label>
+            <label className="block mb-1 font-medium text-neutralDGray">Job Title</label>
             <input
               type="text"
               name="title"
               value={jobData.title}
               onChange={handleChange}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
               required
             />
           </div>
 
           <div className="mb-3">
-            <label className="block mb-1 font-medium">Description</label>
+            <label className="block mb-1 font-medium text-neutralDGray">Description</label>
             <textarea
               name="description"
               value={jobData.description}
               onChange={handleChange}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent resize-vertical"
               rows="3"
               required
-            ></textarea>
+            />
           </div>
 
           <div className="mb-3">
-            <label className="block mb-1 font-medium">Location</label>
+            <label className="block mb-1 font-medium text-neutralDGray">Location</label>
             <input
               type="text"
               name="location"
               value={jobData.location}
               onChange={handleChange}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
               required
             />
           </div>
 
           <div className="mb-3">
-            <label className="block mb-1 font-medium">Requirements</label>
+            <label className="block mb-1 font-medium text-neutralDGray">Requirements</label>
             {jobData.requirements.map((req, index) => (
-              <div key={index} className="flex mb-2">
+              <div key={index} className="flex mb-2 items-center">
                 <input
                   type="text"
                   value={req}
                   onChange={(e) => handleListChange(e, index, "requirements")}
-                  className="w-full p-2 border rounded"
+                  className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
+                  placeholder={`Requirement ${index + 1}`}
                 />
                 <button
                   type="button"
                   onClick={() => removeListItem(index, "requirements")}
-                  className="ml-2 px-2 w-20 h-10 bg-red-500 text-white rounded"
+                  className="ml-2 px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={jobData.requirements.length <= 1}
+                  title="Remove requirement"
                 >
-                  -
+                  <FaTrash size={12} />
                 </button>
               </div>
             ))}
             <button
               type="button"
               onClick={() => addListItem("requirements")}
-              className="px-3 py-1 h-10 bg-green-500 text-white rounded"
+              className="flex items-center px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
             >
-              + Add Requirement
+              <FaPlus size={12} className="mr-1" />
+              Add Requirement
             </button>
           </div>
 
           <div className="mb-3">
-            <label className="block mb-1 font-medium">Responsibilities</label>
+            <label className="block mb-1 font-medium text-neutralDGray">Responsibilities</label>
             {jobData.responsibilities.map((resp, index) => (
-              <div key={index} className="flex mb-2">
+              <div key={index} className="flex mb-2 items-center">
                 <input
                   type="text"
                   value={resp}
                   onChange={(e) =>
                     handleListChange(e, index, "responsibilities")
                   }
-                  className="w-full p-2 border rounded"
+                  className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
+                  placeholder={`Responsibility ${index + 1}`}
                 />
                 <button
                   type="button"
                   onClick={() => removeListItem(index, "responsibilities")}
-                  className="ml-2 w-20 h-10 px-3 bg-red-500 text-white rounded"
+                  className="ml-2 px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={jobData.responsibilities.length <= 1}
+                  title="Remove responsibility"
                 >
-                  -
+                  <FaTrash size={12} />
                 </button>
               </div>
             ))}
             <button
               type="button"
               onClick={() => addListItem("responsibilities")}
-              className="px-3 py-1 h-10 bg-green-500 text-white rounded"
+              className="flex items-center px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
             >
-              + Add Responsibility
+              <FaPlus size={12} className="mr-1" />
+              Add Responsibility
             </button>
           </div>
 
-          <div className="mb-3">
-            <label className="block mb-1 font-medium">Application Link</label>
+          <div className="mb-4">
+            <label className="block mb-1 font-medium text-neutralDGray">Application Link</label>
             <input
               type="url"
               name="link"
               value={jobData.link}
               onChange={handleChange}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
               required
+              placeholder="https://example.com/apply"
             />
           </div>
 
