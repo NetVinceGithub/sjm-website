@@ -49,7 +49,12 @@ export default function ClientProfileModal({
       sortable: true,
       wrap: true,
     },
-    
+    {
+      name: "Employment Status",
+      selector: (row) => row.employmentstatus || "N/A",
+      sortable: true,
+      wrap: true,
+    },
   ];
 
   return (

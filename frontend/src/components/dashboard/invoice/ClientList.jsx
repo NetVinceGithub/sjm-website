@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from "react";
 import Breadcrumb from "../dashboard/Breadcrumb";
-import {
-  FaPeopleGroup,
-  FaRegWindowMaximize,
-} from "react-icons/fa6";
+import { FaPeopleGroup, FaRegWindowMaximize } from "react-icons/fa6";
 import { FaSearch, FaSyncAlt } from "react-icons/fa";
 import { MapPin, Phone, Mail, Calendar } from "lucide-react";
 import ClientProfileModal from "../modals/clientProfile";
-import axios from 'axios';
+import axios from "axios";
 
 const ClientList = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -21,7 +18,9 @@ const ClientList = () => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee`);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/employee`
+      );
       setEmployees(response.data.employees);
     } catch (error) {
       console.log(error);
@@ -31,35 +30,38 @@ const ClientList = () => {
   const fetchClients = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/clients`);
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/clients`
+      );
       const data = await response.json();
 
       if (data.success) {
         // Transform API data to match component structure
-      const transformedClients = data.data.map(client => ({
-        id: client.id,
-        name: client.name,
-        project: client.project || client.name, // add project field for matching
-        deployed: client.deployedEmployees || 0,
-        location: client.businessAddress || "No address provided",
-        phone: client.contactNumber || "No phone provided",
-        email: client.emailAddress || "No email provided",
-        tin: client.tinNumber || "No TIN provided",
-        joinDate: client.joinedDate || "No date provided",
-        status: client.status || "Active",
-        avatar: client.name ? client.name.substring(0, 2).toUpperCase() : "CL",
-      }));
-
+        const transformedClients = data.data.map((client) => ({
+          id: client.id,
+          name: client.name,
+          project: client.project || client.name, // add project field for matching
+          deployed: client.deployedEmployees || 0,
+          location: client.businessAddress || "No address provided",
+          phone: client.contactNumber || "No phone provided",
+          email: client.emailAddress || "No email provided",
+          tin: client.tinNumber || "No TIN provided",
+          joinDate: client.joinedDate || "No date provided",
+          status: client.status || "Active",
+          avatar: client.name
+            ? client.name.substring(0, 2).toUpperCase()
+            : "CL",
+        }));
 
         // After employees are fetched, count employees per client project
         // But here clients fetched before employees so update after both fetched
         setClients(transformedClients);
         setFilteredClients(transformedClients);
       } else {
-        console.error('Failed to fetch clients:', data.message);
+        console.error("Failed to fetch clients:", data.message);
       }
     } catch (error) {
-      console.error('Error fetching clients:', error);
+      console.error("Error fetching clients:", error);
     } finally {
       setLoading(false);
     }
@@ -69,10 +71,13 @@ const ClientList = () => {
   const syncClients = async () => {
     try {
       setSyncing(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/clients/sync`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/clients/sync`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
 
       const data = await response.json();
 
@@ -83,8 +88,8 @@ const ClientList = () => {
         alert(`Sync failed: ${data.message}`);
       }
     } catch (error) {
-      console.error('Error syncing clients:', error);
-      alert('Error syncing clients. Please try again.');
+      console.error("Error syncing clients:", error);
+      alert("Error syncing clients. Please try again.");
     } finally {
       setSyncing(false);
     }
@@ -92,11 +97,13 @@ const ClientList = () => {
 
   // Update deployed count for clients based on employees matching project name
   const updateClientsWithEmployeeCount = (clientsList, employeesList) => {
-    return clientsList.map(client => {
+    return clientsList.map((client) => {
       // Count employees where employee.project matches client.name (case insensitive)
-      const count = employeesList.filter(emp =>
-        emp.project && client.name &&
-        emp.project.toLowerCase() === client.name.toLowerCase()
+      const count = employeesList.filter(
+        (emp) =>
+          emp.project &&
+          client.name &&
+          emp.project.toLowerCase() === client.name.toLowerCase()
       ).length;
 
       return {
@@ -114,11 +121,12 @@ const ClientList = () => {
     if (term === "") {
       setFilteredClients(clients);
     } else {
-      const filtered = clients.filter(client =>
-        client.name.toLowerCase().includes(term) ||
-        client.company.toLowerCase().includes(term) ||
-        client.email.toLowerCase().includes(term) ||
-        client.location.toLowerCase().includes(term)
+      const filtered = clients.filter(
+        (client) =>
+          client.name.toLowerCase().includes(term) ||
+          client.company.toLowerCase().includes(term) ||
+          client.email.toLowerCase().includes(term) ||
+          client.location.toLowerCase().includes(term)
       );
       setFilteredClients(filtered);
     }
@@ -145,8 +153,11 @@ const ClientList = () => {
     }, {});
 
     // Update clients with employee count based on matching project
-    const updatedClients = clients.map(client => {
-      const clientProjectName = client.project?.trim().toUpperCase() || client.name?.trim().toUpperCase() || "";
+    const updatedClients = clients.map((client) => {
+      const clientProjectName =
+        client.project?.trim().toUpperCase() ||
+        client.name?.trim().toUpperCase() ||
+        "";
       const deployedCount = employeeCountByProject[clientProjectName] || 0;
       return {
         ...client,
@@ -156,7 +167,6 @@ const ClientList = () => {
 
     setFilteredClients(updatedClients);
   }, [employees, clients]);
-
 
   const handleViewProfile = (client) => {
     setSelectedClient(client);
@@ -191,13 +201,15 @@ const ClientList = () => {
               />
               <FaSearch className="absolute right-2 text-neutralDGray" />
             </div>
-            <button 
+            <button
               onClick={syncClients}
               disabled={syncing}
               className="px-3 py-0.5 h-8 border text-neutralDGray hover:bg-brandPrimary hover:text-white rounded flex items-center space-x-2 disabled:opacity-50"
             >
-              <FaSyncAlt className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Syncing...' : 'Sync Clients'}
+              <FaSyncAlt
+                className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`}
+              />
+              {syncing ? "Syncing..." : "Sync Clients"}
             </button>
           </div>
         </div>
@@ -228,16 +240,22 @@ const ClientList = () => {
                         {client.avatar}
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-800 leading-tight">{client.name}</h3>
+                        <h3 className="text-base font-semibold text-gray-800 leading-tight">
+                          {client.name}
+                        </h3>
                         <p className="text-sm text-gray-600 flex items-center">
                           <FaPeopleGroup className="w-4 h-4 mr-1" />
                           {client.deployed} Employee Deployed
                         </p>
                       </div>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
-                      client.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                        client.status === "Active"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
                       {client.status}
                     </span>
                   </div>
@@ -266,12 +284,20 @@ const ClientList = () => {
                   {/* Join Date */}
                   <div className="flex items-center text-sm text-gray-500 mb-3">
                     <Calendar className="w-4 h-4 mr-2" />
-                    <span>Joined {client.joinDate}</span>
+                    <span>
+                      Joined{" "}
+                      {client.joinDate &&
+                        new Date(client.joinDate).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                    </span>
                   </div>
 
                   {/* Action Buttons */}
                   <div className="flex space-x-2">
-                    <button 
+                    <button
                       onClick={() => handleViewProfile(client)}
                       className="flex-1 h-8 flex justify-center items-center text-center text-neutralDGray border py-2 px-3 rounded-md text-sm font-medium hover:bg-green-400 hover:text-white transition-colors"
                     >
@@ -289,7 +315,7 @@ const ClientList = () => {
           show={showProfileModal}
           handleClose={handleCloseModal}
           client={selectedClient}
-          employees={employees}  // pass the employees array here
+          employees={employees} // pass the employees array here
         />
       </div>
     </div>
