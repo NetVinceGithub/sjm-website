@@ -953,9 +953,11 @@ const renderChangeRequestRow = (request, index) => {
         {request.isBatch ? (
           <div>
             <span className="font-medium">{request.totalAffected} Employees</span>
-            <p className="text-xs text-gray-500">
-              {request.batch_affected_employee_ids?.slice(0, 3).join(', ')}
-              {request.batch_affected_employee_ids?.length > 3 && '...'}
+           <p className="text-xs text-gray-500">
+              {Array.isArray(request.batch_affected_employee_ids)
+                ? request.batch_affected_employee_ids.slice(0, 3).join(', ')
+                : ''}
+              {Array.isArray(request.batch_affected_employee_ids) && request.batch_affected_employee_ids.length > 3 && '...'}
             </p>
           </div>
         ) : (
