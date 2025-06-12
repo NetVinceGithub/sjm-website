@@ -831,16 +831,35 @@ export const generatePayroll = async (req, res) => {
         to: approver.email,
         subject: `Payroll Generated: ${cutoffDate} (Batch: ${batchId})`,
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h3>Hello ${approver.name},</h3>
-            <p>Payroll has been successfully generated for the cutoff date <strong>${cutoffDate}</strong>${scheduleInfo}.</p>
-            <p>Batch ID: <strong>${batchId}</strong></p>
-            <p>Total Payslips Generated: <strong>${generatedPayslips.length}</strong></p>
-            ${selectedSchedules.length > 0 ? `<p>Schedules used for tardiness calculation: <strong>${selectedSchedules.join(', ')}</strong></p>` : ''}
-            <p>Please review the payslips in the payroll system.</p>
-            <br />
-            <p>Best regards,<br />SJM Payroll System</p>
-          </div>
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Payroll Request</title>
+        </head>
+
+        <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
+          <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
+            <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
+
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h3>Hello ${approver.name},</h3>
+              <p>Payroll has been successfully generated for the cutoff date <strong>${cutoffDate}</strong>${scheduleInfo}.</p>
+              <p>Batch ID: <strong>${batchId}</strong></p>
+              <p>Total Payslips Generated: <strong>${generatedPayslips.length}</strong></p>
+              ${selectedSchedules.length > 0 ? `<p>Schedules used for tardiness calculation: <strong>${selectedSchedules.join(', ')}</strong></p>` : ''}
+              <p>Please review the payslips in the payroll system.</p>
+              <br />
+              <p>Best regards,<br />SJM Payroll System</p>
+            </div>
+              <p style="color: #333; font-size: 15px;">Please login to <a href="https://payroll.stjohnmajore.com/">https://payroll.stjohnmajore.com/</a> to review and take appropriate action.</p>
+              
+              <p style="color: #333; font-size: 15px;">Best regards,<br />SJM Payroll System</p>
+            <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
+              <strong>This is an automated email—please do not reply.</strong><br />
+              Keep this message for your records.
+            </div>
+            <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
+         </div>
         `
       };
 
