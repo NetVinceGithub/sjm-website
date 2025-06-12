@@ -1,4 +1,4 @@
-// Updated Attendance.jsx - Add these missing pieces to your existing component
+// Updated Attendance.jsx - Fixed with proper time conversion
 
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
@@ -9,20 +9,36 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 const Attendance = () => {
-  // Add these missing state variables
+  // State variables
   const [attendanceData, setAttendanceData] = useState([]);
   const [summaryData, setSummaryData] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [holidays, setHolidays] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Column definitions for attendance table
+  // Helper function to convert Excel time decimals to HH:MM format
+  const convertExcelTimeToString = (excelTime) => {
+    if (!excelTime || excelTime === '' || isNaN(excelTime)) {
+      return null;
+    }
+    
+    // Convert decimal to total minutes in a day
+    const totalMinutes = Math.round(Number(excelTime) * 24 * 60);
+    
+    // Calculate hours and minutes
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    
+    // Format as HH:MM
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
+
+  // Column definitions for attendance table - matching backend fields
   const attendanceColumns = [
     {
-      name: "Ecode",
-      selector: (row) => row.employeeName,
+      name: "Employee Code",
+      selector: (row) => row.ecode,
       sortable: true,
       width: "150px",
     },
@@ -30,37 +46,22 @@ const Attendance = () => {
       name: "Date",
       selector: (row) => new Date(row.date).toLocaleDateString(),
       sortable: true,
+      width: "120px",
+    },
+    {
+      name: "On Duty",
+      selector: (row) => row.onDuty || "N/A",
       width: "100px",
     },
     {
-      name: "Punch In",
-      selector: (row) => row.punchIn || "N/A",
-      width: "90px",
-    },
-    {
-      name: "Punch Out",
-      selector: (row) => row.punchOut || "N/A",
-      width: "90px",
-    },
-    {
-      name: "Work Time",
-      selector: (row) => row.workTime || "N/A",
-      width: "90px",
-    },
-    {
-      name: "Late",
-      selector: (row) => row.lateTime || "00:00:00",
-      width: "80px",
-    },
-    {
-      name: "Overtime",
-      selector: (row) => row.overtime || "00:00:00",
-      width: "90px",
+      name: "Off Duty",
+      selector: (row) => row.offDuty || "N/A",
+      width: "100px",
     },
     {
       name: "Status",
       selector: (row) => row.status,
-      width: "80px",
+      width: "100px",
       cell: (row) => (
         <span
           className={`px-2 py-1 rounded text-xs ${
@@ -68,8 +69,6 @@ const Attendance = () => {
               ? "bg-green-100 text-green-800"
               : row.status === "absent"
               ? "bg-red-100 text-red-800"
-              : row.status === "late"
-              ? "bg-yellow-100 text-yellow-800"
               : "bg-gray-100 text-gray-800"
           }`}
         >
@@ -82,8 +81,8 @@ const Attendance = () => {
   // Column definitions for summary table
   const summaryColumns = [
     {
-      name: "Employee Name",
-      selector: (row) => row.employeeName,
+      name: "Employee Code",
+      selector: (row) => row.ecode,
       sortable: true,
       width: "150px",
     },
@@ -103,23 +102,13 @@ const Attendance = () => {
       width: "80px",
     },
     {
-      name: "Late Days",
-      selector: (row) => row.lateDays,
-      width: "80px",
-    },
-    {
-      name: "Total Work Hours",
-      selector: (row) => row.totalWorkHours,
-      width: "120px",
-    },
-    {
-      name: "Total Overtime",
-      selector: (row) => row.totalOvertimeHours,
+      name: "Attendance Rate",
+      selector: (row) => `${((row.presentDays / row.totalDays) * 100).toFixed(1)}%`,
       width: "120px",
     },
   ];
 
-  // Handle file upload
+  // Handle file upload and preview
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -135,25 +124,47 @@ const Attendance = () => {
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-          // Process and display preview data
-          const processedData = jsonData.map((row, index) => ({
-            id: index + 1,
-            employeeName: row.Name || row.name || "",
-            date: row.Date || row.date || "",
-            dutyTime: row["Duty time"] || row["duty time"] || "",
-            punchIn: row["Punch In"] || row["punch in"] || "",
-            punchOut: row["Punch Out"] || row["punch out"] || "",
-            workTime: row["Work time"] || row["work time"] || "",
-            lateTime: row.Late || row.late || "00:00:00",
-            overtime: row.Overtime || row.overtime || "00:00:00",
-            absentTime: row["Absent time"] || row["absent time"] || "00:00:00",
-            status:
-              !row["Punch In"] && !row["Punch Out"] ? "absent" : "present",
-          }));
+          // Process data to match backend expectations
+          const processedData = jsonData.map((row, index) => {
+            // Convert date if it's an Excel serial number
+            let formattedDate = '';
+            const dateRaw = row.Date || row.date || '';
+            
+            if (!isNaN(dateRaw) && Number(dateRaw) > 0) {
+              // Excel serial date conversion
+              const excelDate = new Date((Number(dateRaw) - 25569) * 86400 * 1000);
+              formattedDate = excelDate.toISOString().split('T')[0];
+            } else if (dateRaw) {
+              // Try to parse as regular date
+              const parsedDate = new Date(dateRaw);
+              if (!isNaN(parsedDate)) {
+                formattedDate = parsedDate.toISOString().split('T')[0];
+              }
+            }
+
+            const ecode = String(row.Name || row.name || '').trim();
+            
+            // Convert Excel time decimals to HH:MM format
+            const onDutyRaw = row['ON Duty'] || row['on duty'] || row['onDuty'] || null;
+            const offDutyRaw = row['OFF Duty'] || row['off duty'] || row['offDuty'] || null;
+            
+            const onDuty = convertExcelTimeToString(onDutyRaw);
+            const offDuty = convertExcelTimeToString(offDutyRaw);
+            
+            // Determine status based on duty times
+            const status = (!onDuty && !offDuty) ? 'absent' : 'present';
+
+            return {
+              id: index + 1,
+              ecode,
+              date: formattedDate,
+              onDuty,
+              offDuty,
+              status
+            };
+          }).filter(record => record.date && record.ecode); // Filter out invalid records
 
           setAttendanceData(processedData);
-
-          // Generate summary data
           generateSummary(processedData);
         } catch (error) {
           console.error("Error reading file:", error);
@@ -169,35 +180,28 @@ const Attendance = () => {
     const summary = {};
 
     data.forEach((record) => {
-      const name = record.employeeName;
-      if (!summary[name]) {
-        summary[name] = {
-          employeeName: name,
+      const ecode = record.ecode;
+      if (!summary[ecode]) {
+        summary[ecode] = {
+          ecode: ecode,
           totalDays: 0,
           presentDays: 0,
           absentDays: 0,
-          lateDays: 0,
-          totalWorkHours: "00:00",
-          totalOvertimeHours: "00:00",
         };
       }
 
-      summary[name].totalDays++;
+      summary[ecode].totalDays++;
       if (record.status === "present") {
-        summary[name].presentDays++;
+        summary[ecode].presentDays++;
       } else if (record.status === "absent") {
-        summary[name].absentDays++;
-      }
-
-      if (record.lateTime && record.lateTime !== "00:00:00") {
-        summary[name].lateDays++;
+        summary[ecode].absentDays++;
       }
     });
 
     setSummaryData(Object.values(summary));
   };
 
-  // Handle form submission
+  // Handle form submission and save summary
   const handleSubmit = async () => {
     if (!selectedFile) {
       toast.error("Please select a file first");
@@ -215,6 +219,7 @@ const Attendance = () => {
     setLoading(true);
 
     try {
+      // Step 1: Upload attendance Excel file to backend
       const formData = new FormData();
       formData.append("attendanceFile", file);
 
@@ -229,26 +234,51 @@ const Attendance = () => {
       const result = await response.json();
 
       if (result.success) {
-        setShowModal(true);
-        toast.success("Attendance data saved successfully!", {
-          closeButton: false,
-        });
+        toast.success("Attendance data saved successfully!");
 
-        // Refresh the data after successful upload
-        fetchAttendanceData();
+        // Step 2: Send attendance summary to /add-attendance-summary
+        const summaryPayload = summaryData.map((row) => ({
+          ecode: row.ecode,
+          daysPresent: row.totalDays,
+        }));
+
+        const summaryResponse = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/attendance/add-attendance-summary`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ summaryData: summaryPayload }),
+          }
+        );
+
+        const summaryResult = await summaryResponse.json();
+
+        if (summaryResponse.ok) {
+          toast.success("Summary saved successfully!");
+          setShowModal(true);
+          fetchAttendanceData();
+        } else {
+          toast.error("Failed to save attendance summary");
+          console.error(summaryResult.message);
+        }
       } else {
         toast.error(result.message || "Failed to save attendance data");
-        if (result.errors) {
-          result.errors.forEach((error) => toast.error(error));
+        if (result.details?.errors) {
+          result.details.errors.forEach((error) =>
+            toast.error(`${error.record?.ecode}: ${error.error}`)
+          );
         }
       }
     } catch (error) {
-      console.error("Error uploading file:", error);
-      toast.error("Failed to upload attendance file");
+      console.error("Error submitting data:", error);
+      toast.error("An error occurred while saving attendance.");
     } finally {
       setLoading(false);
     }
   };
+
 
   // Fetch attendance data from API
   const fetchAttendanceData = async () => {
@@ -260,10 +290,14 @@ const Attendance = () => {
 
       const data = await response.json();
       if (data.success) {
-        setAttendanceData(data.data.attendance);
-
-        // Generate summary from fetched data
-        generateSummary(data.data.attendance);
+        // Process fetched data to match frontend expectations
+        const processedData = data.data.map(record => ({
+          ...record,
+          status: (!record.onDuty && !record.offDuty) ? 'absent' : 'present'
+        }));
+        
+        setAttendanceData(processedData);
+        generateSummary(processedData);
       }
     } catch (error) {
       console.error("Error fetching attendance data:", error);
@@ -271,27 +305,10 @@ const Attendance = () => {
     }
   };
 
-  // Fetch attendance summary from API
-  const fetchAttendanceSummary = async (startDate, endDate) => {
-    try {
-      const params = new URLSearchParams();
-      if (startDate) params.append("startDate", startDate);
-      if (endDate) params.append("endDate", endDate);
-
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/attendance/summary?${params}`
-      );
-      if (!response.ok) throw new Error("Failed to fetch attendance summary");
-
-      const data = await response.json();
-      if (data.success) {
-        setSummaryData(data.data.summary);
-      }
-    } catch (error) {
-      console.error("Error fetching attendance summary:", error);
-      toast.error("Failed to fetch attendance summary");
-    }
-  };
+  // Load data on component mount
+  useEffect(() => {
+    fetchAttendanceData();
+  }, []);
 
   return (
     <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
@@ -352,12 +369,14 @@ const Attendance = () => {
             </span>
             <button
               onClick={handleSubmit}
-              className="px-4 text-sm py-2 h-auto bg-brandPrimary hover:bg-neutralDGray cursor-pointer text-white rounded-md"
+              disabled={loading}
+              className="px-4 text-sm py-2 h-auto bg-brandPrimary hover:bg-neutralDGray cursor-pointer text-white rounded-md disabled:bg-gray-400"
             >
-              Save Attendance
+              {loading ? "Saving..." : "Save Attendance"}
             </button>
           </div>
         </div>
+        
         <div className="grid mt-3 grid-cols-2 gap-3">
           {/* Attendance Table */}
           <div className="overflow-auto h-full rounded border bg-white shadow-sm p-2">
@@ -370,10 +389,12 @@ const Attendance = () => {
                 data={attendanceData}
                 highlightOnHover
                 pagination
+                paginationPerPage={10}
+                paginationRowsPerPageOptions={[10, 25, 50]}
               />
             ) : (
               <p className="text-center text-gray-500">
-                No attendance data available.
+                No attendance data available. Upload a file to see data.
               </p>
             )}
           </div>
@@ -389,10 +410,12 @@ const Attendance = () => {
                 data={summaryData}
                 pagination
                 highlightOnHover
+                paginationPerPage={10}
+                paginationRowsPerPageOptions={[10, 25, 50]}
               />
             ) : (
               <p className="text-center text-gray-500">
-                No summary data available.
+                No summary data available. Upload a file to see summary.
               </p>
             )}
           </div>
