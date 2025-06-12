@@ -14,6 +14,7 @@ const FilterComponent = ({ show, onClose, onSchedulesSelected }) => {
     },
   });
 
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [newSchedule, setNewSchedule] = useState({
     name: "",
