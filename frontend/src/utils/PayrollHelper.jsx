@@ -11,10 +11,11 @@ export const PayrollButtons = ({ Id, refreshData }) => {
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [changeReason, setChangeReason] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const [dataLoading, setDataLoading] = useState(false); // Added separate loading state for data fetching
 
   const [payrollData, setPayrollData] = useState({
     name: "",
+    ecode: "", // Added ecode field
     daily_rate: "",
     overtime_pay: "",
     holiday_pay: "",
@@ -30,28 +31,108 @@ export const PayrollButtons = ({ Id, refreshData }) => {
 
   const [originalPayrollData, setOriginalPayrollData] = useState(null);
 
-  useEffect(() => {
+  // Fetch data when modal opens instead of on component mount
+  const handleOpenModal = async () => {
+    setIsModalOpen(true);
     if (Id) {
-      fetchPayrollInformationsById();
-    }
-  }, [Id]);
-
-  const fetchPayrollInformationsById = async () => {
-    try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/employee/payroll-informations/${Id}`
-      );
-
-      if (response.data.success && response.data.payrollInformation) {
-        setPayrollData(response.data.payrollInformation);
-        setOriginalPayrollData(response.data.payrollInformation);
-      } else {
-        console.warn("No payroll data found for this employee.");
-      }
-    } catch (error) {
-      console.error("Error fetching payroll information:", error);
+      await fetchPayrollInformationsById();
     }
   };
+
+console.log('PayrollButtons received ID:', Id);
+
+// 2. Check the API endpoint URL
+console.log('API URL being called:', `${import.meta.env.VITE_API_URL}/api/employee/payroll-informations/${Id}`);
+
+const fetchPayrollInformationsById = async () => {
+  setDataLoading(true);
+  try {
+    console.log('Fetching payroll data for ID:', Id);
+    
+    const response = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/employee/payroll-informations/${Id}`
+    );
+
+    console.log('API Response:', response.data);
+
+    if (response.data.success) {
+      // Handle case where payrollInformation exists
+      if (response.data.payrollInformation) {
+        const data = response.data.payrollInformation;
+        
+        const processedData = {
+          name: data.name || "",
+          ecode: data.ecode || "",
+          daily_rate: data.daily_rate || "",
+          overtime_pay: data.overtime_pay || "",
+          holiday_pay: data.holiday_pay || "",
+          night_differential: data.night_differential || "",
+          allowance: data.allowance || "",
+          tax_deduction: data.tax_deduction || "",
+          sss_contribution: data.sss_contribution || "",
+          pagibig_contribution: data.pagibig_contribution || "",
+          philhealth_contribution: data.philhealth_contribution || "",
+          loan: data.loan || "",
+          designation: data.designation || "Regular",
+        };
+        
+        console.log('Using payroll data:', processedData);
+        setPayrollData(processedData);
+        setOriginalPayrollData(processedData);
+      } 
+      // Handle case where payrollInformation is null but employee exists
+      else if (response.data.employee) {
+        const employeeData = response.data.employee;
+        
+        const processedData = {
+          name: employeeData.name || "",
+          ecode: employeeData.ecode || "",
+          daily_rate: "", // Empty since no payroll data exists yet
+          overtime_pay: "",
+          holiday_pay: "",
+          night_differential: "",
+          allowance: "",
+          tax_deduction: "",
+          sss_contribution: "",
+          pagibig_contribution: "",
+          philhealth_contribution: "",
+          loan: "",
+          designation: employeeData.designation || "Regular",
+        };
+        
+        console.log('Using employee data (no payroll data found):', processedData);
+        setPayrollData(processedData);
+        setOriginalPayrollData(processedData);
+      } else {
+        console.warn("No payroll data or employee data found.");
+        // Set default values
+        setPayrollData({
+          name: "Unknown Employee",
+          ecode: "N/A",
+          daily_rate: "",
+          overtime_pay: "",
+          holiday_pay: "",
+          night_differential: "",
+          allowance: "",
+          tax_deduction: "",
+          sss_contribution: "",
+          pagibig_contribution: "",
+          philhealth_contribution: "",
+          loan: "",
+          designation: "Regular",
+        });
+      }
+    } else {
+      console.error("API returned success: false");
+      toast.error("Failed to load employee data.");
+    }
+  } catch (error) {
+    console.error("Error fetching payroll information:", error);
+    toast.error("Failed to load payroll data. Please try again.");
+  } finally {
+    setDataLoading(false);
+  }
+};
 
   const formatFieldName = (field) =>
     field.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -84,6 +165,7 @@ export const PayrollButtons = ({ Id, refreshData }) => {
     setLoading(true);
     if (!changeReason.trim()) {
       alert("Please provide a reason for the change.");
+      setLoading(false);
       return;
     }
 
@@ -110,12 +192,12 @@ export const PayrollButtons = ({ Id, refreshData }) => {
             Payroll change request submitted for approval.
           </div>,
           {
-            autoClose: 3000,        // auto close after 3 seconds
+            autoClose: 3000,
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             closeButton: false,
-            position: "top-right",  // position of the toast
+            position: "top-right",
           }
         );
         refreshData();
@@ -125,13 +207,36 @@ export const PayrollButtons = ({ Id, refreshData }) => {
     } catch (error) {
       console.error("Error submitting change request:", error);
       alert("Error submitting request. Please try again.");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    // Reset data when closing modal
+    setPayrollData({
+      name: "",
+      ecode: "",
+      daily_rate: "",
+      overtime_pay: "",
+      holiday_pay: "",
+      night_differential: "",
+      allowance: "",
+      tax_deduction: "",
+      sss_contribution: "",
+      pagibig_contribution: "",
+      philhealth_contribution: "",
+      loan: "",
+      designation: "Regular",
+    });
+    setOriginalPayrollData(null);
   };
 
   return (
     <div className="flex gap-2 justify-center items-center flex-nowrap z-50">
       <button
-        onClick={() => setIsModalOpen(true)}
+        onClick={handleOpenModal} // Changed to use handleOpenModal
         className="px-3 py-0.5 w-auto h-8 border text-neutralDGray hover:bg-neutralSilver rounded flex items-center space-x-2 disabled:opacity-50"
       >
         <FaRegPenToSquare />
@@ -140,7 +245,7 @@ export const PayrollButtons = ({ Id, refreshData }) => {
       {/* Edit Modal */}
       {isModalOpen && (
         <ModalPortal>
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50  px-4">
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 px-4">
             <div className="relative bg-white p-6 mt-11 -mr-[75rem] rounded-xl shadow-2xl w-4/5 max-w-[22rem] max-h-[80vh] overflow-y-auto transform transition-all scale-100">
               <h2 className="text-base font-poppins mb-4 text-left -mt-3 text-neutralDGray">
                 Edit Payroll Data
@@ -149,68 +254,79 @@ export const PayrollButtons = ({ Id, refreshData }) => {
 
               <button
                 className="absolute flex justify-end top-3 right-4 text-gray-600 hover:text-red-500 transition"
-                onClick={() => setIsModalOpen(false)}
+                onClick={handleCloseModal} // Changed to use handleCloseModal
               >
                 <FaXmark size={20} />
               </button>
 
-              <div className="space-y-2">
-                <label className="block text-sm text-gray-700 font-medium">
-                  EMPLOYEE: {payrollData.ecode} → {payrollData.name}
-                </label>
+              {/* Loading indicator */}
+              {dataLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-teal-500"></div>
+                  <span className="ml-2 text-gray-600">Loading...</span>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="block text-sm text-gray-700 font-medium">
+                    EMPLOYEE: {payrollData.ecode} → {payrollData.name}
+                  </label>
 
-                {[
-                  { label: "Designation", key: "designation" },
-                  { label: "Daily Rate", key: "daily_rate" },
-                  { label: "Overtime Pay", key: "overtime_pay" },
-                  { label: "Holiday Pay", key: "holiday_pay" },
-                  { label: "Night Differential", key: "night_differential" },
-                  { label: "Allowance", key: "allowance" },
-                  { label: "Tax", key: "tax_deduction" },
-                  { label: "SSS", key: "sss_contribution" },
-                  { label: "Pagibig", key: "pagibig_contribution" },
-                  { label: "PhilHealth", key: "philhealth_contribution" },
-                  { label: "Loan", key: "loan" },
-                ].map(({ label, key }) => (
-                  <div key={key} className="flex flex-col">
-                    <label className="text-xs text-left mb-1 font-medium text-gray-700">
-                      {label}:
-                    </label>
-                    {key === "designation" ? (
-                      <select
-                        value={payrollData[key] || "Regular"}
-                        onChange={(e) =>
-                          setPayrollData({ ...payrollData, [key]: e.target.value })
-                        }
-                        className="w-72 text-[12px] p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                      >
-                        <option value="Regular">Supervisor/Officer</option>
-                        <option value="Team Leader">Rank & File</option>
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        value={payrollData[key] || ""}
-                        onChange={(e) =>
-                          setPayrollData({ ...payrollData, [key]: e.target.value })
-                        }
-                        className="w-72 text-[12px] h-8 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
+                  {[
+                    { label: "Designation", key: "designation" },
+                    { label: "Daily Rate", key: "daily_rate" },
+                    { label: "Overtime Pay", key: "overtime_pay" },
+                    { label: "Holiday Pay", key: "holiday_pay" },
+                    { label: "Night Differential", key: "night_differential" },
+                    { label: "Allowance", key: "allowance" },
+                    { label: "Tax", key: "tax_deduction" },
+                    { label: "SSS", key: "sss_contribution" },
+                    { label: "Pagibig", key: "pagibig_contribution" },
+                    { label: "PhilHealth", key: "philhealth_contribution" },
+                    { label: "Loan", key: "loan" },
+                  ].map(({ label, key }) => (
+                    <div key={key} className="flex flex-col">
+                      <label className="text-xs text-left mb-1 font-medium text-gray-700">
+                        {label}:
+                      </label>
+                      {key === "designation" ? (
+                        <select
+                          value={payrollData[key] || "Regular"}
+                          onChange={(e) =>
+                            setPayrollData({ ...payrollData, [key]: e.target.value })
+                          }
+                          className="w-72 text-[12px] p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        >
+                          <option value="Regular">Supervisor/Officer</option>
+                          <option value="Team Leader">Rank & File</option>
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={payrollData[key] || ""}
+                          onChange={(e) =>
+                            setPayrollData({ ...payrollData, [key]: e.target.value })
+                          }
+                          className="w-72 text-[12px] h-8 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+                          placeholder={`Enter ${label.toLowerCase()}`}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   className="px-4 py-2 h-10 border text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={handleCloseModal}
+                  disabled={dataLoading}
                 >
                   Cancel
                 </button>
                 <button
-                  className="px-4 py-2 h-10 border text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+                  className="px-4 py-2 h-10 border text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all disabled:opacity-50"
                   onClick={handleSave}
+                  disabled={dataLoading}
                 >
                   Request
                 </button>
@@ -225,9 +341,7 @@ export const PayrollButtons = ({ Id, refreshData }) => {
         <ModalPortal>
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 px-4">
             <div className="relative bg-white p-6 rounded-xl shadow-2xl w-4/5 max-w-md max-h-[60vh] overflow-y-auto transform transition-all scale-100">
-
-              {/* Header */}
-              <div className="flex  justify-center text-center justify-between mb-1">
+              <div className="flex justify-center text-center justify-between mb-1">
                 <h2 className="text-sm top-0 flex-justify-start font-poppins text-neutralDGray">
                   Reason for Change
                 </h2>
@@ -239,7 +353,6 @@ export const PayrollButtons = ({ Id, refreshData }) => {
                 </button>
               </div>
 
-              {/* Textarea */}
               <textarea
                 className="w-full text-sm -mt-3 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-y"
                 rows={5}
@@ -253,38 +366,20 @@ export const PayrollButtons = ({ Id, refreshData }) => {
                 Maximum of {changeReason.length}/200 Characters
               </div>
 
-
-
-
-
-
-              {/* Buttons */}
               <div className="flex justify-end gap-3 mt-3">
                 <button
                   className="px-4 py-2 w-24 h-8 border flex text-center justify-center text-sm items-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
                   onClick={() => setIsReasonModalOpen(false)}
                   disabled={loading}
                 >
-                  {loading ? (
-                    <div className="flex items-center gap-2 cursor-not-allowed">
-                      <span>Cancel</span>
-                    </div>
-                  ) : (
-                    "Cancel"
-                  )}
+                  Cancel
                 </button>
                 <button
-                  className="px-4 py-2 min-w-24 h-8 flex text-center justify-center items-center text-sm border text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+                  className="px-4 py-2 min-w-24 h-8 flex text-center justify-center items-center text-sm border text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all disabled:opacity-50"
                   onClick={submitChangeRequest}
                   disabled={loading}
                 >
-                  {loading ? (
-                    <div className="flex items-center gap-2 cursor-not-allowed">
-                      <span>Submitting...</span>
-                    </div>
-                  ) : (
-                    "Submit"
-                  )}
+                  {loading ? "Submitting..." : "Submit"}
                 </button>
               </div>
             </div>

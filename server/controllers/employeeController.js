@@ -356,10 +356,11 @@ export const getPayrollInformationsById = async (req, res) => {
     if (!payrollInformation) {
       return res
         .status(404)
-        .json({ success: true, message: "Payroll Data not found" });
+        .json({ success: false, message: "Payroll Data not found" }); // Changed to success: false
     }
     res.status(200).json({ success: true, payrollInformation });
   } catch (error) {
+    console.error('Error fetching payroll information:', error); // Added logging
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -417,22 +418,36 @@ export const requestPayrollChange = async (req, res) => {
   console.log("Received data:", req.body);
 
   try {
-   
+    // Fetch payroll info using employee_id
+    const payrollInfo = await PayrollInformation.findOne({
+      where: { employee_id: payroll_info_id },
+    });
 
-    const payrollInfo = await PayrollInformation.findByPk(payroll_info_id);
-
+    if (!payrollInfo) {
+      console.error(`Payroll information not found for employee_id: ${payroll_info_id}`);
+      return res.status(404).json({
+        success: false,
+        message: `Payroll information not found for employee_id: ${payroll_info_id}`,
+      });
+    }
 
     const employee_name = `${payrollInfo.name}`;
-    console.log(employee_name);
+    console.log("Employee name:", employee_name);
 
+    // Fetch user
     const user = await User.findOne({ where: { name: requested_by } });
 
     if (!user) {
-      throw new Error("User not found");
+      console.error(`User not found: ${requested_by}`);
+      return res.status(404).json({
+        success: false,
+        message: `User not found: ${requested_by}`,
+      });
     }
 
+    // Create payroll change request
     const result = await PayrollChangeRequest.create({
-      payroll_info_id,
+      payroll_info_id, // This might now be better named employee_id, if possible
       changes,
       reasons: reason,
       requested_by,
@@ -440,10 +455,9 @@ export const requestPayrollChange = async (req, res) => {
       employee_email: user.email,
     });
 
-    console.log(result);
+    console.log("Change request saved:", result);
 
-
-    // Get all users with the role 'approver'
+    // Get all approvers
     const approvers = await User.findAll({
       where: { role: "approver", isBlocked: false },
     });
@@ -472,29 +486,26 @@ export const requestPayrollChange = async (req, res) => {
             <p style="color: #333; font-size: 15px;"><strong>Reason:</strong> ${
               reason || "No reason provided"
             }</p>
-            <p style="color: #333; font-size: 15px;"><strong><strong>Changes:</strong></p>
-             <ul>
-
+            <p style="color: #333; font-size: 15px;"><strong>Changes:</strong></p>
+            <ul>
               ${Object.entries(changes)
                 .map(
                   ([key, value]) =>
-                    `<li><strong>${key.replace(
-                      /_/g,
-                      " "
-                    )}:</strong> ${value}</li>`
+                    `<li><strong>${key.replace(/_/g, " ")}:</strong> ${value}</li>`
                 )
                 .join("")}
-
             </ul>
             <p style="color: #333; font-size: 15px;">Please login to <a href="https://payroll.stjohnmajore.com/">https://payroll.stjohnmajore.com/</a> to review and take appropriate action.</p>
-            
             <p style="color: #333; font-size: 15px;">Best regards,<br />SJM Payroll System</p>
             <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
               <strong>This is an automated email—please do not reply.</strong><br />
               Keep this message for your records.
             </div>
             <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
-            `,
+          </div>
+        </body>
+        </html>
+        `,
       };
 
       try {
@@ -503,19 +514,21 @@ export const requestPayrollChange = async (req, res) => {
         successfulEmails.push(approver.email);
       } catch (emailError) {
         console.error(`Failed to send email to ${approver.email}:`, emailError);
-
-        // Log email failure
-       
       }
     }
+
+    res.status(200).json({
+      success: true,
+      message: "Payroll change request submitted successfully.",
+      notified_approvers: successfulEmails,
+    });
   } catch (error) {
     console.error("Error saving payroll change request:", error);
-
-    // Log the error
- 
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+
+
 
 export const reviewPayrollChange = async (req, res) => {
   console.log("💡 Hit reviewPayrollChange route");
