@@ -2018,56 +2018,78 @@ const processBatchRequest = async (changeRequest, approvedBy, transaction, res) 
 
 // Helper function for single processing
 const processSingleRequest = async (changeRequest, approvedBy, transaction, res) => {
-  const payrollRecord = await PayrollInformation.findOne({
-    where: { id: changeRequest.payroll_info_id },
-    transaction,
-  });
-
-  if (!payrollRecord) {
-    await transaction.rollback();
-    return res.status(404).json({ success: false, message: 'Payroll record not found' });
-  }
-
-  // Process changes
-  const fieldsToUpdate = processChanges(changeRequest.changes);
-  
-  if (Object.keys(fieldsToUpdate).length === 0) {
-    await transaction.rollback();
-    return res.status(400).json({ 
-      success: false, 
-      message: 'No valid fields to update found in request' 
-    });
-  }
-
-  console.log(`🔧 Fields to update for employee ${payrollRecord.employee_id}:`, fieldsToUpdate);
-
-  // Update the payroll record
-  await PayrollInformation.update(fieldsToUpdate, {
-    where: { id: changeRequest.payroll_info_id },
-    transaction,
-  });
-
-  // Mark as approved
-  await PayrollChangeRequest.update({
-    status: 'Approved',
-    approved_by: approvedBy,
-    approved_at: new Date(),
-  }, {
-    where: { id: changeRequest.id },
-    transaction,
-  });
-
-  await transaction.commit();
-
-  return res.json({
-    success: true,
-    message: 'Payroll change request approved and applied successfully.',
-    data: {
-      requestId: changeRequest.id,
-      employeeId: payrollRecord.employee_id,
-      appliedChanges: fieldsToUpdate,
+  try {
+    // Parse the changes JSON string properly
+    let parsedChanges;
+    try {
+      // If changes is already an object, use it directly
+      if (typeof changeRequest.changes === 'object' && changeRequest.changes !== null) {
+        parsedChanges = changeRequest.changes;
+      } else {
+        // If it's a string, parse it
+        parsedChanges = JSON.parse(changeRequest.changes);
+      }
+    } catch (parseError) {
+      console.error('❌ Error parsing changes JSON:', parseError);
+      console.log('Raw changes value:', changeRequest.changes);
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid changes format in request',
+        error: parseError.message,
+      });
     }
-  });
+
+    console.log('🔧 Parsed changes for employee:', parsedChanges);
+
+    // Find the payroll info record
+    const payrollInfo = await PayrollInformation.findByPk(changeRequest.payroll_info_id, {
+      transaction,
+    });
+
+    if (!payrollInfo) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Payroll information not found',
+      });
+    }
+
+    // Store original values for audit
+    const originalValues = {};
+    Object.keys(parsedChanges).forEach(field => {
+      originalValues[field] = payrollInfo[field];
+    });
+
+    // Apply changes to payroll info
+    await payrollInfo.update(parsedChanges, { transaction });
+
+    // Update the change request status
+    await changeRequest.update({
+      status: 'Approved',
+      approved_by: approvedBy,
+      approved_at: new Date(),
+      original_values: JSON.stringify(originalValues),
+    }, { transaction });
+
+    // Log the successful update
+    console.log(`✅ Successfully updated payroll info for employee ${changeRequest.payroll_info_id}`);
+    console.log('Applied changes:', parsedChanges);
+
+    await transaction.commit();
+
+    return res.json({
+      success: true,
+      message: 'Payroll change approved successfully',
+      changes_applied: parsedChanges,
+      employee_id: changeRequest.payroll_info_id,
+    });
+
+  } catch (error) {
+    console.error('❌ Error in processSingleRequest:', error);
+    await transaction.rollback();
+    throw error;
+  }
 };
 
 // Helper function to process changes WITHOUT calculating dependent rates
