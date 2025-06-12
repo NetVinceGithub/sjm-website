@@ -53,14 +53,40 @@ export const addUser = async (req, res) => {
           from: process.env.EMAIL_USER,
           to: email,
           subject: `Access for ${name}`,
-          html: `
-                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          html: ` 
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Access</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
+          <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
+            <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
+            
+             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                     <div>
                       You are given access to sjm-payroll system as ${role}, you can access the system in 
                       <a href="https://payroll.stjohnmajore.com/">https://payroll.stjohnmajore.com/</a>
                     </div>
                   </div>
-                `
+
+            <p style="color: #333; font-size: 15px;">Please login to <a href="https://payroll.stjohnmajore.com/">https://payroll.stjohnmajore.com/</a> to review and take appropriate action.</p>
+            
+            <p style="color: #333; font-size: 15px;">Best regards,<br />SJM Payroll System</p>
+            <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
+              <strong>This is an automated email—please do not reply.</strong><br />
+              Keep this message for your records.
+            </div>
+            <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
+            `
+                
+
+
+
+
+                
 
         };
 

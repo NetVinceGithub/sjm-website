@@ -106,8 +106,21 @@ const forgotPassword = async (req, res) => {
       to: email,
       subject: 'SJM Payroll: Password Reset Code',
       html: `
-      <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
-        <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
+
+      <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Reset Code</title>
+        </head>
+
+        <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
+          <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
+            <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
+
+
+     
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">Password Reset Request</h2>
           <p>You have requested to reset your password for SJM Payroll.</p>
@@ -118,13 +131,22 @@ const forgotPassword = async (req, res) => {
           <p>This code will expire in 15 minutes for security reasons.</p>
           <p>If you didn't request this reset, please ignore this email.</p>
         </div>
+        <p style="color: #333; font-size: 15px;">Best regards,<br />SJM Payroll System</p>
+
         <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
           <strong>This is an automated email—please do not reply.</strong><br />
           Keep this message for your records.
         </div>
         <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
       </div>
-      `,
+            <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
+              <strong>This is an automated email—please do not reply.</strong><br />
+              Keep this message for your records.
+            </div>
+            <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
+      `
+      
+      ,
       text: `Your password reset code is: ${resetCode}. This code will expire in 15 minutes.`
     };
 
