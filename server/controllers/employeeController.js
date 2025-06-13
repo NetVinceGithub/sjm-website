@@ -1865,6 +1865,7 @@ const buildSuccessResponse = (employeeIds, successfulRequests, failedRequests, f
 };  
 
 export const approvePayrollChange = async (req, res) => {
+  console.log("Inayos approvePayrollChange");
   const transaction = await sequelize.transaction();
 
   try {
