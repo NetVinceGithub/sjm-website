@@ -1430,13 +1430,15 @@ export const generatePayroll = async (req, res) => {
       const totalEarnings = grossPay + adjustment;
       const totalDeductions = deductions.sss + deductions.phic + deductions.hdmf + deductions.loan + deductions.otherDeductions + deductions.taxDeduction + deductions.tardiness;
       const netPay = totalEarnings - totalDeductions;
+      
+      console.log("Employee project data sa generate payroll", employee["area/section"] || "N/A");
 
       const payslipData = {
         ecode: employee.ecode,
         email: employee.emailaddress || employee.email || '',
         employeeId: employee.id,
         name: employee.name,
-        project: employee["area/section"] || employee.area || employee.section || "N/A",
+        project: employee["area/section"]|| "N/A",
         position: employee.positiontitle || employee.position || "N/A",
         department: employee.department || "N/A",
         schedule: employee.schedule || "N/A",
@@ -1483,6 +1485,14 @@ export const generatePayroll = async (req, res) => {
       const newPayslip = await Payslip.create(payslipData);
       generatedPayslips.push(newPayslip);
 
+
+      try {
+        await AttendanceSummary.destroy({ where: {}, truncate: true });
+        await Attendance.destroy({ where: {}, truncate: true });
+      }catch(error) {
+        console.log("Error in generate payroll function in payslipControlelr", error);
+      }
+
     } catch (employeeError) {
       console.error(`❌ Error processing employee ${employee.name}:`, employeeError);
       errors.push({
@@ -1522,7 +1532,6 @@ export const generatePayroll = async (req, res) => {
               <p>Payroll has been successfully generated for the cutoff date <strong>${cutoffDate}</strong>${scheduleInfo}.</p>
               <p>Batch ID: <strong>${batchId}</strong></p>
               <p>Total Payslips Generated: <strong>${generatedPayslips.length}</strong></p>
-              ${selectedSchedules.length > 0 ? `<p>Schedules used for tardiness calculation: <strong>${selectedSchedules.join(', ')}</strong></p>` : ''}
               <p>Please review the payslips in the payroll system.</p>
               <br />
               <p>Best regards,<br />SJM Payroll System</p>

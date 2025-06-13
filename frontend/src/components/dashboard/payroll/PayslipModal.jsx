@@ -187,7 +187,9 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                       <td className="border h-5 border-black">
                         {formatNumber(payslip?.dailyrate)}
                       </td>
-                      <td className="border h-5 border-black"></td>
+                      <td className="border h-5 border-black">
+                        {payslip?.project}
+                      </td>
                       <td className="border h-5 border-black">
                         {payslip?.cutoffDate || "N/A"}
                       </td>
@@ -216,7 +218,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                         Basic Pay
                       </td>
                       <td className="h-5">
-                        {formatNumber(payslip?.dailyrate)}
+                        {formatNumber(payslip?.basicPay)}
                       </td>
                       <td className="h-5 border-l border-r border-t border-black">
                         <div className="text-[9px] bg-[#AA396F] h-fit w-fit flex justify-center items-center text-white rounded-lg text-center font-bold">
@@ -394,7 +396,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                         colSpan="2"
                         className="border-t-0 border text-center border-black h-5 w-[22rem] px-2"
                       >
-                        {formatNumber(payslip?.grossPay)}
+                        {formatNumber(payslip?.gross_pay)}
                       </td>
                       <td
                         colSpan="2"
