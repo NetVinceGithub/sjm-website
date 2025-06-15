@@ -24,6 +24,7 @@ import { Sequelize } from "sequelize";
 import puppeteer from 'puppeteer'; // Make sure puppeteer is installed
 
 import { execSync } from 'child_process';
+import { calculateSSSContribution, updatePayrollWithSSS } from "../utils/sssCalculator.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1051,194 +1052,27 @@ export const getEmployeeContributions = async (req, res) => {
 
 
 
-//////////////////////////////Payroll Generation Code///////////////////////////////////////////////////
+///////////////////////payroll generation/////////////////////////
 
-const timeToMinutes = (timeString) => {
-  if (!timeString) return 0;
-  const [hours, minutes] = timeString.split(':').map(Number);
-  return hours * 60 + minutes;
-};
 
-// Helper function to convert minutes to hours (decimal)
-const minutesToHours = (minutes) => {
-  return minutes / 60;
-};
 
-// Default attendance metrics for employees with no data
-const getDefaultAttendanceMetrics = () => {
-  return {
-    totalRegularHours: 0,
-    totalOvertime: 0,
-    totalHolidayHours: 0,
-    totalSpecialHolidayHours: 0,
-    totalRegularHolidayHours: 0,
-    totalSpecialHolidayOT: 0,
-    totalRegularHolidayOT: 0,
-    totalHours: 0,
-    totalTardiness: 0,
-    nightShiftHours: 0,
-    daysPresent: 0,
-    holidayDays: 0,
-    regularDays: 0
-  };
-};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Function to calculate attendance metrics per employee
-const calculateAttendanceMetrics = (attendanceRecords, holidays = [], selectedSchedules = []) => {
-  console.log(`📊 Calculating metrics for ${attendanceRecords.length} attendance records`);
-
-  let totalRegularHours = 0;
-  let totalOvertime = 0;
-  let totalHolidayHours = 0;
-  let totalSpecialHolidayHours = 0;
-  let totalRegularHolidayHours = 0;
-  let totalSpecialHolidayOT = 0;
-  let totalRegularHolidayOT = 0;
-  let totalHours = 0;
-  let daysPresent = 0;
-  let holidayDays = 0;
-  let regularDays = 0;
-  let totalTardiness = 0;
-  let nightShiftHours = 0;
-
-  const holidayMap = new Map();
-  holidays.forEach(holiday => {
-    const dateKey = moment(holiday.date).format('YYYY-MM-DD');
-    holidayMap.set(dateKey, {
-      type: holiday.type || 'special', // 'special' or 'regular'
-      name: holiday.name || 'Holiday'
-    });
-  });
-
-  const getScheduleInfo = (scheduleRange) => {
-    const scheduleMap = {
-      'A': { start: '07:00', end: '15:00' },
-      'B': { start: '15:00', end: '23:00' },
-      'C': { start: '23:00', end: '07:00' },
-      'D': { start: '08:00', end: '17:00' },
-      'E': { start: '09:00', end: '18:00' },
-      'F': { start: '06:00', end: '14:00' },
-      'G': { start: '14:00', end: '22:00' },
-      'H': { start: '22:00', end: '06:00' }
-    };
-
-    if (scheduleRange.length === 1 && scheduleMap[scheduleRange]) {
-      return scheduleMap[scheduleRange];
-    }
-
-    if (scheduleRange.includes('-')) {
-      const [start, end] = scheduleRange.split('-');
-      return { start: start.trim(), end: end.trim() };
-    }
-
-    return { start: '08:00', end: '17:00' };
-  };
-
-  const isNightTime = (timeMinutes) => {
-    return timeMinutes >= 22 * 60 || timeMinutes <= 6 * 60;
-  };
-
-  attendanceRecords.forEach(record => {
-    const recordDate = moment(record.date).format('YYYY-MM-DD');
-    const holidayInfo = holidayMap.get(recordDate);
-    const isHoliday = holidayInfo !== undefined;
-
-    if (!record.onDuty || !record.offDuty) {
-      console.log(`⏭️ Skipping ${recordDate} - No duty times`);
-      return;
-    }
-
-    const onDutyMinutes = timeToMinutes(record.onDuty);
-    const offDutyMinutes = timeToMinutes(record.offDuty);
-
-    let workMinutes;
-    if (offDutyMinutes > onDutyMinutes) {
-      workMinutes = offDutyMinutes - onDutyMinutes;
-    } else {
-      workMinutes = (24 * 60) - onDutyMinutes + offDutyMinutes;
-    }
-
-    const workHours = minutesToHours(workMinutes);
-    const standardHours = 8;
-
-    let nightHours = 0;
-    if (isNightTime(onDutyMinutes) || isNightTime(offDutyMinutes)) {
-      if (onDutyMinutes >= 22 * 60 || offDutyMinutes <= 6 * 60) {
-        nightHours = Math.min(workHours, 8);
-      }
-    }
-    nightShiftHours += nightHours;
-
-    if (isHoliday) {
-      const holidayType = holidayInfo.type;
-
-      if (workHours <= standardHours) {
-        if (holidayType === 'regular') {
-          totalRegularHolidayHours += workHours;
-        } else {
-          totalSpecialHolidayHours += workHours;
-        }
-        totalHolidayHours += workHours;
-      } else {
-        if (holidayType === 'regular') {
-          totalRegularHolidayHours += standardHours;
-          totalRegularHolidayOT += workHours - standardHours;
-        } else {
-          totalSpecialHolidayHours += standardHours;
-          totalSpecialHolidayOT += workHours - standardHours;
-        }
-        totalHolidayHours += standardHours;
-        totalOvertime += workHours - standardHours;
-      }
-
-      holidayDays++;
-    } else {
-      if (workHours <= standardHours) {
-        totalRegularHours += workHours;
-      } else {
-        totalRegularHours += standardHours;
-        totalOvertime += workHours - standardHours;
-      }
-      regularDays++;
-    }
-
-    if (selectedSchedules.length > 0) {
-      selectedSchedules.forEach(scheduleRange => {
-        const schedule = getScheduleInfo(scheduleRange);
-        const expectedStartMinutes = timeToMinutes(schedule.start);
-
-        if (onDutyMinutes > expectedStartMinutes) {
-          const tardinessMinutes = onDutyMinutes - expectedStartMinutes;
-          const tardinessHours = minutesToHours(tardinessMinutes);
-          totalTardiness += tardinessHours;
-        }
-      });
-    }
-
-    totalHours += workHours;
-    daysPresent++;
-  });
-
-  const metrics = {
-    totalRegularHours: Math.round(totalRegularHours * 100) / 100,
-    totalOvertime: Math.round(totalOvertime * 100) / 100,
-    totalHolidayHours: Math.round(totalHolidayHours * 100) / 100,
-    totalSpecialHolidayHours: Math.round(totalSpecialHolidayHours * 100) / 100,
-    totalRegularHolidayHours: Math.round(totalRegularHolidayHours * 100) / 100,
-    totalSpecialHolidayOT: Math.round(totalSpecialHolidayOT * 100) / 100,
-    totalRegularHolidayOT: Math.round(totalRegularHolidayOT * 100) / 100,
-    totalHours: Math.round(totalHours * 100) / 100,
-    totalTardiness: Math.round(totalTardiness * 100) / 100,
-    nightShiftHours: Math.round(nightShiftHours * 100) / 100,
-    daysPresent,
-    holidayDays,
-    regularDays
-  };
-
-  return metrics;
-};
-
-
 
 export const generatePayroll = async (req, res) => {
   const { 
@@ -1265,245 +1099,255 @@ export const generatePayroll = async (req, res) => {
     requestedBy 
   });
 
- try {
-  const now = new Date();
-  const batchId = `SJM-PayrollBatch-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${now.getTime()}`;
-  console.log(`🔗 Generated batchId: ${batchId}`);
+  try {
+    const now = new Date();
+    const batchId = `SJM-PayrollBatch-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${now.getTime()}`;
+    console.log(`🔗 Generated batchId: ${batchId}`);
 
-  let employeesData, attendanceRecords, payrollInformations, holidays, attedanceSummary;
+    let employeesData, attendanceRecords, payrollInformations, holidays, attendanceSummary;
 
-  if (employees.length > 0 && attendanceData.length > 0) {
-    console.log("📦 Using data provided by frontend");
-    employeesData = employees;
-    attendanceRecords = attendanceData;
-    holidays = holidaysData;
-    
-  } else {
-    console.log("📦 Fetching data from database");
-    employeesData = await Employee.findAll({
-      where: { status: { [Op.ne]: "Inactive" } }
-    }).catch(async error => {
-      console.error("❌ Error fetching employees:", error);
-      let allEmployees = await Employee.findAll();
-      return allEmployees.filter(emp => emp.status !== "Inactive");
-    });
-
-    attendanceRecords = await Attendance.findAll().catch(error => {
-      console.error("❌ Error fetching attendance records:", error);
-      return [];
-    });
-
-    // Log the fetched attendance records
-    console.log(`✅ Fetched ${attendanceRecords.length} attendance records:`, JSON.stringify(attendanceRecords, null, 2));
-
-
-
-    holidays = await Holidays.findAll().catch(error => {
-      console.error("❌ Error fetching holidays:", error);
-      return [];
-    });
-
-    attedanceSummary = await AttendanceSummary.findAll().catch(error => {
-      console.error("❌ Error fetching attendance summary:", error);
-      return [];
-    });
-  }
-
-  employeesData = employeesData.filter(employee => employee.status !== "Inactive");
-  console.log(`✅ Processing ${employeesData.length} active employees`);
-
-  payrollInformations = await PayrollInformation.findAll().catch(error => {
-    console.error("❌ Error fetching payroll information:", error);
-    return [];
-  });
-
-  if (!employeesData || employeesData.length === 0) {
-    return res.status(400).json({
-      success: false,
-      message: "No active employees found!"
-    });
-  }
-
-  const generatedPayslips = [];
-  const errors = [];
-
-  for (let i = 0; i < employeesData.length; i++) {
-    const employee = employeesData[i];
-
-    try {
-      console.log(`📝 Processing ${i + 1}/${employeesData.length}: ${employee.name} (${employee.ecode})`);
-
-      const employeeAttendance = attendanceRecords.filter(
-        record => record.ecode === employee.ecode
-      );
-
-      if (!employeeAttendance || employeeAttendance.length === 0) {
-        console.log(`⏭️ Skipping ${employee.name} (${employee.ecode}) - No attendance data found`);
-        continue;
-      }
-
-      const employeePayrollInfo = payrollInformations.find(info => info.ecode === employee.ecode) || {};
-      const attedanceSummaryTotal = attedanceSummary.find(info => info.ecode === employee.ecode) || {};
-
-      let attendanceMetrics;
-      try {
-        attendanceMetrics = calculateAttendanceMetrics(employeeAttendance, holidays, selectedSchedules);
-      } catch (error) {
-        console.error(`❌ Error calculating attendance metrics for ${employee.ecode}:`, error);
-        attendanceMetrics = getDefaultAttendanceMetrics();
-      }
-
-
-      try {
-        await AttendanceSummary.upsert({
-          ecode: employee.ecode,
-          daysPresent: attendanceMetrics.daysPresent || 0,
-        }, {
-          where: { ecode: employee.ecode }
-        });
-
-        console.log(`🔢 Days present for ${employee.ecode}:`, attendanceMetrics.daysPresent);
-
-
-
-        console.log(`📊 Attendance summary updated for ${employee.ecode}`);
-      } catch (summaryError) {
-        console.error(`❌ Failed to update attendance summary for ${employee.ecode}:`, summaryError);
-      }
-
-      const summary = {
-        daysPresent: Number(attedanceSummaryTotal.daysPresent)
-      };
-
-
-      const rates = {
-        dailyRate: Number(employeePayrollInfo.daily_rate) || 500,
-        hourlyRate: Number(employeePayrollInfo.hourly_rate) || 65,
-        otHourlyRate: Number(employeePayrollInfo.ot_hourly_rate) || 81.25,
-        otRateSpHoliday: Number(employeePayrollInfo.ot_rate_sp_holiday) || 109.85,
-        otRateRegHoliday: Number(employeePayrollInfo.ot_rate_reg_holiday) || 109.85,
-        specialHolRate: Number(employeePayrollInfo.ecspial_hol_rate) || 156,
-        regularHolOtRate: Number(employeePayrollInfo.regular_hol_ot_rate) || 156,
-        overtimePayRate: Number(employeePayrollInfo.overtime_pay) || 100,
-        holidayPayRate: Number(employeePayrollInfo.holiday_pay) || 200,
-        nightDifferential: Number(employeePayrollInfo.night_differential) || 6.50,
-        allowance: Number(employeePayrollInfo.allowance || 0),
-        tardinessRate: Number(employeePayrollInfo.tardiness) || 1.08
-      };
-
-      const deductions = {
-        sss: Number(employeePayrollInfo.sss_contribution) || 100,
-        phic: Number(employeePayrollInfo.philhealth_contribution) || 75,
-        hdmf: Number(employeePayrollInfo.pagibig_contribution) || 50,
-        loan: Number(employeePayrollInfo.loan) || 0,
-        otherDeductions: Number(employeePayrollInfo.otherDeductions) || 0,
-        taxDeduction: Number(employeePayrollInfo.tax_deduction) || 0,
-        tardiness: (attendanceMetrics.totalTardiness || 0) * rates.tardinessRate
-      };
-
-      const adjustment = Number(employeePayrollInfo.adjustment) || 0;
-
-      let totalRegularOvertime = 0;
-      if (individualOvertime && individualOvertime[employee.ecode]) {
-        totalRegularOvertime = Math.min(attendanceMetrics.totalOvertime || 0, Number(individualOvertime[employee.ecode]));
-      } else if (selectedEmployees.includes(employee.ecode)) {
-        totalRegularOvertime = Math.min(attendanceMetrics.totalOvertime || 0, Number(maxOvertime));
-      } else {
-        totalRegularOvertime = attendanceMetrics.totalOvertime || 0;
-      }
-
-      const basicPay = (summary.daysPresent || 0) * rates.dailyRate;
-      const regularOvertimePay = totalRegularOvertime * rates.otHourlyRate;
-
-      const specialHolidayPay = (attendanceMetrics.totalSpecialHolidayHours || 0) * rates.specialHolRate;
-      const regularHolidayPay = (attendanceMetrics.totalRegularHolidayHours || 0) * rates.hourlyRate * 2;
-
-      const specialHolidayOTPay = (attendanceMetrics.totalSpecialHolidayOT || 0) * rates.otRateSpHoliday;
-      const regularHolidayOTPay = (attendanceMetrics.totalRegularHolidayOT || 0) * rates.otRateRegHoliday;
-
-      const nightDifferentialPay = (attendanceMetrics.nightShiftHours || 0) * rates.nightDifferential;
-
-      const totalHolidayPay = specialHolidayPay + regularHolidayPay;
-      const totalOvertimePay = regularOvertimePay + specialHolidayOTPay + regularHolidayOTPay;
-
-      const grossPay = basicPay + rates.allowance;
-      const totalEarnings = grossPay + adjustment;
-      const totalDeductions = deductions.sss + deductions.phic + deductions.hdmf + deductions.loan + deductions.otherDeductions + deductions.taxDeduction + deductions.tardiness;
-      const netPay = totalEarnings - totalDeductions;
+    if (employees.length > 0 && attendanceData.length > 0) {
+      console.log("📦 Using data provided by frontend");
+      employeesData = employees; // Fixed: removed stray 'z'
+      attendanceRecords = attendanceData;
+      holidays = holidaysData;
       
-      console.log("Employee project data sa generate payroll", employee["area/section"] || "N/A");
+    } else {
+      console.log("📦 Fetching data from database");
+      employeesData = await Employee.findAll({
+        where: { status: { [Op.ne]: "Inactive" } }
+      }).catch(async error => {
+        console.error("❌ Error fetching employees:", error);
+        let allEmployees = await Employee.findAll();
+        return allEmployees.filter(emp => emp.status !== "Inactive");
+      });
 
-      const payslipData = {
-        ecode: employee.ecode,
-        email: employee.emailaddress || employee.email || '',
-        employeeId: employee.id,
-        name: employee.name,
-        project: employee["area/section"]|| "N/A",
-        position: employee.positiontitle || employee.position || "N/A",
-        department: employee.department || "N/A",
-        schedule: employee.schedule || "N/A",
-        cutoffDate,
-        dailyrate: rates.dailyRate.toFixed(2),
-        basicPay: basicPay.toFixed(2),
-        noOfDays: attendanceMetrics.daysPresent || 0,
-        holidayDays: attendanceMetrics.holidayDays || 0,
-        regularDays: attendanceMetrics.regularDays || 0,
-        overtimePay: totalOvertimePay.toFixed(2),
-        totalOvertime: totalRegularOvertime.toFixed(2),
-        totalRegularHours: (attendanceMetrics.totalRegularHours || 0).toFixed(2),
-        totalHolidayHours: (attendanceMetrics.totalHolidayHours || 0).toFixed(2),
-        specialHolidayHours: (attendanceMetrics.totalSpecialHolidayHours || 0).toFixed(2),
-        regularHolidayHours: (attendanceMetrics.totalRegularHolidayHours || 0).toFixed(2),
-        holidayPay: totalHolidayPay.toFixed(2),
-        specialHolidayPay: specialHolidayPay.toFixed(2),
-        regularHolidayPay: regularHolidayPay.toFixed(2),
-        specialHolidayOTPay: specialHolidayOTPay.toFixed(2),
-        regularHolidayOTPay: regularHolidayOTPay.toFixed(2),
-        nightDifferential: nightDifferentialPay.toFixed(2),
-        nightShiftHours: (attendanceMetrics.nightShiftHours || 0).toFixed(2),
-        allowance: rates.allowance.toFixed(2),
-        sss: deductions.sss.toFixed(2),
-        phic: deductions.phic.toFixed(2),
-        hdmf: deductions.hdmf.toFixed(2),
-        loan: deductions.loan.toFixed(2),
-        totalTardiness: deductions.tardiness.toFixed(2),
-        totalHours: (attendanceMetrics.totalHours || 0).toFixed(2),
-        otherDeductions: deductions.otherDeductions.toFixed(2),
-        taxDeduction: deductions.taxDeduction.toFixed(2),
-        totalEarnings: totalEarnings.toFixed(2),
-        totalDeductions: totalDeductions.toFixed(2),
-        adjustment: adjustment.toFixed(2),
-        gross_pay: grossPay.toFixed(2),
-        netPay: netPay.toFixed(2),
-        requestedBy: requestedBy,
-        status: "pending",
-        batchId
-      };
+      attendanceRecords = await Attendance.findAll().catch(error => {
+        console.error("❌ Error fetching attendance records:", error);
+        return [];
+      });
 
-      console.log(`💰 Payslip calculated for ${employee.name}:`, payslipData);
+      console.log(`✅ Fetched ${attendanceRecords.length} attendance records`);
 
-      const newPayslip = await Payslip.create(payslipData);
-      generatedPayslips.push(newPayslip);
+      holidays = await Holidays.findAll().catch(error => {
+        console.error("❌ Error fetching holidays:", error);
+        return [];
+      });
 
-
-      try {
-        await AttendanceSummary.destroy({ where: {}, truncate: true });
-        await Attendance.destroy({ where: {}, truncate: true });
-      }catch(error) {
-        console.log("Error in generate payroll function in payslipControlelr", error);
-      }
-
-    } catch (employeeError) {
-      console.error(`❌ Error processing employee ${employee.name}:`, employeeError);
-      errors.push({
-        employee: employee.name,
-        ecode: employee.ecode,
-        error: employeeError.message
+      attendanceSummary = await AttendanceSummary.findAll().catch(error => {
+        console.error("❌ Error fetching attendance summary:", error);
+        return [];
       });
     }
-  }
 
-    // Email notification logic remains the same...
+    employeesData = employeesData.filter(employee => employee.status !== "Inactive");
+    console.log(`✅ Processing ${employeesData.length} active employees`);
+
+    payrollInformations = await PayrollInformation.findAll().catch(error => {
+      console.error("❌ Error fetching payroll information:", error);
+      return [];
+    });
+
+    if (!employeesData || employeesData.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No active employees found!"
+      });
+    }
+
+    const generatedPayslips = [];
+    const errors = [];
+
+    for (let i = 0; i < employeesData.length; i++) {
+      const employee = employeesData[i];
+
+      try {
+        console.log(`📝 Processing ${i + 1}/${employeesData.length}: ${employee.name} (${employee.ecode})`);
+
+        const employeeAttendance = attendanceRecords.filter(
+          record => record.ecode === employee.ecode
+        );
+
+        if (!employeeAttendance || employeeAttendance.length === 0) {
+          console.log(`⏭️ Skipping ${employee.name} (${employee.ecode}) - No attendance data found`);
+          continue;
+        }
+
+        const employeePayrollInfo = payrollInformations.find(info => info.ecode === employee.ecode) || {};
+        const attendanceSummaryRecord = attendanceSummary ? attendanceSummary.find(info => info.ecode === employee.ecode) : null;
+
+        // Calculate basic attendance metrics from attendance records
+        const daysPresent = employeeAttendance.length;
+        const totalLateMinutes = employeeAttendance.reduce((total, record) => {
+          // Assuming attendance record has a late minutes field or calculate it
+          return total + (record.lateMinutes || 0);
+        }, 0);
+
+        // Update or create attendance summary record
+        try {
+          await AttendanceSummary.upsert({
+            ecode: employee.ecode,
+            daysPresent: daysPresent,
+            totalDays: daysPresent, // Simplified for now
+            absentDays: 0, // Can be calculated if needed
+            lateDays: employeeAttendance.filter(record => (record.lateMinutes || 0) > 0).length,
+            totalLateMinutes: totalLateMinutes,
+            attendanceRate: daysPresent > 0 ? 100.00 : 0.00 // Simplified calculation
+          }, {
+            where: { ecode: employee.ecode }
+          });
+
+          console.log(`📊 Attendance summary updated for ${employee.ecode} - Days Present: ${daysPresent}`);
+        } catch (summaryError) {
+          console.error(`❌ Failed to update attendance summary for ${employee.ecode}:`, summaryError);
+        }
+
+        // Use attendance summary data if available, otherwise use calculated values
+        const finalDaysPresent = attendanceSummaryRecord ? 
+          Number(attendanceSummaryRecord.daysPresent) : daysPresent;
+
+        const finalTotalLateMinutes = attendanceSummaryRecord ? 
+          Number(attendanceSummaryRecord.totalLateMinutes) : totalLateMinutes;
+
+        const rates = {
+          dailyRate: Number(employeePayrollInfo.daily_rate) || 500,
+          hourlyRate: 65, // Default value since not in PayrollInformation model
+          otHourlyRate: 81.25, // Default value
+          tardinessRate: 1.08 // Default value for tardiness per minute
+        };
+
+        // With this safer version:
+        const salaryPackage = Number(employee.salaryPackage) || Number(employee.salary_package) || 0;
+        const allowance = salaryPackage > 0 ? Number((salaryPackage - (rates.dailyRate * 26))/26) * finalDaysPresent : 0;
+
+        // Add debugging to see what's happening:
+        console.log("Salary package debug:", {
+          ecode: employee.ecode,
+          name: employee.name,
+          salaryPackage: employee.salaryPackage,
+          salary_package: employee.salary_package, // Check alternative naming
+          parsedSalaryPackage: salaryPackage,
+          dailyRate: rates.dailyRate,
+          calculatedAllowance: allowance,
+          finalTotalLateMinutes:finalTotalLateMinutes,
+        });
+        
+
+
+        // Calculate basic pay and gross pay FIRST (before deductions)
+        const basicPay = finalDaysPresent * rates.dailyRate;
+        const grossPay = basicPay + allowance; // Remove rates;
+
+        // NOW calculate deductions using grossPay
+        const deductions = {
+          sss: calculateSSSContribution(grossPay).employerContribution,          
+          phic: Number(employeePayrollInfo.philhealth_contribution) || 75,
+          hdmf: Number(employeePayrollInfo.pagibig_contribution) || 50,
+          loan: Number(employeePayrollInfo.loan) || 0,
+          otherDeductions: Number(employeePayrollInfo.otherDeductions) || 0,
+          taxDeduction: Number(employeePayrollInfo.tax_deduction) || 0,
+          tardiness: finalTotalLateMinutes * (rates.dailyRate / 8)/60 // Convert minutes to hours
+        };
+
+        const adjustment = Number(employeePayrollInfo.adjustment) || 0;
+
+        // Simplified overtime calculation - can be enhanced based on your needs
+        const totalRegularOvertime = 0; // Default to 0 for now
+
+        const regularOvertimePay = totalRegularOvertime * rates.otHourlyRate;
+
+        // Simplified holiday pay calculations - set to 0 for now
+        const specialHolidayPay = 0;
+        const regularHolidayPay = 0;
+        const specialHolidayOTPay = 0;
+        const regularHolidayOTPay = 0;
+        const nightDifferentialPay = 0;
+
+        const totalHolidayPay = specialHolidayPay + regularHolidayPay;
+        const totalOvertimePay = regularOvertimePay + specialHolidayOTPay + regularHolidayOTPay;
+
+        const totalEarnings = grossPay + adjustment;
+        const totalDeductions = deductions.sss + deductions.phic + deductions.hdmf + deductions.loan + deductions.otherDeductions + deductions.taxDeduction + deductions.tardiness;
+        const netPay = totalEarnings - totalDeductions;
+        
+        console.log("Employee project data:", employee["area/section"] || "N/A");
+
+        const payslipData = {
+          ecode: employee.ecode,
+          email: employee.emailaddress || employee.email || '',
+          employeeId: employee.id,
+          name: employee.name,
+          project: employee["area/section"] || "N/A",
+          position: employee.positiontitle || employee.position || "N/A",
+          department: employee.department || "N/A",
+          schedule: employee.schedule || "N/A",
+          cutoffDate,
+          dailyrate: rates.dailyRate.toFixed(2),
+          basicPay: basicPay.toFixed(2),
+          noOfDays: finalDaysPresent || 0,
+          holidayDays: 0, // Simplified
+          regularDays: finalDaysPresent || 0,
+          overtimePay: totalOvertimePay.toFixed(2),
+          totalOvertime: totalRegularOvertime.toFixed(2),
+          totalRegularHours: (finalDaysPresent * 8).toFixed(2), // Assuming 8 hours per day
+          totalHolidayHours: "0.00",
+          specialHolidayHours: "0.00",
+          regularHolidayHours: "0.00",
+          holidayPay: totalHolidayPay.toFixed(2),
+          specialHolidayPay: specialHolidayPay.toFixed(2),
+          regularHolidayPay: regularHolidayPay.toFixed(2),
+          specialHolidayOTPay: specialHolidayOTPay.toFixed(2),
+          regularHolidayOTPay: regularHolidayOTPay.toFixed(2),
+          nightDifferential: nightDifferentialPay.toFixed(2),
+          nightShiftHours: "0.00",
+          allowance: finalDaysPresent * allowance.toFixed(2),
+          sss: deductions.sss.toFixed(2),
+          phic: deductions.phic.toFixed(2),
+          hdmf: deductions.hdmf.toFixed(2),
+          loan: deductions.loan.toFixed(2),
+          totalTardiness: deductions.tardiness.toFixed(1),
+          totalHours: (finalDaysPresent * 8).toFixed(2), // Assuming 8 hours per day
+          otherDeductions: deductions.otherDeductions.toFixed(2),
+          taxDeduction: deductions.taxDeduction.toFixed(2),
+          totalEarnings: 0,
+          totalDeductions: totalDeductions.toFixed(2),
+          adjustment: adjustment.toFixed(2),
+          gross_pay: grossPay.toFixed(2),
+          netPay: netPay.toFixed(2),
+          requestedBy: requestedBy,
+          status: "pending",
+          batchId
+        };
+
+        console.log(`💰 Payslip calculated for ${employee.name}:`, {
+          basicPay: basicPay.toFixed(2),
+          daysPresent: finalDaysPresent,
+          netPay: netPay.toFixed(2)
+        });
+
+        const newPayslip = await Payslip.create(payslipData);
+        generatedPayslips.push(newPayslip);
+
+      } catch (employeeError) {
+        console.error(`❌ Error processing employee ${employee.name}:`, employeeError);
+        errors.push({
+          employee: employee.name,
+          ecode: employee.ecode,
+          error: employeeError.message
+        });
+      }
+    }
+
+    // Clean up attendance data after all employees are processed
+    try {
+      await AttendanceSummary.destroy({ where: {}, truncate: true });
+      await Attendance.destroy({ where: {}, truncate: true });
+      console.log("🧹 Cleaned up attendance data and summary tables");
+    } catch(error) {
+      console.log("❌ Error cleaning up attendance data:", error);
+    }
+
+    // Email notification logic
     const approvers = await User.findAll({ where: { role: 'approver', isBlocked: false } });
     const successfulEmails = [];
 

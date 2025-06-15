@@ -160,6 +160,10 @@ const Employee = sequelize.define("Employee", {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
+  employmentrank: {
+    type: DataTypes.STRING,
+    defaultValue: "N/A",
+  },
   dateofhire: {
     type: DataTypes.STRING,
     defaultValue: "N/A",
@@ -215,6 +219,34 @@ const Employee = sequelize.define("Employee", {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
+  emergencyContact: {
+    type: DataTypes.STRING,
+    defaultValue:"N/A"
+  },
+  emergencyContactNumber: {
+    type: DataTypes.STRING,
+    defaultValue:"N/A"
+  },
+  dailyRate: {
+    type: DataTypes.INTEGER,
+    defaultValue:520
+  },
+  salaryPackage: {
+    type: DataTypes.INTEGER,
+    defaultValue:16224
+  },
+  healthCard: {
+    type: DataTypes.STRING,
+    defaultValue:"N/A"
+  },
+  prp: {
+    type: DataTypes.STRING,
+    defaultValue:"N/A"
+  },
+  safety: {
+    type: DataTypes.STRING,
+    defaultValue:"N/A"
+  },
   sss: {
     type: DataTypes.STRING,
     defaultValue: "N/A",
@@ -227,21 +259,9 @@ const Employee = sequelize.define("Employee", {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
-  pagibig: {
+  "pag-ibig": {
     type: DataTypes.STRING,
     defaultValue: "N/A",
-  },
-  contact_name: {
-    type: DataTypes.STRING,
-    defaultValue: "No name available",
-  },
-  contact_number: {
-    type: DataTypes.STRING,
-    defaultValue: "No contact available",
-  },
-  contact_address: {
-    type: DataTypes.STRING,
-    defaultValue: "No address avaible",
   },
   profileImage: {
     type: DataTypes.STRING,
@@ -259,7 +279,7 @@ const Employee = sequelize.define("Employee", {
     type: DataTypes.STRING,
     defaultValue: "N/A",
   },
- 
+
   dateofseparation: {
     type: DataTypes.STRING,
     defaultValue: "N/A",

@@ -1,4 +1,4 @@
-// Updated Attendance.jsx - Fixed with proper time conversion
+// Updated Attendance.jsx - Find highest total days and apply to all employees
 
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
@@ -23,15 +23,52 @@ const Attendance = () => {
       return null;
     }
     
-    // Convert decimal to total minutes in a day
-    const totalMinutes = Math.round(Number(excelTime) * 24 * 60);
+    // Convert decimal to total minutes in a day (no rounding)
+    const totalMinutes = Number(excelTime) * 24 * 60;
     
-    // Calculate hours and minutes
+    // Calculate hours and minutes (using floor to avoid rounding)
     const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
+    const minutes = Math.floor(totalMinutes % 60);
     
     // Format as HH:MM
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
+
+  // Helper function to check if employee is late (after 8:00 AM)
+  const isLate = (onDutyTime) => {
+    if (!onDutyTime) return false;
+    
+    // Parse time in HH:MM format
+    const [hours, minutes] = onDutyTime.split(':').map(Number);
+    const onDutyMinutes = hours * 60 + minutes;
+    const shiftStartMinutes = 8 * 60; // 8:00 AM in minutes
+    
+    return onDutyMinutes > shiftStartMinutes;
+  };
+
+  // Helper function to calculate late minutes
+  const calculateLateMinutes = (onDutyTime) => {
+    if (!onDutyTime) return 0;
+    
+    // Parse time in HH:MM format
+    const [hours, minutes] = onDutyTime.split(':').map(Number);
+    const onDutyMinutes = hours * 60 + minutes;
+    const shiftStartMinutes = 8 * 60; // 8:00 AM in minutes
+    
+    // Return late minutes if late, otherwise 0
+    return onDutyMinutes > shiftStartMinutes ? onDutyMinutes - shiftStartMinutes : 0;
+  };
+
+  // Helper function to format minutes to hours and minutes
+  const formatMinutesToHoursMinutes = (totalMinutes) => {
+    if (totalMinutes === 0) return "0m";
+    
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = Math.floor(totalMinutes % 60);
+    
+    if (hours === 0) return `${minutes}m`;
+    if (minutes === 0) return `${hours}h`;
+    return `${hours}h ${minutes}m`;
   };
 
   // Column definitions for attendance table - matching backend fields
@@ -40,28 +77,28 @@ const Attendance = () => {
       name: "Employee Code",
       selector: (row) => row.ecode,
       sortable: true,
-      width: "150px",
+      width: "120px",
     },
     {
       name: "Date",
       selector: (row) => new Date(row.date).toLocaleDateString(),
       sortable: true,
-      width: "120px",
+      width: "100px",
     },
     {
       name: "On Duty",
       selector: (row) => row.onDuty || "N/A",
-      width: "100px",
+      width: "80px",
     },
     {
       name: "Off Duty",
       selector: (row) => row.offDuty || "N/A",
-      width: "100px",
+      width: "80px",
     },
     {
       name: "Status",
       selector: (row) => row.status,
-      width: "100px",
+      width: "80px",
       cell: (row) => (
         <span
           className={`px-2 py-1 rounded text-xs ${
@@ -76,6 +113,22 @@ const Attendance = () => {
         </span>
       ),
     },
+    {
+      name: "Late Minutes",
+      selector: (row) => row.lateMinutes,
+      width: "80px",
+      cell: (row) => (
+        <span
+          className={`px-2 py-1 rounded text-xs ${
+            row.lateMinutes > 0
+              ? "bg-red-100 text-red-800"
+              : "bg-green-100 text-green-800"
+          }`}
+        >
+          {row.lateMinutes > 0 ? `${row.lateMinutes}m` : "0m"}
+        </span>
+      ),
+    },
   ];
 
   // Column definitions for summary table
@@ -84,27 +137,43 @@ const Attendance = () => {
       name: "Employee Code",
       selector: (row) => row.ecode,
       sortable: true,
-      width: "150px",
+      width: "120px",
     },
     {
       name: "Total Days",
       selector: (row) => row.totalDays,
-      width: "100px",
+      width: "80px",
     },
     {
       name: "Present",
       selector: (row) => row.presentDays,
-      width: "80px",
+      width: "70px",
     },
     {
       name: "Absent",
       selector: (row) => row.absentDays,
-      width: "80px",
+      width: "70px",
+    },
+    {
+      name: "Total Late",
+      selector: (row) => formatMinutesToHoursMinutes(row.totalLateMinutes),
+      width: "90px",
+      cell: (row) => (
+        <span
+          className={`px-2 py-1 rounded text-xs ${
+            row.totalLateMinutes > 0
+              ? "bg-red-100 text-red-800"
+              : "bg-green-100 text-green-800"
+          }`}
+        >
+          {formatMinutesToHoursMinutes(row.totalLateMinutes)}
+        </span>
+      ),
     },
     {
       name: "Attendance Rate",
-      selector: (row) => `${((row.presentDays / row.totalDays) * 100).toFixed(1)}%`,
-      width: "120px",
+      selector: (row) => `${row.totalDays > 0 ? ((row.presentDays / row.totalDays) * 100) : 0}%`,
+      width: "110px",
     },
   ];
 
@@ -151,8 +220,14 @@ const Attendance = () => {
             const onDuty = convertExcelTimeToString(onDutyRaw);
             const offDuty = convertExcelTimeToString(offDutyRaw);
             
-            // Determine status based on duty times
-            const status = (!onDuty && !offDuty) ? 'absent' : 'present';
+            // Updated status logic: if Off Duty is null/N/A, mark as absent
+            const status = (!offDuty) ? 'absent' : 'present';
+            
+            // Check if employee is late (arrived after 8:00 AM)
+            const late = status === 'present' ? isLate(onDuty) : false;
+            
+            // Calculate late minutes
+            const lateMinutes = status === 'present' ? calculateLateMinutes(onDuty) : 0;
 
             return {
               id: index + 1,
@@ -160,7 +235,9 @@ const Attendance = () => {
               date: formattedDate,
               onDuty,
               offDuty,
-              status
+              status,
+              isLate: late,
+              lateMinutes: lateMinutes
             };
           }).filter(record => record.date && record.ecode); // Filter out invalid records
 
@@ -187,98 +264,120 @@ const Attendance = () => {
           totalDays: 0,
           presentDays: 0,
           absentDays: 0,
+          lateDays: 0,
+          totalLateMinutes: 0,
         };
       }
 
       summary[ecode].totalDays++;
       if (record.status === "present") {
         summary[ecode].presentDays++;
+        // Count late days and accumulate late minutes only for present employees
+        if (record.isLate) {
+          summary[ecode].lateDays++;
+        }
+        // Add late minutes to total (even if 0)
+        summary[ecode].totalLateMinutes += record.lateMinutes || 0;
       } else if (record.status === "absent") {
         summary[ecode].absentDays++;
       }
+    });
+
+    // Find the highest total days value
+    const maxTotalDays = Math.max(...Object.values(summary).map(emp => emp.totalDays));
+
+    // Update all employees to have the same total days and recalculate absent days
+    Object.values(summary).forEach(emp => {
+      emp.totalDays = maxTotalDays;
+      emp.absentDays = maxTotalDays - emp.presentDays;
     });
 
     setSummaryData(Object.values(summary));
   };
 
   // Handle form submission and save summary
-  const handleSubmit = async () => {
-    if (!selectedFile) {
-      toast.error("Please select a file first");
-      return;
-    }
+// Update the handleSubmit function in your React component
 
-    const fileInput = document.querySelector('input[type="file"]');
-    const file = fileInput.files[0];
+const handleSubmit = async () => {
+  if (!selectedFile) {
+    toast.error("Please select a file first");
+    return;
+  }
 
-    if (!file) {
-      toast.error("No file selected");
-      return;
-    }
+  const fileInput = document.querySelector('input[type="file"]');
+  const file = fileInput.files[0];
 
-    setLoading(true);
+  if (!file) {
+    toast.error("No file selected");
+    return;
+  }
 
-    try {
-      // Step 1: Upload attendance Excel file to backend
-      const formData = new FormData();
-      formData.append("attendanceFile", file);
+  setLoading(true);
 
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/attendance/upload`,
+  try {
+    // Step 1: Upload attendance Excel file to backend
+    const formData = new FormData();
+    formData.append("attendanceFile", file);
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/attendance/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const result = await response.json();
+
+    if (result.success) {
+      toast.success("Attendance data saved successfully!");
+
+      // Step 2: Send comprehensive attendance summary to /add-attendance-summary
+      const summaryPayload = summaryData.map((row) => ({
+        ecode: row.ecode,
+        presentDays: row.presentDays,
+        totalDays: row.totalDays,
+        absentDays: row.absentDays,
+        lateDays: row.lateDays,
+        totalLateMinutes: row.totalLateMinutes,
+      }));
+
+      const summaryResponse = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/attendance/add-attendance-summary`,
         {
           method: "POST",
-          body: formData,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ summaryData: summaryPayload }),
         }
       );
 
-      const result = await response.json();
+      const summaryResult = await summaryResponse.json();
 
-      if (result.success) {
-        toast.success("Attendance data saved successfully!");
-
-        // Step 2: Send attendance summary to /add-attendance-summary
-        const summaryPayload = summaryData.map((row) => ({
-          ecode: row.ecode,
-          daysPresent: row.totalDays,
-        }));
-
-        const summaryResponse = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/attendance/add-attendance-summary`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ summaryData: summaryPayload }),
-          }
-        );
-
-        const summaryResult = await summaryResponse.json();
-
-        if (summaryResponse.ok) {
-          toast.success("Summary saved successfully!");
-          setShowModal(true);
-          fetchAttendanceData();
-        } else {
-          toast.error("Failed to save attendance summary");
-          console.error(summaryResult.message);
-        }
+      if (summaryResponse.ok) {
+        toast.success(`Summary saved successfully! Created: ${summaryResult.created}, Updated: ${summaryResult.updated}`);
+        setShowModal(true);
+        fetchAttendanceData();
       } else {
-        toast.error(result.message || "Failed to save attendance data");
-        if (result.details?.errors) {
-          result.details.errors.forEach((error) =>
-            toast.error(`${error.record?.ecode}: ${error.error}`)
-          );
-        }
+        toast.error("Failed to save attendance summary");
+        console.error(summaryResult.message);
       }
-    } catch (error) {
-      console.error("Error submitting data:", error);
-      toast.error("An error occurred while saving attendance.");
-    } finally {
-      setLoading(false);
+    } else {
+      toast.error(result.message || "Failed to save attendance data");
+      if (result.details?.errors) {
+        result.details.errors.forEach((error) =>
+          toast.error(`${error.record?.ecode}: ${error.error}`)
+        );
+      }
     }
-  };
-
+  } catch (error) {
+    console.error("Error submitting data:", error);
+    toast.error("An error occurred while saving attendance.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Fetch attendance data from API
   const fetchAttendanceData = async () => {
@@ -293,7 +392,12 @@ const Attendance = () => {
         // Process fetched data to match frontend expectations
         const processedData = data.data.map(record => ({
           ...record,
-          status: (!record.onDuty && !record.offDuty) ? 'absent' : 'present'
+          // Updated status logic: if Off Duty is null/N/A, mark as absent
+          status: (!record.offDuty) ? 'absent' : 'present',
+          // Check if employee is late (arrived after 8:00 AM)
+          isLate: (!record.offDuty) ? false : isLate(record.onDuty),
+          // Calculate late minutes
+          lateMinutes: (!record.offDuty) ? 0 : calculateLateMinutes(record.onDuty)
         }));
         
         setAttendanceData(processedData);

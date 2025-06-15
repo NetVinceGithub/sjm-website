@@ -81,14 +81,142 @@ const fetchAndSaveEmployees = async () => {
       return;
     }
 
-    const headers = rows[0].map((header) =>
+    // Process headers to lowercase and remove spaces
+    const rawHeaders = rows[0];
+    const processedHeaders = rawHeaders.map((header) =>
       header.toLowerCase().replace(/\s+/g, "")
     );
 
-    const validEmployees = rows.slice(1).map((row) => {
+    // Create field mapping from processed headers to model field names
+    // Add ALL possible variations of your important fields
+    const fieldMapping = {
+      // Employee Code variations
+      'ecode': 'ecode',
+      'employeecode': 'ecode',
+      'employeeid': 'ecode',
+      'empcode': 'ecode',
+      'code': 'ecode',
+      'id': 'ecode',
+      
+      // Daily Rate variations
+      'dailyrate': 'dailyRate',
+      'daily_rate': 'dailyRate',
+      'rate': 'dailyRate',
+      'dailypay': 'dailyRate',
+      'daily': 'dailyRate',
+      
+      // Salary Package variations - ENHANCED
+      'salarypackage': 'salaryPackage',
+      'salary_package': 'salaryPackage',
+      'package': 'salaryPackage',
+      'monthlysalary': 'salaryPackage',
+      'monthly_salary': 'salaryPackage',
+      'salary': 'salaryPackage',
+      'monthlysalarypackage': 'salaryPackage',
+      'monthly_salary_package': 'salaryPackage',
+      'salaryamount': 'salaryPackage',
+      'salary_amount': 'salaryPackage',
+      'basicsalary': 'salaryPackage',
+      'basic_salary': 'salaryPackage',
+      'monthlyrate': 'salaryPackage',
+      'monthly_rate': 'salaryPackage',
+      
+      // Name variations
+      'name': 'name',
+      'employeename': 'name',
+      'fullname': 'name',
+      'employee_name': 'name',
+      
+      // Other common mappings
+      'firstname': 'firstname',
+      'first_name': 'firstname',
+      'lastname': 'lastname',
+      'last_name': 'lastname',
+      'middlename': 'middlename',
+      'middle_name': 'middlename',
+      'emailaddress': 'emailaddress',
+      'email_address': 'emailaddress',
+      'email': 'emailaddress',
+      'contactno': 'contactno',
+      'contact_no': 'contactno',
+      'contactnumber': 'contactno',
+      'contact_number': 'contactno',
+      'phone': 'contactno',
+      'emergencycontact': 'emergencyContact',
+      'emergency_contact': 'emergencyContact',
+      'emergencycontactnumber': 'emergencyContactNumber',
+      'emergency_contact_number': 'emergencyContactNumber',
+      'healthcard': 'healthCard',
+      'health_card': 'healthCard',
+      'profileimage': 'profileImage',
+      'profile_image': 'profileImage',
+      'attendedtrainingandseminar': 'attendedtrainingandseminar',
+      'dateofseparation': 'dateofseparation',
+      'date_of_separation': 'dateofseparation',
+      'dateofhire': 'dateofhire',
+      'date_of_hire': 'dateofhire',
+      'positiontitle': 'positiontitle',
+      'position_title': 'positiontitle',
+      'position': 'positiontitle',
+      'civilstatus': 'civilstatus',
+      'civil_status': 'civilstatus',
+      'birthdate': 'birthdate',
+      'birth_date': 'birthdate',
+      'permanentaddress': 'permanentaddress',
+      'permanent_address': 'permanentaddress',
+      'governmentidnumber': 'governmentidnumber',
+      'government_id_number': 'governmentidnumber',
+      'employmentstatus': 'employmentstatus',
+      'employment_status': 'employmentstatus',
+      'employmentrank': 'employmentrank',
+      'employment_rank': 'employmentrank',
+      'tenuritytoclient(inmonths)': 'tenuritytoclient(inmonths)',
+      'team(a/b)': 'team(a/b)',
+      'area/section': 'area/section',
+      'pag-ibig': 'pag-ibig',
+      'esignature': 'esignature',
+      'e_signature': 'esignature',
+    };
+
+    // Enhanced debug logging
+    console.log("🔍 Raw headers from sheet:", rawHeaders);
+    console.log("🔍 Processed headers:", processedHeaders);
+    
+    // Check which headers map to salary/rate fields
+    const salaryRelatedHeaders = processedHeaders.filter(header => 
+      header.includes('salary') || header.includes('package') || header.includes('monthly') || header.includes('daily') || header.includes('rate')
+    );
+    console.log("🔍 Salary/Rate related headers:", salaryRelatedHeaders);
+    
+    salaryRelatedHeaders.forEach(header => {
+      const mappedField = fieldMapping[header] || header;
+      console.log(`   "${header}" → "${mappedField}"`);
+    });
+    
+    // Debug: Show a sample row to see what data we're getting
+    if (rows.length > 1) {
+      console.log("🔍 Sample data row:", rows[1]);
+      console.log("🔍 Header-to-data mapping for first row:");
+      processedHeaders.forEach((header, index) => {
+        if (salaryRelatedHeaders.includes(header)) {
+          const mappedField = fieldMapping[header] || header;
+          console.log(`   ${header} → ${mappedField}: "${rows[1][index] || 'undefined'}" (type: ${typeof rows[1][index]})`);
+        }
+      });
+    }
+
+    const validEmployees = rows.slice(1).map((row, rowIndex) => {
       const employeeObj = {};
-      headers.forEach((header, colIndex) => {
-        employeeObj[header] = row[colIndex]?.trim() || "";
+      processedHeaders.forEach((processedHeader, colIndex) => {
+        // Use mapping if available, otherwise use processed header as-is
+        const modelFieldName = fieldMapping[processedHeader] || processedHeader;
+        const cellValue = row[colIndex]?.trim() || "";
+        employeeObj[modelFieldName] = cellValue;
+        
+        // Debug for first row only
+        if (rowIndex === 0 && (processedHeader.includes('ecode') || processedHeader.includes('salary') || processedHeader.includes('daily') || processedHeader.includes('package'))) {
+          console.log(`🔍 Field mapping: "${processedHeader}" → "${modelFieldName}" = "${cellValue}"`);
+        }
       });
       return employeeObj;
     });
@@ -107,56 +235,99 @@ const fetchAndSaveEmployees = async () => {
       return trimmed === "" ? null : trimmed;
     };
 
-    // Helper to clean integer fields (convert '' or invalid to null)
-    const cleanInt = (value) => {
-      if (value === "" || value === null || value === undefined) return null;
-      const intVal = parseInt(value, 10);
-      return isNaN(intVal) ? null : intVal;
+    // Enhanced helper to clean integer fields with better debugging
+    const cleanInt = (value, fieldName = '') => {
+      if (value === "" || value === null || value === undefined) {
+        return null;
+      }
+      
+      // Convert to string and remove any non-numeric characters except decimal point and negative sign
+      const stringValue = String(value).trim();
+      const cleanedValue = stringValue.replace(/[^0-9.-]/g, '');
+      
+      if (fieldName === 'dailyRate' || fieldName === 'salaryPackage') {
+        console.log(`   cleanInt for ${fieldName}: "${value}" → "${cleanedValue}"`);
+      }
+      
+      // Use parseFloat first to handle decimal inputs, then convert to int
+      const floatVal = parseFloat(cleanedValue);
+      if (isNaN(floatVal)) {
+        return null;
+      }
+      
+      // Convert to integer (this will truncate decimals)
+      const intVal = Math.floor(Math.abs(floatVal)); // Use Math.floor and abs to ensure positive integer
+      
+      if (fieldName === 'dailyRate' || fieldName === 'salaryPackage') {
+        console.log(`   → final result: ${intVal}`);
+      }
+      
+      return intVal;
     };
 
     // Helper to clean decimal fields (for rates, amounts, etc.)
     const cleanDecimal = (value) => {
       if (value === "" || value === null || value === undefined) return null;
-      const floatVal = parseFloat(value);
+      
+      // Convert to string and remove any non-numeric characters except decimal point and negative sign
+      const stringValue = String(value).trim();
+      const cleanedValue = stringValue.replace(/[^0-9.-]/g, '');
+      
+      const floatVal = parseFloat(cleanedValue);
       return isNaN(floatVal) ? null : floatVal;
     };
 
-    // List your integer fields here — adjust to your schema
+    // Updated field arrays using model field names (camelCase)
     const integerFields = [
       "hc",
       "age",
-      "tenuritytoclient(inmonths)",
-      "sss",
-      "philhealth",
-      "pagibig",
-      "tardiness",
-      "loan",
-      "deployedemployees",
-      // add more integer fields as needed
+      "dailyRate",      // Keep as integer field
+      "salaryPackage",  // Keep as integer field - the issue might be elsewhere
     ];
 
     // List string fields that need cleaning (contact info, names, etc.)
     const stringFields = [
-      "contactnumber",
-      "contactname", 
-      "emergencycontact",
-      "emergencycontactnumber",
+      "ecode",
       "name",
-      "firstname",
       "lastname",
+      "firstname",
       "middlename",
-      "address",
-      "city",
-      "province",
-      "department",
+      "project",
       "positiontitle",
+      "department",
+      "area/section",
+      "employmentrank",
+      "dateofhire",
+      "tenuritytoclient(inmonths)",
+      "employmentstatus",
+      "team(a/b)",
+      "civilstatus",
+      "gender",
+      "birthdate",
+      "address",
+      "permanentaddress",
+      "contactno",
+      "emailaddress",
+      "governmentidnumber",
+      "emergencyContact",
+      "emergencyContactNumber",
+      "healthCard",
+      "prp",
+      "safety",
+      "sss",
+      "tin",
+      "philhealth",
+      "pag-ibig",
+      "profileImage",
+      "esignature",
       "status",
-      // add more string fields as needed
+      "attendedtrainingandseminar",
+      "dateofseparation",
+      "medical",
     ];
 
     // List decimal fields that might be in your sheet
     const decimalFields = [
-      "dailyrate",
       "overtimepay",
       "holidaypay",
       "nightdifferential",
@@ -165,7 +336,6 @@ const fetchAndSaveEmployees = async () => {
       "ssscontribution",
       "pagibigcontribution",
       "philhealthcontribution",
-      // add more decimal fields as needed
     ];
 
     // Fetch existing employees from DB
@@ -174,6 +344,10 @@ const fetchAndSaveEmployees = async () => {
     const sheetEmployeeIds = [];
 
     for (const employee of validEmployees) {
+      // Enhanced debug: Log the employee data before cleaning
+      console.log(`\n🔍 Processing employee: ${employee.ecode || 'Unknown'}`);
+      console.log(`🔍 RAW DATA - dailyRate: "${employee.dailyRate}" (${typeof employee.dailyRate}), salaryPackage: "${employee.salaryPackage}" (${typeof employee.salaryPackage})`);
+
       // Clean email
       employee.emailaddress = cleanEmail(employee.emailaddress);
 
@@ -184,10 +358,16 @@ const fetchAndSaveEmployees = async () => {
         }
       });
 
-      // Clean integer fields
+      // Clean integer fields with enhanced debugging
       integerFields.forEach((field) => {
         if (employee.hasOwnProperty(field)) {
-          employee[field] = cleanInt(employee[field]);
+          const originalValue = employee[field];
+          employee[field] = cleanInt(employee[field], field);
+          
+          // Enhanced debug logging for critical fields
+          if (field === 'dailyRate' || field === 'salaryPackage') {
+            console.log(`🔍 CLEANED DATA - ${field}: "${originalValue}" → ${employee[field]} (${typeof employee[field]})`);
+          }
         }
       });
 
@@ -197,6 +377,93 @@ const fetchAndSaveEmployees = async () => {
           employee[field] = cleanDecimal(employee[field]);
         }
       });
+
+      // **FIXED**: Handle required fields that cannot be null
+      // Provide fallbacks for required fields based on your model constraints
+      
+      // Handle 'ecode' field FIRST - this is the most critical identifier
+      if (!employee.ecode || employee.ecode === null || employee.ecode === '') {
+        console.error(`❌ Employee record missing ecode - skipping record with name: ${employee.name || 'Unknown'}`);
+        console.error(`   Full employee object:`, JSON.stringify(employee, null, 2));
+        continue; // Skip records without employee codes entirely
+      }
+      
+      // Handle 'name' field - required and cannot be null
+      if (!employee.name || employee.name === null) {
+        // Try to construct name from firstname + lastname, or use ecode as fallback
+        const firstName = employee.firstname || '';
+        const lastName = employee.lastname || '';
+        
+        if (firstName && lastName) {
+          employee.name = `${firstName} ${lastName}`.trim();
+        } else if (firstName) {
+          employee.name = firstName;
+        } else if (lastName) {
+          employee.name = lastName;
+        } else {
+          // Last resort: use employee code
+          employee.name = employee.ecode;
+        }
+      }
+
+      // Handle 'firstname' field - required and cannot be null
+      if (!employee.firstname || employee.firstname === null) {
+        // Try to extract from name field, or use ecode as fallback
+        if (employee.name && employee.name !== employee.ecode) {
+          // Try to get first word from name as firstname
+          employee.firstname = employee.name.split(' ')[0];
+        } else {
+          // Use ecode or default value
+          employee.firstname = employee.ecode;
+        }
+      }
+
+      // Optional: Also handle lastname if you want consistency
+      if (!employee.lastname || employee.lastname === null) {
+        if (employee.name && employee.name.includes(' ')) {
+          // Try to get everything after first word as lastname
+          const nameParts = employee.name.split(' ');
+          employee.lastname = nameParts.slice(1).join(' ');
+        } else {
+          employee.lastname = "N/A"; // This field allows null, so we can use default
+        }
+      }
+
+      // Final debug: Log the employee data after all cleaning
+      console.log(`🔍 FINAL DATA for ${employee.ecode}:`);
+      console.log(`  - name: "${employee.name}" (type: ${typeof employee.name})`);
+      console.log(`  - firstname: "${employee.firstname}" (type: ${typeof employee.firstname})`);
+      console.log(`  - dailyRate: ${employee.dailyRate} (type: ${typeof employee.dailyRate})`);
+      console.log(`  - salaryPackage: ${employee.salaryPackage} (type: ${typeof employee.salaryPackage})`);
+
+      // Check for null/undefined required fields
+      const requiredFields = ['ecode', 'name', 'firstname'];
+      const missingFields = requiredFields.filter(field => 
+        employee[field] === null || employee[field] === undefined || employee[field] === ''
+      );
+
+      if (missingFields.length > 0) {
+        console.error(`❌ Missing required fields for ${employee.ecode}:`, missingFields);
+        console.error(`   Full employee object:`, JSON.stringify(employee, null, 2));
+        // Skip this problematic record
+        continue;
+      }
+
+      // Log warnings for records with missing critical data
+      if (employee.name === employee.ecode || employee.firstname === employee.ecode) {
+        console.warn(`⚠️  Employee ${employee.ecode} has missing name data - using ecode as fallback`);
+      }
+
+      // Enhanced salary validation
+      if (!employee.dailyRate || employee.dailyRate <= 0) {
+        console.warn(`⚠️  Employee ${employee.ecode} has invalid dailyRate: ${employee.dailyRate} - using default 520`);
+        employee.dailyRate = 520;
+      }
+
+      if (!employee.salaryPackage || employee.salaryPackage <= 0) {
+        console.warn(`⚠️  Employee ${employee.ecode} has invalid salaryPackage: ${employee.salaryPackage} - using default 16224`);
+        employee.salaryPackage = 16224;
+      }
 
       // **ENHANCED**: Use updateOnDuplicate to ensure ALL fields are updated
       const [savedEmployeeRecord, created] = await Employee.upsert(employee, {
@@ -215,10 +482,11 @@ const fetchAndSaveEmployees = async () => {
       console.log(
         `✅ Employee ${action}: ${savedEmployeeRecord.name || "Unknown Employee"} (${savedEmployeeRecord.ecode})`
       );
+      console.log(`   💰 Daily Rate: ${savedEmployeeRecord.dailyRate}, Salary Package: ${savedEmployeeRecord.salaryPackage}`);
       
       // Log contact info changes specifically
-      if (!created && (employee.contactnumber || employee.contactname)) {
-        console.log(`   📞 Contact Info - Number: ${employee.contactnumber || 'N/A'}, Name: ${employee.contactname || 'N/A'}`);
+      if (!created && (employee.contactno || employee.emergencyContact)) {
+        console.log(`   📞 Contact Info - Number: ${employee.contactno || 'N/A'}, Emergency: ${employee.emergencyContact || 'N/A'}`);
       }
 
       // **ENHANCED**: Payroll info sync with better field mapping and updates
@@ -226,7 +494,64 @@ const fetchAndSaveEmployees = async () => {
         where: { employee_id: savedEmployeeRecord.id },
       });
 
-      // Prepare payroll data with fallbacks from sheet data or defaults
+      // Fixed payroll computation functions
+      function hourlyRateComputation() {
+        const dailyRate = savedEmployeeRecord.dailyRate || 520;
+        const hourlyRate = dailyRate / 8;
+        return hourlyRate;
+      }
+
+      function otRateRegular() {
+        const otRateForRegular = hourlyRateComputation() * 1.25; // 125% of hourly rate
+        return otRateForRegular;
+      }
+
+      function specialHolidayRate() {
+        const dailyRate = savedEmployeeRecord.dailyRate || 520;
+        const specialHolidayRateComputation = dailyRate * 1.30; // 130% of daily rate
+        return specialHolidayRateComputation;
+      }
+
+      function otRateForSpecialHoliday() {
+        const specialHoliday = hourlyRateComputation() * 1.30 * 1.30; // 130% of hourly rate * 130%
+        return specialHoliday;
+      }
+
+      function otRateRegularHoliday() {
+        const computation = hourlyRateComputation() * 2 * 1.30; // 200% of hourly rate * 130%
+        return computation;
+      }
+
+      function ndRate() {
+        const computation = hourlyRateComputation() * 0.10; // 10% of hourly rate
+        return computation;
+      }
+
+      function tardinessComputation() {
+        const dailyRate = savedEmployeeRecord.dailyRate || 520;
+        const computation = (dailyRate / 8) / 60; // Per minute rate
+        return computation;
+      }
+
+      function allowanceComputation() {
+        const dailyRate = savedEmployeeRecord.dailyRate || 520;
+        const salaryPackage = savedEmployeeRecord.salaryPackage || 16224;
+        const computation = (salaryPackage - (dailyRate * 26)) / 26;
+        return computation;
+      }
+
+      function phicComputation() {
+        const dailyRate = savedEmployeeRecord.dailyRate || 520;
+        const computation = (((dailyRate * 26) * 0.05) / 2) / 2; // 5% of monthly salary divided by 4
+        return computation;
+      }
+
+      function hdmfComputation() {
+        const computation = (400 / 2) / 2; // Fixed HDMF computation
+        return computation;
+      }
+
+      // Updated payroll data using the computation functions
       const payrollData = {
         employee_id: savedEmployeeRecord.id,
         ecode: savedEmployeeRecord.ecode,
@@ -234,17 +559,24 @@ const fetchAndSaveEmployees = async () => {
         positiontitle: savedEmployeeRecord.positiontitle || "N/A",
         area_section: savedEmployeeRecord.department || "N/A",
         email: savedEmployeeRecord.emailaddress || "N/A",
-        // Use sheet data if available, otherwise use defaults
-        daily_rate: employee.dailyrate || savedEmployeeRecord.dailyrate || 520,
-        overtime_pay: employee.overtimepay || savedEmployeeRecord.overtimepay || 81.25,
-        holiday_pay: employee.holidaypay || savedEmployeeRecord.holidaypay || 520,
-        night_differential: employee.nightdifferential || savedEmployeeRecord.nightdifferential || 150,
-        allowance: employee.allowance || savedEmployeeRecord.allowance || 1040,
-        tardiness: employee.tardiness || 0,
-        tax_deduction: employee.taxdeduction || savedEmployeeRecord.taxdeduction || 0,
-        sss_contribution: employee.ssscontribution || savedEmployeeRecord.ssscontribution || 0,
-        pagibig_contribution: employee.pagibigcontribution || savedEmployeeRecord.pagibigcontribution || 200,
-        philhealth_contribution: employee.philhealthcontribution || savedEmployeeRecord.philhealthcontribution || 338,
+        
+        // Use computed values with proper fallbacks
+        daily_rate: savedEmployeeRecord.dailyRate || 520,
+        hourly_rate: hourlyRateComputation(),
+        ot_hourly_rate: otRateRegular(),
+        ot_rate_sp_holiday: otRateForSpecialHoliday(),
+        ot_rate_reg_holiday: otRateRegularHoliday(),
+        special_hol_rate: specialHolidayRate(),
+        regular_hol_ot_rate: otRateRegularHoliday(),
+        overtime_pay: otRateRegular(),
+        holiday_pay: specialHolidayRate(),
+        night_differential: ndRate(),
+        allowance: allowanceComputation(),
+        tardiness: tardinessComputation(),
+        tax_deduction: employee.taxdeduction || 0,
+        sss_contribution: 250,
+        pagibig_contribution: hdmfComputation(),
+        philhealth_contribution: phicComputation(),
         loan: employee.loan || 0,
       };
 
