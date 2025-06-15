@@ -676,7 +676,7 @@ const PayrollSummary = () => {
       width: "140px",
     },
     {
-      name: "Deductions",
+      name: "Total Deductions",
       selector: (row) => `₱${(row.totalDeductions || 0).toLocaleString()}`,
       sortable: true,
       width: "140px",
