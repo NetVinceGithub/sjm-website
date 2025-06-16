@@ -831,7 +831,7 @@ const List = () => {
   };
 
   return (
-    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
+    <div className="fixed -z-30 top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
       <Breadcrumb
         items={[
           { label: "Employee", href: "" },
@@ -844,7 +844,7 @@ const List = () => {
           <div className="inline-flex border border-neutralDGray rounded h-8">
             <button
               onClick={bulkMessage}
-              className="px-3 w-20 h-full border-r border-neutralDGray hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
+              className="px-3 w-20 h-full border-r  hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
             >
               <FaRegEnvelope
                 title="Print"

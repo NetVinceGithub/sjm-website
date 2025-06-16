@@ -70,7 +70,6 @@ const ConnectMessages = () => {
     setShow(true);
   };
 
-
   const handleClose = () => {
     setShow(false);
     setSelectedMessage(null);
@@ -79,33 +78,34 @@ const ConnectMessages = () => {
   const customStyles = {
     headCells: {
       style: {
-        backgroundColor: '#f9fafb',
-        fontSize: '13px',
-        fontWeight: '600',
-        color: '#374151',
-        padding: '8px',
+        backgroundColor: "#f9fafb",
+        fontSize: "13px",
+        fontWeight: "600",
+        color: "#374151",
+        padding: "8px",
       },
     },
     rows: {
       style: {
-        fontSize: '13px',
-        color: '#4B5563',
-        minHeight: '40px',
-        borderBottom: '1px solid #e5e7eb',
+        fontSize: "13px",
+        color: "#4B5563",
+        minHeight: "40px",
+        borderBottom: "1px solid #e5e7eb",
       },
     },
     cells: {
       style: {
-        padding: '8px',
+        padding: "8px",
       },
     },
   };
 
   return (
-
-    <div className="p-6">
-      <div className="text-center">
-        <h3 className="text-lg -mt-4 font-semibold">Website Inquiry Messages</h3>
+    <div className="p-2">
+      <div className="text-left">
+        <h3 className="text-lg -mt-2 font-semibold text-neutralDGray">
+          Website Inquiry Messages
+        </h3>
       </div>
       <div className="flex justify-end items-center -mt-5 gap-3">
         <div className="flex rounded items-center">
@@ -113,7 +113,7 @@ const ConnectMessages = () => {
             type="text"
             placeholder="Search"
             onChange={handleFilter}
-            className="px-2 rounded py-0.5 border"
+            className="px-2 bg-neutralSilver rounded py-0.5 border"
           />
           <FaSearch className="ml-[-20px] text-neutralDGray" />
         </div>
@@ -143,7 +143,7 @@ const ConnectMessages = () => {
             { name: "Time sent", selector: (row) => row.createdAt },
             {
               name: "Action",
-              width: '60px',
+              width: "60px",
               cell: (row) => (
                 <button
                   onClick={() => handleOpenModal(row)}
@@ -153,7 +153,7 @@ const ConnectMessages = () => {
                   <FaUpRightFromSquare />
                 </button>
               ),
-            }
+            },
           ]}
           data={messages}
           progressPending={loading}
@@ -184,20 +184,20 @@ const ConnectMessages = () => {
               <div>
                 <p className="text-left text-base mb-4">Sender Details:</p>
                 <p className="-mt-5 text-sm ml-5 text-neutralDGray">
-                  <span >Name:</span> {selectedMessage?.firstname}{" "}
+                  <span>Name:</span> {selectedMessage?.firstname}{" "}
                   {selectedMessage?.surname}
                 </p>
                 <p className="-mt-4 text-sm ml-5 text-neutralDGray">
-                  <span >Sender Type:</span> {selectedMessage?.type}
+                  <span>Sender Type:</span> {selectedMessage?.type}
                 </p>
                 <p className="-mt-4 text-sm ml-5 text-neutralDGray">
-                  <span >Email:</span> {selectedMessage?.email}
+                  <span>Email:</span> {selectedMessage?.email}
                 </p>
                 <p className="-mt-4 text-sm ml-5 text-neutralDGray">
-                  <span >Phone:</span> {selectedMessage?.phone}
+                  <span>Phone:</span> {selectedMessage?.phone}
                 </p>
                 <p className="-mt-4 text-sm ml-5 text-neutralDGray">
-                  <span >Inquired About:</span> {selectedMessage?.services}
+                  <span>Inquired About:</span> {selectedMessage?.services}
                 </p>
                 <hr />
                 <p className="text-justify ml-5 mt-3 text-neutralDGray text-sm whitespace-pre-wrap">
@@ -208,7 +208,6 @@ const ConnectMessages = () => {
           </div>
         </Modal.Body>
       </Modal>
-
     </div>
   );
 };
