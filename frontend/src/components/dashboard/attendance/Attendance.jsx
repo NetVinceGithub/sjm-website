@@ -6,6 +6,8 @@ import Breadcrumb from "../dashboard/Breadcrumb";
 import DataTable from "react-data-table-component";
 import { Modal, Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { BsFilter } from "react-icons/bs";
+import Tooltip from "@mui/material/Tooltip";
 import { toast } from "react-toastify";
 
 const Attendance = () => {
@@ -19,53 +21,57 @@ const Attendance = () => {
 
   // Helper function to convert Excel time decimals to HH:MM format
   const convertExcelTimeToString = (excelTime) => {
-    if (!excelTime || excelTime === '' || isNaN(excelTime)) {
+    if (!excelTime || excelTime === "" || isNaN(excelTime)) {
       return null;
     }
-    
+
     // Convert decimal to total minutes in a day (no rounding)
     const totalMinutes = Number(excelTime) * 24 * 60;
-    
+
     // Calculate hours and minutes (using floor to avoid rounding)
     const hours = Math.floor(totalMinutes / 60);
     const minutes = Math.floor(totalMinutes % 60);
-    
+
     // Format as HH:MM
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   // Helper function to check if employee is late (after 8:00 AM)
   const isLate = (onDutyTime) => {
     if (!onDutyTime) return false;
-    
+
     // Parse time in HH:MM format
-    const [hours, minutes] = onDutyTime.split(':').map(Number);
+    const [hours, minutes] = onDutyTime.split(":").map(Number);
     const onDutyMinutes = hours * 60 + minutes;
     const shiftStartMinutes = 8 * 60; // 8:00 AM in minutes
-    
+
     return onDutyMinutes > shiftStartMinutes;
   };
 
   // Helper function to calculate late minutes
   const calculateLateMinutes = (onDutyTime) => {
     if (!onDutyTime) return 0;
-    
+
     // Parse time in HH:MM format
-    const [hours, minutes] = onDutyTime.split(':').map(Number);
+    const [hours, minutes] = onDutyTime.split(":").map(Number);
     const onDutyMinutes = hours * 60 + minutes;
     const shiftStartMinutes = 8 * 60; // 8:00 AM in minutes
-    
+
     // Return late minutes if late, otherwise 0
-    return onDutyMinutes > shiftStartMinutes ? onDutyMinutes - shiftStartMinutes : 0;
+    return onDutyMinutes > shiftStartMinutes
+      ? onDutyMinutes - shiftStartMinutes
+      : 0;
   };
 
   // Helper function to format minutes to hours and minutes
   const formatMinutesToHoursMinutes = (totalMinutes) => {
     if (totalMinutes === 0) return "0m";
-    
+
     const hours = Math.floor(totalMinutes / 60);
     const minutes = Math.floor(totalMinutes % 60);
-    
+
     if (hours === 0) return `${minutes}m`;
     if (minutes === 0) return `${hours}h`;
     return `${hours}h ${minutes}m`;
@@ -74,10 +80,10 @@ const Attendance = () => {
   // Column definitions for attendance table - matching backend fields
   const attendanceColumns = [
     {
-      name: "Employee Code",
+      name: "E-Code",
       selector: (row) => row.ecode,
       sortable: true,
-      width: "120px",
+      width: "100px",
     },
     {
       name: "Date",
@@ -98,7 +104,7 @@ const Attendance = () => {
     {
       name: "Status",
       selector: (row) => row.status,
-      width: "80px",
+      width: "100px",
       cell: (row) => (
         <span
           className={`px-2 py-1 rounded text-xs ${
@@ -114,9 +120,9 @@ const Attendance = () => {
       ),
     },
     {
-      name: "Late Minutes",
+      name: "Tardiness (Minutes)",
       selector: (row) => row.lateMinutes,
-      width: "80px",
+      width: "137px",
       cell: (row) => (
         <span
           className={`px-2 py-1 rounded text-xs ${
@@ -134,20 +140,20 @@ const Attendance = () => {
   // Column definitions for summary table
   const summaryColumns = [
     {
-      name: "Employee Code",
+      name: "E-Code",
       selector: (row) => row.ecode,
       sortable: true,
-      width: "120px",
+      width: "100px",
     },
     {
-      name: "Total Days",
+      name: "Total Work Days",
       selector: (row) => row.totalDays,
-      width: "80px",
+      width: "120px",
     },
     {
       name: "Present",
       selector: (row) => row.presentDays,
-      width: "70px",
+      width: "80px",
     },
     {
       name: "Absent",
@@ -155,9 +161,9 @@ const Attendance = () => {
       width: "70px",
     },
     {
-      name: "Total Late",
+      name: "Total Tardiness (h:m)",
       selector: (row) => formatMinutesToHoursMinutes(row.totalLateMinutes),
-      width: "90px",
+      width: "150px",
       cell: (row) => (
         <span
           className={`px-2 py-1 rounded text-xs ${
@@ -172,8 +178,13 @@ const Attendance = () => {
     },
     {
       name: "Attendance Rate",
-      selector: (row) => `${row.totalDays > 0 ? ((row.presentDays / row.totalDays) * 100) : 0}%`,
-      width: "110px",
+      selector: (row) =>
+        `${
+          row.totalDays > 0
+            ? ((row.presentDays / row.totalDays) * 100).toFixed(2)
+            : "0.00"
+        }%`,
+      width: "130px",
     },
   ];
 
@@ -194,52 +205,59 @@ const Attendance = () => {
           const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
           // Process data to match backend expectations
-          const processedData = jsonData.map((row, index) => {
-            // Convert date if it's an Excel serial number
-            let formattedDate = '';
-            const dateRaw = row.Date || row.date || '';
-            
-            if (!isNaN(dateRaw) && Number(dateRaw) > 0) {
-              // Excel serial date conversion
-              const excelDate = new Date((Number(dateRaw) - 25569) * 86400 * 1000);
-              formattedDate = excelDate.toISOString().split('T')[0];
-            } else if (dateRaw) {
-              // Try to parse as regular date
-              const parsedDate = new Date(dateRaw);
-              if (!isNaN(parsedDate)) {
-                formattedDate = parsedDate.toISOString().split('T')[0];
+          const processedData = jsonData
+            .map((row, index) => {
+              // Convert date if it's an Excel serial number
+              let formattedDate = "";
+              const dateRaw = row.Date || row.date || "";
+
+              if (!isNaN(dateRaw) && Number(dateRaw) > 0) {
+                // Excel serial date conversion
+                const excelDate = new Date(
+                  (Number(dateRaw) - 25569) * 86400 * 1000
+                );
+                formattedDate = excelDate.toISOString().split("T")[0];
+              } else if (dateRaw) {
+                // Try to parse as regular date
+                const parsedDate = new Date(dateRaw);
+                if (!isNaN(parsedDate)) {
+                  formattedDate = parsedDate.toISOString().split("T")[0];
+                }
               }
-            }
 
-            const ecode = String(row.Name || row.name || '').trim();
-            
-            // Convert Excel time decimals to HH:MM format
-            const onDutyRaw = row['ON Duty'] || row['on duty'] || row['onDuty'] || null;
-            const offDutyRaw = row['OFF Duty'] || row['off duty'] || row['offDuty'] || null;
-            
-            const onDuty = convertExcelTimeToString(onDutyRaw);
-            const offDuty = convertExcelTimeToString(offDutyRaw);
-            
-            // Updated status logic: if Off Duty is null/N/A, mark as absent
-            const status = (!offDuty) ? 'absent' : 'present';
-            
-            // Check if employee is late (arrived after 8:00 AM)
-            const late = status === 'present' ? isLate(onDuty) : false;
-            
-            // Calculate late minutes
-            const lateMinutes = status === 'present' ? calculateLateMinutes(onDuty) : 0;
+              const ecode = String(row.Name || row.name || "").trim();
 
-            return {
-              id: index + 1,
-              ecode,
-              date: formattedDate,
-              onDuty,
-              offDuty,
-              status,
-              isLate: late,
-              lateMinutes: lateMinutes
-            };
-          }).filter(record => record.date && record.ecode); // Filter out invalid records
+              // Convert Excel time decimals to HH:MM format
+              const onDutyRaw =
+                row["ON Duty"] || row["on duty"] || row["onDuty"] || null;
+              const offDutyRaw =
+                row["OFF Duty"] || row["off duty"] || row["offDuty"] || null;
+
+              const onDuty = convertExcelTimeToString(onDutyRaw);
+              const offDuty = convertExcelTimeToString(offDutyRaw);
+
+              // Updated status logic: if Off Duty is null/N/A, mark as absent
+              const status = !offDuty ? "absent" : "present";
+
+              // Check if employee is late (arrived after 8:00 AM)
+              const late = status === "present" ? isLate(onDuty) : false;
+
+              // Calculate late minutes
+              const lateMinutes =
+                status === "present" ? calculateLateMinutes(onDuty) : 0;
+
+              return {
+                id: index + 1,
+                ecode,
+                date: formattedDate,
+                onDuty,
+                offDuty,
+                status,
+                isLate: late,
+                lateMinutes: lateMinutes,
+              };
+            })
+            .filter((record) => record.date && record.ecode); // Filter out invalid records
 
           setAttendanceData(processedData);
           generateSummary(processedData);
@@ -284,10 +302,12 @@ const Attendance = () => {
     });
 
     // Find the highest total days value
-    const maxTotalDays = Math.max(...Object.values(summary).map(emp => emp.totalDays));
+    const maxTotalDays = Math.max(
+      ...Object.values(summary).map((emp) => emp.totalDays)
+    );
 
     // Update all employees to have the same total days and recalculate absent days
-    Object.values(summary).forEach(emp => {
+    Object.values(summary).forEach((emp) => {
       emp.totalDays = maxTotalDays;
       emp.absentDays = maxTotalDays - emp.presentDays;
     });
@@ -296,88 +316,92 @@ const Attendance = () => {
   };
 
   // Handle form submission and save summary
-// Update the handleSubmit function in your React component
+  // Update the handleSubmit function in your React component
 
-const handleSubmit = async () => {
-  if (!selectedFile) {
-    toast.error("Please select a file first");
-    return;
-  }
+  const handleSubmit = async () => {
+    if (!selectedFile) {
+      toast.error("Please select a file first");
+      return;
+    }
 
-  const fileInput = document.querySelector('input[type="file"]');
-  const file = fileInput.files[0];
+    const fileInput = document.querySelector('input[type="file"]');
+    const file = fileInput.files[0];
 
-  if (!file) {
-    toast.error("No file selected");
-    return;
-  }
+    if (!file) {
+      toast.error("No file selected");
+      return;
+    }
 
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    // Step 1: Upload attendance Excel file to backend
-    const formData = new FormData();
-    formData.append("attendanceFile", file);
+    try {
+      // Step 1: Upload attendance Excel file to backend
+      const formData = new FormData();
+      formData.append("attendanceFile", file);
 
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/attendance/upload`,
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
-
-    const result = await response.json();
-
-    if (result.success) {
-      toast.success("Attendance data saved successfully!");
-
-      // Step 2: Send comprehensive attendance summary to /add-attendance-summary
-      const summaryPayload = summaryData.map((row) => ({
-        ecode: row.ecode,
-        presentDays: row.presentDays,
-        totalDays: row.totalDays,
-        absentDays: row.absentDays,
-        lateDays: row.lateDays,
-        totalLateMinutes: row.totalLateMinutes,
-      }));
-
-      const summaryResponse = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/attendance/add-attendance-summary`,
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/attendance/upload`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ summaryData: summaryPayload }),
+          body: formData,
         }
       );
 
-      const summaryResult = await summaryResponse.json();
+      const result = await response.json();
 
-      if (summaryResponse.ok) {
-        toast.success(`Summary saved successfully! Created: ${summaryResult.created}, Updated: ${summaryResult.updated}`);
-        setShowModal(true);
-        fetchAttendanceData();
-      } else {
-        toast.error("Failed to save attendance summary");
-        console.error(summaryResult.message);
-      }
-    } else {
-      toast.error(result.message || "Failed to save attendance data");
-      if (result.details?.errors) {
-        result.details.errors.forEach((error) =>
-          toast.error(`${error.record?.ecode}: ${error.error}`)
+      if (result.success) {
+        toast.success("Attendance data saved successfully!");
+
+        // Step 2: Send comprehensive attendance summary to /add-attendance-summary
+        const summaryPayload = summaryData.map((row) => ({
+          ecode: row.ecode,
+          presentDays: row.presentDays,
+          totalDays: row.totalDays,
+          absentDays: row.absentDays,
+          lateDays: row.lateDays,
+          totalLateMinutes: row.totalLateMinutes,
+        }));
+
+        const summaryResponse = await fetch(
+          `${
+            import.meta.env.VITE_API_URL
+          }/api/attendance/add-attendance-summary`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ summaryData: summaryPayload }),
+          }
         );
+
+        const summaryResult = await summaryResponse.json();
+
+        if (summaryResponse.ok) {
+          toast.success(
+            `Summary saved successfully! Created: ${summaryResult.created}, Updated: ${summaryResult.updated}`
+          );
+          setShowModal(true);
+          fetchAttendanceData();
+        } else {
+          toast.error("Failed to save attendance summary");
+          console.error(summaryResult.message);
+        }
+      } else {
+        toast.error(result.message || "Failed to save attendance data");
+        if (result.details?.errors) {
+          result.details.errors.forEach((error) =>
+            toast.error(`${error.record?.ecode}: ${error.error}`)
+          );
+        }
       }
+    } catch (error) {
+      console.error("Error submitting data:", error);
+      toast.error("An error occurred while saving attendance.");
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Error submitting data:", error);
-    toast.error("An error occurred while saving attendance.");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // Fetch attendance data from API
   const fetchAttendanceData = async () => {
@@ -390,16 +414,18 @@ const handleSubmit = async () => {
       const data = await response.json();
       if (data.success) {
         // Process fetched data to match frontend expectations
-        const processedData = data.data.map(record => ({
+        const processedData = data.data.map((record) => ({
           ...record,
           // Updated status logic: if Off Duty is null/N/A, mark as absent
-          status: (!record.offDuty) ? 'absent' : 'present',
+          status: !record.offDuty ? "absent" : "present",
           // Check if employee is late (arrived after 8:00 AM)
-          isLate: (!record.offDuty) ? false : isLate(record.onDuty),
+          isLate: !record.offDuty ? false : isLate(record.onDuty),
           // Calculate late minutes
-          lateMinutes: (!record.offDuty) ? 0 : calculateLateMinutes(record.onDuty)
+          lateMinutes: !record.offDuty
+            ? 0
+            : calculateLateMinutes(record.onDuty),
         }));
-        
+
         setAttendanceData(processedData);
         generateSummary(processedData);
       }
@@ -415,8 +441,8 @@ const handleSubmit = async () => {
   }, []);
 
   return (
-    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
-      <div className=" h-[calc(100vh-150px)]">
+    <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
+      <div className="">
         <Breadcrumb
           items={[
             { label: "Attendance", href: "" },
@@ -455,11 +481,18 @@ const handleSubmit = async () => {
         </div>
 
         <div className="p-2 -mt-3 rounded border bg-white shadow-sm border-neutralDGray">
-          <h2 className="text-base text-neutralDGray mb-2">
-            Upload Attendance File
-          </h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm text-neutralDGray ">
+              Upload Attendance File
+            </h2>
+            <Tooltip title="Add Attendance Filter" arrow>
+              <button className="px-4 text-xs h-8 w-fit  border hover:bg-green-400 hover:text-white text-neutralDGray rounded-md cursor-pointer">
+                <BsFilter className="text-lg" />
+              </button>
+            </Tooltip>
+          </div>
           <div className="flex items-center justify-between border border-neutralDGray rounded-md p-2 bg-slate-50">
-            <label className="px-4 text-sm py-2 bg-brandPrimary hover:bg-neutralDGray text-white rounded-md cursor-pointer">
+            <label className="px-4 text-xs py-2 border hover:bg-green-400 hover:text-white text-neutralDGray rounded-md cursor-pointer">
               Upload File
               <input
                 type="file"
@@ -468,23 +501,23 @@ const handleSubmit = async () => {
                 className="hidden"
               />
             </label>
-            <span className="text-sm text-neutralDGray">
+            <span className="text-xs text-neutralDGray">
               {selectedFile || "No file selected"}
             </span>
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="px-4 text-sm py-2 h-auto bg-brandPrimary hover:bg-neutralDGray cursor-pointer text-white rounded-md disabled:bg-gray-400"
+              className="px-4 text-xs py-2 h-auto border hover:bg-green-400 hover:text-white text-neutralDGray cursor-pointer rounded-md disabled:bg-gray-400"
             >
               {loading ? "Saving..." : "Save Attendance"}
             </button>
           </div>
         </div>
-        
+
         <div className="grid mt-3 grid-cols-2 gap-3">
           {/* Attendance Table */}
           <div className="overflow-auto h-full rounded border bg-white shadow-sm p-2">
-            <h2 className="text-base italic text-neutralDGray mb-2">
+            <h2 className="text-sm italic text-neutralDGray mb-2">
               Detailed Attendance
             </h2>
             {attendanceData.length > 0 ? (
@@ -497,7 +530,7 @@ const handleSubmit = async () => {
                 paginationRowsPerPageOptions={[10, 25, 50]}
               />
             ) : (
-              <p className="text-center text-gray-500">
+              <p className="text-center text-xs italic text-gray-500">
                 No attendance data available. Upload a file to see data.
               </p>
             )}
@@ -505,7 +538,7 @@ const handleSubmit = async () => {
 
           {/* Summary Table */}
           <div className="overflow-auto h-full rounded border bg-white shadow-sm p-2">
-            <h2 className="text-base italic text-neutralDGray mb-2">
+            <h2 className="text-sm italic text-neutralDGray mb-2">
               Attendance Summary
             </h2>
             {summaryData.length > 0 ? (
@@ -518,7 +551,7 @@ const handleSubmit = async () => {
                 paginationRowsPerPageOptions={[10, 25, 50]}
               />
             ) : (
-              <p className="text-center text-gray-500">
+              <p className="text-center text-xs italic text-gray-500">
                 No summary data available. Upload a file to see summary.
               </p>
             )}
