@@ -697,6 +697,7 @@ const Requests = () => {
       );
       setRequests([]);
       setShowModal(false);
+      fetchAvailableBatches();
     } catch (error) {
       console.error("Error deleting payroll requests:", error);
       toast.error(
