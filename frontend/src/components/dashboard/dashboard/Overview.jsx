@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import DataTable from "react-data-table-component";
-import { notifyPayrollRequests } from '../../../utils/toastHelpers';
-import { notifyChangeRequests } from '../../../utils/toastHelper2';
-import { toast } from 'react-toastify';
-import { isWithinInterval, isSameDay, isAfter } from 'date-fns';
+import { notifyPayrollRequests } from "../../../utils/toastHelpers";
+import { notifyChangeRequests } from "../../../utils/toastHelper2";
+import { toast } from "react-toastify";
+import { isWithinInterval, isSameDay, isAfter } from "date-fns";
 import { Plus, Check } from "lucide-react";
 import {
   FaUsers,
@@ -11,9 +11,9 @@ import {
   FaHandHoldingUsd,
   FaChartPie,
   FaFilter,
-  FaPlus
+  FaPlus,
 } from "react-icons/fa";
-import { FaArrowRotateRight, FaXmark } from "react-icons/fa6"
+import { FaArrowRotateRight, FaXmark } from "react-icons/fa6";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import SummaryCard from "./SummaryCard";
@@ -53,28 +53,28 @@ const Overview = () => {
 
     if (isSameDay(currentDate, release)) {
       return {
-        status: 'Released',
-        badge: 'bg-green-100 text-green-800'
+        status: "Released",
+        badge: "bg-green-100 text-green-800",
       };
     }
 
     if (isWithinInterval(currentDate, { start, end })) {
       return {
-        status: 'Ongoing',
-        badge: 'bg-yellow-100 text-yellow-800'
+        status: "Ongoing",
+        badge: "bg-yellow-100 text-yellow-800",
       };
     }
 
     if (isAfter(currentDate, release)) {
       return {
-        status: 'Released',
-        badge: 'bg-green-100 text-green-800'
+        status: "Released",
+        badge: "bg-green-100 text-green-800",
       };
     }
 
     return {
-      status: 'Pending',
-      badge: 'bg-gray-100 text-gray-800'
+      status: "Pending",
+      badge: "bg-gray-100 text-gray-800",
     };
   };
 
@@ -105,12 +105,16 @@ const Overview = () => {
       return payslipsData;
     }
 
-    return payslipsData.filter(payslip => {
+    return payslipsData.filter((payslip) => {
       // Assuming payslip has a date field (adjust field name as needed)
-      const payslipDate = new Date(payslip.cutoff_date || payslip.date || payslip.created_at);
+      const payslipDate = new Date(
+        payslip.cutoff_date || payslip.date || payslip.created_at
+      );
 
-      const matchesMonth = !filterMonth || (payslipDate.getMonth() + 1) === parseInt(filterMonth);
-      const matchesYear = !filterYear || payslipDate.getFullYear() === parseInt(filterYear);
+      const matchesMonth =
+        !filterMonth || payslipDate.getMonth() + 1 === parseInt(filterMonth);
+      const matchesYear =
+        !filterYear || payslipDate.getFullYear() === parseInt(filterYear);
 
       return matchesMonth && matchesYear;
     });
@@ -123,11 +127,16 @@ const Overview = () => {
 
     // Show toast notification about applied filters
     const filterText = [];
-    if (month) filterText.push(`Month: ${new Date(2000, month - 1).toLocaleString('default', { month: 'long' })}`);
+    if (month)
+      filterText.push(
+        `Month: ${new Date(2000, month - 1).toLocaleString("default", {
+          month: "long",
+        })}`
+      );
     if (year) filterText.push(`Year: ${year}`);
 
     if (filterText.length > 0) {
-      toast.success(`Filters applied: ${filterText.join(', ')}`, {
+      toast.success(`Filters applied: ${filterText.join(", ")}`, {
         position: "top-right",
         autoClose: 3000,
         closeButton: false,
@@ -151,7 +160,9 @@ const Overview = () => {
 
   const fetchRequests = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/payslip`
+      );
       console.log(response.data);
       setRequests(response.data);
       notifyPayrollRequests(response.data);
@@ -192,7 +203,9 @@ const Overview = () => {
   useEffect(() => {
     const fetchPayslips = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/payslip`
+        );
         const payslipsData = Array.isArray(response.data) ? response.data : [];
         setPayslips(payslipsData);
         setFilteredPayslips(payslipsData); // Initialize filtered payslips
@@ -233,7 +246,6 @@ const Overview = () => {
         } else {
           setIsAuthorized(false);
         }
-
       } catch (error) {
         console.error("Error checking authorization:", error);
         setIsAuthorized(false);
@@ -270,9 +282,13 @@ const Overview = () => {
   useEffect(() => {
     const fetchHolidays = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`);
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/holidays`
+        );
         console.log(response.data);
-        setHolidaySummary(Array.isArray(response.data.holidays) ? response.data.holidays : []);
+        setHolidaySummary(
+          Array.isArray(response.data.holidays) ? response.data.holidays : []
+        );
       } catch (error) {
         console.error(error);
         setHolidaySummary([]);
@@ -284,25 +300,24 @@ const Overview = () => {
   // Get processed payroll cutoffs
   const payrollCutoffs = getPayrollCutoffs();
   const currentDate = new Date();
-  const processedCutoffs = payrollCutoffs.map(cutoff => {
+  const processedCutoffs = payrollCutoffs.map((cutoff) => {
     const statusInfo = getPayrollStatus(cutoff, currentDate);
     return {
       ...cutoff,
       status: statusInfo.status,
-      badge: statusInfo.badge
+      badge: statusInfo.badge,
     };
   });
 
   // Use filtered payslips for all calculations
-  const displayPayslips = filteredPayslips.length > 0 ? filteredPayslips : payslips;
+  const displayPayslips =
+    filteredPayslips.length > 0 ? filteredPayslips : payslips;
   const safePayslips = Array.isArray(displayPayslips) ? displayPayslips : [];
 
   const handleCreatePayroll = async () => {
     if (!cutoffDate) {
       toast.info(
-        <div style={{ fontSize: '0.9rem' }}>
-          Please select a cutoff date.
-        </div>,
+        <div style={{ fontSize: "0.9rem" }}>Please select a cutoff date.</div>,
         {
           autoClose: 3000,
           closeOnClick: true,
@@ -327,62 +342,72 @@ const Overview = () => {
         setMessage("✅ Payroll successfully generated!");
       } else {
         setMessage(
-          `❌ Failed to generate payroll: ${response.data.message || "Unknown error"}`
+          `❌ Failed to generate payroll: ${
+            response.data.message || "Unknown error"
+          }`
         );
       }
     } catch (error) {
       setMessage(
-        `❌ ${error.response?.data?.message || "An error occurred while generating payroll."}`
+        `❌ ${
+          error.response?.data?.message ||
+          "An error occurred while generating payroll."
+        }`
       );
     }
   };
 
-const parseCutoffDate = (cutoffDate) => {
-  const [month, day, year] = cutoffDate.split('/');
-  return {
-    month: parseInt(month),
-    year: parseInt(year),
-    day: parseInt(day)
+  const parseCutoffDate = (cutoffDate) => {
+    const [month, day, year] = cutoffDate.split("/");
+    return {
+      month: parseInt(month),
+      year: parseInt(year),
+      day: parseInt(day),
+    };
   };
-};
 
-// Filter function
-const filterPayslips = (payslipData, filterMonth, filterYear) => {
-  if (!filterMonth && !filterYear) {
-    return payslipData; // No filters applied, return all data
-  }
-
-  return payslipData.filter(payslip => {
-    const { month: payslipMonth, year: payslipYear } = parseCutoffDate(payslip.cutoffDate);
-    
-    // Check month filter
-    const monthMatches = !filterMonth || payslipMonth === parseInt(filterMonth);
-    
-    // Check year filter
-    const yearMatches = !filterYear || payslipYear === parseInt(filterYear);
-    
-    return monthMatches && yearMatches;
-  });
-};
-
-
-// Fetch payslips function (modify your existing fetch function)
-const fetchPayslips = async () => {
-  try {
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/history`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
-    
-    if (response.data.success) {
-      setPayslips(response.data.payslips);
-      setFilteredPayslips(response.data.payslips); // Initially show all
+  // Filter function
+  const filterPayslips = (payslipData, filterMonth, filterYear) => {
+    if (!filterMonth && !filterYear) {
+      return payslipData; // No filters applied, return all data
     }
-  } catch (error) {
-    console.error('Error fetching payslips:', error);
-  }
-};
+
+    return payslipData.filter((payslip) => {
+      const { month: payslipMonth, year: payslipYear } = parseCutoffDate(
+        payslip.cutoffDate
+      );
+
+      // Check month filter
+      const monthMatches =
+        !filterMonth || payslipMonth === parseInt(filterMonth);
+
+      // Check year filter
+      const yearMatches = !filterYear || payslipYear === parseInt(filterYear);
+
+      return monthMatches && yearMatches;
+    });
+  };
+
+  // Fetch payslips function (modify your existing fetch function)
+  const fetchPayslips = async () => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/payslip/history`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setPayslips(response.data.payslips);
+        setFilteredPayslips(response.data.payslips); // Initially show all
+      }
+    } catch (error) {
+      console.error("Error fetching payslips:", error);
+    }
+  };
 
   function toProperCase(str) {
     return str
@@ -395,15 +420,18 @@ const fetchPayslips = async () => {
   const [notes, setNotes] = useState([
     {
       title: "PhilHealth",
-      content: "5% of basic salary, split equally between employer and employee.",
+      content:
+        "5% of basic salary, split equally between employer and employee.",
     },
     {
       title: "SSS",
-      content: "15% of monthly salary credit, shared by employer (9.5%) and employee (4.5%).",
+      content:
+        "15% of monthly salary credit, shared by employer (9.5%) and employee (4.5%).",
     },
     {
       title: "Pag-IBIG",
-      content: "2% of salary for both employer and employee for salaries over P1,500.",
+      content:
+        "2% of salary for both employer and employee for salaries over P1,500.",
     },
   ]);
 
@@ -484,10 +512,11 @@ const fetchPayslips = async () => {
       cell: (row) => (
         <span className="flex items-center gap-2">
           <span
-            className={`w-3 h-3 rounded-full ${row.status.toLowerCase() === "active"
-              ? "bg-green-500"
-              : "bg-red-500"
-              }`}
+            className={`w-3 h-3 rounded-full ${
+              row.status.toLowerCase() === "active"
+                ? "bg-green-500"
+                : "bg-red-500"
+            }`}
           ></span>
           {row.status}
         </span>
@@ -496,8 +525,8 @@ const fetchPayslips = async () => {
   ];
 
   return (
-    <div className="fixed top-0 right-0 bottom-0 w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
-      <div className="flex flex-col h-[calc(100vh-80px)] overflow-auto">
+    <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
+      <div>
         <div className="flex justify-between">
           <Breadcrumb
             items={[
@@ -511,15 +540,17 @@ const fetchPayslips = async () => {
               <div className="mb-3 px-2 h-8 text-neutralDGray/60 border flex justify-center items-center text-xs rounded-lg">
                 <div className="flex items-center justify-between w-full">
                   <span>
-                    Active filters: {month && `Month: ${new Date(2000, month - 1).toLocaleString('default', { month: 'long' })}`}
-                    {month && year && ', '}
+                    Active filters:{" "}
+                    {month &&
+                      `Month: ${new Date(2000, month - 1).toLocaleString(
+                        "default",
+                        { month: "long" }
+                      )}`}
+                    {month && year && ", "}
                     {year && `Year: ${year}`}
                   </span>
                   <div className="w-px h-4 bg-neutralDGray mx-2"></div>
-                  <button
-                    onClick={clearFilters}
-                    className="px-2 w-fit h-8"
-                  >
+                  <button onClick={clearFilters} className="px-2 w-fit h-8">
                     Clear filters
                   </button>
                 </div>
@@ -527,20 +558,24 @@ const fetchPayslips = async () => {
             )}
             <div
               className="mb-3 px-2 w-fit h-8 border flex justify-center items-center text-xs text-center text-neutralDGray/60 rounded-lg hover:bg-gray-200 transition-all cursor-pointer"
-              onClick={() => setShowFilterModal(true)}>
+              onClick={() => setShowFilterModal(true)}
+            >
               <FaFilter className="mr-2" /> Filter Options
             </div>
           </div>
 
-
           {showFilterModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
-                <h3 className="text-base mb-2 text-neutralDGray">Filter Options</h3>
+                <h3 className="text-base mb-2 text-neutralDGray">
+                  Filter Options
+                </h3>
 
                 <div className="flex flex-col sm:flex-row gap-4 mb-4">
                   <div className="flex-1">
-                    <label className="block text-sm text-neutralDGray mb-1">Month</label>
+                    <label className="block text-sm text-neutralDGray mb-1">
+                      Month
+                    </label>
                     <select
                       className="w-full border px-3 py-2 rounded-md text-sm text-neutralDGray"
                       value={month}
@@ -548,24 +583,43 @@ const fetchPayslips = async () => {
                     >
                       <option value="">Select month</option>
                       {[
-                        "January", "February", "March", "April", "May", "June",
-                        "July", "August", "September", "October", "November", "December"
+                        "January",
+                        "February",
+                        "March",
+                        "April",
+                        "May",
+                        "June",
+                        "July",
+                        "August",
+                        "September",
+                        "October",
+                        "November",
+                        "December",
                       ].map((monthName, index) => (
-                        <option key={index} value={index + 1}>{monthName}</option>
+                        <option key={index} value={index + 1}>
+                          {monthName}
+                        </option>
                       ))}
                     </select>
                   </div>
 
                   <div className="flex-1">
-                    <label className="block text-sm text-neutralDGray mb-1">Year</label>
+                    <label className="block text-sm text-neutralDGray mb-1">
+                      Year
+                    </label>
                     <select
                       className="w-full border px-3 py-2 rounded-md text-sm text-neutralDGray"
                       value={year}
                       onChange={(e) => setYear(e.target.value)}
                     >
                       <option value="">Select year</option>
-                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((yearOption) => (
-                        <option key={yearOption} value={yearOption}>{yearOption}</option>
+                      {Array.from(
+                        { length: 10 },
+                        (_, i) => new Date().getFullYear() - i
+                      ).map((yearOption) => (
+                        <option key={yearOption} value={yearOption}>
+                          {yearOption}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -595,8 +649,6 @@ const fetchPayslips = async () => {
             </div>
           )}
         </div>
-
-
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mt-3">
@@ -650,7 +702,7 @@ const fetchPayslips = async () => {
               <div className="relative bg-white border w-1/2 border-neutralDGray shadow-sm rounded p-2 lg:p-3 min-h-[260px]">
                 <h6 className="text-neutralDGray text-sm mb-1">Notes:</h6>
 
-                <div className="overflow-y-auto pr-2 pb-24 max-h-72">
+                <div className="overflow-y-auto pr-2 pb-24 max-h-72 custom-scroll">
                   <ul className="space-y-2 text-[12px] -ml-5 text-gray-700">
                     {notes.map((note, index) => (
                       <li
@@ -658,7 +710,10 @@ const fetchPayslips = async () => {
                         onClick={() => startEditing(index)}
                         className="cursor-pointer hover:bg-gray-50 p-1 rounded"
                       >
-                        <strong className="text-neutralDGray">{note.title}</strong> - {note.content}
+                        <strong className="text-neutralDGray">
+                          {note.title}
+                        </strong>{" "}
+                        - {note.content}
                       </li>
                     ))}
                   </ul>
@@ -681,7 +736,9 @@ const fetchPayslips = async () => {
                       type="text"
                       value={newNote}
                       onChange={(e) => setNewNote(e.target.value)}
-                      placeholder={editingIndex >= 0 ? "Edit note..." : "Add a new note..."}
+                      placeholder={
+                        editingIndex >= 0 ? "Edit note..." : "Add a new note..."
+                      }
                       className="flex-1 border border-gray-300 px-2 h-8 rounded text-xs"
                     />
                     {editingIndex >= 0 ? (
@@ -706,12 +763,17 @@ const fetchPayslips = async () => {
                         onClick={handleAddNote}
                         className="bg-brandPrimary h-8 w-8 p-1.5 text-white rounded hover:bg-neutralDGray text-[12px] flex items-center justify-center"
                       >
-                        {showTitleInput ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                        {showTitleInput ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <Plus className="w-4 h-4" />
+                        )}
                       </button>
                     )}
                   </div>
                   <p className="italic text-[10px] text-neutralGray -mb-1 text-center">
-                    *Newly added notes will automatically disappear after 7 days.*
+                    *Newly added notes will automatically disappear after 7
+                    days.*
                   </p>
                 </div>
               </div>
@@ -723,9 +785,7 @@ const fetchPayslips = async () => {
             <div className="bg-white relative border border-neutralDGray rounded shadow-sm p-2 lg:p-3 h-full flex flex-col">
               <div className="flex-none">
                 <div className="flex justify-left items-center gap-6 mb-2">
-                  <h6 className="text-neutralDGray text-sm">
-                    Employee Status
-                  </h6>
+                  <h6 className="text-neutralDGray text-sm">Employee Status</h6>
                 </div>
                 <hr className="-mt-1 mb-2" />
               </div>
@@ -740,15 +800,18 @@ const fetchPayslips = async () => {
                     </p>
                     <p
                       className={`text-xs font-medium -mt-3 mb-2 px-2 rounded-full w-fit
-                        ${employee.employmentstatus === "RESIGNED"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : employee.status === "Active"
+                        ${
+                          employee.employmentstatus === "RESIGNED"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : employee.status === "Active"
                             ? "bg-green-100 text-green-700"
                             : "bg-red-100 text-red-700"
                         }`}
                     >
                       {employee.employmentstatus === "RESIGNED"
-                        ? `${employee.employmentstatus.charAt(0)}${employee.employmentstatus.slice(1).toLowerCase()}`
+                        ? `${employee.employmentstatus.charAt(
+                            0
+                          )}${employee.employmentstatus.slice(1).toLowerCase()}`
                         : employee.status}
                     </p>
                   </div>
@@ -778,7 +841,8 @@ const fetchPayslips = async () => {
                   <li key={idx} className="flex justify-between items-center">
                     <div>
                       <p className="font-medium text-gray-700">
-                        {format(cutoff.start, "MMMM d")}–{format(cutoff.end, "d, yyyy")}
+                        {format(cutoff.start, "MMMM d")}–
+                        {format(cutoff.end, "d, yyyy")}
                       </p>
                       <p className="text-xs -mt-3 text-gray-500">
                         Releases: {format(cutoff.release, "MMMM d, yyyy")}
@@ -798,7 +862,10 @@ const fetchPayslips = async () => {
               <h6 className="text-sm text-neutralDGray mb-2">Top 3 Earners</h6>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {safePayslips
-                  .sort((a, b) => parseFloat(b.netPay || 0) - parseFloat(a.netPay || 0))
+                  .sort(
+                    (a, b) =>
+                      parseFloat(b.netPay || 0) - parseFloat(a.netPay || 0)
+                  )
                   .slice(0, 3)
                   .map((payslip, i) => (
                     <div
@@ -807,7 +874,7 @@ const fetchPayslips = async () => {
                     >
                       <div className="w-16 h-14 lg:w-16 lg:h-16 rounded-full mb-2 border-4 border-white bg-gray-200"></div>
                       <p className="font-semibold text-white text-sm text-center">
-                        {payslip.name || 'N/A'}
+                        {payslip.name || "N/A"}
                       </p>
                       <p className="font-medium text-white text-xs">
                         ₱{parseFloat(payslip.netPay || 0).toLocaleString()}
@@ -838,14 +905,25 @@ const fetchPayslips = async () => {
                     <span
                       className={`
                         text-xs px-3 py-1 rounded-full
-                        ${holiday.type === "Regular" ? "bg-red-100 text-red-600" : ""}
-                        ${holiday.type === "Special Non-Working" ? "bg-orange-100 text-orange-600" : ""}
-                        ${holiday.type === "Special" ? "bg-green-100 text-green-600" : ""}
+                        ${
+                          holiday.type === "Regular"
+                            ? "bg-red-100 text-red-600"
+                            : ""
+                        }
+                        ${
+                          holiday.type === "Special Non-Working"
+                            ? "bg-orange-100 text-orange-600"
+                            : ""
+                        }
+                        ${
+                          holiday.type === "Special"
+                            ? "bg-green-100 text-green-600"
+                            : ""
+                        }
                       `}
                     >
                       {holiday.type}
                     </span>
-
                   </li>
                 ))}
               </ul>
@@ -853,7 +931,7 @@ const fetchPayslips = async () => {
           </div>
         </div>
       </div>
-    </div >
+    </div>
   );
 };
 export default Overview;

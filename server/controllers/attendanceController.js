@@ -58,41 +58,19 @@ export const uploadAttendanceFile = async (req, res) => {
           date = moment(dateRaw).isValid() ? moment(dateRaw).format('YYYY-MM-DD') : null;
         }
 
+        // Get ecode from Name column
         const ecode = String(row.Name || row.name || '').trim();
 
-        // Handle duty time split
-        const dutyTimeRaw = row['Duty time'] || row['duty time'] || '';
-        let dutyStart = null, dutyEnd = null;
-        if (dutyTimeRaw && dutyTimeRaw.includes(' - ')) {
-          const [startRaw, endRaw] = dutyTimeRaw.split(' - ').map(str => str.trim());
-          dutyStart = parseTimeToHHMMSS(startRaw);
-          dutyEnd = parseTimeToHHMMSS(endRaw);
-        }
+        // Get onDuty and offDuty times directly from columns
+        const onDuty = parseTimeToHHMMSS(row['ON Duty'] || row['on duty'] || row['onDuty']);
+        const offDuty = parseTimeToHHMMSS(row['OFF Duty'] || row['off duty'] || row['offDuty']);
 
-        // Parse times
-        const punchIn = parseTimeToHHMMSS(row['Punch In'] || row['punch in']);
-        const punchOut = parseTimeToHHMMSS(row['Punch Out'] || row['punch out']);
-        const workTime = parseTimeToHHMMSS(row['Work time'] || row['work time']);
-        const lateTime = parseTimeToHHMMSS(row['Late']);
-        const overtime = parseTimeToHHMMSS(row['Overtime']);
-        const absentTime = parseTimeToHHMMSS(row['Absent time']);
-
-        const isAbsent = !punchIn && !punchOut;
-        const status = isAbsent ? 'absent' : 'present';
-
+        // Return object matching the Attendance model structure
         return {
-          date,
-          dutyStart,
-          dutyEnd,
-          punchIn,
-          punchOut,
-          workTime,
-          lateTime,
-          overtime,
-          absentTime,
-          isAbsent,
-          status,
-          ecode
+          ecode,        // from Name column
+          date,         // formatted date
+          onDuty,       // from ON Duty column
+          offDuty       // from OFF Duty column
         };
       })
       .filter(record => record.date && record.ecode); // Only filter out completely invalid records
@@ -107,58 +85,50 @@ export const uploadAttendanceFile = async (req, res) => {
       });
     }
 
-    // Insert all data into both tables
+    // Prepare data for Attendance table
+    const attendanceData = formattedData.map(record => ({
+      ecode: record.ecode,
+      date: record.date,
+      onDuty: record.onDuty,
+      offDuty: record.offDuty
+    }));
+
+    // Insert data into Attendance table only
     try {
       // Insert into Attendance table
-      const result1 = await Attendance.bulkCreate(formattedData, {
+      const result = await Attendance.bulkCreate(attendanceData, {
         validate: true,
         returning: true
       });
-      console.log('✅ Attendance bulk create successful. Inserted records:', result1.length);
-
-      // Insert into AttendanceHistory table
-      const result2 = await AttendanceHistory.bulkCreate(formattedData, {
-        validate: true,
-        returning: true
-      });
-      console.log('✅ AttendanceHistory bulk create successful. Inserted records:', result2.length);
+      console.log('✅ Attendance bulk create successful. Inserted records:', result.length);
 
       // Verify insertion
       const totalRecordsInDB = await Attendance.count();
-      const totalHistoryRecordsInDB = await AttendanceHistory.count();
       console.log('Total records in Attendance table:', totalRecordsInDB);
-      console.log('Total records in AttendanceHistory table:', totalHistoryRecordsInDB);
 
       res.status(200).json({ 
         success: true, 
-        message: `All attendance data uploaded successfully. ${result1.length} records inserted into both tables.`,
+        message: `Attendance data uploaded successfully. ${result.length} records inserted.`,
         details: {
-          recordsInserted: result1.length,
-          totalInAttendance: totalRecordsInDB,
-          totalInHistory: totalHistoryRecordsInDB
+          recordsInserted: result.length,
+          totalInAttendance: totalRecordsInDB
         }
       });
 
     } catch (bulkError) {
       console.error('Bulk create error:', bulkError);
       
-      // If bulk create fails, try individual inserts for both tables
+      // If bulk create fails, try individual inserts
       console.log('Attempting individual record insertion...');
       
-      let successCountAttendance = 0;
-      let successCountHistory = 0;
+      let successCount = 0;
       let errorCount = 0;
       const errors = [];
 
-      for (const record of formattedData) {
+      for (const record of attendanceData) {
         try {
-          // Insert into Attendance
           await Attendance.create(record);
-          successCountAttendance++;
-          
-          // Insert into AttendanceHistory
-          await AttendanceHistory.create(record);
-          successCountHistory++;
+          successCount++;
         } catch (error) {
           errorCount++;
           errors.push({
@@ -169,24 +139,21 @@ export const uploadAttendanceFile = async (req, res) => {
         }
       }
 
-      console.log(`Individual insertion complete. Attendance Success: ${successCountAttendance}, History Success: ${successCountHistory}, Errors: ${errorCount}`);
+      console.log(`Individual insertion complete. Success: ${successCount}, Errors: ${errorCount}`);
 
       if (errors.length > 0) {
         console.log('First few errors:', errors.slice(0, 3));
       }
 
       const totalRecordsInDB = await Attendance.count();
-      const totalHistoryRecordsInDB = await AttendanceHistory.count();
 
       res.status(200).json({ 
         success: true, 
-        message: `Attendance upload completed. ${successCountAttendance} records inserted into Attendance, ${successCountHistory} into History.`,
+        message: `Attendance upload completed. ${successCount} records inserted successfully.`,
         details: {
-          attendanceRecordsInserted: successCountAttendance,
-          historyRecordsInserted: successCountHistory,
+          recordsInserted: successCount,
           recordsFailed: errorCount,
           totalInAttendance: totalRecordsInDB,
-          totalInHistory: totalHistoryRecordsInDB,
           errors: errorCount > 0 ? errors.slice(0, 5) : []
         }
       });
@@ -304,28 +271,39 @@ export const saveAttendanceSummary = async (req, res) => {
       return res.status(400).json({ message: "Invalid data format. Expecting an array." });
     }
 
-    const formattedData = attendanceSummaryRecords.map(record => ({
-      ecode: record.ecode,
-      totalTardiness: record.totalTardiness,
-      totalHours: record.totalHours,
-      totalOvertime: record.totalOvertime,
-      holidayCount: record.holidayCount,
-      regularDays: record.daysPresent - record.holidayCount,
-      daysPresent: record.daysPresent,
-      totalHolidayHours: record.totalHolidayHours,
-      totalRegularHours: record.totalRegularHours,
-    }));
+    // Format data to match the updated model
+    const formattedData = attendanceSummaryRecords.map(record => {
+      const attendanceRate = record.totalDays > 0 ? 
+        (record.presentDays / record.totalDays) * 100 : 0;
 
-    const result = await AttendanceSummary.bulkCreate(formattedData, {
-      updateOnDuplicate: [
-        "totalTardiness", "totalHours", "totalOvertime", "daysPresent", 
-        "holidayCount", "regularDays", "totalHolidayHours", "totalRegularHours"
-      ]
+      return {
+        ecode: record.ecode,
+        daysPresent: Number(record.presentDays) || 0,
+        totalDays: Number(record.totalDays) || 0,
+        absentDays: Number(record.absentDays) || 0,
+        lateDays: Number(record.lateDays) || 0,
+        totalLateMinutes: Number(record.totalLateMinutes) || 0,
+        attendanceRate: Number(attendanceRate) || 0,
+      };
     });
+
+    // Use upsert to handle existing records
+    const results = [];
+    for (const record of formattedData) {
+      const [instance, created] = await AttendanceSummary.upsert(record, {
+        returning: true
+      });
+      results.push({ instance, created });
+    }
+
+    const createdCount = results.filter(r => r.created).length;
+    const updatedCount = results.filter(r => !r.created).length;
 
     res.status(201).json({
       message: "Attendance Summary data saved successfully",
-      insertedRows: result.length,
+      created: createdCount,
+      updated: updatedCount,
+      total: results.length,
     });
 
   } catch (error) {
@@ -333,6 +311,8 @@ export const saveAttendanceSummary = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+
 
 export const getAttendance = async (req, res) => {
   try {

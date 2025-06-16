@@ -18,11 +18,44 @@ export default function ClientProfileModal({
   handleClose,
   onClose,
   client,
+  employees = [],  // <- new prop to pass employee list
 }) {
   const isModalOpen = show ?? isOpen;
   const closeHandler = handleClose ?? onClose;
 
   if (!client) return null;
+
+  // Filter employees deployed to this client based on project name
+  const deployedEmployees = employees.filter(
+    (emp) =>
+      emp.project?.trim().toUpperCase() ===
+      (client.project?.trim().toUpperCase() || client.name?.trim().toUpperCase())
+  );
+
+  // Columns config for DataTable
+  const columns = [
+    {
+      name: "Employee Name",
+      selector: (row) =>
+        [row.firstname, row.middlename, row.lastname]
+          .filter(Boolean)
+          .join(" ") || "No name available",
+      sortable: true,
+      wrap: true,
+    },
+    {
+      name: "Position",
+      selector: (row) => row.positiontitle || "N/A",
+      sortable: true,
+      wrap: true,
+    },
+    {
+      name: "Employment Status",
+      selector: (row) => row.employmentstatus || "N/A",
+      sortable: true,
+      wrap: true,
+    },
+  ];
 
   return (
     <Modal
@@ -135,15 +168,17 @@ export default function ClientProfileModal({
             <h3 className="text-sm text-gray-800 mb-4 border-b pb-1">
               Deployed Employees
             </h3>
-            <div >
-              <DataTable
-                noDataComponent={
-                  <div className="text-center text-xs py-8 text-gray-500">
-                    No employee data available.
-                  </div>
-                }
-              />
-            </div>
+            <DataTable
+              columns={columns}
+              data={deployedEmployees}
+              noDataComponent={
+                <div className="text-center text-xs py-8 text-gray-500">
+                  No deployed employees found.
+                </div>
+              }
+              dense
+              highlightOnHover
+            />
           </div>
         </div>
       </Modal.Body>
