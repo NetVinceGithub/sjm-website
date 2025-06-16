@@ -201,32 +201,32 @@ const Requests = () => {
           <div className="bg-white p-6 rounded-lg shadow-lg w-96 max-w-lg max-h-[80vh] overflow-y-auto">
             <h3 className="text-[18px] mb-3">
               {selectedChangeRequest.isBatch
-                ? "Batch Change Request Details"
+                ? "Change Request Details"
                 : "Change Request Details"}
             </h3>
             <hr />
 
             {selectedChangeRequest.isBatch ? (
               // Batch Request Display
-              <div className="space-y-3">
+              <div className="space-y-3 text-neutralDGray">
                 <div>
                   <p className="text-sm">
-                    Batch ID: {selectedChangeRequest.batch_id}
+                    Request ID: {selectedChangeRequest.batch_id}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm">
+                  <p className="text-sm -mt-3">
                     Requested By: {selectedChangeRequest.requested_by}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm">
+                  <p className="text-sm -mt-3">
                     Total Affected Employees:{" "}
                     {selectedChangeRequest.totalAffected}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm">
+                  <p className="text-sm -mt-3">
                     Status:{" "}
                     <span
                       className={`font-semibold ${
@@ -378,9 +378,7 @@ const Requests = () => {
                     }
                     className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                   >
-                    {selectedChangeRequest.isBatch
-                      ? "Approve Batch"
-                      : "Approve"}
+                    {selectedChangeRequest.isBatch ? "Approve" : "Approve"}
                   </button>
                   <button
                     onClick={() =>
@@ -392,7 +390,7 @@ const Requests = () => {
                     }
                     className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
                   >
-                    {selectedChangeRequest.isBatch ? "Reject Batch" : "Reject"}
+                    {selectedChangeRequest.isBatch ? "Reject" : "Reject"}
                   </button>
                 </>
               )}
@@ -732,7 +730,7 @@ const Requests = () => {
       );
 
       await Promise.all(promises);
-      setChangesMessage("All change requests approved successfully");
+      toast.success("All change requests approved successfully");
       setChangesRequests([]);
       setTimeout(() => setChangesMessage(""), 3000);
     } catch (error) {
@@ -755,13 +753,13 @@ const Requests = () => {
       );
 
       await Promise.all(promises);
-      setChangesMessage("All change requests rejected successfully");
+      toast.success("All change requests rejected successfully");
       setChangesRequests([]);
       setShowChangesModal(false);
       setTimeout(() => setChangesMessage(""), 3000);
     } catch (error) {
       console.error("Error rejecting changes:", error);
-      setChangesMessage("Error processing change rejection.");
+      toast.error("Error processing change rejection.");
     } finally {
       setLoadingChanges(false);
     }
@@ -913,107 +911,127 @@ const Requests = () => {
   console.log("Selected Payroll Request:", selectedPayrollRequest);
 
   const handleApproveBatchChange = async (batchId) => {
-  try {
-    await axios.put(`${import.meta.env.VITE_API_URL}/api/employee/approve-batch-change/${batchId}`);
-    setShowChangeDetailModal(false);
-    toast.success('Batch change request approved successfully');
-  } catch (error) {
-    console.error('Error approving batch change:', error);
-    toast.error('Failed to approve batch change request');
+    try {
+      await axios.put(
+        `${
+          import.meta.env.VITE_API_URL
+        }/api/employee/approve-batch-change/${batchId}`
+      );
+      setShowChangeDetailModal(false);
+      toast.success("Batch change request approved successfully");
+    } catch (error) {
+      console.error("Error approving batch change:", error);
+      toast.error("Failed to approve batch change request");
+    }
+  };
+
+  const handleRejectBatchChange = async (batchId) => {
+    try {
+      await axios.put(
+        `${
+          import.meta.env.VITE_API_URL
+        }/api/employee/reject-batch-change/${batchId}`
+      );
+      setShowChangeDetailModal(false);
+      fetchChangeRequests(); // Refresh the list
+      toast.success("Batch change request rejected successfully");
+    } catch (error) {
+      console.error("Error rejecting batch change:", error);
+      toast.error("Failed to reject batch change request");
+    }
+  };
+
+  // Updated table row display for change requests
+  const renderChangeRequestRow = (request, index) => {
+    return (
+      <tr
+        key={request.isBatch ? request.batch_id : request.id}
+        className="border-b"
+      >
+        <td className="p-3 text-sm">
+          {request.isBatch ? (
+            <div>
+              <span className="font-medium text-blue-600">BATCH REQUEST</span>
+              <p className="text-xs text-gray-500">ID: {request.batch_id}</p>
+            </div>
+          ) : (
+            request.id
+          )}
+        </td>
+
+        <td className="p-3 text-sm">
+          {request.isBatch ? (
+            <div>
+              <span className="font-medium">
+                {request.totalAffected} Employees
+              </span>
+              <p className="text-xs text-gray-500">
+                {Array.isArray(request.batch_affected_employee_ids)
+                  ? request.batch_affected_employee_ids.slice(0, 3).join(", ")
+                  : ""}
+                {Array.isArray(request.batch_affected_employee_ids) &&
+                  request.batch_affected_employee_ids.length > 3 &&
+                  "..."}
+              </p>
+            </div>
+          ) : (
+            request.employee_name
+          )}
+        </td>
+
+        <td className="p-3 text-sm">{request.requested_by}</td>
+
+        <td className="p-3 text-sm">
+          {getChangedFields(request.changes).map((change, idx) => (
+            <div key={idx} className="text-xs">
+              <span className="font-medium">{change.displayName}:</span>{" "}
+              {String(change.value)}
+            </div>
+          ))}
+        </td>
+
+        <td className="p-3 text-sm">
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-medium ${
+              request.status === "Pending"
+                ? "bg-orange-100 text-orange-600"
+                : request.status === "Rejected"
+                ? "bg-red-100 text-red-600"
+                : "bg-green-100 text-green-600"
+            }`}
+          >
+            {request.status}
+          </span>
+        </td>
+
+        <td className="p-3 text-sm">
+          {new Date(request.createdAt).toLocaleDateString()}
+        </td>
+
+        <td className="p-3 text-sm">
+          <button
+            onClick={() => {
+              setSelectedChangeRequest(request);
+              setShowChangeDetailModal(true);
+            }}
+            className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
+          >
+            View {request.isBatch ? "Batch" : "Details"}
+          </button>
+        </td>
+      </tr>
+    );
+  };
+
+  // Usage in your component
+  {
+    changesRequests.map((request, index) =>
+      renderChangeRequestRow(request, index)
+    );
   }
-};
-
-const handleRejectBatchChange = async (batchId) => {
-  try {
-    await axios.put(`${import.meta.env.VITE_API_URL}/api/employee/reject-batch-change/${batchId}`);
-    setShowChangeDetailModal(false);
-    fetchChangeRequests(); // Refresh the list
-    toast.success('Batch change request rejected successfully');
-  } catch (error) {
-    console.error('Error rejecting batch change:', error);
-    toast.error('Failed to reject batch change request');
-  }
-};
-
-// Updated table row display for change requests
-const renderChangeRequestRow = (request, index) => {
-  return (
-    <tr key={request.isBatch ? request.batch_id : request.id} className="border-b">
-      <td className="p-3 text-sm">
-        {request.isBatch ? (
-          <div>
-            <span className="font-medium text-blue-600">BATCH REQUEST</span>
-            <p className="text-xs text-gray-500">ID: {request.batch_id}</p>
-          </div>
-        ) : (
-          request.id
-        )}
-      </td>
-      
-      <td className="p-3 text-sm">
-        {request.isBatch ? (
-          <div>
-            <span className="font-medium">{request.totalAffected} Employees</span>
-           <p className="text-xs text-gray-500">
-              {Array.isArray(request.batch_affected_employee_ids)
-                ? request.batch_affected_employee_ids.slice(0, 3).join(', ')
-                : ''}
-              {Array.isArray(request.batch_affected_employee_ids) && request.batch_affected_employee_ids.length > 3 && '...'}
-            </p>
-          </div>
-        ) : (
-          request.employee_name
-        )}
-      </td>
-      
-      <td className="p-3 text-sm">{request.requested_by}</td>
-      
-      <td className="p-3 text-sm">
-        {getChangedFields(request.changes).map((change, idx) => (
-          <div key={idx} className="text-xs">
-            <span className="font-medium">{change.displayName}:</span> {String(change.value)}
-          </div>
-        ))}
-      </td>
-      
-      <td className="p-3 text-sm">
-        <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${
-            request.status === "Pending"
-              ? "bg-orange-100 text-orange-600"
-              : request.status === "Rejected"
-              ? "bg-red-100 text-red-600"
-              : "bg-green-100 text-green-600"
-          }`}
-        >
-          {request.status}
-        </span>
-      </td>
-      
-      <td className="p-3 text-sm">
-        {new Date(request.createdAt).toLocaleDateString()}
-      </td>
-      
-      <td className="p-3 text-sm">
-        <button
-          onClick={() => {
-            setSelectedChangeRequest(request);
-            setShowChangeDetailModal(true);
-          }}
-          className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
-        >
-          View {request.isBatch ? 'Batch' : 'Details'}
-        </button>
-      </td>
-    </tr>
-  );
-};
-
-// Usage in your component
-{changesRequests.map((request, index) => renderChangeRequestRow(request, index))}
 
   return (
-    <div className="flex flex-row gap-8 p-4 overflow-auto h-[calc(100vh-150px)]">
+    <div className="flex flex-row gap-8 p-2 overflow-auto">
       {/* Payroll Requests Section */}
       <section className="flex-1 flex flex-col rounded-lg border p-2">
         <h2 className="text-neutralDGray text-lg font-semibold mb-3 flex items-center gap-2">
@@ -1036,14 +1054,6 @@ const renderChangeRequestRow = (request, index) => {
                     {batches.length}
                   </span>
                 </p>
-                {/* <p className="text-md mb-1 italic">
-                  Total Payslips: <span className="font-normal text-red-500">
-                    {batches.reduce((total, batch) => {
-                      const batchRequests = requests.filter(req => req.batchId === batch.batchId);
-                      return total + batchRequests.length;
-                    }, 0)}
-                  </span>
-                </p> */}
                 <hr className="my-2" />
                 {batches.map((batch) => {
                   const batchTotalNetPay = batch.payslips.reduce(
@@ -1060,7 +1070,7 @@ const renderChangeRequestRow = (request, index) => {
                         {/* Batch Payslips: <span className="font-normal text-red-500">{batch.payslips.length}</span> */}
                       </p>
 
-                      <div className="mb-2 flex-1 ">
+                      <div className="mb-2 flex-1">
                         <p className="font-semibold text-sm">
                           Batch ID: {batch.batchId}
                         </p>
@@ -1127,16 +1137,16 @@ const renderChangeRequestRow = (request, index) => {
                     </div>
                   );
                 })}
-                <div className="flex gap-2 mt-2">
+                <div className="flex gap-2 -mt-3">
                   <button
                     onClick={handleApprove}
-                    className="bg-green-500 text-white w-32 h-8 text-sm px-3 py-1 rounded hover:bg-green-900 disabled:opacity-50"
+                    className="hover:bg-green-400 border text-neutralDGray text-xs w-32 h-8 px-3 py-1 rounded hover:text-white disabled:opacity-50"
                   >
                     Approve All
                   </button>
                   <button
                     onClick={() => setShowModal(true)}
-                    className="bg-red-500 text-white px-3 py-1 w-32 h-8 text-sm  rounded hover:bg-red-900 disabled:opacity-50"
+                    className="hover:bg-red-400 border text-neutralDGray text-xs w-32 h-8  px-3 py-1 rounded hover:text-white disabled:opacity-50"
                   >
                     Reject All
                   </button>
@@ -1144,7 +1154,9 @@ const renderChangeRequestRow = (request, index) => {
               </div>
             </div>
           ) : (
-            <p className="text-gray-500">No pending payroll requests.</p>
+            <p className="text-gray-500 text-xs italic text-center">
+              ** No pending payroll requests. **
+            </p>
           )}
 
           {/* Loading Modal */}
@@ -1172,8 +1184,9 @@ const renderChangeRequestRow = (request, index) => {
                 <p className="text-justify text-sm">
                   Are you sure you want to reject all batch requests?
                 </p>
-                <p className="text-justify text-sm text-gray-600 mt-1">
-                  This will reject {batches ? batches.length : 0} batches
+                <p className=" text-center text-sm text-gray-600 mt-1">
+                  ** This will reject {batches ? batches.length : 0} payroll{" "}
+                  {batches && batches.length === 1 ? "batch" : "batches"}{" "}
                   containing{" "}
                   {batches
                     ? batches.reduce((total, batch) => {
@@ -1183,19 +1196,19 @@ const renderChangeRequestRow = (request, index) => {
                         return total + batchRequests.length;
                       }, 0)
                     : 0}{" "}
-                  total payslips.
+                  total payslips. **
                 </p>
 
                 <div className="flex justify-end gap-3 mt-6">
                   <button
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+                    className="px-4 py-2 w-24 text-xs h-8 border flex justify-center items-center text-center  text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleDeleteAll}
-                    className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center  text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+                    className="px-4 py-2 w-24 h-8 text-xs border flex justify-center items-center text-center  text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                   >
                     Confirm
                   </button>
@@ -1240,7 +1253,7 @@ const renderChangeRequestRow = (request, index) => {
           {changesLoading ? (
             <p className="text-gray-500">Loading change requests...</p>
           ) : changesRequests.length > 0 ? (
-            <div className="border p-3 rounded shadow-md">
+            <div className="border p-3 rounded shadow-md bg-gray-50">
               <p className="text-md mb-1 italic">
                 Total Changes:{" "}
                 <span className="font-normal text-red-500">
@@ -1256,7 +1269,7 @@ const renderChangeRequestRow = (request, index) => {
                   return (
                     <div
                       key={request.id}
-                      className="border p-2 h-[100px] rounded shadow-sm bg-gray-50 mb-2"
+                      className="border p-2 h-[100px] rounded shadow-sm  mb-2"
                     >
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
@@ -1332,28 +1345,30 @@ const renderChangeRequestRow = (request, index) => {
                 <button
                   onClick={handleApproveChanges}
                   disabled={loadingChanges}
-                  className="bg-green-500 text-white w-32 h-8 text-sm px-3 py-1 rounded hover:bg-green-900 disabled:opacity-50"
+                  className="hover:bg-green-400 border text-neutralDGray text-xs w-32 h-8 px-3 py-1 rounded hover:text-white disabled:opacity-50"
                 >
                   {loadingChanges ? "Processing..." : "Approve All"}
                 </button>
                 <button
                   onClick={() => setShowChangesModal(true)}
                   disabled={loadingChanges}
-                  className="bg-red-500 text-white px-3 py-1 w-32 h-8 text-sm  rounded hover:bg-red-900 disabled:opacity-50"
+                  className="hover:bg-red-400 border text-neutralDGray text-xs w-32 h-8 px-3 py-1 rounded hover:text-white disabled:opacity-50"
                 >
                   Reject All
                 </button>
               </div>
             </div>
           ) : (
-            <p className="text-gray-500">No pending change requests.</p>
+            <p className="text-gray-500 text-xs italic text-center">
+              ** No pending change requests. **
+            </p>
           )}
 
           {/* Confirmation Modal for Rejecting All Changes */}
           {showChangesModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-                <h3 className="text-lg font-semibold mb-4">
+                <h3 className="text-base mb-2 text-red-500">
                   Confirm Rejection
                 </h3>
                 <p>Are you sure you want to reject all change requests?</p>
@@ -1361,13 +1376,13 @@ const renderChangeRequestRow = (request, index) => {
                 <div className="flex justify-end gap-3 mt-6">
                   <button
                     onClick={() => setShowChangesModal(false)}
-                    className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+                    className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center  text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleRejectAllChanges}
-                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                    className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center  text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                   >
                     Confirm
                   </button>
@@ -1379,10 +1394,10 @@ const renderChangeRequestRow = (request, index) => {
           {/* Change Detail Modal */}
           {showChangeDetailModal && selectedChangeRequest && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg w-96 max-w-lg max-h-[80vh] overflow-y-auto">
-                <h3 className="text-[18px] mb-3">
+              <div className="bg-white p-3 rounded-lg shadow-lg w-96 max-w-lg max-h-[80vh] overflow-y-auto">
+                <h3 className="text-base mb-3">
                   {selectedChangeRequest.isBatch
-                    ? "Batch Change Request Details"
+                    ? "Change Request Details"
                     : "Change Request Details"}
                 </h3>
                 <hr />
@@ -1392,22 +1407,22 @@ const renderChangeRequestRow = (request, index) => {
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm">
-                        Batch ID: {selectedChangeRequest.batch_id}
+                        Request ID: {selectedChangeRequest.batch_id}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm">
+                      <p className="text-sm -mt-3">
                         Requested By: {selectedChangeRequest.requested_by}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm">
+                      <p className="text-sm -mt-3">
                         Total Affected Employees:{" "}
                         {selectedChangeRequest.totalAffected}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm">
+                      <p className="text-sm -mt-3">
                         Status:{" "}
                         <span
                           className={`font-semibold ${
@@ -1425,55 +1440,49 @@ const renderChangeRequestRow = (request, index) => {
 
                     {/* Batch Changes */}
                     <div>
-                      <div className="bg-gray-100 p-2 rounded space-y-2">
-                        <p className="text-sm italic mb-1">
-                          Requested Changes:
-                        </p>
+                      <div className="bg-gray-100 p-2 rounded mb-1.5">
+                        <p className="text-sm italic">Requested Changes:</p>
                         {getChangedFields(selectedChangeRequest.changes).map(
                           (change, index) => (
-                            <div key={index} className="text-sm">
-                              <p>
-                                <span className="font-medium">
-                                  {change.displayName}:
-                                </span>{" "}
+                            <div key={index} className="text-sm -mt-3">
+                              <p className="-mb-1">
+                                <span>{change.displayName}:</span>{" "}
                                 {String(change.value)}
                               </p>
                             </div>
                           )
                         )}
+                      </div>
+                      <div className="bg-gray-100 p-2 rounded mb-1.5">
                         <p className="text-sm italic mb-1">
                           Reason for Changes:
                         </p>
-                        <p className="text-sm">
+                        <p className="text-sm -mb-1">
                           {selectedChangeRequest.reasons}
                         </p>
+                      </div>
+                      <div>
+                        <div className="bg-gray-100 p-2 rounded max-h-32 overflow-y-auto">
+                          <p className="text-sm italic font-medium mb-2">
+                            Affected Employees:
+                          </p>
+                          <ol className="list-decimal list-inside text-sm -mb-1">
+                            {selectedChangeRequest.batchRequests.map(
+                              (request, index) => (
+                                <li
+                                  key={request.id}
+                                  className="text-xs leading-tight mb-1"
+                                >
+                                  {request.employee_name}
+                                </li>
+                              )
+                            )}
+                          </ol>
+                        </div>
                       </div>
                     </div>
 
                     {/* Affected Employees List */}
-                    <div>
-                      <p className="text-sm font-medium mb-2">
-                        Affected Employees:
-                      </p>
-                      <div className="bg-gray-50 p-2 rounded max-h-32 overflow-y-auto">
-                        {selectedChangeRequest.batchRequests.map(
-                          (request, index) => (
-                            <div
-                              key={request.id}
-                              className="text-sm py-1 border-b border-gray-200 last:border-b-0"
-                            >
-                              <p className="font-medium">
-                                {request.employee_name}
-                              </p>
-                              <p className="text-xs text-gray-600">
-                                ID: {request.id} | Payroll ID:{" "}
-                                {request.payroll_info_id}
-                              </p>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    </div>
 
                     <div>
                       <p className="text-sm">
@@ -1558,7 +1567,7 @@ const renderChangeRequestRow = (request, index) => {
                 <div className="flex justify-end gap-2 mt-6">
                   <button
                     onClick={() => setShowChangeDetailModal(false)}
-                    className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-gray-400 hover:text-white transition-all"
+                    className="px-4 py-2 text-xs h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-gray-400 hover:text-white transition-all"
                   >
                     Close
                   </button>
@@ -1575,11 +1584,9 @@ const renderChangeRequestRow = (request, index) => {
                                 selectedChangeRequest.id
                               )
                         }
-                        className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+                        className="px-4 py-2 h-8 border text-xs flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                       >
-                        {selectedChangeRequest.isBatch
-                          ? "Approve Batch"
-                          : "Approve"}
+                        {selectedChangeRequest.isBatch ? "Approve" : "Approve"}
                       </button>
                       <button
                         onClick={() =>
@@ -1591,11 +1598,9 @@ const renderChangeRequestRow = (request, index) => {
                                 selectedChangeRequest.id
                               )
                         }
-                        className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+                        className="px-4 py-2 h-8 text-xs border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
                       >
-                        {selectedChangeRequest.isBatch
-                          ? "Reject Batch"
-                          : "Reject"}
+                        {selectedChangeRequest.isBatch ? "Reject" : "Reject"}
                       </button>
                     </>
                   )}
@@ -1607,10 +1612,10 @@ const renderChangeRequestRow = (request, index) => {
           {/* Payroll Detail Modal */}
           {showPayrollDetailModal && selectedPayrollRequest && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg w-[26rem] max-w-lg max-h-[80vh] overflow-y-auto">
-                <h3 className="text-[18px] mb-3">Payroll Request Details</h3>
+              <div className="bg-white p-3 rounded-lg shadow-lg w-[26rem] max-w-lg max-h-[80vh] overflow-y-auto">
+                <h3 className="text-base mb-3">Payroll Request Details</h3>
                 <hr />
-                <div className="space-y-3">
+                <div className="space-y-3 text-neutralDGray">
                   <div>
                     <p className="text-sm">
                       Batch ID: {selectedPayrollRequest.batchId}
@@ -1646,20 +1651,24 @@ const renderChangeRequestRow = (request, index) => {
                       <p className="text-sm italic mb-1">
                         Employees in Payroll:
                       </p>
-                      {selectedPayrollRequest.payslips.map((payslip, index) => (
-                        <div key={index} className="text-xs">
-                          <p>
-                            <span className="font-medium ml-5">
-                              {payslip.name}:
-                            </span>{" "}
-                            ₱{" "}
-                            {parseFloat(payslip.netPay).toLocaleString(
-                              undefined,
-                              { minimumFractionDigits: 2 }
-                            )}
-                          </p>
-                        </div>
-                      ))}
+                      <ol className="list-decimal list-inside text-xs">
+                        {selectedPayrollRequest.payslips.map(
+                          (payslip, index) => (
+                            <li key={index} className="leading-tight mb-1">
+                              <span className="font-medium">
+                                {payslip.name} →
+                              </span>{" "}
+                              ₱{" "}
+                              {parseFloat(payslip.netPay).toLocaleString(
+                                undefined,
+                                {
+                                  minimumFractionDigits: 2,
+                                }
+                              )}
+                            </li>
+                          )
+                        )}
+                      </ol>
                     </div>
                   </div>
                   {selectedPayrollRequest.payslips.map((payslip, index) => (

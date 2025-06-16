@@ -27,52 +27,52 @@ const Modal = ({ showModal, setShowModal, job }) => (
     }`}
   >
     <div className="relative bg-white mt-20 p-6 rounded-lg shadow-lg w-[600px] max-h-[80vh] overflow-y-auto text-left">
-  {/* Close Button */}
-  <button
-    onClick={() => setShowModal(false)}
-    className="absolute top-4 right-4 text-2xl text-neutralDGray hover:text-red-500"
-  >
-    &times;
-  </button>
+      {/* Close Button */}
+      <button
+        onClick={() => setShowModal(false)}
+        className="absolute top-4 right-4 text-2xl text-neutralDGray hover:text-red-500"
+      >
+        &times;
+      </button>
 
-  {/* Content */}
-  <h2 className="text-2xl font-semibold mb-4 text-neutralDGray mt-2">
-    {job.title}
-  </h2>
+      {/* Content */}
+      <h2 className="text-2xl font-semibold mb-4 text-neutralDGray mt-2">
+        {job.title}
+      </h2>
 
-  <p className="text-neutralGray mb-4">
-    <strong>Location:</strong> {job.location}
-  </p>
+      <p className="text-neutralGray mb-4">
+        <strong>Location:</strong> {job.location}
+      </p>
 
-  <div className="mb-4">
-    <strong>Requirements:</strong>
-    <ul className="list-disc pl-5 text-neutralGray mt-1">
-      {job.requirements.map((req, index) => (
-        <li key={index}>{req}</li>
-      ))}
-    </ul>
+      <div className="mb-4">
+        <strong>Requirements:</strong>
+        <ul className="list-disc pl-5 text-neutralGray mt-1">
+          {job.requirements.map((req, index) => (
+            <li key={index}>{req}</li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mb-6">
+        <strong>Responsibilities:</strong>
+        <ul className="list-disc pl-5 text-neutralGray mt-1">
+          {job.responsibilities.map((resp, index) => (
+            <li key={index}>{resp}</li>
+          ))}
+        </ul>
+      </div>
+
+      <a
+        href={job.applicationLink || job.link}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <Button className="bg-brandPrimary no-underline shadow-md text-white font-semibold hover:bg-neutralDGray transition-all duration-300 w-full">
+          Apply Now
+        </Button>
+      </a>
+    </div>
   </div>
-
-  <div className="mb-6">
-    <strong>Responsibilities:</strong>
-    <ul className="list-disc pl-5 text-neutralGray mt-1">
-      {job.responsibilities.map((resp, index) => (
-        <li key={index}>{resp}</li>
-      ))}
-    </ul>
-  </div>
-
-  <a
-    href={job.applicationLink || job.link}
-    target="_blank"
-    rel="noopener noreferrer"
-  >
-    <Button className="bg-brandPrimary no-underline shadow-md text-white font-semibold hover:bg-neutralDGray transition-all duration-300 w-full">
-      Apply Now
-    </Button>
-  </a>
-</div>
-</div>
 );
 
 const JobFormModal = ({
@@ -99,12 +99,16 @@ const JobFormModal = ({
         title: initialData.title || "",
         description: initialData.description || "",
         location: initialData.location || "",
-        requirements: Array.isArray(initialData.requirements) && initialData.requirements.length > 0
-          ? [...initialData.requirements]
-          : [""],
-        responsibilities: Array.isArray(initialData.responsibilities) && initialData.responsibilities.length > 0
-          ? [...initialData.responsibilities]
-          : [""],
+        requirements:
+          Array.isArray(initialData.requirements) &&
+          initialData.requirements.length > 0
+            ? [...initialData.requirements]
+            : [""],
+        responsibilities:
+          Array.isArray(initialData.responsibilities) &&
+          initialData.responsibilities.length > 0
+            ? [...initialData.responsibilities]
+            : [""],
         link: initialData.applicationLink || initialData.link || "",
       });
     } else if (!initialData && showModal) {
@@ -122,7 +126,7 @@ const JobFormModal = ({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setJobData(prevData => ({
+    setJobData((prevData) => ({
       ...prevData,
       [name]: value,
     }));
@@ -130,7 +134,7 @@ const JobFormModal = ({
 
   const handleListChange = (e, index, listType) => {
     const { value } = e.target;
-    setJobData(prevData => {
+    setJobData((prevData) => {
       const updatedList = [...prevData[listType]];
       updatedList[index] = value;
       return {
@@ -141,14 +145,14 @@ const JobFormModal = ({
   };
 
   const addListItem = (listType) => {
-    setJobData(prevData => ({
+    setJobData((prevData) => ({
       ...prevData,
       [listType]: [...prevData[listType], ""],
     }));
   };
 
   const removeListItem = (index, listType) => {
-    setJobData(prevData => {
+    setJobData((prevData) => {
       const updatedList = [...prevData[listType]];
       updatedList.splice(index, 1);
       return {
@@ -182,72 +186,81 @@ const JobFormModal = ({
         showModal ? "block" : "hidden"
       }`}
     >
-      <div className="bg-white mt-10 p-6 rounded-lg shadow-lg w-[700px] max-h-[80vh] overflow-y-auto relative text-left">
+      <div className="bg-white mt-10 p-3 rounded-lg shadow-lg w-[700px] max-h-[80vh] overflow-y-auto relative text-left custom-scrollbar">
         <div className="flex items-center w-full">
-          <h2 className="text-2xl font-semibold text-neutralDGray flex-grow">
+          <h2 className="text-base text-neutralDGray -mt-2 flex-grow">
             {isEditing ? "Edit Job" : "Add New Job"}
           </h2>
           <button
             onClick={() => setShowModal(false)}
-            className="text-3xl text-neutralDGray hover:text-red-500 transition-colors ml-auto"
+            className="text-2xl text-neutralDGray flex justify-end hover:text-red-500 transition-colors ml-auto"
             aria-label="Close modal"
           >
             &times;
           </button>
         </div>
+        <hr className="-mt-4" />
 
-        <form onSubmit={handleSubmit} className="mt-4">
+        <form onSubmit={handleSubmit} className="mt-4 text-sm">
           <div className="mb-3">
-            <label className="block mb-1 font-medium text-neutralDGray">Job Title</label>
+            <label className="block mb-1 -mt-3 text-neutralDGray">
+              Job Title
+            </label>
             <input
               type="text"
               name="title"
               value={jobData.title}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
+              className="w-full text-xs p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
               required
             />
           </div>
 
           <div className="mb-3">
-            <label className="block mb-1 font-medium text-neutralDGray">Description</label>
+            <label className="block mb-1 -mt-1 text-neutralDGray">
+              Description
+            </label>
             <textarea
               name="description"
               value={jobData.description}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent resize-vertical"
+              className="w-full text-xs p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent resize-vertical"
               rows="3"
               required
             />
           </div>
 
           <div className="mb-3">
-            <label className="block mb-1 font-medium text-neutralDGray">Location</label>
+            <label className="block mb-1 -mt-2 text-neutralDGray">
+              Location
+            </label>
             <input
               type="text"
               name="location"
               value={jobData.location}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
+              className="w-full text-xs p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
               required
             />
           </div>
 
           <div className="mb-3">
-            <label className="block mb-1 font-medium text-neutralDGray">Requirements</label>
+            <label className="block mb-1 -mt-1 text-neutralDGray">
+              Requirements
+            </label>
             {jobData.requirements.map((req, index) => (
               <div key={index} className="flex mb-2 items-center">
                 <input
                   type="text"
                   value={req}
                   onChange={(e) => handleListChange(e, index, "requirements")}
-                  className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
-                  placeholder={`Requirement ${index + 1}`}
+                  className="flex-1 h-9 text-xs p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
+                  placeholder={`Enter requirement ${index + 1}`}
                 />
                 <button
                   type="button"
                   onClick={() => removeListItem(index, "requirements")}
-                  className="ml-2 px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="ml-2 px-3 py-2 h-9 w-fit border text-neutralDGray rounded hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={jobData.requirements.length <= 1}
                   title="Remove requirement"
                 >
@@ -258,15 +271,16 @@ const JobFormModal = ({
             <button
               type="button"
               onClick={() => addListItem("requirements")}
-              className="flex items-center px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+              className="flex items-center px-3 w-fit h-9 border py-2 hover:bg-green-400 text-neutralDGray rounded hover:text-white transition-colors"
             >
               <FaPlus size={12} className="mr-1" />
-              Add Requirement
             </button>
           </div>
 
           <div className="mb-3">
-            <label className="block mb-1 font-medium text-neutralDGray">Responsibilities</label>
+            <label className="block mb-1 font-medium text-neutralDGray">
+              Responsibilities
+            </label>
             {jobData.responsibilities.map((resp, index) => (
               <div key={index} className="flex mb-2 items-center">
                 <input
@@ -281,7 +295,7 @@ const JobFormModal = ({
                 <button
                   type="button"
                   onClick={() => removeListItem(index, "responsibilities")}
-                  className="ml-2 px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="ml-2 px-3 py-2 h-9 w-fit border text-neutralDGray rounded hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={jobData.responsibilities.length <= 1}
                   title="Remove responsibility"
                 >
@@ -292,29 +306,30 @@ const JobFormModal = ({
             <button
               type="button"
               onClick={() => addListItem("responsibilities")}
-              className="flex items-center px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+              className="flex items-center px-3 w-fit h-9 border py-2 hover:bg-green-400 text-neutralDGray rounded hover:text-white transition-colors"
             >
               <FaPlus size={12} className="mr-1" />
-              Add Responsibility
             </button>
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 font-medium text-neutralDGray">Application Link</label>
+            <label className="block mb-1 -mt-1 text-neutralDGray">
+              Application Link
+            </label>
             <input
               type="url"
               name="link"
               value={jobData.link}
               onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
+              className="w-full p-2 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
               required
               placeholder="https://example.com/apply"
             />
           </div>
 
-          <Button
+          <button
             type="submit"
-            className="bg-brandPrimary shadow-md text-white font-semibold hover:bg-neutralDGray transition-all duration-300 w-full"
+            className="hover:bg-green-400 h-9 text-sm shadow-md flex justify-center items-center text-center text-neutralDGray border rounded hover:text-white transition-all duration-300 w-full"
             disabled={isLoading}
           >
             {isLoading
@@ -324,7 +339,7 @@ const JobFormModal = ({
               : isEditing
               ? "Update Job"
               : "Add Job"}
-          </Button>
+          </button>
         </form>
       </div>
     </div>
@@ -340,6 +355,7 @@ const Job = () => {
   const [jobs, setJobs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedJobId, setSelectedJobId] = useState(null); // Moved this to the correct component
 
   // Fetch all jobs from the API when the component mounts
   useEffect(() => {
@@ -434,20 +450,25 @@ const Job = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this job?")) {
-      setIsLoading(true);
-      try {
-        const response = await axios.delete(`${API_URL}/${id}`);
-        if (response.data.success) {
-          setJobs(jobs.filter((job) => job.id !== id));
-        } else {
-        }
-      } catch (error) {
-        console.error("Error deleting job:", error);
-      } finally {
-        setIsLoading(false);
+  const handleDeleteClick = (id) => {
+    setSelectedJobId(id);
+    setShowModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedJobId) return;
+    setIsLoading(true);
+    try {
+      const response = await axios.delete(`${API_URL}/${selectedJobId}`);
+      if (response.data.success) {
+        setJobs((prev) => prev.filter((job) => job.id !== selectedJobId));
       }
+    } catch (error) {
+      console.error("Error deleting job:", error);
+    } finally {
+      setIsLoading(false);
+      setShowModal(false);
+      setSelectedJobId(null);
     }
   };
 
@@ -472,17 +493,43 @@ const Job = () => {
   };
 
   return (
-    <div className="p-6  h-[calc(100vh-180px)] border rounded-lg">
+    <div className="p-2 h-[calc(100vh-180px)] rounded-lg">
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
+            <h3 className="text-base mb-2 text-red-500">Confirm Deletion</h3>
+            <p className="text-sm text-justify">
+              Are you sure you want to delete this job?
+            </p>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 w-24 text-xs h-8 border text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 w-24 text-xs h-8 border text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center -mt-3 mb-8">
         <h2 className="text-neutralDGray text-lg font-semibold">
           Available Jobs
         </h2>
-        <Button
+        <button
           onClick={openAddModal}
-          className="bg-brandPrimary w-32 text-center h-10 text-white font-semibold hover:bg-neutralDGray transition-all duration-300"
+          className="border text-neutralDGray w-32 text-center text-sm h-10 rounded hover:text-white  hover:bg-green-400 transition-all duration-300"
         >
           Add Job
-        </Button>
+        </button>
       </div>
 
       {isLoading && !showFormModal && (
@@ -508,30 +555,34 @@ const Job = () => {
 
       {!isLoading && !error && jobs.length === 0 && (
         <div className="text-center py-10">
-          <p className="text-md">No jobs available yet.</p>
-          <p className="-mt-3 text-[12px] italic text-neutralDGray">Click "Add Job" to post your first job!</p>
+          <p className="text-base -mt-10 text-neutralDGray">
+            No jobs available yet.
+          </p>
+          <p className="-mt-3 text-[12px] italic text-neutralDGray">
+            Click "Add Job" to post your first job!
+          </p>
         </div>
       )}
 
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {jobs.map((job) => (
           <div
             key={job.id}
-            className="relative flex flex-col justify-between gap-4 md:w-[300px] mx-auto md:h-80 p-2 border -mt-3 border-gray-200 rounded-2xl shadow-sm bg-neutralSilver hover:shadow-md transition-transform hover:-translate-y-2"
+            className="relative flex flex-col justify-between gap-4 h-full min-h-[300px] p-4 border border-gray-200 rounded-2xl shadow-sm bg-neutralSilver hover:shadow-md transition-transform hover:-translate-y-2"
           >
             {/* Top Controls */}
             <div className="flex justify-between items-center">
               <button
                 onClick={() => handleEdit(job)}
-                className="w-10 h-10 flex items-center justify-center text-neutralDGray hover:bg-green-500 rounded-full transition-colors"
+                className="w-9 h-9 flex items-center justify-center text-neutralDGray hover:bg-green-100 rounded-full transition-colors"
                 title="Edit"
               >
                 <FaPencil size={14} />
               </button>
 
               <button
-                onClick={() => handleDelete(job.id)}
-                className="w-10 h-10 flex items-center justify-center text-neutralDGray hover:bg-red-100 hover:text-red-600 rounded-full transition-colors"
+                onClick={() => handleDeleteClick(job.id)}
+                className="w-9 h-9 flex items-center justify-center text-neutralDGray hover:bg-red-100 hover:text-red-600 rounded-full transition-colors"
                 title="Delete"
               >
                 <FaTrash size={14} />
@@ -540,24 +591,13 @@ const Job = () => {
 
             {/* Content */}
             <div className="text-center flex-grow">
-              <h4 className="text-xl font-semibold text-neutralDGray mb-1">
+              <h4 className="text-lg font-semibold text-neutralDGray mb-1">
                 {job.title}
               </h4>
               <p className="text-sm text-neutralGray line-clamp-4">
                 {job.description}
               </p>
             </div>
-
-            {/* Action Button */}
-            <Button
-              onClick={() => {
-                setSelectedJob(job);
-                setShowModal(true);
-              }}
-              className="w-[50%] bg-brandPrimary bottom-10 text-white mx-auto text-center font-medium hover:bg-neutralDGray transition-all duration-300 py-2 rounded-md flex items-center justify-center"
-            >
-              Explore Now
-            </Button>
           </div>
         ))}
       </div>
