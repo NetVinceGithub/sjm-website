@@ -24,6 +24,7 @@ import { Sequelize } from "sequelize";
 import puppeteer from 'puppeteer'; // Make sure puppeteer is installed
 
 import { execSync } from 'child_process';
+import { calculateSSSContribution, updatePayrollWithSSS } from "../utils/sssCalculator.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -603,333 +604,6 @@ export const getPayslipByEmployeeId = async (req, res) => {
 };
 
 
-export const generatePayroll = async (req, res) => {
-  const { cutoffDate, selectedEmployees = [], maxOvertime = 0, requestedBy } = req.body;
-
-  console.log("🔍 Incoming request:", { cutoffDate, selectedEmployees, maxOvertime, requestedBy });
-
-  try {
-    // 👇 Generate unique batch ID
-    const now = new Date();
-    const batchId = `SJM-PayrollBatch-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${now.getTime()}`;
-    console.log(`🔗 Generated batchId: ${batchId}`);
-
-    let employees, attendanceRecords, payrollInformations, holidays;
-
-    try {
-      employees = await Employee.findAll({
-        where: { status: { [Op.ne]: "Inactive" } }
-      });
-      console.log(`✅ Found ${employees.length} active employees`);
-    } catch (error) {
-      console.error("❌ Error fetching employees:", error);
-      employees = await Employee.findAll();
-      employees = employees.filter(emp => emp.status !== "Inactive");
-    }
-
-    try {
-      attendanceRecords = await Attendance.findAll();
-      console.log(`✅ Found ${attendanceRecords.length} attendance records`);
-    } catch (error) {
-      console.error("❌ Error fetching attendance records:", error);
-      attendanceRecords = [];
-    }
-
-    try {
-      payrollInformations = await PayrollInformation.findAll();
-      console.log(`✅ Found ${payrollInformations.length} payroll information records`);
-    } catch (error) {
-      console.error("❌ Error fetching payroll information:", error);
-      payrollInformations = [];
-    }
-
-    try {
-      holidays = await Holidays.findAll();
-      console.log(`✅ Found ${holidays.length} holidays`);
-    } catch (error) {
-      console.error("❌ Error fetching holidays:", error);
-      holidays = [];
-    }
-
-    if (!employees || employees.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No active employees found!"
-      });
-    }
-
-    const generatedPayslips = [];
-    const errors = [];
-
-    for (let i = 0; i < employees.length; i++) {
-      const employee = employees[i];
-
-      try {
-        console.log(`📝 Processing ${i + 1}/${employees.length}: ${employee.name} (${employee.ecode})`);
-
-        const employeeAttendance = attendanceRecords.filter(
-          record => record.ecode === employee.ecode
-        );
-
-        if (!employeeAttendance || employeeAttendance.length === 0) {
-          console.log(`⏭️ Skipping ${employee.name} (${employee.ecode}) - No attendance data found`);
-          continue;
-        }
-
-        const employeePayrollInfo = payrollInformations.find(
-          info => info.ecode === employee.ecode
-        ) || {};
-
-        let attendanceMetrics;
-        try {
-          attendanceMetrics = calculateAttendanceMetrics(employeeAttendance, holidays);
-        } catch (error) {
-          attendanceMetrics = getDefaultAttendanceMetrics();
-        }
-
-        const rates = {
-          hourlyRate: Number(employeePayrollInfo.hourly_rate) || 0,
-          overtimeRate: Number(employeePayrollInfo.overtime_pay) || 0,
-          dailyRate: Number(employeePayrollInfo.daily_rate) || 0,
-          allowance: Number(employeePayrollInfo.allowance) || 0,
-          nightDifferential: Number(employeePayrollInfo.night_differential) || 0
-        };
-
-        const deductions = {
-          sss: Number(employeePayrollInfo.sss_contribution) || 0,
-          phic: Number(employeePayrollInfo.philhealth_contribution) || 0,
-          hdmf: Number(employeePayrollInfo.pagibig_contribution) || 0,
-          loan: Number(employeePayrollInfo.loan) || 0,
-          otherDeductions: Number(employeePayrollInfo.otherDeductions) || 0,
-          tardiness: (attendanceMetrics.totalTardiness || 0) * 1.08
-        };
-
-        const adjustment = Number(employeePayrollInfo.adjustment) || 0;
-
-        const totalOvertime = selectedEmployees.includes(employee.ecode)
-          ? Math.min(attendanceMetrics.totalOvertime || 0, Number(maxOvertime))
-          : 0;
-
-        const basicPay = (attendanceMetrics.totalRegularHours || 0) * rates.hourlyRate;
-        const overtimePay = totalOvertime * rates.overtimeRate;
-        const holidayPay = (attendanceMetrics.totalHolidayHours || 0) * (rates.hourlyRate * 2);
-
-        const grossPay = basicPay + overtimePay + holidayPay + rates.allowance + rates.nightDifferential;
-        const totalEarnings = grossPay + adjustment;
-        const totalDeductions = Object.values(deductions).reduce((sum, val) => sum + (Number(val) || 0), 0);
-        const netPay = totalEarnings - totalDeductions;
-
-        const payslipData = {
-          ecode: employee.ecode,
-          email: employee.emailaddress || '',
-          employeeId: employee.id,
-          name: employee.name,
-          project: employee["area/section"] || employee.area || employee.section || "N/A",
-          position: employee.positiontitle || employee.position || "N/A",
-          department: employee.department || "N/A",
-          cutoffDate,
-          dailyrate: rates.dailyRate.toFixed(2),
-          basicPay: basicPay.toFixed(2),
-          noOfDays: attendanceMetrics.daysPresent || 0,
-          holidayDays: attendanceMetrics.holidayDays || 0,
-          regularDays: attendanceMetrics.regularDays || 0,
-          overtimePay: overtimePay.toFixed(2),
-          totalOvertime: totalOvertime,
-          totalRegularHours: (attendanceMetrics.totalRegularHours || 0).toFixed(2),
-          totalHolidayHours: (attendanceMetrics.totalHolidayHours || 0).toFixed(2),
-          holidayPay: holidayPay.toFixed(2),
-          nightDifferential: rates.nightDifferential.toFixed(2),
-          allowance: rates.allowance.toFixed(2),
-          sss: deductions.sss.toFixed(2),
-          phic: deductions.phic.toFixed(2),
-          hdmf: deductions.hdmf.toFixed(2),
-          loan: deductions.loan.toFixed(2),
-          totalTardiness: deductions.tardiness.toFixed(2),
-          totalHours: (attendanceMetrics.totalHours || 0).toFixed(2),
-          otherDeductions: deductions.otherDeductions.toFixed(2),
-          totalEarnings: totalEarnings.toFixed(2),
-          totalDeductions: totalDeductions.toFixed(2),
-          adjustment: adjustment.toFixed(2),
-          gross_pay: grossPay.toFixed(2),
-          netPay: netPay.toFixed(2),
-          requestedBy: requestedBy,
-          status: "pending",
-          batchId // 👈 New field for batch approval
-        };
-
-        const newPayslip = await Payslip.create(payslipData);
-        generatedPayslips.push(newPayslip);
-
-      } catch (employeeError) {
-        errors.push({
-          employee: employee.name,
-          ecode: employee.ecode,
-          error: employeeError.message
-        });
-      }
-    }
-
-    const approvers = await User.findAll({ where: { role: 'approver', isBlocked: false } });
-    const successfulEmails = [];
-
-    for (const approver of approvers) {
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: approver.email,
-        subject: `Payroll Generated: ${cutoffDate} (Batch: ${batchId})`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h3>Hello ${approver.name},</h3>
-            <p>Payroll has been successfully generated for the cutoff date <strong>${cutoffDate}</strong>.</p>
-            <p>Batch ID: <strong>${batchId}</strong></p>
-            <p>Please review the payslips in the payroll system.</p>
-            <br />
-            <p>Best regards,<br />SJM Payroll System</p>
-          </div>
-        `
-      };
-
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-        tls: {
-          rejectUnauthorized: false,
-        },
-      });
-
-      transporter.verify((error, success) => {
-        if (error) {
-          console.error("❌ SMTP Connection Failed:", error);
-        } else {
-          console.log("✅ SMTP Server Ready!");
-        }
-      });
-
-      if (!cutoffDate) {
-        return res.status(400).json({
-          success: false,
-          message: "cutoffDate is required"
-        });
-      }
-
-      try {
-        await transporter.sendMail(mailOptions);
-        successfulEmails.push(approver.email);
-      } catch (emailError) {
-        console.error(`❌ Failed to send email to ${approver.email}:`, emailError);
-      }
-    }
-
-    res.status(201).json({
-      success: true,
-      message: `Payroll generated for ${generatedPayslips.length} employees!`,
-      batchId,
-      payslips: generatedPayslips,
-      notified: successfulEmails,
-      errors: errors.length > 0 ? errors : undefined
-    });
-
-  } catch (error) {
-    console.error("❌ Payroll Generation Critical Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error during payroll generation.",
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
-  }
-};
-
-
-// Helper function to calculate attendance metrics from raw attendance data
-function calculateAttendanceMetrics(attendanceRecords, holidays = []) {
-  try {
-    const holidayDates = new Set(holidays.map(h => h.date));
-
-    let totalRegularHours = 0;
-    let totalHolidayHours = 0;
-    let totalOvertime = 0;
-    let totalTardiness = 0;
-    let daysPresent = 0;
-    let holidayDays = 0;
-    let regularDays = 0;
-
-    attendanceRecords.forEach(record => {
-      if (record.status === 'present' && !record.isAbsent) {
-        daysPresent++;
-
-        // Convert time strings to hours
-        const workHours = timeStringToHours(record.workTime);
-        const overtimeHours = timeStringToHours(record.overtime);
-        const lateHours = timeStringToHours(record.lateTime);
-
-        totalOvertime += overtimeHours;
-        totalTardiness += lateHours;
-
-        // Check if it's a holiday
-        if (holidayDates.has(record.date)) {
-          totalHolidayHours += workHours;
-          holidayDays++;
-        } else {
-          totalRegularHours += workHours;
-          regularDays++;
-        }
-      }
-    });
-
-    return {
-      totalRegularHours,
-      totalHolidayHours,
-      totalHours: totalRegularHours + totalHolidayHours,
-      totalOvertime,
-      totalTardiness,
-      daysPresent,
-      holidayDays,
-      regularDays
-    };
-  } catch (error) {
-    console.error("Error in calculateAttendanceMetrics:", error);
-    return getDefaultAttendanceMetrics();
-  }
-}
-
-// Helper function to get default attendance metrics
-function getDefaultAttendanceMetrics() {
-  return {
-    totalRegularHours: 0,
-    totalHolidayHours: 0,
-    totalHours: 0,
-    totalOvertime: 0,
-    totalTardiness: 0,
-    daysPresent: 0,
-    holidayDays: 0,
-    regularDays: 0
-  };
-}
-
-// Helper function to convert time string (HH:MM:SS) to decimal hours
-function timeStringToHours(timeString) {
-  try {
-    if (!timeString || timeString === '00:00:00') return 0;
-
-    const [hours, minutes, seconds] = timeString.split(':').map(Number);
-
-    // Validate the parsed values
-    if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) {
-      console.warn(`Invalid time string: ${timeString}`);
-      return 0;
-    }
-
-    return hours + (minutes / 60) + (seconds / 3600);
-  } catch (error) {
-    console.error(`Error parsing time string "${timeString}":`, error);
-    return 0;
-  }
-}
-
 
 export const getAvailableBatches = async (req, res) => {
   try {
@@ -1372,6 +1046,389 @@ export const getEmployeeContributions = async (req, res) => {
       success: false,
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+
+
+///////////////////////payroll generation/////////////////////////
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Function to calculate attendance metrics per employee
+
+export const generatePayroll = async (req, res) => {
+  const { 
+    cutoffDate, 
+    selectedEmployees = [], 
+    selectedSchedules = [],
+    employees = [],
+    attendanceData = [],
+    holidaysData = [],
+    individualOvertime = {},
+    maxOvertime = 0, 
+    requestedBy 
+  } = req.body;
+
+  console.log("🔍 Incoming request:", { 
+    cutoffDate, 
+    selectedEmployees, 
+    selectedSchedules,
+    employeesCount: employees.length,
+    attendanceCount: attendanceData.length,
+    holidaysCount: holidaysData.length,
+    individualOvertime,
+    maxOvertime, 
+    requestedBy 
+  });
+
+  try {
+    const now = new Date();
+    const batchId = `SJM-PayrollBatch-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${now.getTime()}`;
+    console.log(`🔗 Generated batchId: ${batchId}`);
+
+    let employeesData, attendanceRecords, payrollInformations, holidays, attendanceSummary;
+
+    if (employees.length > 0 && attendanceData.length > 0) {
+      console.log("📦 Using data provided by frontend");
+      employeesData = employees; // Fixed: removed stray 'z'
+      attendanceRecords = attendanceData;
+      holidays = holidaysData;
+      
+    } else {
+      console.log("📦 Fetching data from database");
+      employeesData = await Employee.findAll({
+        where: { status: { [Op.ne]: "Inactive" } }
+      }).catch(async error => {
+        console.error("❌ Error fetching employees:", error);
+        let allEmployees = await Employee.findAll();
+        return allEmployees.filter(emp => emp.status !== "Inactive");
+      });
+
+      attendanceRecords = await Attendance.findAll().catch(error => {
+        console.error("❌ Error fetching attendance records:", error);
+        return [];
+      });
+
+      console.log(`✅ Fetched ${attendanceRecords.length} attendance records`);
+
+      holidays = await Holidays.findAll().catch(error => {
+        console.error("❌ Error fetching holidays:", error);
+        return [];
+      });
+
+      attendanceSummary = await AttendanceSummary.findAll().catch(error => {
+        console.error("❌ Error fetching attendance summary:", error);
+        return [];
+      });
+    }
+
+    employeesData = employeesData.filter(employee => employee.status !== "Inactive");
+    console.log(`✅ Processing ${employeesData.length} active employees`);
+
+    payrollInformations = await PayrollInformation.findAll().catch(error => {
+      console.error("❌ Error fetching payroll information:", error);
+      return [];
+    });
+
+    if (!employeesData || employeesData.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No active employees found!"
+      });
+    }
+
+    const generatedPayslips = [];
+    const errors = [];
+
+    for (let i = 0; i < employeesData.length; i++) {
+      const employee = employeesData[i];
+
+      try {
+        console.log(`📝 Processing ${i + 1}/${employeesData.length}: ${employee.name} (${employee.ecode})`);
+
+        const employeeAttendance = attendanceRecords.filter(
+          record => record.ecode === employee.ecode
+        );
+
+        if (!employeeAttendance || employeeAttendance.length === 0) {
+          console.log(`⏭️ Skipping ${employee.name} (${employee.ecode}) - No attendance data found`);
+          continue;
+        }
+
+        const employeePayrollInfo = payrollInformations.find(info => info.ecode === employee.ecode) || {};
+        const attendanceSummaryRecord = attendanceSummary ? attendanceSummary.find(info => info.ecode === employee.ecode) : null;
+
+        // Calculate basic attendance metrics from attendance records
+        const daysPresent = employeeAttendance.length;
+        const totalLateMinutes = employeeAttendance.reduce((total, record) => {
+          // Assuming attendance record has a late minutes field or calculate it
+          return total + (record.lateMinutes || 0);
+        }, 0);
+
+        // Update or create attendance summary record
+        try {
+          await AttendanceSummary.upsert({
+            ecode: employee.ecode,
+            daysPresent: daysPresent,
+            totalDays: daysPresent, // Simplified for now
+            absentDays: 0, // Can be calculated if needed
+            lateDays: employeeAttendance.filter(record => (record.lateMinutes || 0) > 0).length,
+            totalLateMinutes: totalLateMinutes,
+            attendanceRate: daysPresent > 0 ? 100.00 : 0.00 // Simplified calculation
+          }, {
+            where: { ecode: employee.ecode }
+          });
+
+          console.log(`📊 Attendance summary updated for ${employee.ecode} - Days Present: ${daysPresent}`);
+        } catch (summaryError) {
+          console.error(`❌ Failed to update attendance summary for ${employee.ecode}:`, summaryError);
+        }
+
+        // Use attendance summary data if available, otherwise use calculated values
+        const finalDaysPresent = attendanceSummaryRecord ? 
+          Number(attendanceSummaryRecord.daysPresent) : daysPresent;
+
+        const finalTotalLateMinutes = attendanceSummaryRecord ? 
+          Number(attendanceSummaryRecord.totalLateMinutes) : totalLateMinutes;
+
+        const rates = {
+          dailyRate: Number(employeePayrollInfo.daily_rate) || 500,
+          hourlyRate: 65, // Default value since not in PayrollInformation model
+          otHourlyRate: 81.25, // Default value
+          tardinessRate: 1.08 // Default value for tardiness per minute
+        };
+
+        // With this safer version:
+        const salaryPackage = Number(employee.salaryPackage) || Number(employee.salary_package) || 0;
+        const allowance = salaryPackage > 0 ? Number((salaryPackage - (rates.dailyRate * 26))/26) * finalDaysPresent : 0;
+
+        // Add debugging to see what's happening:
+        console.log("Salary package debug:", {
+          ecode: employee.ecode,
+          name: employee.name,
+          salaryPackage: employee.salaryPackage,
+          salary_package: employee.salary_package, // Check alternative naming
+          parsedSalaryPackage: salaryPackage,
+          dailyRate: rates.dailyRate,
+          calculatedAllowance: allowance,
+          finalTotalLateMinutes:finalTotalLateMinutes,
+        });
+        
+
+
+        // Calculate basic pay and gross pay FIRST (before deductions)
+        const basicPay = finalDaysPresent * rates.dailyRate;
+        const grossPay = basicPay + allowance; // Remove rates;
+
+        // NOW calculate deductions using grossPay
+        const deductions = {
+          sss: calculateSSSContribution(grossPay).employerContribution,          
+          phic: Number(employeePayrollInfo.philhealth_contribution) || 75,
+          hdmf: Number(employeePayrollInfo.pagibig_contribution) || 50,
+          loan: Number(employeePayrollInfo.loan) || 0,
+          otherDeductions: Number(employeePayrollInfo.otherDeductions) || 0,
+          taxDeduction: Number(employeePayrollInfo.tax_deduction) || 0,
+          tardiness: finalTotalLateMinutes * (rates.dailyRate / 8)/60 // Convert minutes to hours
+        };
+
+        const adjustment = Number(employeePayrollInfo.adjustment) || 0;
+
+        // Simplified overtime calculation - can be enhanced based on your needs
+        const totalRegularOvertime = 0; // Default to 0 for now
+
+        const regularOvertimePay = totalRegularOvertime * rates.otHourlyRate;
+
+        // Simplified holiday pay calculations - set to 0 for now
+        const specialHolidayPay = 0;
+        const regularHolidayPay = 0;
+        const specialHolidayOTPay = 0;
+        const regularHolidayOTPay = 0;
+        const nightDifferentialPay = 0;
+
+        const totalHolidayPay = specialHolidayPay + regularHolidayPay;
+        const totalOvertimePay = regularOvertimePay + specialHolidayOTPay + regularHolidayOTPay;
+
+        const totalEarnings = grossPay + adjustment;
+        const totalDeductions = deductions.sss + deductions.phic + deductions.hdmf + deductions.loan + deductions.otherDeductions + deductions.taxDeduction + deductions.tardiness;
+        const netPay = totalEarnings - totalDeductions;
+        
+        console.log("Employee project data:", employee["area/section"] || "N/A");
+
+        const payslipData = {
+          ecode: employee.ecode,
+          email: employee.emailaddress || employee.email || '',
+          employeeId: employee.id,
+          name: employee.name,
+          project: employee["area/section"] || "N/A",
+          position: employee.positiontitle || employee.position || "N/A",
+          department: employee.department || "N/A",
+          schedule: employee.schedule || "N/A",
+          cutoffDate,
+          dailyrate: rates.dailyRate.toFixed(2),
+          basicPay: basicPay.toFixed(2),
+          noOfDays: finalDaysPresent || 0,
+          holidayDays: 0, // Simplified
+          regularDays: finalDaysPresent || 0,
+          overtimePay: totalOvertimePay.toFixed(2),
+          totalOvertime: totalRegularOvertime.toFixed(2),
+          totalRegularHours: (finalDaysPresent * 8).toFixed(2), // Assuming 8 hours per day
+          totalHolidayHours: "0.00",
+          specialHolidayHours: "0.00",
+          regularHolidayHours: "0.00",
+          holidayPay: totalHolidayPay.toFixed(2),
+          specialHolidayPay: specialHolidayPay.toFixed(2),
+          regularHolidayPay: regularHolidayPay.toFixed(2),
+          specialHolidayOTPay: specialHolidayOTPay.toFixed(2),
+          regularHolidayOTPay: regularHolidayOTPay.toFixed(2),
+          nightDifferential: nightDifferentialPay.toFixed(2),
+          nightShiftHours: "0.00",
+          allowance: finalDaysPresent * allowance.toFixed(2),
+          sss: deductions.sss.toFixed(2),
+          phic: deductions.phic.toFixed(2),
+          hdmf: deductions.hdmf.toFixed(2),
+          loan: deductions.loan.toFixed(2),
+          totalTardiness: deductions.tardiness.toFixed(1),
+          totalHours: (finalDaysPresent * 8).toFixed(2), // Assuming 8 hours per day
+          otherDeductions: deductions.otherDeductions.toFixed(2),
+          taxDeduction: deductions.taxDeduction.toFixed(2),
+          totalEarnings: 0,
+          totalDeductions: totalDeductions.toFixed(2),
+          adjustment: adjustment.toFixed(2),
+          gross_pay: grossPay.toFixed(2),
+          netPay: netPay.toFixed(2),
+          requestedBy: requestedBy,
+          status: "pending",
+          batchId
+        };
+
+        console.log(`💰 Payslip calculated for ${employee.name}:`, {
+          basicPay: basicPay.toFixed(2),
+          daysPresent: finalDaysPresent,
+          netPay: netPay.toFixed(2)
+        });
+
+        const newPayslip = await Payslip.create(payslipData);
+        generatedPayslips.push(newPayslip);
+
+      } catch (employeeError) {
+        console.error(`❌ Error processing employee ${employee.name}:`, employeeError);
+        errors.push({
+          employee: employee.name,
+          ecode: employee.ecode,
+          error: employeeError.message
+        });
+      }
+    }
+
+    // Clean up attendance data after all employees are processed
+    try {
+      await AttendanceSummary.destroy({ where: {}, truncate: true });
+      await Attendance.destroy({ where: {}, truncate: true });
+      console.log("🧹 Cleaned up attendance data and summary tables");
+    } catch(error) {
+      console.log("❌ Error cleaning up attendance data:", error);
+    }
+
+    // Email notification logic
+    const approvers = await User.findAll({ where: { role: 'approver', isBlocked: false } });
+    const successfulEmails = [];
+
+    for (const approver of approvers) {
+      const scheduleInfo = selectedSchedules.length > 0 
+        ? ` (using schedules: ${selectedSchedules.join(', ')} for tardiness calculation)` 
+        : '';
+      
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: approver.email,
+        subject: `Payroll Generated: ${cutoffDate} (Batch: ${batchId})`,
+        html: `
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Payroll Request</title>
+        </head>
+
+        <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
+          <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
+            <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
+
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h3>Hello ${approver.name},</h3>
+              <p>Payroll has been successfully generated for the cutoff date <strong>${cutoffDate}</strong>${scheduleInfo}.</p>
+              <p>Batch ID: <strong>${batchId}</strong></p>
+              <p>Total Payslips Generated: <strong>${generatedPayslips.length}</strong></p>
+              <p>Please review the payslips in the payroll system.</p>
+              <br />
+              <p>Best regards,<br />SJM Payroll System</p>
+            </div>
+              <p style="color: #333; font-size: 15px;">Please login to <a href="https://payroll.stjohnmajore.com/">https://payroll.stjohnmajore.com/</a> to review and take appropriate action.</p>
+              
+              <p style="color: #333; font-size: 15px;">Best regards,<br />SJM Payroll System</p>
+            <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
+              <strong>This is an automated email—please do not reply.</strong><br />
+              Keep this message for your records.
+            </div>
+            <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
+         </div>
+        `
+      };
+
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+        tls: {
+          rejectUnauthorized: false,
+        },
+      });
+
+      try {
+        await transporter.sendMail(mailOptions);
+        successfulEmails.push(approver.email);
+        console.log(`✅ Email sent to ${approver.email}`);
+      } catch (emailError) {
+        console.error(`❌ Failed to send email to ${approver.email}:`, emailError);
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `Payroll generated for ${generatedPayslips.length} employees!`,
+      batchId,
+      payslips: generatedPayslips,
+      notified: successfulEmails,
+      schedulesUsedForTardiness: selectedSchedules,
+      errors: errors.length > 0 ? errors : undefined
+    });
+
+  } catch (error) {
+    console.error("❌ Payroll Generation Critical Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during payroll generation.",
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };

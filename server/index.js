@@ -90,6 +90,7 @@ import connectRouter from "./routes/connect.js";
 import holidaysRouter from "./routes/holidays.js";
 import loginRouter from './routes/login.js';
 import changeRequestRouter from './routes/changeRequest.js';
+import clientsRouter from './routes/clients.js';
 
 app.use((req, res, next) => {
   console.log(`Request URL: ${req.url}, Method: ${req.method}`);
@@ -145,6 +146,7 @@ app.use("/api/connect", connectRouter);
 app.use("/api/holidays", holidaysRouter);
 app.use("/api/login", loginRouter);
 app.use("/api/change-requests", changeRequestRouter);
+app.use('/api/clients', clientsRouter);
 
 app.use(express.static(path.join(__dirname, "../frontend/dist")));
 app.get("*", (req, res) => {

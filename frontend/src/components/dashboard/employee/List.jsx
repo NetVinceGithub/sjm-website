@@ -9,13 +9,18 @@ import defaultProfile from "../../../../src/assets/default-profile.png"; // Adju
 import { FaSearch, FaSyncAlt, FaIdCard, FaPaperclip } from "react-icons/fa";
 import EmployeeIDCard from "../EmployeeIDCard";
 import Breadcrumb from "../dashboard/Breadcrumb";
-import { FaPrint, FaRegFileExcel, FaRegFilePdf, FaRegEnvelope } from "react-icons/fa6";
+import {
+  FaPrint,
+  FaRegFileExcel,
+  FaRegFilePdf,
+  FaRegEnvelope,
+} from "react-icons/fa6";
 import { FaEnvelope, FaMinusSquare, FaTimes } from "react-icons/fa";
 import BlockEmployeeModal from "../modals/BlockEmployeeModal";
 import UnBlockEmployeeModal from "../modals/UnblockEmployeeModal";
 import ActivateEmployeeModal from "../modals/ActivateEmployeeModal";
-import BulkEmployeeMessageModal from "../modals/BulkEmployeeMessageModal"
-import { toast } from 'react-toastify';
+import BulkEmployeeMessageModal from "../modals/BulkEmployeeMessageModal";
+import { toast } from "react-toastify";
 import { useAuth } from "../../../context/authContext";
 
 const List = () => {
@@ -40,7 +45,7 @@ const List = () => {
   const [subject, setSubject] = useState("");
   const [attachments, setAttachments] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
+  const [submitError, setSubmitError] = useState("");
   const [showBulkMessage, setShowBulkMessage] = useState(false);
   const [expandedRows, setExpandedRows] = useState({});
 
@@ -49,7 +54,7 @@ const List = () => {
   }, []);
 
   const bulkMessage = () => {
-    setShowBulkMessage(true);  // ✅ This is correct
+    setShowBulkMessage(true); // ✅ This is correct
   };
 
   const handleCloseBulk = () => {
@@ -59,7 +64,9 @@ const List = () => {
   const fetchEmployees = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/employee`);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/employee`
+      );
       if (response.data.success) {
         setEmployees(response.data.employees);
         notifyBirthdays(response.data.employees);
@@ -106,89 +113,95 @@ const List = () => {
   };
 
   const openEmailModal = (employeeId) => {
-    console.log("Message button")
+    console.log("Message button");
     const employee = employees.find((emp) => emp.id === employeeId);
     setIsEmailModalEmployee(employeeId);
     setIsEmailModalOpen(true);
-    console.log("Message working button")
-
-  }
+    console.log("Message working button");
+  };
 
   const closeEmailModal = () => {
     setIsEmailModalOpen(false);
-    setEmailMessage('');
-  }
+    setEmailMessage("");
+  };
 
   // Updated submit function
   const handleSubmitEmailMessage = async () => {
     // Validation
     if (!emailMessage.trim()) {
-      setSubmitError('Message cannot be empty');
+      setSubmitError("Message cannot be empty");
       return;
     }
 
     if (!isEmailModalEmployee) {
-      setSubmitError('No employee selected');
+      setSubmitError("No employee selected");
       return;
     }
 
     setIsSubmitting(true);
-    setSubmitError('');
+    setSubmitError("");
 
     try {
-      const employee = employees.find(emp => emp.id === isEmailModalEmployee);
+      const employee = employees.find((emp) => emp.id === isEmailModalEmployee);
 
       // Create FormData to handle file uploads
       const formData = new FormData();
 
       // Add text fields
-      formData.append('employeeId', isEmailModalEmployee);
-      formData.append('employeeName', employee?.name || 'Unknown');
-      formData.append('employeeCode', employee?.employeeCode || employee?.ecode || 'N/A');
-      formData.append('employeeEmail', employee?.emailaddress || "No Email Provided");
-      formData.append('subject', subject || 'No subject provided');
-      formData.append('message', emailMessage.trim());
-      formData.append('sentAt', new Date().toISOString());
-      formData.append('sentBy', user.name);
+      formData.append("employeeId", isEmailModalEmployee);
+      formData.append("employeeName", employee?.name || "Unknown");
+      formData.append(
+        "employeeCode",
+        employee?.employeeCode || employee?.ecode || "N/A"
+      );
+      formData.append(
+        "employeeEmail",
+        employee?.emailaddress || "No Email Provided"
+      );
+      formData.append("subject", subject || "No subject provided");
+      formData.append("message", emailMessage.trim());
+      formData.append("sentAt", new Date().toISOString());
+      formData.append("sentBy", user.name);
 
       // Add files to FormData
       attachments.forEach((file) => {
-        formData.append('attachments', file); // Note: 'attachments' should match your backend multer field name
+        formData.append("attachments", file); // Note: 'attachments' should match your backend multer field name
       });
 
-      console.log('Sending FormData with', attachments.length, 'attachments');
+      console.log("Sending FormData with", attachments.length, "attachments");
 
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/employee/messaging`,
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            "Content-Type": "multipart/form-data",
           },
           onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
             console.log(`Upload Progress: ${percentCompleted}%`);
-          }
+          },
         }
       );
 
-      console.log('Email sent successfully:', response.data);
+      console.log("Email sent successfully:", response.data);
 
       // Clear attachments after successful send
       setAttachments([]);
-      setEmailMessage('');
-      setSubject('');
+      setEmailMessage("");
+      setSubject("");
       closeEmailModal();
-
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error("Error sending message:", error);
 
       if (error.response) {
-        setSubmitError(error.response.data.message || 'Failed to send message');
+        setSubmitError(error.response.data.message || "Failed to send message");
       } else if (error.request) {
-        setSubmitError('Network error. Please check your connection.');
+        setSubmitError("Network error. Please check your connection.");
       } else {
-        setSubmitError('An unexpected error occurred');
+        setSubmitError("An unexpected error occurred");
       }
     } finally {
       setIsSubmitting(false);
@@ -197,9 +210,9 @@ const List = () => {
 
   const handleCancelEmailModal = () => {
     setAttachments([]);
-    setEmailMessage('');
-    setSubject('');
-    setSubmitError('');
+    setEmailMessage("");
+    setSubject("");
+    setSubmitError("");
     closeEmailModal();
   };
 
@@ -207,7 +220,9 @@ const List = () => {
     if (employeeToBlock) {
       try {
         await axios.put(
-          `${import.meta.env.VITE_API_URL}/api/employee/toggle-status/${employeeToBlock.id}`
+          `${import.meta.env.VITE_API_URL}/api/employee/toggle-status/${
+            employeeToBlock.id
+          }`
         );
 
         // Update employee status in state
@@ -236,7 +251,9 @@ const List = () => {
     if (employeeToBlock) {
       try {
         await axios.put(
-          `${import.meta.env.VITE_API_URL}/api/employee/toggle-status/${employeeToBlock.id}`
+          `${import.meta.env.VITE_API_URL}/api/employee/toggle-status/${
+            employeeToBlock.id
+          }`
         );
 
         await fetchEmployees(); // Force refresh from the backend
@@ -266,7 +283,7 @@ const List = () => {
     if (!employee) return;
 
     // Check if employee is resigned and trying to activate
-    if (employmentStatus === 'RESIGNED' && currentStatus === 'Inactive') {
+    if (employmentStatus === "RESIGNED" && currentStatus === "Inactive") {
       setEmployeeToBlock(employee);
       setIsActivateEmployeeOpen(true);
       return;
@@ -391,14 +408,14 @@ const List = () => {
 
   const conditionalRowStyles = [
     {
-      when: row => row.employmentstatus === 'RESIGNED',
+      when: (row) => row.employmentstatus === "RESIGNED",
       style: {
         opacity: 0.5,
-        backgroundColor: '#f5f5f5',
-        '&:hover': {
+        backgroundColor: "#f5f5f5",
+        "&:hover": {
           opacity: 0.7,
-          backgroundColor: '#e5e5e5',
-          cursor: 'not-allowed',
+          backgroundColor: "#e5e5e5",
+          cursor: "not-allowed",
         },
       },
     },
@@ -463,7 +480,7 @@ const List = () => {
     },
     {
       name: "Area/Section",
-      selector: (row) => row['area/section'] || "N/A",
+      selector: (row) => row["area/section"] || "N/A",
       sortable: true,
       width: "120px",
     },
@@ -475,7 +492,7 @@ const List = () => {
     },
     {
       name: "Tenurity to Client",
-      selector: (row) => row['tenuritytoclient(inmonths)'] || "N/A",
+      selector: (row) => row["tenuritytoclient(inmonths)"] || "N/A",
       sortable: true,
       width: "140px",
     },
@@ -505,12 +522,14 @@ const List = () => {
       cell: (row) => {
         const approaching = isBirthdayApproaching(row.birthdate);
         return (
-          <div style={{
-            backgroundColor: approaching ? "#ffcc00" : "transparent",
-            padding: "4px",
-            borderRadius: "4px",
-            color: approaching ? "white" : "inherit"
-          }}>
+          <div
+            style={{
+              backgroundColor: approaching ? "#ffcc00" : "transparent",
+              padding: "4px",
+              borderRadius: "4px",
+              color: approaching ? "white" : "inherit",
+            }}
+          >
             {row.birthdate}{" "}
             {approaching && <span style={{ color: "orange" }}>🎉</span>}
           </div>
@@ -528,6 +547,30 @@ const List = () => {
       selector: (row) => row.contactno,
       sortable: true,
       width: "130px",
+    },
+    {
+      name: "Emergency Contact",
+      selector: (row) => row.contact_name,
+      sortable: true,
+      width: "230px",
+    },
+    {
+      name: (
+        <div style={{ textAlign: "center" }}>
+          Emergency
+          <br />
+          Contact Number
+        </div>
+      ),
+      selector: (row) => row.contact_number,
+      sortable: true,
+      width: "160px",
+    },
+    {
+      name: "Emergency Contact Address",
+      selector: (row) => row.contact_address,
+      sortable: true,
+      width: "400px",
     },
     {
       name: "Permanent Address",
@@ -558,13 +601,15 @@ const List = () => {
         const expiring = isTrainingExpiringSoon(dateStr);
 
         return (
-          <div style={{
-            backgroundColor: expiring ? "#ff5e58" : "transparent",
-            padding: "4px",
-            borderRadius: "4px",
-            color: expiring ? "#333" : "inherit",
-            fontWeight: expiring ? "bold" : "normal",
-          }}>
+          <div
+            style={{
+              backgroundColor: expiring ? "#ff5e58" : "transparent",
+              padding: "4px",
+              borderRadius: "4px",
+              color: expiring ? "#333" : "inherit",
+              fontWeight: expiring ? "bold" : "normal",
+            }}
+          >
             {dateStr || "N/A"}{" "}
             {expiring && <span style={{ color: "#b36b00" }}>⚠️</span>}
           </div>
@@ -586,25 +631,28 @@ const List = () => {
         const medStr = row.medical;
         const expiringMed = isMedicalExpiringSoon(medStr);
         return (
-          <div style={{
-            backgroundColor: expiringMed ? "#B2FBA5" : "transparent",
-            padding: "4px",
-            borderRadius: "4px",
-            color: expiringMed ? "#333" : "inherit",
-            fontWeight: expiringMed ? "bold" : "normal",
-          }}>
-            {medStr || "N/A"}{""}
+          <div
+            style={{
+              backgroundColor: expiringMed ? "#B2FBA5" : "transparent",
+              padding: "4px",
+              borderRadius: "4px",
+              color: expiringMed ? "#333" : "inherit",
+              fontWeight: expiringMed ? "bold" : "normal",
+            }}
+          >
+            {medStr || "N/A"}
+            {""}
             {expiringMed && <span style={{ color: "red" }}>⚕️</span>}
           </div>
-        )
-      }
+        );
+      },
     },
     {
       name: "Options",
       cell: (row) => {
         // Determine if employee is resigned and should be inactive
-        const isResigned = row.employmentstatus === 'RESIGNED';
-        const effectiveStatus = isResigned ? 'Inactive' : row.status;
+        const isResigned = row.employmentstatus === "RESIGNED";
+        const effectiveStatus = isResigned ? "Inactive" : row.status;
 
         return (
           <div className="flex justify-center items-center sticky-actions">
@@ -618,7 +666,7 @@ const List = () => {
               />
             </button>
             <button
-              onClick={() => openEmailModal(row.employeeId || row.id)}  // ← Pass the ID
+              onClick={() => openEmailModal(row.employeeId || row.id)} // ← Pass the ID
               className="w-14 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center"
             >
               <FaEnvelope
@@ -627,18 +675,20 @@ const List = () => {
               />
             </button>
             <button
-              className={`w-14 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${effectiveStatus === "Active"
-                ? "bg-green-500 text-white"
-                : "bg-red-500 text-white"
-                }`}
+              className={`w-14 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${
+                effectiveStatus === "Active"
+                  ? "bg-green-500 text-white"
+                  : "bg-red-500 text-white"
+              }`}
               onClick={() =>
-                handleToggleStatus(row.id, effectiveStatus, row.employmentstatus)
+                handleToggleStatus(
+                  row.id,
+                  effectiveStatus,
+                  row.employmentstatus
+                )
               }
             >
-              <FaMinusSquare
-                title="Toggle Status"
-                className="w-5 h-5"
-              />
+              <FaMinusSquare title="Toggle Status" className="w-5 h-5" />
             </button>
           </div>
         );
@@ -662,7 +712,10 @@ const List = () => {
     return diff >= 0 && diff <= daysAhead;
   };
 
-  const isTrainingExpiringSoon = (attendedtrainingandseminar, daysAhead = 30) => {
+  const isTrainingExpiringSoon = (
+    attendedtrainingandseminar,
+    daysAhead = 30
+  ) => {
     const today = new Date();
     const currentYear = today.getFullYear();
 
@@ -688,91 +741,93 @@ const List = () => {
 
   // Toast notification functions
   const notifyBirthdays = (people) => {
-    const count = people.filter(p => isBirthdayApproaching(p.birthdate)).length;
+    const count = people.filter((p) =>
+      isBirthdayApproaching(p.birthdate)
+    ).length;
     if (count > 0) {
       toast.info(
-        <div style={{ fontSize: '0.8rem' }}>
-          {count} {count > 1 ? 'people have' : 'person has'} their birthday{count > 1 ? 's' : ''} approaching soon.
+        <div style={{ fontSize: "0.8rem" }}>
+          {count} {count > 1 ? "people have" : "person has"} their birthday
+          {count > 1 ? "s" : ""} approaching soon.
         </div>,
         {
           autoClose: 5000,
           closeButton: false,
           closeOnClick: true,
-          position: 'top-right',
+          position: "top-right",
         }
       );
-
     }
   };
 
   const notifyTrainingExpiring = (people) => {
-    const count = people.filter(p => isTrainingExpiringSoon(p.attendedtrainingandseminar)).length;
+    const count = people.filter((p) =>
+      isTrainingExpiringSoon(p.attendedtrainingandseminar)
+    ).length;
     if (count > 0) {
       toast.warning(
-        <div style={{ fontSize: '0.8rem' }}>
-          {count} training{count > 1 ? 's are' : ' is'} expiring soon.
+        <div style={{ fontSize: "0.8rem" }}>
+          {count} training{count > 1 ? "s are" : " is"} expiring soon.
         </div>,
         {
           autoClose: 5000,
           closeOnClick: true,
           closeButton: false,
-          position: 'top-right',
+          position: "top-right",
         }
       );
-
     }
   };
 
   const notifyMedicalExpiring = (people) => {
-    const count = people.filter(p => isMedicalExpiringSoon(p.medical)).length;
+    const count = people.filter((p) => isMedicalExpiringSoon(p.medical)).length;
     if (count > 0) {
       toast.error(
-        <div style={{ fontSize: '0.8rem' }}>
-          {count} medical{count > 1 ? 's are' : ' is'} expiring soon.
+        <div style={{ fontSize: "0.8rem" }}>
+          {count} medical{count > 1 ? "s are" : " is"} expiring soon.
         </div>,
         {
           autoClose: 5000,
           closeOnClick: true,
           closeButton: false,
-          position: 'top-right',
+          position: "top-right",
         }
       );
-
     }
   };
-
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
 
     // Validate file count
     if (files.length + attachments.length > 10) {
-      setSubmitError('Maximum 10 files allowed');
+      setSubmitError("Maximum 10 files allowed");
       return;
     }
 
     // Validate file sizes (20MB per file)
     const maxSize = 100 * 1024 * 1024; // 20MB
-    const oversizedFiles = files.filter(file => file.size > maxSize);
+    const oversizedFiles = files.filter((file) => file.size > maxSize);
 
     if (oversizedFiles.length > 0) {
-      setSubmitError(`Files exceed 20MB limit: ${oversizedFiles.map(f => f.name).join(', ')}`);
+      setSubmitError(
+        `Files exceed 20MB limit: ${oversizedFiles
+          .map((f) => f.name)
+          .join(", ")}`
+      );
       return;
     }
 
     // Add new files to existing attachments
-    setAttachments(prev => [...prev, ...files]);
-    setSubmitError(''); // Clear any previous errors
+    setAttachments((prev) => [...prev, ...files]);
+    setSubmitError(""); // Clear any previous errors
 
     // Clear the input so the same file can be selected again if needed
-    e.target.value = '';
+    e.target.value = "";
   };
 
-
-
-
   const removeAttachment = (index) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -864,7 +919,7 @@ const List = () => {
                     z-index: 10 !important;
                     box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
                   }
-                  
+
                   /* Override react-data-table-component styles for sticky column */
                   .rdt_TableCol:last-child {
                     position: sticky !important;
@@ -873,7 +928,7 @@ const List = () => {
                     z-index: 10 !important;
                     box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
                   }
-                  
+
                   .rdt_TableHeadRow .rdt_TableCol:last-child {
                     position: sticky !important;
                     right: 0 !important;
@@ -881,7 +936,7 @@ const List = () => {
                     z-index: 11 !important;
                     box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
                   }
-                  
+
                   .rdt_TableRow .rdt_TableCell:last-child {
                     position: sticky !important;
                     right: 0 !important;
@@ -906,16 +961,20 @@ const List = () => {
                   expandableRows={true}
                   expandableRowExpanded={(row) => expandedRows[row.id] === true}
                   expandableRowsComponent={({ data }) =>
-                    data.employmentstatus === 'REHIRED' ? (
+                    data.employmentstatus === "REHIRED" ? (
                       <div className="p-3 ml-5 text-neutralDGray/60 text-xs font-medium">
                         <span>Notes:</span>
-                        <li className="ml-5">This employee has been rehired on (date).</li>
+                        <li className="ml-5">
+                          This employee has been rehired on (date).
+                        </li>
                       </div>
                     ) : null
                   }
                   expandOnRowClicked={false}
                   // Add this function to control which rows can be expanded
-                  expandableRowDisabled={(row) => row.employmentstatus !== 'REHIRED'}
+                  expandableRowDisabled={(row) =>
+                    row.employmentstatus !== "REHIRED"
+                  }
                 />
               </div>
             </div>
@@ -939,29 +998,39 @@ const List = () => {
               </button>
             </div>
 
-
             {/* Modal Body */}
             <div className="p-6">
               {/* Employee Information */}
               <div className="mb-2 -mt-3">
                 <div className="rounded-lg">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-medium text-gray-600">Employee Name:</span>
+                    <span className="text-xs font-medium text-gray-600">
+                      Employee Name:
+                    </span>
                     <span className="text-xs text-gray-800">
-                      {employees.find(emp => emp.id === isEmailModalEmployee)?.name || 'N/A'}
+                      {employees.find((emp) => emp.id === isEmailModalEmployee)
+                        ?.name || "N/A"}
                     </span>
                   </div>
                   <div className="flex justify-between -mt-2 items-center">
-                    <span className="text-xs font-medium text-gray-600">Employee Code:</span>
+                    <span className="text-xs font-medium text-gray-600">
+                      Employee Code:
+                    </span>
                     <span className="text-xs text-gray-800">
-                      {employees.find(emp => emp.id === isEmailModalEmployee)?.employeeCode ||
-                        employees.find(emp => emp.id === isEmailModalEmployee)?.ecode || 'N/A'}
+                      {employees.find((emp) => emp.id === isEmailModalEmployee)
+                        ?.employeeCode ||
+                        employees.find((emp) => emp.id === isEmailModalEmployee)
+                          ?.ecode ||
+                        "N/A"}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-600">Sent to:</span>
+                    <span className="text-xs font-medium text-gray-600">
+                      Sent to:
+                    </span>
                     <span className="text-xs text-gray-800">
-                      {employees.find(emp => emp.id === isEmailModalEmployee)?.emailaddress || 'NO Email'}
+                      {employees.find((emp) => emp.id === isEmailModalEmployee)
+                        ?.emailaddress || "NO Email"}
                     </span>
                   </div>
                 </div>
@@ -976,7 +1045,10 @@ const List = () => {
 
               {/* Message Input */}
               <div className="mb-6 relative">
-                <label htmlFor="subject" className="block text-xs font-medium text-gray-700 -mt-2 mb-2">
+                <label
+                  htmlFor="subject"
+                  className="block text-xs font-medium text-gray-700 -mt-2 mb-2"
+                >
                   Subject <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -989,7 +1061,10 @@ const List = () => {
                   disabled={isSubmitting}
                 />
 
-                <label htmlFor="message" className="block text-xs font-medium text-gray-700 mb-2 mt-4">
+                <label
+                  htmlFor="message"
+                  className="block text-xs font-medium text-gray-700 mb-2 mt-4"
+                >
                   Message <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -998,7 +1073,7 @@ const List = () => {
                   value={emailMessage}
                   onChange={(e) => {
                     setEmailMessage(e.target.value);
-                    if (submitError) setSubmitError('');
+                    if (submitError) setSubmitError("");
                   }}
                   className="w-full text-xs px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   placeholder="Type your message here..."
@@ -1006,7 +1081,10 @@ const List = () => {
                 />
 
                 <div className="absolute bottom-2 right-2">
-                  <label htmlFor="attachment" className="cursor-pointer text-gray-400 hover:text-gray-600">
+                  <label
+                    htmlFor="attachment"
+                    className="cursor-pointer text-gray-400 hover:text-gray-600"
+                  >
                     <FaPaperclip className="w-4 h-4" />
                   </label>
                   <input
@@ -1029,8 +1107,14 @@ const List = () => {
                   </h4>
                   <div className="space-y-2">
                     {attachments.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between text-xs">
-                        <span className="text-gray-600 truncate max-w-[200px]" title={file.name}>
+                      <div
+                        key={index}
+                        className="flex items-center justify-between text-xs"
+                      >
+                        <span
+                          className="text-gray-600 truncate max-w-[200px]"
+                          title={file.name}
+                        >
                           {file.name} ({(file.size / 1024).toFixed(1)} KB)
                         </span>
                         <button
@@ -1064,15 +1148,13 @@ const List = () => {
                   {isSubmitting && (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   )}
-                  {isSubmitting ? 'Sending...' : 'Submit'}
+                  {isSubmitting ? "Sending..." : "Submit"}
                 </button>
               </div>
             </div>
           </div>
         </div>
-      )
-      }
-
+      )}
 
       {/* Employee ID Modal */}
       <EmployeeIDCard
@@ -1104,10 +1186,10 @@ const List = () => {
       />
 
       <BulkEmployeeMessageModal
-        show={showBulkMessage}       // ✅ Correct prop name
-        handleCloseBulk={handleCloseBulk}  // ✅ Correct prop name
+        show={showBulkMessage} // ✅ Correct prop name
+        handleCloseBulk={handleCloseBulk} // ✅ Correct prop name
       />
-    </div >
+    </div>
   );
 };
 

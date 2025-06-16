@@ -1,25 +1,27 @@
-import axios from 'axios';
-import React, { useState, useEffect } from 'react'; 
-import { useAuth } from '../context/authContext';
-import { useNavigate } from 'react-router-dom';
-import BG from '../assets/bg.png';
+import axios from "axios";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/authContext";
+import { useNavigate } from "react-router-dom";
+import BG from "../assets/bg.png";
+import { Eye, EyeOff } from "lucide-react";
 
 const Login = () => {
   const [isChecked, setIsChecked] = useState(false);
   const [isEmailFocused, setIsEmailFocused] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     // Check if user has 'Remember me' set in localStorage
-    const savedEmail = localStorage.getItem('email');
-    const savedPassword = localStorage.getItem('password'); // Add this line
-    const savedChecked = localStorage.getItem('rememberMe') === 'true';
-    
+    const savedEmail = localStorage.getItem("email");
+    const savedPassword = localStorage.getItem("password"); // Add this line
+    const savedChecked = localStorage.getItem("rememberMe") === "true";
+
     if (savedEmail && savedChecked) {
       setEmail(savedEmail);
       if (savedPassword) {
@@ -29,10 +31,13 @@ const Login = () => {
     }
   }, []);
 
-  const handleSubmit = async (e) => { 
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, { email, password });
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/auth/login`,
+        { email, password }
+      );
 
       if (response.data.success) {
         login(response.data.user);
@@ -41,19 +46,19 @@ const Login = () => {
 
         // If "Remember me" is checked, save email to localStorage
         if (isChecked) {
-          localStorage.setItem('email', email);
-          localStorage.setItem('password', password);
-          localStorage.setItem('rememberMe', 'true');
+          localStorage.setItem("email", email);
+          localStorage.setItem("password", password);
+          localStorage.setItem("rememberMe", "true");
         } else {
-          localStorage.removeItem('email');
-          localStorage.removeItem('rememberMe');
+          localStorage.removeItem("email");
+          localStorage.removeItem("rememberMe");
         }
 
         // Redirect to dashboard based on user role
         if (response.data.user.role === "admin") {
-          navigate('/admin-dashboard');
+          navigate("/admin-dashboard");
         } else {
-          navigate('/admin-dashboard'); 
+          navigate("/admin-dashboard");
         }
       }
     } catch (error) {
@@ -66,7 +71,7 @@ const Login = () => {
   };
 
   const handleForgotPassword = () => {
-    navigate('/forgot-password'); // You can create a new route for this
+    navigate("/forgot-password"); // You can create a new route for this
   };
 
   return (
@@ -106,13 +111,13 @@ const Login = () => {
             />
           </div>
 
-          <div className="mb-3">
+          <div className="mb-3 relative">
             <label htmlFor="password" className="block mb-2 text-neutralGray">
               Password
             </label>
             <input
-              type="password"
-              className="w-full px-3 py-2 border rounded-md"
+              type={showPassword ? "text" : "password"}
+              className="w-full px-3 py-2 border rounded-md pr-10"
               placeholder={isPasswordFocused ? "" : "Enter Password"}
               onFocus={() => setIsPasswordFocused(true)}
               onBlur={() => setIsPasswordFocused(false)}
@@ -120,15 +125,22 @@ const Login = () => {
               value={password}
               required
               autoComplete="current-password"
-            
+              id="password"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute w-fit right-3 top-[28px] text-gray-600 hover:text-gray-800"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
 
           <div className="mb-5 flex items-center justify-between">
             <label className="inline-flex items-center">
               <input
                 type="checkbox"
-                className="form-checkbox accent-neutralDGray checked:accent-brandPrimary"
+                className="form-checkbox accent-brandPrimary"
                 checked={isChecked}
                 onChange={() => setIsChecked(!isChecked)}
               />

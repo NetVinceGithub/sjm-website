@@ -13,7 +13,7 @@ export const notifyPayrollRequests = (requests) => {
     if (!hasShownPayrollToast) {
       payrollToastId = toast.info(
         <div style={{ fontSize: '0.9rem', color: '#fff' }}>
-          You have {count} change request{count > 1 ? 's' : ''} to review.
+          You have {count} payroll request{count > 1 ? 's' : ''} to review.
         </div>,
         {
           icon: '⚠️',

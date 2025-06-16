@@ -16,54 +16,15 @@ const Attendance = sequelize.define('Attendance', {
     type: DataTypes.DATEONLY,
     allowNull: false,
   },
-  dutyStart: {
+  onDuty: {
     type: DataTypes.TIME,
     allowNull: true,
-    field: 'duty_start'
+    field: 'onDuty'
   },
-  dutyEnd: {
+  offDuty: {
     type: DataTypes.TIME,
     allowNull: true,
-    field: 'duty_end'
-  },
-  punchIn: {
-    type: DataTypes.TIME,
-    allowNull: true,
-    field: 'punch_in'
-  },
-  punchOut: {
-    type: DataTypes.TIME,
-    allowNull: true,
-    field: 'punch_out'
-  },
-  workTime: {
-    type: DataTypes.TIME,
-    allowNull: true,
-    field: 'work_time'
-  },
-  lateTime: {
-    type: DataTypes.TIME,
-    allowNull: true,
-    field: 'late_time'
-  },
-  overtime: {
-    type: DataTypes.TIME,
-    allowNull: true,
-    field: 'overtime'
-  },
-  absentTime: {
-    type: DataTypes.TIME,
-    allowNull: true,
-    field: 'absent_time'
-  },
-  isAbsent: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-    field: 'is_absent'
-  },
-  status: {
-    type: DataTypes.ENUM('present', 'absent', 'late', 'holiday'),
-    defaultValue: 'present'
+    field: 'offDuty'
   },
 }, {
   tableName: 'attendance',

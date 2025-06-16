@@ -71,16 +71,17 @@ export default function CustomCalendar({ onDateChange }) {
     return day >= 16 && day <= lastDay;
   };
 
-
   const isSelectedDate = (day) => {
-    return selectedDate &&
+    return (
+      selectedDate &&
       selectedDate.getDate() === day &&
       selectedDate.getMonth() === currentMonth &&
-      selectedDate.getFullYear() === currentYear;
+      selectedDate.getFullYear() === currentYear
+    );
   };
 
   const navigateMonth = (direction) => {
-    if (direction === 'prev') {
+    if (direction === "prev") {
       if (currentMonth === 0) {
         setCurrentMonth(11);
         setCurrentYear(currentYear - 1);
@@ -102,8 +103,18 @@ export default function CustomCalendar({ onDateChange }) {
     const firstDay = getFirstDayOfMonth(currentMonth, currentYear);
     const days = [];
     const monthNames = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ];
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -114,20 +125,24 @@ export default function CustomCalendar({ onDateChange }) {
 
     // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
-      let dayClasses = "h-7 w-7 flex items-center justify-center text-xs cursor-pointer rounded-lg transition-all duration-200";
+      let dayClasses =
+        "h-7 w-7 flex items-center justify-center text-xs cursor-pointer rounded-lg transition-all duration-200";
 
       if (isSalaryDay(day)) {
-        dayClasses += " bg-green-600 text-white font-bold transform scale-105 hover:bg-green-700";
+        dayClasses +=
+          " bg-green-600 text-white font-bold transform scale-105 hover:bg-green-700";
       } else if (isFirstCutoff(day)) {
         // Apply blue background when hovering over any first cutoff date
-        dayClasses += hoveredCutoffType === 'first'
-          ? " bg-blue-100 text-blue-800"
-          : " text-blue-800 hover:bg-blue-100";
+        dayClasses +=
+          hoveredCutoffType === "first"
+            ? " bg-blue-100 text-blue-800"
+            : " text-blue-800 hover:bg-blue-100";
       } else if (isSecondCutoff(day)) {
         // Apply yellow background when hovering over any second cutoff date
-        dayClasses += hoveredCutoffType === 'second'
-          ? " bg-yellow-100 text-yellow-800"
-          : " text-yellow-800 hover:bg-yellow-100";
+        dayClasses +=
+          hoveredCutoffType === "second"
+            ? " bg-yellow-100 text-yellow-800"
+            : " text-yellow-800 hover:bg-yellow-100";
       } else {
         dayClasses += " hover:bg-gray-100";
       }
@@ -140,12 +155,14 @@ export default function CustomCalendar({ onDateChange }) {
         <div
           key={day}
           className={dayClasses}
-          onClick={() => handleDateSelect(new Date(currentYear, currentMonth, day))}
+          onClick={() =>
+            handleDateSelect(new Date(currentYear, currentMonth, day))
+          }
           onMouseEnter={() => {
             if (isFirstCutoff(day)) {
-              setHoveredCutoffType('first');
+              setHoveredCutoffType("first");
             } else if (isSecondCutoff(day)) {
-              setHoveredCutoffType('second');
+              setHoveredCutoffType("second");
             }
           }}
           onMouseLeave={() => {
@@ -164,7 +181,7 @@ export default function CustomCalendar({ onDateChange }) {
         {/* Calendar Header */}
         <div className="flex h-10 items-center justify-center gap-2 mb-2">
           <button
-            onClick={() => navigateMonth('prev')}
+            onClick={() => navigateMonth("prev")}
             className="p-1 flex justify-start hover:text-gray-300 rounded-lg transition-colors"
           >
             <FaAngleLeft className="w-3 h-3" />
@@ -175,7 +192,7 @@ export default function CustomCalendar({ onDateChange }) {
           </h3>
 
           <button
-            onClick={() => navigateMonth('next')}
+            onClick={() => navigateMonth("next")}
             className="p-1 hover:text-gray-300 rounded-lg flex justify-end transition-colors"
           >
             <FaAngleRight className="w-3 h-3" />
@@ -184,17 +201,18 @@ export default function CustomCalendar({ onDateChange }) {
 
         {/* Day Names */}
         <div className="grid grid-cols-7 gap-1 -ml-1.5 mb-2">
-          {dayNames.map(dayName => (
-            <div key={dayName} className="h-6 flex items-center justify-center text-xs font-semibold text-gray-500">
+          {dayNames.map((dayName) => (
+            <div
+              key={dayName}
+              className="h-6 flex items-center justify-center text-xs font-semibold text-gray-500"
+            >
               {dayName}
             </div>
           ))}
         </div>
 
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-1">
-          {days}
-        </div>
+        <div className="grid grid-cols-7 gap-1">{days}</div>
       </div>
     );
   };
@@ -210,7 +228,8 @@ export default function CustomCalendar({ onDateChange }) {
           <div className="text-right">
             <div className="text-xl font-bold">{selectedDate.getDate()}</div>
             <div className="text-xs text-blue-100 uppercase tracking-wide">
-              {selectedDate.toLocaleDateString("en-US", { month: "short" }) + ", " +
+              {selectedDate.toLocaleDateString("en-US", { month: "short" }) +
+                ", " +
                 selectedDate.toLocaleDateString("en-US", { weekday: "short" })}
             </div>
           </div>
@@ -220,7 +239,9 @@ export default function CustomCalendar({ onDateChange }) {
       {/* Notice Panel */}
       <div className="bg-gradient-to-b from-gray-50 to-white border-b border-gray-200 p-2">
         <div className="flex items-center mb-1">
-          <h3 className="text-xs font-semibold text-gray-800">Today's Notice</h3>
+          <h3 className="text-xs font-semibold text-gray-800">
+            Today's Notice
+          </h3>
 
           {/* Compact Legend */}
           <div className="ml-auto flex items-center space-x-2">
@@ -244,7 +265,9 @@ export default function CustomCalendar({ onDateChange }) {
             <div className="bg-white rounded px-2 py-1 border border-gray-200 shadow-sm">
               <div className="flex items-center gap-2">
                 <div className="w-1 h-1 bg-blue-500 rounded-full flex-shrink-0" />
-                <p className="text-xs text-gray-700 leading-normal">{notice1}</p>
+                <p className="text-xs text-gray-700 leading-normal">
+                  {notice1}
+                </p>
               </div>
             </div>
           )}
@@ -253,7 +276,9 @@ export default function CustomCalendar({ onDateChange }) {
             <div className="bg-white rounded px-2 py-1 border border-gray-200 shadow-sm">
               <div className="flex items-center gap-2">
                 <div className="w-1 h-1 bg-blue-500 rounded-full flex-shrink-0" />
-                <p className="text-xs text-gray-700 leading-normal">{notice2 || notice3}</p>
+                <p className="text-xs text-gray-700 leading-normal">
+                  {notice2 || notice3}
+                </p>
               </div>
             </div>
           )}
@@ -261,8 +286,18 @@ export default function CustomCalendar({ onDateChange }) {
           {!notice1 && !notice2 && !notice3 && (
             <div className="bg-white rounded p-2 border border-gray-200 shadow-sm">
               <div className="flex items-center justify-center text-gray-500">
-                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="w-3 h-3 mr-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
                 <span className="text-xs">All caught up!</span>
               </div>
@@ -272,9 +307,7 @@ export default function CustomCalendar({ onDateChange }) {
       </div>
 
       {/* Calendar Section */}
-      <div className="p-2">
-        {renderCalendar()}
-      </div>
+      <div className="p-2">{renderCalendar()}</div>
     </div>
   );
 }
