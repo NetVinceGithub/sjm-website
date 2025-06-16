@@ -40,7 +40,14 @@ export const calculateSSSContribution = (grossPay) => {
     { min: 19250.00, max: 19749.99, employeeShare: 1980, employerShare: 975 },
     { min: 19750.00, max: 20249.99, employeeShare: 2030.00, employerShare: 1000.00 },
     { min: 20250.00, max: 20749.99, employeeShare: 2080, employerShare: 1000 },
-    { min: 20750.00, max: Infinity, employeeShare: 2130.00, employerShare: 1000.00 } // Maximum contribution
+    { min: 20750.00, max: 21249.99, employeeShare: 2130.00, employerShare: 1000.00 } 
+    
+    
+    
+    
+    
+    
+    // Maximum contribution
   ];
 
   // Convert grossPay to number and handle edge cases
