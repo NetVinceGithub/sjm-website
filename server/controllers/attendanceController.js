@@ -271,19 +271,39 @@ export const saveAttendanceSummary = async (req, res) => {
       return res.status(400).json({ message: "Invalid data format. Expecting an array." });
     }
 
-    // Only keep fields that exist in the model: ecode, daysPresent
-    const formattedData = attendanceSummaryRecords.map(record => ({
-      ecode: record.ecode,
-      daysPresent: Number(record.daysPresent) || 0, // Ensures valid number
-    }));
+    // Format data to match the updated model
+    const formattedData = attendanceSummaryRecords.map(record => {
+      const attendanceRate = record.totalDays > 0 ? 
+        (record.presentDays / record.totalDays) * 100 : 0;
 
-    const result = await AttendanceSummary.bulkCreate(formattedData, {
-      updateOnDuplicate: ["daysPresent"]
+      return {
+        ecode: record.ecode,
+        daysPresent: Number(record.presentDays) || 0,
+        totalDays: Number(record.totalDays) || 0,
+        absentDays: Number(record.absentDays) || 0,
+        lateDays: Number(record.lateDays) || 0,
+        totalLateMinutes: Number(record.totalLateMinutes) || 0,
+        attendanceRate: Number(attendanceRate) || 0,
+      };
     });
+
+    // Use upsert to handle existing records
+    const results = [];
+    for (const record of formattedData) {
+      const [instance, created] = await AttendanceSummary.upsert(record, {
+        returning: true
+      });
+      results.push({ instance, created });
+    }
+
+    const createdCount = results.filter(r => r.created).length;
+    const updatedCount = results.filter(r => !r.created).length;
 
     res.status(201).json({
       message: "Attendance Summary data saved successfully",
-      insertedRows: result.length,
+      created: createdCount,
+      updated: updatedCount,
+      total: results.length,
     });
 
   } catch (error) {

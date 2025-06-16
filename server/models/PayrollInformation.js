@@ -35,55 +35,11 @@ const PayrollInformation = sequelize.define("PayrollInformation", {
   },
   designation: {
     type: DataTypes.ENUM('Team Leader', 'Regular'),
-    defaultValue: 'Regular',
+    defaultValue: 'Team Leader',
   },
   daily_rate: {
     type: DataTypes.FLOAT,
     defaultValue: 500,
-  },
-  hourly_rate: {
-    type: DataTypes.FLOAT,
-    defaultValue: 65,
-  },
-  ot_hourly_rate: {
-    type: DataTypes.FLOAT,
-    defaultValue: 81.25,
-  },
-  ot_rate_sp_holiday: {
-    type: DataTypes.FLOAT,
-    defaultValue: 109.85,
-  },
-  ot_rate_reg_holiday: {
-    type: DataTypes.FLOAT,
-    defaultValue: 109.85,
-  },
-  special_hol_rate: {
-    type: DataTypes.FLOAT,
-    defaultValue: 156,
-  },
-  regular_hol_ot_rate: {
-    type: DataTypes.FLOAT,
-    defaultValue: 156,
-  },
-  overtime_pay: {
-    type: DataTypes.FLOAT,
-    defaultValue: 100,
-  },
-  holiday_pay: {
-    type: DataTypes.FLOAT,
-    defaultValue: 200,
-  },
-  night_differential: {
-    type: DataTypes.FLOAT,
-    defaultValue: 6.50,
-  },
-  allowance: {
-    type: DataTypes.FLOAT,
-    defaultValue: 104,
-  },
-  tardiness: {
-    type: DataTypes.FLOAT,
-    defaultValue: 1.08,
   },
   tax_deduction: {
     type: DataTypes.FLOAT,
