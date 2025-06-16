@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: 'revicons';
-  src: url('/fonts/revicons.woff') format('woff');
+  font-family: "revicons";
+  src: url("/fonts/revicons.woff") format("woff");
 }
 
 @font-face {
@@ -18,4 +18,34 @@
 
 .recharts-default-legend text {
   font-size: 0.5rem; /* Tailwind's text-sm size */
+}
+
+/* Custom transparent scrollbar */
+.custom-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2); /* semi-transparent */
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+/* Hide scrollbar when not scrolling (fade effect) */
+.custom-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Firefox */
+.custom-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.custom-scroll:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.4) transparent;
 }
