@@ -3,7 +3,6 @@ import { FaUserPlus } from "react-icons/fa";
 import axios from "axios";
 import { MdBlock } from "react-icons/md";
 
-
 const AddAdmin = () => {
   const [userRole, setUserRole] = useState(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -15,7 +14,7 @@ const AddAdmin = () => {
     name: "",
     email: "",
     password: "",
-    role: "admin",
+    role: "",
   });
 
   const [users, setUsers] = useState([]);
@@ -29,7 +28,6 @@ const AddAdmin = () => {
     role: "admin",
   });
 
-
   useEffect(() => {
     const checkUserRole = async () => {
       const token = localStorage.getItem("token"); // Make sure token is stored in localStorage
@@ -37,7 +35,7 @@ const AddAdmin = () => {
         setIsAuthorized(false);
         return;
       }
-  
+
       try {
         const userResponse = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/users/current`,
@@ -47,10 +45,10 @@ const AddAdmin = () => {
             },
           }
         );
-  
+
         const currentUserRole = userResponse.data.user.role;
         setUserRole(currentUserRole);
-  
+
         if (currentUserRole === "approver") {
           setIsAuthorized(true);
           // Fetch users here if needed
@@ -64,26 +62,25 @@ const AddAdmin = () => {
         setLoading(false);
       }
     };
-  
+
     checkUserRole();
   }, []);
 
-
   useEffect(() => {
-   const fetchUsers = async () => {
-     try {
-       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/users/get-users`);
-       console.log(response.data);
-       setUsers(response.data.users);
-        } 
-     catch(error){
-      console.error(error);
-     }
-   }
-  
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/users/get-users`
+        );
+        console.log(response.data);
+        setUsers(response.data.users);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
     fetchUsers();
   }, []);
-  
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -108,7 +105,7 @@ const AddAdmin = () => {
         setUsers((prevUsers) => [...prevUsers, response.data.user]);
       }
     } catch (error) {
-      console.error("Error saving user:", error.response ?.data || error);
+      console.error("Error saving user:", error.response?.data || error);
     } finally {
       setLoading(false);
     }
@@ -184,7 +181,7 @@ const AddAdmin = () => {
         cancelEdit();
       }
     } catch (error) {
-      console.error("Error updating user:", error.response ?.data || error);
+      console.error("Error updating user:", error.response?.data || error);
     }
   };
 
@@ -195,7 +192,7 @@ const AddAdmin = () => {
       </div>
     );
   }
-  
+
   if (!isAuthorized) {
     return (
       <div className="p-6 h-[calc(100vh-150px)] flex items-center justify-center">
@@ -213,17 +210,18 @@ const AddAdmin = () => {
   }
 
   return (
-    <div className="p-6  h-[calc(100vh-150px)] overflow-auto">
+    <div className="p-2 overflow-auto">
       <div className="flex h-[calc(100vh-220px)] flex-col">
         <div className="border rounded p-2 ">
           <h2 className="text-lg font-bold mb-3 flex text-neutralDGray items-center gap-2">
-            <FaUserPlus className="h-6 w-6 text-neutralDGray" /> Add Employee Access
+            <FaUserPlus className="h-6 w-6 text-neutralDGray" /> Add Employee
+            Access
           </h2>
-          <form className="space-y-3" onSubmit={handleSubmit}>
+          <form className="space-y-2" onSubmit={handleSubmit}>
             <div>
               <label className="block text-sm -mt-1 font-medium text-neutralDGray">
                 Employee Name
-            </label>
+              </label>
               <input
                 type="text"
                 name="name"
@@ -237,7 +235,7 @@ const AddAdmin = () => {
             <div>
               <label className="block text-sm font-medium text-neutralDGray">
                 Company Email
-            </label>
+              </label>
               <input
                 type="email"
                 name="email"
@@ -251,7 +249,7 @@ const AddAdmin = () => {
             <div>
               <label className="block text-sm font-medium text-neutralDGray">
                 Password
-            </label>
+              </label>
               <input
                 type="password"
                 name="password"
@@ -260,31 +258,34 @@ const AddAdmin = () => {
                 className="mt-1 p-1 w-full border rounded-md text-sm"
                 placeholder="Create a password"
                 required
+                minLength={8}
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-neutralDGray">
                 Role
-            </label>
+              </label>
               <select
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
                 className="mt-1 mb-1 p-1 w-full border rounded-md text-sm"
+                required
               >
-                <option value="default">
+                <option value="" disabled>
                   Select a Role
                 </option>
                 <option value="approver">Approver</option>
                 <option value="hr">HR</option>
                 <option value="admin">Admin</option>
               </select>
-
             </div>
+
             <div className="flex justify-end">
               <button
                 type="submit"
-                className="w-32 text-md bg-brandPrimary h-10 hover:bg-neutralDGray text-white py-1 px-2 rounded"
+                className="w-32 text-xs hover:bg-green-400 h-10 hover:text-white text-neutralDGray border transition-all duration-300 py-1 px-2 rounded"
                 disabled={loading}
               >
                 {loading ? "Adding..." : "Add Employee"}
@@ -302,7 +303,7 @@ const AddAdmin = () => {
                 {/* Active Users */}
                 <h4 className="text-[14px] mt-1 text-brandPrimary italic">
                   Active Users
-              </h4>
+                </h4>
                 <ul className="border rounded-md p-1 mb-1">
                   {users
                     .filter((user) => !user.isBlocked)
@@ -313,7 +314,9 @@ const AddAdmin = () => {
                       >
                         {editingUser === user.id ? (
                           <div className="bg-gray-200/60 p-1 rounded">
-                            <h6 className="text-sm text-neutralDGray font-semibold">Edit User</h6>
+                            <h6 className="text-sm text-neutralDGray font-semibold">
+                              Edit User
+                            </h6>
                             <form
                               onSubmit={handleEditSubmit}
                               className="flex flex-col gap-1 -mt-1"
@@ -357,32 +360,32 @@ const AddAdmin = () => {
                                   Cancel
                                 </button>
                               </div>
-
                             </form>
                           </div>
                         ) : (
-                            <div className="flex justify-between items-center">
-                              <div className="text-center">
-                                <span className="font-bold">{user.name}</span> → {user.email}
-                              </div>
+                          <div className="flex justify-between items-center">
+                            <div className="text-center">
+                              <span className="font-bold">{user.name}</span> →{" "}
+                              {user.email}
+                            </div>
 
-                              <div className="flex gap-1 items-center">
-                                <button
-                                  onClick={() => startEdit(user)}
-                                  className="bg-green-500 hover:bg-green-900 border w-14 h-8 text-white px-3 rounded flex items-center justify-center"
-                                >
-                                  Edit
+                            <div className="flex gap-1 items-center">
+                              <button
+                                onClick={() => startEdit(user)}
+                                className="bg-green-500 hover:bg-green-900 border w-14 h-8 text-white px-3 rounded flex items-center justify-center"
+                              >
+                                Edit
                               </button>
 
-                                <button
-                                  onClick={() => handleBlock(user.id)}
-                                  className="bg-red-500 hover:bg-red-900 border text-white w-14 h-8 px-3 rounded flex items-center justify-center"
-                                >
-                                  <MdBlock size={15} />
-                                </button>
-                              </div>
+                              <button
+                                onClick={() => handleBlock(user.id)}
+                                className="bg-red-500 hover:bg-red-900 border text-white w-14 h-8 px-3 rounded flex items-center justify-center"
+                              >
+                                <MdBlock size={15} />
+                              </button>
                             </div>
-                          )}
+                          </div>
+                        )}
                       </li>
                     ))}
                 </ul>
@@ -390,7 +393,9 @@ const AddAdmin = () => {
 
               <div className="w-1/2">
                 {/* Blocked Users */}
-                <h4 className="mt-2 text-[14px] text-red-500 italic">Blocked Users</h4>
+                <h4 className="mt-2 text-[14px] text-red-500 italic">
+                  Blocked Users
+                </h4>
                 <ul className="border rounded-md bg-red-50">
                   {users
                     .filter((user) => user.isBlocked)
@@ -400,7 +405,8 @@ const AddAdmin = () => {
                         className="py-1 px-2 text-[12px] border-b last:border-b-0 flex justify-between items-center text-red-600"
                       >
                         <div className="text-neutralDGray text-[12px]">
-                          <span className="font-bold">{user.name}</span> → {user.email}
+                          <span className="font-bold">{user.name}</span> →{" "}
+                          {user.email}
                         </div>
 
                         <div className="items-center">
@@ -414,12 +420,11 @@ const AddAdmin = () => {
                       </li>
                     ))}
                 </ul>
-
               </div>
             </>
           ) : (
-                <p>No users found.</p>
-              )}
+            <p>No users found.</p>
+          )}
         </div>
       </div>
     </div>
