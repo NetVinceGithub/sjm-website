@@ -558,7 +558,7 @@ const EmployeePayrollInformationsList = () => {
                   <FaSearch className="ml-[-20px] text-neutralDGray" />
                 </div>
 
-                <label className="block text-xs font-medium text-gray-500 mb-2 mt-4">
+                <label className="block text-xs font-medium text-gray-500 mb-2 mt-2">
                   Apply changes to field:
                 </label>
                 <div className="flex gap-2 mb-3">
@@ -600,14 +600,6 @@ const EmployeePayrollInformationsList = () => {
                     value={bulkEditValue}
                     onChange={(e) => setBulkEditValue(e.target.value)}
                   />
-                  <button
-                    type="button"
-                    onClick={handleApplyBulkEdit}
-                    disabled={isSubmitting}
-                    className="px-3 py-1 h-8 text-xs border rounded text-neutralDGray hover:bg-green-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting ? "Submitting..." : "Apply to Selected"}
-                  </button>
                 </div>
 
                 {/* Added Reason Field */}
@@ -671,7 +663,7 @@ const EmployeePayrollInformationsList = () => {
                           className="mr-3"
                         />
                         <div className="flex-1">
-                          <div className="text-sm font-medium">
+                          <div className="text-xs font-medium">
                             {employee.name}
                           </div>
                           <div className="text-xs text-gray-500">
@@ -692,9 +684,7 @@ const EmployeePayrollInformationsList = () => {
               onClick={handleApplyBulkEdit}
               disabled={isSubmitting}
             >
-              {isSubmitting
-                ? "Submitting Requests..."
-                : "Submit Change Requests"}
+              {isSubmitting ? "Submitting Requests..." : "Submit Requests"}
             </button>
             <button
               className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
