@@ -713,6 +713,7 @@ const Requests = () => {
   };
 
   const handleCloseSuccessModal = () => {
+    fetchAvailableBatches();
     setShowSuccessModal(false);
     setRequests([]);
   };
