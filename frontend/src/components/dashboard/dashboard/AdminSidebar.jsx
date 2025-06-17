@@ -165,7 +165,7 @@ const AdminSidebar = () => {
                   <NavLink
                     to="/admin-dashboard/lounge"
                     className={({ isActive }) =>
-                      `flex -mt-3 items-center space-x-3 text-white no-underline py-2 px-4 rounded-md ${
+                      `flex -mt-3 items-center space-x-3 text-white no-underline mb-3 py-2 px-4 rounded-md ${
                         isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
                       }`
                     }
@@ -311,7 +311,7 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/holidays"
                       className={({ isActive }) =>
-                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${
+                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 mb-3 px-4 rounded-md transition ${
                           isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
                         }`
                       }

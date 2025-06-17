@@ -179,7 +179,7 @@ const ClientList = () => {
   };
 
   return (
-    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
+    <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <Breadcrumb
         items={[
           { label: "Clients", href: "" },
@@ -187,7 +187,7 @@ const ClientList = () => {
         ]}
       />
 
-      <div className="bg-white h-[calc(100vh-120px)] w-full -mt-1 py-3 p-2 rounded-lg shadow">
+      <div className="bg-white h-[calc(100vh-120px)] w-full -mt-2 py-3 p-2 rounded-lg shadow">
         <div className="flex items-center justify-end mb-4">
           {/* Search & Sync Section - Aligned with Buttons */}
           <div className="flex items-center gap-3">
@@ -197,14 +197,14 @@ const ClientList = () => {
                 placeholder="Search Clients"
                 value={searchTerm}
                 onChange={handleSearch}
-                className="px-2 pr-8 rounded py-0.5 border"
+                className="px-2 pr-8 rounded text-sm py-1 border"
               />
               <FaSearch className="absolute right-2 text-neutralDGray" />
             </div>
             <button
               onClick={syncClients}
               disabled={syncing}
-              className="px-3 py-0.5 h-8 border text-neutralDGray hover:bg-brandPrimary hover:text-white rounded flex items-center space-x-2 disabled:opacity-50"
+              className="px-3 py-0.5 h-8 border text-sm w-fit text-neutralDGray hover:bg-brandPrimary hover:text-white rounded flex items-center space-x-2 disabled:opacity-50"
             >
               <FaSyncAlt
                 className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`}
@@ -215,7 +215,7 @@ const ClientList = () => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center h-[calc(100%-60px)]">
+          <div className="flex justify-center items-center -mt-3 h-[calc(100%-60px)]">
             <div className="text-center">
               <FaSyncAlt className="w-8 h-8 animate-spin mx-auto mb-2 text-brandPrimary" />
               <p>Loading clients...</p>
@@ -225,13 +225,13 @@ const ClientList = () => {
           <div className="grid grid-cols-4 p-3 gap-3 overflow-y-auto h-[calc(100%-60px)]">
             {filteredClients.length === 0 ? (
               <div className="col-span-4 text-center py-8">
-                <p className="text-gray-500">No clients found</p>
+                <p className="text-gray-500 italic text-xs">No clients found</p>
               </div>
             ) : (
               filteredClients.map((client) => (
                 <div
                   key={client.id}
-                  className="border border-neutralDGray h-fit rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-300"
+                  className="border border-neutralDGray -mt-3 h-fit rounded-lg shadow-md p-2.5 hover:shadow-lg transition-shadow duration-300"
                 >
                   {/* Header Row: Avatar, Name/Title, Status */}
                   <div className="flex items-start justify-between mb-3">
@@ -243,14 +243,14 @@ const ClientList = () => {
                         <h3 className="text-base font-semibold text-gray-800 leading-tight">
                           {client.name}
                         </h3>
-                        <p className="text-sm text-gray-600 flex items-center">
+                        <p className="text-sm text-gray-600 flex items-center text-nowrap">
                           <FaPeopleGroup className="w-4 h-4 mr-1" />
                           {client.deployed} Employee Deployed
                         </p>
                       </div>
                     </div>
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
+                      className={`px-1 py-1 rounded-full text-[10px] font-medium flex-shrink-0 ${
                         client.status === "Active"
                           ? "bg-green-100 text-green-800"
                           : "bg-red-100 text-red-800"
@@ -260,7 +260,7 @@ const ClientList = () => {
                     </span>
                   </div>
 
-                  <hr className="-mt-3" />
+                  <hr className="-mt-6" />
                   {/* Contact Info */}
                   <div className="space-y-1 mb-3">
                     <div className="flex items-center text-sm text-gray-600">
@@ -299,7 +299,7 @@ const ClientList = () => {
                   <div className="flex space-x-2">
                     <button
                       onClick={() => handleViewProfile(client)}
-                      className="flex-1 h-8 flex justify-center items-center text-center text-neutralDGray border py-2 px-3 rounded-md text-sm font-medium hover:bg-green-400 hover:text-white transition-colors"
+                      className="flex-1 h-8 flex text-xs justify-center items-center text-center text-neutralDGray border py-2 px-3 rounded-md font-medium hover:bg-green-400 hover:text-white transition-colors"
                     >
                       View Profile
                     </button>
