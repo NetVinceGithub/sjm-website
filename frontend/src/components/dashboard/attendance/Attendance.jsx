@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { BsFilter } from "react-icons/bs";
 import Tooltip from "@mui/material/Tooltip";
 import { toast } from "react-toastify";
+import FilterComponent from "../modals/FilterComponent";
 
 const Attendance = () => {
   // State variables
@@ -18,6 +19,7 @@ const Attendance = () => {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [filterComponentModal, setFilterComponentModal] = useState(false);
 
   // Optimized schedule options - removed custom schedule
   const scheduleOptions = [
@@ -703,7 +705,10 @@ const Attendance = () => {
             </h2>
             <Tooltip title="Add Attendance Filter" arrow>
               <button className="px-4 text-xs h-8 w-fit  border hover:bg-green-400 hover:text-white text-neutralDGray rounded-md cursor-pointer">
-                <BsFilter className="text-lg" />
+                <BsFilter
+                  className="text-lg"
+                  onClick={() => setFilterComponentModal(true)}
+                />
               </button>
             </Tooltip>
           </div>
@@ -774,6 +779,10 @@ const Attendance = () => {
           </div>
         </div>
       </div>
+      <FilterComponent
+        show={filterComponentModal}
+        onClose={() => setFilterComponentModal(false)}
+      />
     </div>
   );
 };

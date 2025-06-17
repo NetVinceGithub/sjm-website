@@ -932,20 +932,6 @@ const PayrollSummary = () => {
                 >
                   {loading ? "Generating..." : "Create Payroll"}
                 </button>
-
-                <button
-                  onClick={() => setFilterComponentModal(true)}
-                  className={`px-4 py-1 rounded text-sm w-full border lg:w-32 h-8 text-neutralDGray hover:text-neutralDGray ${
-                    selectedSchedules && selectedSchedules.length > 0
-                      ? "hover:bg-green-400 bg-green-50 border-green-300"
-                      : "hover:bg-orange-400 hover:text-white border-orange-300"
-                  }`}
-                >
-                  Filters{" "}
-                  {selectedSchedules &&
-                    selectedSchedules.length > 0 &&
-                    `(${selectedSchedules.length})`}
-                </button>
                 <button
                   onClick={() => setShowConfirmModal(true)}
                   className="px-4 py-1 rounded w-full lg:w-32 h-8 border text-sm text-neutralDGray hover:bg-red-400 hover:text-white"
