@@ -1,3 +1,4 @@
+// Fixed AttendanceSummary Model
 import { DataTypes } from "sequelize";
 import sequelize from "../db/db.js";
 
@@ -12,7 +13,8 @@ const AttendanceSummary = sequelize.define("AttendanceSummary", {
     allowNull: false,
     unique: true, // Ensure one record per employee
   },
-  daysPresent: {
+  // Changed from daysPresent to presentDays to match frontend
+  presentDays: {
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 0,
@@ -33,6 +35,27 @@ const AttendanceSummary = sequelize.define("AttendanceSummary", {
     defaultValue: 0,
   },
   totalLateMinutes: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  // Added shift-specific day counts to match frontend
+  dayShiftDays: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  eveningShiftDays: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  nightShiftDays: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  regularHoursDays: {
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 0,
