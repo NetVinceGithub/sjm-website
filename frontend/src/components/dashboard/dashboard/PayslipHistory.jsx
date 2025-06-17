@@ -182,7 +182,7 @@ const PayslipHistory = () => {
   ];
 
   return (
-    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
+    <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <>
         <Breadcrumb
           items={[
@@ -228,7 +228,7 @@ const PayslipHistory = () => {
                       <input
                         type="text"
                         placeholder="Search by Name or Employee ID"
-                        className="px-2 w-[268px] rounded py-0.5 border"
+                        className="px-2 w-[268px] text-sm rounded py-1 border"
                         onChange={handleSearch}
                       />
                       <FaSearch className="ml-[-20px] text-neutralDGray" />
@@ -239,7 +239,11 @@ const PayslipHistory = () => {
               <hr />
               <div className="mt-3 border h-[31rem] border-neutralDGray rounded overflow-auto">
                 <div className="w-full overflow-x-auto">
-                  <DataTable columns={columns} data={filteredPayslips} pagination />
+                  <DataTable
+                    columns={columns}
+                    data={filteredPayslips}
+                    pagination
+                  />
                 </div>
               </div>
             </div>
