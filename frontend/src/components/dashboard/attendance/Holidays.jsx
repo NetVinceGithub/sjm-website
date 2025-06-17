@@ -6,6 +6,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import "./CalendarStyles.css"; // Add custom styling here
 import Breadcrumb from "../dashboard/Breadcrumb";
 import DataTable from "react-data-table-component";
+import { FaAngleRight, FaAngleLeft } from "react-icons/fa6";
 
 // Setup the localizer for React Big Calendar
 const localizer = momentLocalizer(moment);
@@ -35,7 +36,9 @@ const Holidays = () => {
 
   const fetchHolidays = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/holidays`
+      );
       setHolidays(response.data.holidays || []);
     } catch (error) {
       console.error("Error fetching holidays:", error);
@@ -93,7 +96,9 @@ const Holidays = () => {
 
   const deleteHoliday = async (id) => {
     try {
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/holidays/delete/${id}`);
+      await axios.delete(
+        `${import.meta.env.VITE_API_URL}/api/holidays/delete/${id}`
+      );
       fetchHolidays();
     } catch (error) {
       console.error("Error deleting holiday:", error);
@@ -101,7 +106,7 @@ const Holidays = () => {
   };
 
   // Transform holidays data for React Big Calendar
-  const calendarEvents = holidays.map(holiday => ({
+  const calendarEvents = holidays.map((holiday) => ({
     id: holiday.id,
     title: holiday.name,
     start: new Date(holiday.date),
@@ -109,8 +114,8 @@ const Holidays = () => {
     allDay: true,
     resource: {
       type: holiday.type,
-      originalData: holiday
-    }
+      originalData: holiday,
+    },
   }));
 
   // Handle event selection in Big Calendar
@@ -141,37 +146,37 @@ const Holidays = () => {
 
   // Custom event style based on holiday type
   const eventStyleGetter = (event) => {
-    let backgroundColor = '#3174ad';
-    let borderColor = '#3174ad';
+    let backgroundColor = "#3174ad";
+    let borderColor = "#3174ad";
 
     switch (event.resource.type) {
-      case 'Regular':
-        backgroundColor = '#dc2626'; // Red for regular holidays
-        borderColor = '#dc2626';
+      case "Regular":
+        backgroundColor = "#dc2626"; // Red for regular holidays
+        borderColor = "#dc2626";
         break;
-      case 'Special':
-        backgroundColor = '#16a34a'; // Green for special holidays
-        borderColor = '#16a34a';
+      case "Special":
+        backgroundColor = "#16a34a"; // Green for special holidays
+        borderColor = "#16a34a";
         break;
-      case 'Special Non-Working':
-        backgroundColor = '#ea580c'; // Orange for special non-working
-        borderColor = '#ea580c';
+      case "Special Non-Working":
+        backgroundColor = "#ea580c"; // Orange for special non-working
+        borderColor = "#ea580c";
         break;
       default:
-        backgroundColor = '#3174ad';
-        borderColor = '#3174ad';
+        backgroundColor = "#3174ad";
+        borderColor = "#3174ad";
     }
 
     return {
       style: {
         backgroundColor,
         borderColor,
-        color: 'white',
+        color: "white",
         border: `2px solid ${borderColor}`,
-        borderRadius: '4px',
-        fontSize: '12px',
-        fontWeight: 'bold'
-      }
+        borderRadius: "4px",
+        fontSize: "12px",
+        fontWeight: "bold",
+      },
     };
   };
 
@@ -181,7 +186,9 @@ const Holidays = () => {
   const fetchHolidayRates = async () => {
     setLoadingRates(true);
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/holidays/holiday-rates`);
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/holidays/holiday-rates`
+      );
       if (res.data && res.data.rates) {
         setHolidayRates({
           regular: res.data.rates.regular ?? 1,
@@ -222,7 +229,10 @@ const Holidays = () => {
   // Save holiday rates to backend
   const saveHolidayRates = async () => {
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/holidays/holiday-rates`, holidayRates);
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/holidays/holiday-rates`,
+        holidayRates
+      );
       alert("Holiday rates saved successfully!");
       closeRateModal();
     } catch (error) {
@@ -232,26 +242,30 @@ const Holidays = () => {
   };
 
   return (
-    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
-      <div className="h-[calc(100vh-100px)] overflow-auto">
+    <div className="top-0 right-0 bottom-0 h-screen w-[calc(100vw-17rem)] bg-neutralSilver p-3 pt-16 overflow-hidden">
+      <div className="h-full flex flex-col overflow-hidden">
         <Breadcrumb
           items={[
             { label: "Attendance", href: "/admin-dashboard/attendance" },
             { label: "Add Attendance", href: "/admin-dashboard/employees" },
-            { label: "Attendance Computation", href: "/admin-dashboard/attendance-computation" },
+            {
+              label: "Attendance Computation",
+              href: "/admin-dashboard/attendance-computation",
+            },
             { label: "History", href: "" },
             { label: "Holidays", href: "" },
           ]}
         />
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Big Calendar on the left */}
-          <div className="lg:w-2/3">
-            <div className="bg-white p-3 rounded-lg">
-              <h2 className="text-xl mb-4 text-neutralDGrey">Holiday Calendar</h2>
-
+        <div className="-mt-2 flex flex-row gap-3 flex-1 overflow-hidden">
+          {/* Calendar Section - 65% width */}
+          <div className="bg-white h-full rounded-lg p-3 w-[65%] flex flex-col overflow-hidden">
+            <div className="flex justify-between">
+              <h2 className="text-sm mb-4 text-neutralDGrey">
+                Holiday Calendar
+              </h2>
               {/* Legend */}
-              <div className="flex flex-wrap gap-4 mb-2 text-xs">
+              <div className="flex flex-wrap gap-4 mb-2 -mt-3 text-xs">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-red-600 rounded"></div>
                   <span>Regular Holiday</span>
@@ -265,98 +279,115 @@ const Holidays = () => {
                   <span>Special Non-Working</span>
                 </div>
               </div>
+            </div>
 
-              {/* React Big Calendar */}
-              <div style={{ height: '500px' }}>
-                <Calendar
-                  localizer={localizer}
-                  events={calendarEvents}
-                  startAccessor="start"
-                  endAccessor="end"
-                  onSelectEvent={handleSelectEvent}
-                  onSelectSlot={handleSelectSlot}
-                  selectable
-                  eventPropGetter={eventStyleGetter}
-                  views={['month', 'week', 'day', 'agenda']}
-                  defaultView="month"
-                  popup
-                  tooltipAccessor="title"
-                  showMultiDayTimes
-                  step={60}
-                  showAllEvents
-                  components={{
-                    toolbar: ({ label, onNavigate, onView, view, views }) => (
-                      <div className="rbc-toolbar flex items-center justify-between mb-2 p-2 ">
-                        <div className="flex items-center">
-                          <button
-                            onClick={() => onNavigate('PREV')}
-                            className="px-3 py-1 h-10 w-fit bg-white border  hover:bg-gray-100 text-sm"
-                          >
-                            Back
-                          </button>
-                          <button
-                            onClick={() => onNavigate('TODAY')}
-                            className="px-3 py-1  h-10 w-fit bg-blue-500 text-neutralDGray  hover:bg-blue-600 text-sm"
-                          >
-                            Today
-                          </button>
-                          <button
-                            onClick={() => onNavigate('NEXT')}
-                            className="px-3 py-1  h-10 w-fit bg-white border  hover:bg-gray-100 text-sm"
-                          >
-                            Next
-                          </button>
-                        </div>
+            {/* React Big Calendar */}
+            <div className="flex-1 -mt-4 overflow-hidden">
+              <Calendar
+                localizer={localizer}
+                events={calendarEvents}
+                startAccessor="start"
+                endAccessor="end"
+                onSelectEvent={handleSelectEvent}
+                onSelectSlot={handleSelectSlot}
+                selectable
+                eventPropGetter={eventStyleGetter}
+                views={["month", "week", "day", "agenda"]}
+                defaultView="month"
+                popup
+                tooltipAccessor="title"
+                showMultiDayTimes
+                step={60}
+                showAllEvents
+                components={{
+                  toolbar: ({ label, onNavigate, onView, view, views }) => (
+                    <div className="rbc-toolbar flex items-center justify-between mb-2 p-2 ">
+                      <div className="flex items-center">
+                        <button
+                          onClick={() => onNavigate("PREV")}
+                          className="px-3 py-1 h-8 w-fit bg-white border hover:bg-gray-100 text-xs"
+                        >
+                          <FaAngleLeft />
+                        </button>
+                        <button
+                          onClick={() => onNavigate("TODAY")}
+                          className="px-3 py-1  h-8 w-fit bg-blue-500 text-neutralDGray  hover:bg-blue-600 text-xs"
+                        >
+                          Today
+                        </button>
+                        <button
+                          onClick={() => onNavigate("NEXT")}
+                          className="px-3 py-1  h-8 w-fit bg-white border  hover:bg-gray-100 text-xs"
+                        >
+                          <FaAngleRight />
+                        </button>
+                      </div>
 
-                        <div className="rbc-toolbar-label text-lg ">
-                          {label}
-                        </div>
+                      <div className="rbc-toolbar-label text-base ">
+                        {label}
+                      </div>
 
-                        <div className="flex">
-                          {views.map(viewName => (
+                      <div className="flex">
+                        {views
+                          .filter(
+                            (viewName) =>
+                              viewName === "month" || viewName === "agenda"
+                          )
+                          .map((viewName) => (
                             <button
                               key={viewName}
                               onClick={() => onView(viewName)}
-                              className={`px-2 py-1  h-10 w-fit text-xs capitalize transition-colors ${view === viewName
-                                ? 'bg-blue-500 text-neutralDGray'
-                                : 'bg-white border hover:bg-gray-100'
-                                }`}
+                              className={`px-2 py-1 h-8 w-fit text-xs capitalize transition-colors ${
+                                view === viewName
+                                  ? "bg-blue-500 text-neutralDGray"
+                                  : "bg-white border hover:bg-gray-100"
+                              }`}
                             >
                               {viewName}
                             </button>
                           ))}
-                        </div>
                       </div>
-                    )
-                  }}
-                />
-              </div>
+                    </div>
+                  ),
+                }}
+              />
             </div>
           </div>
 
-          {/* Add Holiday Form on the right */}
-          <div className="lg:w-1/3 bg-white p-4 rounded-lg">
-            <h3 className="text-lg mb-4 text-neutralDGray">Add Holiday</h3>
-            <div className="flex flex-col gap-3">
+          {/* Add Holiday Section - 35% width */}
+          <div className="bg-white h-full p-3 w-[35%] rounded-lg flex flex-col overflow-y-auto">
+            <h3 className="text-sm mb-4 text-neutralDGray">Add Holiday</h3>
+            <div className="flex flex-col gap-3 -mt-2">
+              <label htmlFor="name" className="text-xs text-neutralDGray">
+                Holiday Name
+              </label>
               <input
                 type="text"
-                placeholder="Holiday Name"
+                placeholder="e.g. Independence Day"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="p-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="p-2 text-xs -mt-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
+              <label htmlFor="date" className="text-xs -mt-1 text-neutralDGray">
+                Holiday Date
+              </label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="p-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="p-2 text-xs -mt-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
+              <label htmlFor="type" className="text-xs -mt-1 text-neutralDGray">
+                Holiday Type
+              </label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="p-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="p-2 text-xs -mt-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
-                <option value="">Select Type</option>
+                <option value="" disabled>
+                  Select Type
+                </option>
                 <option value="Regular">Regular Holiday</option>
                 <option value="Special">Special Holiday</option>
                 <option value="Special Non-Working">
@@ -366,24 +397,33 @@ const Holidays = () => {
 
               <button
                 onClick={addHoliday}
-                className="p-2 text-sm h-10 w-full text-neutralDGray border hover:text-white hover:bg-green-400 rounded flex items-center justify-center transition duration-200"
+                className="p-2 text-xs h-8 w-full text-neutralDGray border hover:text-white hover:bg-green-400 rounded flex items-center justify-center transition duration-200"
               >
                 Add Holiday
               </button>
 
               {/* Holiday Rates Display */}
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                <div className="text-sm font-medium text-neutralDGray mb-2">Current Rates:</div>
+              <div className="mt-1 p-2 bg-gray-50 rounded-lg">
+                <div className="text-sm italic font-medium text-neutralDGray mb-2">
+                  Current Rates:
+                </div>
                 <div className="text-sm text-neutralDGray space-y-1">
-                  <div>Regular: <strong>{holidayRates.regular}x</strong></div>
-                  <div>Special: <strong>{holidayRates.special}x</strong></div>
-                  <div>Special Non-Working: <strong>{holidayRates.specialNonWorking}x</strong></div>
+                  <div>
+                    Regular: <strong>{holidayRates.regular}x</strong>
+                  </div>
+                  <div>
+                    Special: <strong>{holidayRates.special}x</strong>
+                  </div>
+                  <div>
+                    Special Non-Working:{" "}
+                    <strong>{holidayRates.specialNonWorking}x</strong>
+                  </div>
                 </div>
               </div>
 
               <button
                 onClick={openRateModal}
-                className="p-2 text-sm h-10 w-full text-neutralDGray border hover:text-white hover:bg-blue-400 rounded flex items-center justify-center transition duration-200"
+                className="p-2 text-xs h-8 w-full text-neutralDGray border hover:text-white hover:bg-green-400 rounded flex items-center justify-center transition duration-200"
               >
                 Edit Holiday Rates
               </button>
@@ -391,10 +431,11 @@ const Holidays = () => {
           </div>
         </div>
 
-        {/* List Holidays */}
-        <div className="bg-white p-3 mt-6 rounded-lg">
-          <h3 className="text-lg mb-4 text-neutralDGray">Holiday List</h3>
-          <div className="text-sm">
+        {/* List Holidays - Hidden to fit on one screen */}
+
+        <div className="bg-white p-3 mt-3 rounded-lg">
+          <h3 className="text-sm mb-4 text-neutralDGray">Holiday List</h3>
+          <div className="text-xs">
             <DataTable
               columns={columns}
               data={holidays}
@@ -414,14 +455,18 @@ const Holidays = () => {
             <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
               <h3 className="text-base mb-3">Date Information</h3>
               <div className="p-4 h-fit bg-blue-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-700 mb-1">Selected Date:</p>
+                <p className="text-sm font-medium text-gray-700 mb-1">
+                  Selected Date:
+                </p>
                 <p className="text-lg italic text-blue-800">
                   {selectedDate?.toDateString()}
                 </p>
               </div>
 
               <div className="p-4 bg-gray-50 mt-2 rounded-lg">
-                <p className="text-sm  font-medium text-gray-700 mb-1">Holiday Status:</p>
+                <p className="text-sm  font-medium text-gray-700 mb-1">
+                  Holiday Status:
+                </p>
                 <p className="text-sm italic font-medium text-gray-800">
                   {selectedHoliday}
                 </p>
@@ -499,7 +544,7 @@ const Holidays = () => {
                 <button
                   onClick={saveHolidayRates}
                   disabled={loadingRates}
-                  className="px-4 py-2n w-1/2 h-10 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+                  className="px-4 py-2 w-1/2 h-10 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                 >
                   Save Rates
                 </button>

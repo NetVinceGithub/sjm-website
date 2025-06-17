@@ -696,10 +696,10 @@ const Overview = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <CalendarOverview
                 onDateChange={setCutoffDate}
-                className="w-1/2 h-60"
+                className="flex-1 h-60"
               />
 
-              <div className="relative bg-white border w-1/2 border-neutralDGray shadow-sm rounded p-2 lg:p-3 min-h-[260px]">
+              <div className="relative bg-white border w-full border-neutralDGray shadow-sm rounded p-2 lg:p-3 min-h-[260px]">
                 <h6 className="text-neutralDGray text-sm mb-1">Notes:</h6>
 
                 <div className="overflow-y-auto pr-2 pb-24 max-h-72 custom-scroll">
@@ -731,7 +731,7 @@ const Overview = () => {
                       />
                     </div>
                   )}
-                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-1">
+                  <div className="flex flex-row space-y-2 sm:space-y-0 gap-1 mb-1">
                     <input
                       type="text"
                       value={newNote}
@@ -739,7 +739,7 @@ const Overview = () => {
                       placeholder={
                         editingIndex >= 0 ? "Edit note..." : "Add a new note..."
                       }
-                      className="flex-1 border border-gray-300 px-2 h-8 rounded text-xs"
+                      className="flex-1 border w-16 border-gray-300 px-2 h-8 rounded text-xs"
                     />
                     {editingIndex >= 0 ? (
                       <>
