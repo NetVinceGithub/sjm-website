@@ -14,11 +14,9 @@ import * as XLSX from "xlsx";
 import { Modal, Button } from "react-bootstrap";
 import { toast } from "react-toastify";
 import { useAuth } from "../../../context/authContext";
-import FilterComponent from "../modals/FilterComponent";
 
 const PayrollSummary = () => {
   const { user } = useAuth();
-  const [filterComponentModal, setFilterComponentModal] = useState(false);
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -39,40 +37,8 @@ const PayrollSummary = () => {
     []
   );
   const [maxOvertime, setMaxOvertime] = useState("");
-  const [selectedSchedules, setSelectedSchedules] = useState([]);
 
   const navigate = useNavigate();
-
-  // const formatCutoffDisplay = (date) => {
-  //   if (!date) {
-  //     return date;
-  //   }
-
-  //   try {
-  //     const selectedDate = new Date(date);
-  //     const day = selectedDate.getDate();
-  //     const month = selectedDate.toLocaleDateString("en-US", { month: "long" });
-  //     const year = selectedDate.getFullYear();
-
-  //     if (payrollType === "weekly") {
-  //       return `${month} ${day}, ${year}`;
-  //     }
-
-  //     if (day >= 1 && day <= 15) {
-  //       return `${month} 1-15, ${year}`;
-  //     } else {
-  //       // Get the last day of the month
-  //       const lastDay = new Date(
-  //         year,
-  //         selectedDate.getMonth() + 1,
-  //         0
-  //       ).getDate();
-  //       return `${month} 16-${lastDay}, ${year}`;
-  //     }
-  //   } catch (error) {
-  //     return date; // Return original date if parsing fails
-  //   }
-  // };
 
   // Fixed function to filter employees based on search term
   const filterEmployeesBySearch = (employeeList = filteredEmployees) => {
@@ -243,16 +209,6 @@ const PayrollSummary = () => {
     setModalOpen(true);
   };
 
-  const openFilter = () => {
-    setFilterComponentModal(true);
-  };
-
-  const handleRemoveSchedule = (scheduleKey) => {
-    setSelectedSchedules((prev) =>
-      prev.filter((schedule) => schedule.key !== scheduleKey)
-    );
-  };
-
   const handleCheckboxChange = (ecode) => {
     setSelectedOvertime((prevSelected) => {
       const isCurrentlySelected = prevSelected.includes(ecode);
@@ -302,27 +258,10 @@ const PayrollSummary = () => {
     setPayslips(records);
   };
 
-  useEffect(() => {
-    console.log(
-      "🔍 PayrollSummary - selectedSchedules changed:",
-      selectedSchedules
-    );
-  }, [selectedSchedules]);
-
-  const handleSchedulesSelected = (schedules) => {
-    console.log(
-      "📋 PayrollSummary - Received schedules from FilterComponent:",
-      schedules
-    );
-    setSelectedSchedules(schedules);
-    setFilterComponentModal(false); // Close modal after selection
-  };
-
   const handleCreatePayroll = async () => {
     try {
       console.log("🚀 handleCreatePayroll called");
       console.log("📅 cutoffDate:", cutoffDate);
-      console.log("📋 selectedSchedules:", selectedSchedules);
 
       // Validate cutoff date
       if (!cutoffDate) {
@@ -330,23 +269,7 @@ const PayrollSummary = () => {
         return;
       }
 
-      // Enhanced schedule validation
-      if (
-        !selectedSchedules ||
-        !Array.isArray(selectedSchedules) ||
-        selectedSchedules.length === 0
-      ) {
-        console.log("❌ No schedules selected");
-        setMessage(
-          "Please select at least one schedule from Filters for tardiness calculation."
-        );
-        setFilterComponentModal(true);
-        return;
-      }
-
-      console.log(
-        "✅ All validations passed, proceeding to load employee data"
-      );
+      console.log("✅ Cutoff date validation passed, proceeding to load employee data");
 
       setLoading(true);
       setMessage("Loading employee data...");
@@ -405,31 +328,18 @@ const PayrollSummary = () => {
     }
   };
 
-  // Enhanced button validation
+  // Simplified button validation - only check cutoff date
   const isCreateButtonDisabled = () => {
-    const hasSchedules =
-      selectedSchedules &&
-      Array.isArray(selectedSchedules) &&
-      selectedSchedules.length > 0;
     const hasCutoff = Boolean(cutoffDate);
     const isLoading = loading;
 
-    return isLoading || !hasCutoff || !hasSchedules;
+    return isLoading || !hasCutoff;
   };
 
   const proceedWithPayroll = async (selectedEmployees) => {
     // Validate cutoff date
     if (!cutoffDate) {
       setMessage("Please select a cutoff date before generating payroll.");
-      return;
-    }
-
-    // Validate that schedules are selected
-    if (!selectedSchedules || selectedSchedules.length === 0) {
-      setMessage(
-        "Please select at least one schedule before generating payroll."
-      );
-      setFilterComponentModal(true);
       return;
     }
 
@@ -476,18 +386,12 @@ const PayrollSummary = () => {
         };
       });
 
-      // Extract schedule values for API
-      const selectedScheduleValues = selectedSchedules.map(
-        (schedule) => schedule.value || schedule.key || schedule
-      );
-
-      // Send request with individual overtime data and selected schedules
+      // Send request with individual overtime data
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/payslip/generate`,
         {
           cutoffDate: cutoffDate.trim(),
           selectedEmployees,
-          selectedSchedules: selectedScheduleValues,
           attendanceData: updatedAttendanceData,
           individualOvertime,
           requestedBy: user.name,
@@ -504,8 +408,7 @@ const PayrollSummary = () => {
           setPayslips(response.data.payslips);
           toast.success(
             <div style={{ fontSize: "0.9rem" }}>
-              Payroll successfully generated for {selectedSchedules.length}{" "}
-              schedule(s).
+              Payroll successfully generated for {selectedEmployees.length} employee(s).
             </div>,
             {
               autoClose: 3000,
@@ -729,7 +632,6 @@ const PayrollSummary = () => {
       width: "150px",
     },
   ];
-
   return (
     <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <div className="flex flex-col h-[calc(100vh-90px)]">
@@ -780,48 +682,7 @@ const PayrollSummary = () => {
                 Cutoff Date:
               </label>
 
-              {selectedSchedules && selectedSchedules.length > 0 && (
-                <div className="inline-flex items-center py-1.5 -mt-6 ml-auto mr-5 rounded-full text-sm">
-                  <div className="flex items-center gap-1">
-                    {selectedSchedules.map((schedule, index) => (
-                      <span
-                        key={schedule.key || index}
-                        className="flex items-center"
-                      >
-                        <div className="flex items-center gap-1">
-                          <div
-                            className={`w-2 h-2 rounded ${
-                              schedule.color || "bg-gray-500"
-                            }`}
-                          ></div>
-                          <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                            {schedule.label}
-                          </span>
-                        </div>
-                        <button
-                          className="ml-1 w-4 h-4 rounded-full bg-blue-200 hover:bg-blue-300 flex items-center justify-center transition-colors"
-                          onClick={() => handleRemoveSchedule(schedule.key)}
-                        >
-                          <svg
-                            className="w-2.5 h-2.5 text-blue-600"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </button>
-                        {index < selectedSchedules.length - 1 && (
-                          <span className="mx-1 text-blue-400">|</span>
-                        )}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+
 
               {/* Radio Button Section */}
               <div className="flex gap-6 mb-4 justify-end">
@@ -886,19 +747,15 @@ const PayrollSummary = () => {
                 <button
                   onClick={handleCreatePayroll}
                   className={`px-2 py-1 text-sm border rounded w-full lg:w-36 h-8 text-neutralDGray ${
-                    cutoffDate &&
-                    selectedSchedules &&
-                    selectedSchedules.length > 0
+                    cutoffDate
                       ? "hover:bg-green-400 hover:text-white"
                       : "bg-neutralGray cursor-not-allowed opacity-50"
                   }`}
                   disabled={isCreateButtonDisabled()}
                   title={
                     !cutoffDate
-                      ? "Please select a cutoff date"
-                      : !selectedSchedules || selectedSchedules.length === 0
                       ? "Please select at least one schedule from Filters"
-                      : `Create payroll for ${selectedSchedules.length} selected schedule(s)`
+                      : `Create payroll for selected schedule(s)`
                   }
                 >
                   {loading ? "Generating..." : "Create Payroll"}
@@ -931,10 +788,7 @@ const PayrollSummary = () => {
               </div>
             )}
 
-            {/* Schedule Status Indicator */}
-            {selectedSchedules?.length > 0 && (
-              <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg"></div>
-            )}
+
 
             {/* Payroll Details */}
             <div className="flex flex-col rounded-lg mt-3  h-full max-h-[80vh] min-h-[28rem]">
@@ -1009,19 +863,7 @@ const PayrollSummary = () => {
                     </div>
                   ) : (
                     <div className="mt-6 text-center">
-                      {!selectedSchedules?.length ? (
-                        <div className="text-orange-500">
-                          <p className="text-sm">No schedules selected</p>
-                          <p className="text-xs italic -mt-2">
-                            Please select schedules from the Filters to view
-                            employee data
-                          </p>
-                        </div>
-                      ) : (
-                        <p className="text-gray-300">
-                          No payslip records available.
-                        </p>
-                      )}
+                     
                     </div>
                   )}
                 </div>
@@ -1049,12 +891,12 @@ const PayrollSummary = () => {
           onClose={() => setNoAttendanceModalOpen(false)}
         />
 
-        <FilterComponent
+        {/* <FilterComponent
           show={filterComponentModal}
           onClose={() => setFilterComponentModal(false)}
           onSchedulesSelected={handleSchedulesSelected}
           onRemoveSchedule={handleRemoveSchedule}
-        />
+        /> */}
 
         {/* Overtime Approval Modal */}
         <Modal show={show} onHide={handleClose} centered size="lg" scrollable>
