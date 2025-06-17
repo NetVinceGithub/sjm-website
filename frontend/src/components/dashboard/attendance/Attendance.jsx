@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { BsFilter } from "react-icons/bs";
 import Tooltip from "@mui/material/Tooltip";
 import { toast } from "react-toastify";
+import FilterComponent from "../modals/FilterComponent";
 
 const Attendance = () => {
   // State variables
@@ -18,11 +19,17 @@ const Attendance = () => {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [filterComponentModal, setFilterComponentModal] = useState(false);
 
   // Optimized schedule options - removed custom schedule
   const scheduleOptions = [
     { value: "8-17", label: "Day Shift (8:00 - 17:00)", start: 8, end: 17 },
-    { value: "17-21", label: "Evening Shift (17:00 - 21:00)", start: 17, end: 21 },
+    {
+      value: "17-21",
+      label: "Evening Shift (17:00 - 21:00)",
+      start: 17,
+      end: 21,
+    },
     { value: "21-6", label: "Night Shift (21:00 - 06:00)", start: 21, end: 6 },
     { value: "9-18", label: "Regular Hours (9:00 - 18:00)", start: 9, end: 18 },
   ];
@@ -32,7 +39,7 @@ const Attendance = () => {
     if (!onDutyTime) return "Unknown";
 
     const [hours, minutes] = onDutyTime.split(":").map(Number);
-    const onDutyHour = hours + (minutes / 60);
+    const onDutyHour = hours + minutes / 60;
 
     // Create an array to store potential matches with their proximity scores
     const matches = [];
@@ -50,7 +57,7 @@ const Attendance = () => {
             proximity = Math.abs(onDutyHour - 21);
           } else {
             // For early morning (0-6), calculate distance from 21:00 previous day
-            proximity = Math.abs((onDutyHour + 24) - 21);
+            proximity = Math.abs(onDutyHour + 24 - 21);
           }
         }
       } else {
@@ -81,12 +88,14 @@ const Attendance = () => {
 
       if (schedule.value === "21-6") {
         // Special handling for night shift
-        const distanceToStart = onDutyHour >= 21 ? 
-          Math.abs(onDutyHour - 21) : 
-          Math.abs(onDutyHour + 24 - 21);
-        const distanceToEnd = onDutyHour <= 6 ? 
-          Math.abs(onDutyHour - 6) : 
-          Math.abs(onDutyHour - 6 - 24);
+        const distanceToStart =
+          onDutyHour >= 21
+            ? Math.abs(onDutyHour - 21)
+            : Math.abs(onDutyHour + 24 - 21);
+        const distanceToEnd =
+          onDutyHour <= 6
+            ? Math.abs(onDutyHour - 6)
+            : Math.abs(onDutyHour - 6 - 24);
         distance = Math.min(distanceToStart, distanceToEnd);
       } else {
         // Calculate distance to start and end of shift
@@ -140,7 +149,9 @@ const Attendance = () => {
     const onDutyMinutes = hours * 60 + minutes;
 
     // Find the corresponding schedule for the detected shift
-    const schedule = scheduleOptions.find(s => detectedShift.includes(s.label.split(" (")[0]));
+    const schedule = scheduleOptions.find((s) =>
+      detectedShift.includes(s.label.split(" (")[0])
+    );
     if (!schedule) return false;
 
     let shiftStartMinutes;
@@ -163,7 +174,9 @@ const Attendance = () => {
     const onDutyMinutes = hours * 60 + minutes;
 
     // Find the corresponding schedule for the detected shift
-    const schedule = scheduleOptions.find(s => detectedShift.includes(s.label.split(" (")[0]));
+    const schedule = scheduleOptions.find((s) =>
+      detectedShift.includes(s.label.split(" (")[0])
+    );
     if (!schedule) return 0;
 
     let shiftStartMinutes;
@@ -223,7 +236,9 @@ const Attendance = () => {
       width: "120px",
       cell: (row) => (
         <span
-          className={`px-2 py-1 rounded text-xs ${getShiftBadgeColor(row.shift || "Unknown")}`}
+          className={`px-2 py-1 rounded text-xs ${getShiftBadgeColor(
+            row.shift || "Unknown"
+          )}`}
         >
           {(row.shift || "Unknown").split(" (")[0]}
         </span>
@@ -271,27 +286,27 @@ const Attendance = () => {
       name: "E-Code",
       selector: (row) => row.ecode,
       sortable: true,
-      width: "80px",
+      width: "90px",
     },
     {
       name: "Total Days",
       selector: (row) => row.totalDays,
-      width: "80px",
+      width: "100px",
     },
     {
       name: "Present",
       selector: (row) => row.presentDays,
-      width: "70px",
+      width: "90px",
     },
     {
       name: "Absent",
       selector: (row) => row.absentDays,
-      width: "70px",
+      width: "80px",
     },
     {
       name: "Day Shift",
       selector: (row) => row.dayShiftDays || 0,
-      width: "80px",
+      width: "100px",
       cell: (row) => (
         <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
           {row.dayShiftDays || 0}
@@ -301,7 +316,7 @@ const Attendance = () => {
     {
       name: "Evening Shift",
       selector: (row) => row.eveningShiftDays || 0,
-      width: "90px",
+      width: "120px",
       cell: (row) => (
         <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-800">
           {row.eveningShiftDays || 0}
@@ -311,7 +326,7 @@ const Attendance = () => {
     {
       name: "Night Shift",
       selector: (row) => row.nightShiftDays || 0,
-      width: "80px",
+      width: "110px",
       cell: (row) => (
         <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
           {row.nightShiftDays || 0}
@@ -321,7 +336,7 @@ const Attendance = () => {
     {
       name: "Regular Hours",
       selector: (row) => row.regularHoursDays || 0,
-      width: "90px",
+      width: "110px",
       cell: (row) => (
         <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
           {row.regularHoursDays || 0}
@@ -331,7 +346,7 @@ const Attendance = () => {
     {
       name: "Tardiness",
       selector: (row) => formatMinutesToHoursMinutes(row.totalLateMinutes),
-      width: "80px",
+      width: "110px",
       cell: (row) => (
         <span
           className={`px-2 py-1 rounded text-xs ${
@@ -352,7 +367,7 @@ const Attendance = () => {
             ? ((row.presentDays / row.totalDays) * 100).toFixed(1)
             : "0.0"
         }%`,
-      width: "90px",
+      width: "120px",
     },
   ];
 
@@ -467,7 +482,7 @@ const Attendance = () => {
 
       if (record.status === "present") {
         summary[ecode].presentDays++;
-        
+
         // Count shift-specific days based on the shift type
         if (record.shift) {
           if (record.shift.includes("Day Shift")) {
@@ -690,7 +705,10 @@ const Attendance = () => {
             </h2>
             <Tooltip title="Add Attendance Filter" arrow>
               <button className="px-4 text-xs h-8 w-fit  border hover:bg-green-400 hover:text-white text-neutralDGray rounded-md cursor-pointer">
-                <BsFilter className="text-lg" />
+                <BsFilter
+                  className="text-lg"
+                  onClick={() => setFilterComponentModal(true)}
+                />
               </button>
             </Tooltip>
           </div>
@@ -761,6 +779,10 @@ const Attendance = () => {
           </div>
         </div>
       </div>
+      <FilterComponent
+        show={filterComponentModal}
+        onClose={() => setFilterComponentModal(false)}
+      />
     </div>
   );
 };

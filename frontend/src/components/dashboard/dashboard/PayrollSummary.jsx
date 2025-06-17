@@ -43,36 +43,36 @@ const PayrollSummary = () => {
 
   const navigate = useNavigate();
 
-  const formatCutoffDisplay = (date) => {
-    if (!date) {
-      return date;
-    }
+  // const formatCutoffDisplay = (date) => {
+  //   if (!date) {
+  //     return date;
+  //   }
 
-    try {
-      const selectedDate = new Date(date);
-      const day = selectedDate.getDate();
-      const month = selectedDate.toLocaleDateString("en-US", { month: "long" });
-      const year = selectedDate.getFullYear();
+  //   try {
+  //     const selectedDate = new Date(date);
+  //     const day = selectedDate.getDate();
+  //     const month = selectedDate.toLocaleDateString("en-US", { month: "long" });
+  //     const year = selectedDate.getFullYear();
 
-      if (payrollType === "weekly") {
-        return `${month} ${day}, ${year}`;
-      }
+  //     if (payrollType === "weekly") {
+  //       return `${month} ${day}, ${year}`;
+  //     }
 
-      if (day >= 1 && day <= 15) {
-        return `${month} 1-15, ${year}`;
-      } else {
-        // Get the last day of the month
-        const lastDay = new Date(
-          year,
-          selectedDate.getMonth() + 1,
-          0
-        ).getDate();
-        return `${month} 16-${lastDay}, ${year}`;
-      }
-    } catch (error) {
-      return date; // Return original date if parsing fails
-    }
-  };
+  //     if (day >= 1 && day <= 15) {
+  //       return `${month} 1-15, ${year}`;
+  //     } else {
+  //       // Get the last day of the month
+  //       const lastDay = new Date(
+  //         year,
+  //         selectedDate.getMonth() + 1,
+  //         0
+  //       ).getDate();
+  //       return `${month} 16-${lastDay}, ${year}`;
+  //     }
+  //   } catch (error) {
+  //     return date; // Return original date if parsing fails
+  //   }
+  // };
 
   // Fixed function to filter employees based on search term
   const filterEmployeesBySearch = (employeeList = filteredEmployees) => {
@@ -614,35 +614,6 @@ const PayrollSummary = () => {
     }
   };
 
-  // const DebugInfo = () => {
-  //   if (process.env.NODE_ENV !== 'development') return null;
-
-  //   return (
-  //     <div className="p-2 bg-gray-100 text-xs border rounded mb-4">
-  //       <p><strong>Debug Info:</strong></p>
-  //       <p>Total Employees: {employees.length}</p>
-  //       <p>Filtered Employees: {filteredEmployees.length}</p>
-  //       <p>Filtered Overtime Display: {filteredEmployeesOvertime.length}</p>
-  //       <p>Selected Overtime: {selectedOvertime.length}</p>
-  //       <p>Search Term: "{searchTerm}"</p>
-  //       <p>Modal Open: {show ? 'Yes' : 'No'}</p>
-  //       {employees.length > 0 && (
-  //         <details className="mt-2">
-  //           <summary className="cursor-pointer text-blue-600">View Employee Data</summary>
-  //           <div className="mt-1 text-xs bg-white p-2 rounded">
-  //             {employees.slice(0, 3).map((emp, idx) => (
-  //               <p key={idx}>
-  //                 {emp.name} ({emp.ecode}) - Status: {emp.status || 'N/A'}
-  //               </p>
-  //             ))}
-  //             {employees.length > 3 && <p>... and {employees.length - 3} more</p>}
-  //           </div>
-  //         </details>
-  //       )}
-  //     </div>
-  //   );
-  // };
-
   // Define table columns
   const columns = [
     {
@@ -760,7 +731,7 @@ const PayrollSummary = () => {
   ];
 
   return (
-    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
+    <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <div className="flex flex-col h-[calc(100vh-90px)]">
         {/* Confirm Deletion Modal */}
         {showConfirmModal && (
@@ -801,9 +772,9 @@ const PayrollSummary = () => {
         />
 
         {/* Main Layout */}
-        <div className="flex  flex-wrap gap-4 -mt-1 flex-grow overflow-hidden">
+        <div className="flex  flex-wrap gap-4 -mt-2 flex-grow overflow-hidden">
           {/* Left Section */}
-          <div className="w-full lg:w-[70%]  h-full bg-white border-gray-900 rounded gap-2 shadow-sm p-3">
+          <div className="w-full lg:w-[70%]  h-full bg-white border-gray-900 rounded gap-2 border shadow-sm p-3">
             <div className="flex justify-between">
               <label className="block text-sm font-medium text-gray-700">
                 Cutoff Date:
@@ -890,7 +861,7 @@ const PayrollSummary = () => {
               <div className="w-full lg:w-auto flex-1">
                 <input
                   type="text"
-                  value={formatCutoffDisplay(cutoffDate)}
+                  value={cutoffDate}
                   onChange={
                     payrollType === "weekly"
                       ? (e) => setCutoffDate(e.target.value)
@@ -931,20 +902,6 @@ const PayrollSummary = () => {
                   }
                 >
                   {loading ? "Generating..." : "Create Payroll"}
-                </button>
-
-                <button
-                  onClick={() => setFilterComponentModal(true)}
-                  className={`px-4 py-1 rounded text-sm w-full border lg:w-32 h-8 text-neutralDGray hover:text-neutralDGray ${
-                    selectedSchedules && selectedSchedules.length > 0
-                      ? "hover:bg-green-400 bg-green-50 border-green-300"
-                      : "hover:bg-orange-400 hover:text-white border-orange-300"
-                  }`}
-                >
-                  Filters{" "}
-                  {selectedSchedules &&
-                    selectedSchedules.length > 0 &&
-                    `(${selectedSchedules.length})`}
                 </button>
                 <button
                   onClick={() => setShowConfirmModal(true)}
@@ -1054,8 +1011,8 @@ const PayrollSummary = () => {
                     <div className="mt-6 text-center">
                       {!selectedSchedules?.length ? (
                         <div className="text-orange-500">
-                          <p className="text-lg">⚠️ No schedules selected</p>
-                          <p className="text-sm mt-2">
+                          <p className="text-sm">No schedules selected</p>
+                          <p className="text-xs italic -mt-2">
                             Please select schedules from the Filters to view
                             employee data
                           </p>

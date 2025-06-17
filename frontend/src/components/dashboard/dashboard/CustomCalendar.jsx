@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { ChevronRight, ChevronLeft, Check } from "lucide-react";
 
-export default function CustomCalendar({ onDateChange, payrollType = "biweekly" }) {
+export default function CustomCalendar({
+  onDateChange,
+  payrollType = "biweekly",
+}) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [notice1, setNotice1] = useState("");
   const [notice2, setNotice2] = useState("");
@@ -43,18 +46,59 @@ export default function CustomCalendar({ onDateChange, payrollType = "biweekly" 
     setNotice3(payrollNotice);
   }, []);
 
+  const calculateWeeklyPayrollPeriod = (payrollDate) => {
+    // For weekly: payrollDate is when payroll is processed (8th day)
+    // We need the 7-day work period that precedes it (excluding Sundays)
+
+    const periodEndDate = new Date(payrollDate);
+    periodEndDate.setDate(periodEndDate.getDate() - 1); // Last day of work period
+
+    // Calculate start date by going back and collecting 7 working days (Mon-Sat)
+    const workingDays = [];
+    const currentDate = new Date(periodEndDate);
+
+    // Collect 7 working days going backwards
+    while (workingDays.length < 7) {
+      // Include all days except Sunday (0 = Sunday)
+      if (currentDate.getDay() !== 0) {
+        workingDays.unshift(new Date(currentDate)); // Add to beginning of array
+      }
+      currentDate.setDate(currentDate.getDate() - 1);
+    }
+
+    const startDate = workingDays[0];
+    const endDate = workingDays[workingDays.length - 1];
+
+    return { startDate, endDate };
+  };
+
+  const formatDateRange = (startDate, endDate) => {
+    const startMonth = startDate.toLocaleDateString("en-US", { month: "long" });
+    const endMonth = endDate.toLocaleDateString("en-US", { month: "long" });
+    const startDay = startDate.getDate();
+    const endDay = endDate.getDate();
+    const year = endDate.getFullYear();
+
+    // Handle case where dates span different months
+    if (startDate.getMonth() === endDate.getMonth()) {
+      return `${startMonth} ${startDay}-${endDay}, ${year}`;
+    } else {
+      return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
+    }
+  };
+
   const handleDateSelect = (date) => {
     setSelectedDate(date);
-    
+
     const day = date.getDate();
     const month = date.toLocaleDateString("en-US", { month: "long" });
     const year = date.getFullYear();
 
     let formattedDate;
-    
+
     if (payrollType === "weekly") {
-      // For weekly payroll: return exact date like "June 15, 2025"
-      formattedDate = `${month} ${day}, ${year}`;
+      const { startDate, endDate } = calculateWeeklyPayrollPeriod(date);
+      formattedDate = formatDateRange(startDate, endDate);
     } else {
       // For bi-weekly payroll: return cutoff period like "June 1-15, 2025"
       const daysInMonth = getDaysInMonth(date.getMonth(), year);
