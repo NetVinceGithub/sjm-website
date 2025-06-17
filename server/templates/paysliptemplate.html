@@ -27,7 +27,8 @@
               Services Company, Inc.
             </p>
           </div>
-          <p class="text-[9px] mt-2">E-PAYSLIP NO. {{payslip_num}}</p>
+
+          <p class="text-[11px] mt-2">E-PAYSLIP NO.{{payslip_number}}</p>
         </div>
 
         <!-- Right angled section with logo -->
@@ -70,9 +71,12 @@
           </th>
         </tr>
         <tr>
-          <td class="border h-5 border-black">{{ecode}}</td>
-          <td class="border h-5 border-black">{{employee_name}}</td>
-          <td class="border h-5 border-black">{{project_site}}</td>
+
+          <td class="border h-7 border-black">{{ecode}}</td>
+          <td class="border h-7 border-black">{{employee_name}}</td>
+          <td class="border h-7 border-black">{{position}}</td>
+
+
         </tr>
       </table>
       <table
@@ -96,9 +100,12 @@
           </td>
         </tr>
         <tr>
-          <td class="border h-5 border-[#000000]"></td>
-          <td class="border h-5 border-[#000000]"></td>
-          <td class="border h-5 border-[#000000]">{{cutoff_date}}</td>
+
+          <td class="border h-7 border-[#000000]">{{daily_rate}}</td>
+          <td class="border h-7 border-[#000000]">{{project_site}}</td>
+          <td class="border h-7 border-[#000000]">{{cutoff_date}}</td>
+
+
         </tr>
       </table>
       <table class="border-collapse text-[10px] mx-auto mt-1 font-sans">
@@ -249,7 +256,11 @@
           <td class="border border-black h-5 border-t-0 italic border-b-0">
             Adjustments
           </td>
-          <td class="border border-black h-5 border-t-0 border-b-0">
+
+          <td class="border border-black h-7 border-t-0 border-b-0 px-2">
+            {{adjustment}}
+
+
           </td>
         </tr>
         <tr>
@@ -291,13 +302,13 @@
             colspan="2"
             class="border-t-0 border text-center border-black h-5 w-[22rem]"
           >
-            {{net_pay}}
           </td>
+            {{gross_pay}} 
           <td
             colspan="2"
             class="border border-t-0 text-center border-black h-5 w-[22rem]"
           >
-            {{total_deductions}}
+            {{net_pay}}
           </td>
         </tr>
       </table>
