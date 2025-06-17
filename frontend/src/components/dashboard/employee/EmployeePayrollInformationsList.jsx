@@ -360,6 +360,7 @@ const EmployeePayrollInformationsList = () => {
       selector: (row) => row.ecode,
       sortable: true,
       center: true,
+      width: "90px",
     },
     {
       name: "Name",
@@ -373,13 +374,14 @@ const EmployeePayrollInformationsList = () => {
       selector: (row) => row.positiontitle || row.designation,
       sortable: true,
       center: true,
+      width: "320px",
     },
     {
       name: "Daily Rate",
       selector: (row) => `₱${parseFloat(row.daily_rate || 0).toLocaleString()}`,
       sortable: true,
       center: true,
-      width: "120px",
+      width: "110px",
     },
     {
       name: (
@@ -398,7 +400,7 @@ const EmployeePayrollInformationsList = () => {
         `₱${parseFloat(row.holiday_pay || 0).toLocaleString()}`,
       sortable: true,
       center: true,
-      width: "150px",
+      width: "120px",
     },
     {
       name: "Night Differential",
@@ -406,7 +408,7 @@ const EmployeePayrollInformationsList = () => {
         `₱${parseFloat(row.night_differential || 0).toLocaleString()}`,
       sortable: true,
       center: true,
-      width: "200px",
+      width: "150px",
     },
     {
       name: "Allowance",
@@ -453,8 +455,8 @@ const EmployeePayrollInformationsList = () => {
   ];
 
   return (
-    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
-      <div className="h-[calc(100vh-80px)]">
+    <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
+      <div>
         <Breadcrumb
           items={[
             { label: "Payroll", href: "" },
@@ -464,7 +466,7 @@ const EmployeePayrollInformationsList = () => {
             },
           ]}
         />
-        <div className="-mt-2 bg-white p-3 py-3 rounded-lg shadow">
+        <div className="-mt-2 bg-white w-[calc(100vw-310px)] p-3 py-3 rounded-lg shadow">
           <div className="flex items-center justify-between">
             {/* Button Group */}
             <div className="inline-flex border border-neutralDGray rounded h-8">
@@ -504,24 +506,11 @@ const EmployeePayrollInformationsList = () => {
                 />
                 <FaSearch className="ml-[-20px] text-neutralDGray" />
               </div>
-
-              <button
-                onClick={handleSync}
-                disabled={syncing}
-                className="px-3 py-0.5 border rounded hover:bg-neutralSilver transition-all duration-300 disabled:opacity-50"
-                title="Sync Data"
-              >
-                <FaSyncAlt
-                  className={`text-neutralDGray ${
-                    syncing ? "animate-spin" : ""
-                  }`}
-                />
-              </button>
             </div>
           </div>
 
           {/* Table Container */}
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4">
             <div className="w-full">
               <div className="max-h-[35rem] overflow-y-auto text-neutralDGray border rounded-md">
                 <div>

@@ -760,7 +760,7 @@ const PayrollSummary = () => {
   ];
 
   return (
-    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
+    <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <div className="flex flex-col h-[calc(100vh-90px)]">
         {/* Confirm Deletion Modal */}
         {showConfirmModal && (
@@ -801,9 +801,9 @@ const PayrollSummary = () => {
         />
 
         {/* Main Layout */}
-        <div className="flex  flex-wrap gap-4 -mt-1 flex-grow overflow-hidden">
+        <div className="flex  flex-wrap gap-4 -mt-2 flex-grow overflow-hidden">
           {/* Left Section */}
-          <div className="w-full lg:w-[70%]  h-full bg-white border-gray-900 rounded gap-2 shadow-sm p-3">
+          <div className="w-full lg:w-[70%]  h-full bg-white border-gray-900 rounded gap-2 border shadow-sm p-3">
             <div className="flex justify-between">
               <label className="block text-sm font-medium text-gray-700">
                 Cutoff Date:
@@ -1054,8 +1054,8 @@ const PayrollSummary = () => {
                     <div className="mt-6 text-center">
                       {!selectedSchedules?.length ? (
                         <div className="text-orange-500">
-                          <p className="text-lg">⚠️ No schedules selected</p>
-                          <p className="text-sm mt-2">
+                          <p className="text-sm">No schedules selected</p>
+                          <p className="text-xs italic -mt-2">
                             Please select schedules from the Filters to view
                             employee data
                           </p>
