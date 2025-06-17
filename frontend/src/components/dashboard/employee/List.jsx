@@ -831,14 +831,14 @@ const List = () => {
   };
 
   return (
-    <div className="fixed -z-30 top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
+    <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <Breadcrumb
         items={[
           { label: "Employee", href: "" },
           { label: "Masterlist", href: "/admin-dashboard/employees" },
         ]}
       />
-      <div className="bg-white  h-[calc(100vh-120px)] w-full -mt-1 py-3 p-2 rounded-lg shadow">
+      <div className="-mt-2 bg-white w-[calc(100vw-310px)] p-3 py-3 rounded-lg shadow">
         <div className="flex items-center justify-between">
           {/* Button Group - Centered Vertically */}
           <div className="inline-flex border border-neutralDGray rounded h-8">
