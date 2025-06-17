@@ -268,49 +268,89 @@ export const saveAttendanceSummary = async (req, res) => {
     const attendanceSummaryRecords = req.body.summaryData;
 
     if (!attendanceSummaryRecords || !Array.isArray(attendanceSummaryRecords)) {
-      return res.status(400).json({ message: "Invalid data format. Expecting an array." });
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid data format. Expecting an array in summaryData field." 
+      });
     }
 
-    // Format data to match the updated model
+    // Validate that each record has required fields
+    for (let i = 0; i < attendanceSummaryRecords.length; i++) {
+      const record = attendanceSummaryRecords[i];
+      if (!record.ecode) {
+        return res.status(400).json({
+          success: false,
+          message: `Record at index ${i} is missing required field: ecode`
+        });
+      }
+    }
+
+    // Format data to match the model fields
     const formattedData = attendanceSummaryRecords.map(record => {
       const attendanceRate = record.totalDays > 0 ? 
         (record.presentDays / record.totalDays) * 100 : 0;
 
       return {
-        ecode: record.ecode,
-        daysPresent: Number(record.presentDays) || 0,
+        ecode: String(record.ecode).trim(),
+        presentDays: Number(record.presentDays) || 0,
         totalDays: Number(record.totalDays) || 0,
         absentDays: Number(record.absentDays) || 0,
         lateDays: Number(record.lateDays) || 0,
         totalLateMinutes: Number(record.totalLateMinutes) || 0,
-        attendanceRate: Number(attendanceRate) || 0,
+        dayShiftDays: Number(record.dayShiftDays) || 0,
+        eveningShiftDays: Number(record.eveningShiftDays) || 0,
+        nightShiftDays: Number(record.nightShiftDays) || 0,
+        regularHoursDays: Number(record.regularHoursDays) || 0,
+        attendanceRate: Number(attendanceRate.toFixed(2)) || 0,
       };
     });
 
     // Use upsert to handle existing records
     const results = [];
+    let createdCount = 0;
+    let updatedCount = 0;
+
     for (const record of formattedData) {
-      const [instance, created] = await AttendanceSummary.upsert(record, {
-        returning: true
-      });
-      results.push({ instance, created });
+      try {
+        const [instance, created] = await AttendanceSummary.upsert(record, {
+          returning: true
+        });
+        
+        if (created) {
+          createdCount++;
+        } else {
+          updatedCount++;
+        }
+        
+        results.push({ instance, created });
+      } catch (error) {
+        console.error(`Error processing record for ecode ${record.ecode}:`, error);
+        return res.status(500).json({
+          success: false,
+          message: `Error processing record for ecode ${record.ecode}: ${error.message}`
+        });
+      }
     }
 
-    const createdCount = results.filter(r => r.created).length;
-    const updatedCount = results.filter(r => !r.created).length;
-
     res.status(201).json({
+      success: true,
       message: "Attendance Summary data saved successfully",
       created: createdCount,
       updated: updatedCount,
       total: results.length,
+      data: results.map(r => r.instance)
     });
 
   } catch (error) {
     console.error("Error saving attendance summary:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: "Server error", 
+      error: error.message 
+    });
   }
 };
+
 
 
 

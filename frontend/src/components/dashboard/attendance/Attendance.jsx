@@ -1,4 +1,4 @@
-// Updated Attendance.jsx - Find highest total days and apply to all employees
+// Optimized Attendance.jsx - Auto-detect schedule without custom option
 
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { BsFilter } from "react-icons/bs";
 import Tooltip from "@mui/material/Tooltip";
 import { toast } from "react-toastify";
+import FilterComponent from "../modals/FilterComponent";
 
 const Attendance = () => {
   // State variables
@@ -18,6 +19,108 @@ const Attendance = () => {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [filterComponentModal, setFilterComponentModal] = useState(false);
+
+  // Optimized schedule options - removed custom schedule
+  const scheduleOptions = [
+    { value: "8-17", label: "Day Shift (8:00 - 17:00)", start: 8, end: 17 },
+    {
+      value: "17-21",
+      label: "Evening Shift (17:00 - 21:00)",
+      start: 17,
+      end: 21,
+    },
+    { value: "21-6", label: "Night Shift (21:00 - 06:00)", start: 21, end: 6 },
+    { value: "9-18", label: "Regular Hours (9:00 - 18:00)", start: 9, end: 18 },
+  ];
+
+  // Optimized shift detection with fallback logic
+  const determineShift = (onDutyTime) => {
+    if (!onDutyTime) return "Unknown";
+
+    const [hours, minutes] = onDutyTime.split(":").map(Number);
+    const onDutyHour = hours + minutes / 60;
+
+    // Create an array to store potential matches with their proximity scores
+    const matches = [];
+
+    for (const schedule of scheduleOptions) {
+      let proximity = 0;
+      let isMatch = false;
+
+      if (schedule.value === "21-6") {
+        // Night shift spans midnight (21:00 to 06:00)
+        if (onDutyHour >= 21 || onDutyHour <= 6) {
+          isMatch = true;
+          // Calculate proximity to shift start
+          if (onDutyHour >= 21) {
+            proximity = Math.abs(onDutyHour - 21);
+          } else {
+            // For early morning (0-6), calculate distance from 21:00 previous day
+            proximity = Math.abs(onDutyHour + 24 - 21);
+          }
+        }
+      } else {
+        // Regular shifts (don't span midnight)
+        if (onDutyHour >= schedule.start && onDutyHour < schedule.end) {
+          isMatch = true;
+          proximity = Math.abs(onDutyHour - schedule.start);
+        }
+      }
+
+      if (isMatch) {
+        matches.push({ schedule, proximity });
+      }
+    }
+
+    // If we have matches, return the one with the smallest proximity (closest to shift start)
+    if (matches.length > 0) {
+      matches.sort((a, b) => a.proximity - b.proximity);
+      return matches[0].schedule.label;
+    }
+
+    // Fallback logic: find the closest shift even if not within exact bounds
+    let closestShift = scheduleOptions[0];
+    let minDistance = Infinity;
+
+    for (const schedule of scheduleOptions) {
+      let distance;
+
+      if (schedule.value === "21-6") {
+        // Special handling for night shift
+        const distanceToStart =
+          onDutyHour >= 21
+            ? Math.abs(onDutyHour - 21)
+            : Math.abs(onDutyHour + 24 - 21);
+        const distanceToEnd =
+          onDutyHour <= 6
+            ? Math.abs(onDutyHour - 6)
+            : Math.abs(onDutyHour - 6 - 24);
+        distance = Math.min(distanceToStart, distanceToEnd);
+      } else {
+        // Calculate distance to start and end of shift
+        const distanceToStart = Math.abs(onDutyHour - schedule.start);
+        const distanceToEnd = Math.abs(onDutyHour - schedule.end);
+        distance = Math.min(distanceToStart, distanceToEnd);
+      }
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestShift = schedule;
+      }
+    }
+
+    return closestShift.label;
+  };
+
+  // Helper function to get shift badge color
+  const getShiftBadgeColor = (shift) => {
+    if (shift.includes("Day Shift")) return "bg-blue-100 text-blue-800";
+    if (shift.includes("Evening Shift")) return "bg-orange-100 text-orange-800";
+    if (shift.includes("Night Shift")) return "bg-purple-100 text-purple-800";
+    if (shift.includes("Regular Hours")) return "bg-green-100 text-green-800";
+    return "bg-gray-100 text-gray-800";
+  };
 
   // Helper function to convert Excel time decimals to HH:MM format
   const convertExcelTimeToString = (excelTime) => {
@@ -38,31 +141,57 @@ const Attendance = () => {
       .padStart(2, "0")}`;
   };
 
-  // Helper function to check if employee is late (after 8:00 AM)
-  const isLate = (onDutyTime) => {
-    if (!onDutyTime) return false;
+  // Optimized lateness detection based on detected shift
+  const isLate = (onDutyTime, detectedShift) => {
+    if (!onDutyTime || !detectedShift) return false;
 
-    // Parse time in HH:MM format
     const [hours, minutes] = onDutyTime.split(":").map(Number);
     const onDutyMinutes = hours * 60 + minutes;
-    const shiftStartMinutes = 8 * 60; // 8:00 AM in minutes
 
-    return onDutyMinutes > shiftStartMinutes;
+    // Find the corresponding schedule for the detected shift
+    const schedule = scheduleOptions.find((s) =>
+      detectedShift.includes(s.label.split(" (")[0])
+    );
+    if (!schedule) return false;
+
+    let shiftStartMinutes;
+    if (schedule.value === "21-6") {
+      // Night shift: late if after 21:30 or before 5:30 (considering some flexibility)
+      shiftStartMinutes = 21 * 60 + 30; // 21:30
+      return onDutyMinutes > shiftStartMinutes && onDutyMinutes < 23 * 60; // Late if between 21:30-23:00
+    } else {
+      // Regular shifts: late if 30 minutes after start time
+      shiftStartMinutes = schedule.start * 60 + 30;
+      return onDutyMinutes > shiftStartMinutes;
+    }
   };
 
-  // Helper function to calculate late minutes
-  const calculateLateMinutes = (onDutyTime) => {
-    if (!onDutyTime) return 0;
+  // Optimized late minutes calculation
+  const calculateLateMinutes = (onDutyTime, detectedShift) => {
+    if (!onDutyTime || !detectedShift) return 0;
 
-    // Parse time in HH:MM format
     const [hours, minutes] = onDutyTime.split(":").map(Number);
     const onDutyMinutes = hours * 60 + minutes;
-    const shiftStartMinutes = 8 * 60; // 8:00 AM in minutes
 
-    // Return late minutes if late, otherwise 0
-    return onDutyMinutes > shiftStartMinutes
-      ? onDutyMinutes - shiftStartMinutes
-      : 0;
+    // Find the corresponding schedule for the detected shift
+    const schedule = scheduleOptions.find((s) =>
+      detectedShift.includes(s.label.split(" (")[0])
+    );
+    if (!schedule) return 0;
+
+    let shiftStartMinutes;
+    if (schedule.value === "21-6") {
+      // Night shift: calculate lateness from 21:00
+      shiftStartMinutes = 21 * 60;
+      if (onDutyMinutes >= shiftStartMinutes && onDutyMinutes < 23 * 60) {
+        return Math.max(0, onDutyMinutes - shiftStartMinutes);
+      }
+      return 0;
+    } else {
+      // Regular shifts: calculate lateness from shift start
+      shiftStartMinutes = schedule.start * 60;
+      return Math.max(0, onDutyMinutes - shiftStartMinutes);
+    }
   };
 
   // Helper function to format minutes to hours and minutes
@@ -102,6 +231,20 @@ const Attendance = () => {
       width: "80px",
     },
     {
+      name: "Shift",
+      selector: (row) => row.shift || "Unknown",
+      width: "120px",
+      cell: (row) => (
+        <span
+          className={`px-2 py-1 rounded text-xs ${getShiftBadgeColor(
+            row.shift || "Unknown"
+          )}`}
+        >
+          {(row.shift || "Unknown").split(" (")[0]}
+        </span>
+      ),
+    },
+    {
       name: "Status",
       selector: (row) => row.status,
       width: "100px",
@@ -137,33 +280,73 @@ const Attendance = () => {
     },
   ];
 
-  // Column definitions for summary table
+  // Updated summary columns - removed custom/other column
   const summaryColumns = [
     {
       name: "E-Code",
       selector: (row) => row.ecode,
       sortable: true,
-      width: "100px",
+      width: "90px",
     },
     {
-      name: "Total Work Days",
+      name: "Total Days",
       selector: (row) => row.totalDays,
-      width: "120px",
+      width: "100px",
     },
     {
       name: "Present",
       selector: (row) => row.presentDays,
-      width: "80px",
+      width: "90px",
     },
     {
       name: "Absent",
       selector: (row) => row.absentDays,
-      width: "70px",
+      width: "80px",
     },
     {
-      name: "Total Tardiness (h:m)",
+      name: "Day Shift",
+      selector: (row) => row.dayShiftDays || 0,
+      width: "100px",
+      cell: (row) => (
+        <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+          {row.dayShiftDays || 0}
+        </span>
+      ),
+    },
+    {
+      name: "Evening Shift",
+      selector: (row) => row.eveningShiftDays || 0,
+      width: "120px",
+      cell: (row) => (
+        <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-800">
+          {row.eveningShiftDays || 0}
+        </span>
+      ),
+    },
+    {
+      name: "Night Shift",
+      selector: (row) => row.nightShiftDays || 0,
+      width: "110px",
+      cell: (row) => (
+        <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
+          {row.nightShiftDays || 0}
+        </span>
+      ),
+    },
+    {
+      name: "Regular Hours",
+      selector: (row) => row.regularHoursDays || 0,
+      width: "110px",
+      cell: (row) => (
+        <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+          {row.regularHoursDays || 0}
+        </span>
+      ),
+    },
+    {
+      name: "Tardiness",
       selector: (row) => formatMinutesToHoursMinutes(row.totalLateMinutes),
-      width: "150px",
+      width: "110px",
       cell: (row) => (
         <span
           className={`px-2 py-1 rounded text-xs ${
@@ -177,14 +360,14 @@ const Attendance = () => {
       ),
     },
     {
-      name: "Attendance Rate",
+      name: "Attendance %",
       selector: (row) =>
         `${
           row.totalDays > 0
-            ? ((row.presentDays / row.totalDays) * 100).toFixed(2)
-            : "0.00"
+            ? ((row.presentDays / row.totalDays) * 100).toFixed(1)
+            : "0.0"
         }%`,
-      width: "130px",
+      width: "120px",
     },
   ];
 
@@ -236,15 +419,18 @@ const Attendance = () => {
               const onDuty = convertExcelTimeToString(onDutyRaw);
               const offDuty = convertExcelTimeToString(offDutyRaw);
 
+              // Determine shift based on on-duty time
+              const shift = determineShift(onDuty);
+
               // Updated status logic: if Off Duty is null/N/A, mark as absent
               const status = !offDuty ? "absent" : "present";
 
-              // Check if employee is late (arrived after 8:00 AM)
-              const late = status === "present" ? isLate(onDuty) : false;
+              // Check if employee is late using optimized detection
+              const late = status === "present" ? isLate(onDuty, shift) : false;
 
-              // Calculate late minutes
+              // Calculate late minutes using optimized calculation
               const lateMinutes =
-                status === "present" ? calculateLateMinutes(onDuty) : 0;
+                status === "present" ? calculateLateMinutes(onDuty, shift) : 0;
 
               return {
                 id: index + 1,
@@ -252,6 +438,7 @@ const Attendance = () => {
                 date: formattedDate,
                 onDuty,
                 offDuty,
+                shift,
                 status,
                 isLate: late,
                 lateMinutes: lateMinutes,
@@ -270,7 +457,7 @@ const Attendance = () => {
     }
   };
 
-  // Generate summary data from attendance
+  // Generate summary data from attendance - updated to remove custom shift tracking
   const generateSummary = (data) => {
     const summary = {};
 
@@ -284,12 +471,32 @@ const Attendance = () => {
           absentDays: 0,
           lateDays: 0,
           totalLateMinutes: 0,
+          dayShiftDays: 0,
+          eveningShiftDays: 0,
+          nightShiftDays: 0,
+          regularHoursDays: 0,
         };
       }
 
       summary[ecode].totalDays++;
+
       if (record.status === "present") {
         summary[ecode].presentDays++;
+
+        // Count shift-specific days based on the shift type
+        if (record.shift) {
+          if (record.shift.includes("Day Shift")) {
+            summary[ecode].dayShiftDays++;
+          } else if (record.shift.includes("Evening Shift")) {
+            summary[ecode].eveningShiftDays++;
+          } else if (record.shift.includes("Night Shift")) {
+            summary[ecode].nightShiftDays++;
+          } else if (record.shift.includes("Regular Hours")) {
+            summary[ecode].regularHoursDays++;
+          }
+          // Removed custom shift handling - all shifts should now be properly detected
+        }
+
         // Count late days and accumulate late minutes only for present employees
         if (record.isLate) {
           summary[ecode].lateDays++;
@@ -316,8 +523,6 @@ const Attendance = () => {
   };
 
   // Handle form submission and save summary
-  // Update the handleSubmit function in your React component
-
   const handleSubmit = async () => {
     if (!selectedFile) {
       toast.error("Please select a file first");
@@ -360,6 +565,10 @@ const Attendance = () => {
           absentDays: row.absentDays,
           lateDays: row.lateDays,
           totalLateMinutes: row.totalLateMinutes,
+          dayShiftDays: row.dayShiftDays,
+          eveningShiftDays: row.eveningShiftDays,
+          nightShiftDays: row.nightShiftDays,
+          regularHoursDays: row.regularHoursDays,
         }));
 
         const summaryResponse = await fetch(
@@ -414,17 +623,26 @@ const Attendance = () => {
       const data = await response.json();
       if (data.success) {
         // Process fetched data to match frontend expectations
-        const processedData = data.data.map((record) => ({
-          ...record,
+        const processedData = data.data.map((record) => {
+          // Determine shift based on on-duty time
+          const shift = determineShift(record.onDuty);
           // Updated status logic: if Off Duty is null/N/A, mark as absent
-          status: !record.offDuty ? "absent" : "present",
-          // Check if employee is late (arrived after 8:00 AM)
-          isLate: !record.offDuty ? false : isLate(record.onDuty),
-          // Calculate late minutes
-          lateMinutes: !record.offDuty
+          const status = !record.offDuty ? "absent" : "present";
+          // Check if employee is late using optimized detection
+          const late = !record.offDuty ? false : isLate(record.onDuty, shift);
+          // Calculate late minutes using optimized calculation
+          const lateMinutes = !record.offDuty
             ? 0
-            : calculateLateMinutes(record.onDuty),
-        }));
+            : calculateLateMinutes(record.onDuty, shift);
+
+          return {
+            ...record,
+            shift,
+            status,
+            isLate: late,
+            lateMinutes,
+          };
+        });
 
         setAttendanceData(processedData);
         generateSummary(processedData);
@@ -487,7 +705,10 @@ const Attendance = () => {
             </h2>
             <Tooltip title="Add Attendance Filter" arrow>
               <button className="px-4 text-xs h-8 w-fit  border hover:bg-green-400 hover:text-white text-neutralDGray rounded-md cursor-pointer">
-                <BsFilter className="text-lg" />
+                <BsFilter
+                  className="text-lg"
+                  onClick={() => setFilterComponentModal(true)}
+                />
               </button>
             </Tooltip>
           </div>
@@ -558,6 +779,10 @@ const Attendance = () => {
           </div>
         </div>
       </div>
+      <FilterComponent
+        show={filterComponentModal}
+        onClose={() => setFilterComponentModal(false)}
+      />
     </div>
   );
 };

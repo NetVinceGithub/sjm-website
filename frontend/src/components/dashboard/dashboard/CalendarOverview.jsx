@@ -218,7 +218,7 @@ export default function CustomCalendar({ onDateChange }) {
   };
 
   return (
-    <div className="w-72 max-w-sm mx-auto bg-gradient-to-br from-white to-gray-50 rounded-lg shadow-sm overflow-hidden border border-gray-200">
+    <div className="w-full max-w-sm mx-auto bg-gradient-to-br from-white to-gray-50 rounded-lg shadow-sm overflow-hidden border border-gray-200">
       {/* Header Section */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-2">
         <div className="flex items-center justify-between">

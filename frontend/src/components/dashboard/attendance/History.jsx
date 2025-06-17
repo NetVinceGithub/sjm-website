@@ -33,7 +33,6 @@ const columns = [
     name: "Punch Out",
     selector: (row) => row.punchOut || "N/A",
   },
-
 ];
 
 const History = () => {
@@ -69,13 +68,16 @@ const History = () => {
   );
 
   return (
-    <div className="fixed top-0 right-0 bottom-0 min-h-screen w-[calc(100%-16rem)] bg-neutralSilver p-6 pt-16">
+    <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <div className="">
         <Breadcrumb
           items={[
             { label: "Attendance", href: "/admin-dashboard/attendance" },
             { label: "Add Attendance", href: "/admin-dashboard/employees" },
-            { label: "Attendance Computation", href: "/admin-dashboard/attendance-computation" },
+            {
+              label: "Attendance Computation",
+              href: "/admin-dashboard/attendance-computation",
+            },
             { label: "History", href: "" },
           ]}
         />
@@ -86,10 +88,16 @@ const History = () => {
                 <FaPrint title="Print" className="text-neutralDGray" />
               </button>
               <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center">
-                <FaRegFileExcel title="Export to Excel" className=" text-neutralDGray" />
+                <FaRegFileExcel
+                  title="Export to Excel"
+                  className=" text-neutralDGray"
+                />
               </button>
               <button className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center">
-                <FaRegFilePdf title="Export to PDF" className=" text-neutralDGray" />
+                <FaRegFilePdf
+                  title="Export to PDF"
+                  className=" text-neutralDGray"
+                />
               </button>
             </div>
 
@@ -108,7 +116,7 @@ const History = () => {
             </div>
           </div>
 
-          <div className="border rounded">
+          <div className="border -mt-4 rounded">
             <DataTable
               columns={columns}
               data={filteredData}
