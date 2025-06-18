@@ -132,14 +132,17 @@ const generatePayslipPDF = async (payslip) => {
       night_differential: `₱${payslip.night_differential ? Number(payslip.night_differential).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
       allowance: `₱${payslip.allowance ? Number(payslip.allowance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
       sss: `₱${payslip.sss ? Number(payslip.sss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      sssLoan: `₱${payslip.sssLoan ? Number(payslip.sssLoan).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
       phic: `₱${payslip.phic ? Number(payslip.phic).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
       hdmf: `₱${payslip.hdmf ? Number(payslip.hdmf).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      hdmfLoan: `₱${payslip.hdmfLoan ? Number(payslip.hdmfLoan).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
       loan: `₱${payslip.loan ? Number(payslip.loan).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
       total_tardiness: `₱${payslip.total_tardiness ? Number(payslip.total_tardiness).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
       other_deductions: `₱${payslip.other_deductions ? Number(payslip.other_deductions).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
       total_earnings: `₱${payslip.total_earnings ? Number(payslip.total_earnings).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
       total_deductions: `₱${payslip.total_deductions ? Number(payslip.total_deductions).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
       adjustment: `₱${payslip.adjustment ? Number(payslip.adjustment).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      gross_pay: `₱${payslip.gross_pay ? Number(payslip.gross_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
       net_pay: `₱${payslip.net_pay ? Number(payslip.net_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`
     };
 
@@ -224,115 +227,233 @@ const ControlNumberHistory = sequelize.define('ControlNumberHistory', {
   });
 
 export const sendPayslips = async (req, res) => {
+  console.log("🚀 Starting sendPayslips function...");
+  
   try {
     const { payslips } = req.body;
-    console.log("📨 Received request to send payslips:", payslips ?.length || 0, "payslips");
+    console.log("📨 Received request to send payslips:", payslips?.length || 0, "payslips");
+    console.log("📨 Request body structure:", JSON.stringify(req.body, null, 2));
 
-    if (!payslips || payslips.length === 0) {
+    // Enhanced validation with detailed logging
+    if (!payslips) {
+      console.log("❌ No payslips field in request body");
+      return res.status(400).json({ success: false, message: "No payslips field provided in request body." });
+    }
+
+    if (!Array.isArray(payslips)) {
+      console.log("❌ Payslips is not an array:", typeof payslips);
+      return res.status(400).json({ success: false, message: "Payslips must be an array." });
+    }
+
+    if (payslips.length === 0) {
+      console.log("❌ Empty payslips array");
       return res.status(400).json({ success: false, message: "No payslips provided." });
     }
+
+    console.log("✅ Payslips validation passed");
+
+    // Check if required dependencies are available
+    console.log("🔍 Checking dependencies...");
+    console.log("- transporter exists:", typeof transporter !== 'undefined');
+    console.log("- generatePayslipPDF exists:", typeof generatePayslipPDF !== 'undefined');
+    console.log("- ControlNumberHistory exists:", typeof ControlNumberHistory !== 'undefined');
+    console.log("- PayslipHistory exists:", typeof PayslipHistory !== 'undefined');
+    console.log("- Payslip exists:", typeof Payslip !== 'undefined');
+    console.log("- moment exists:", typeof moment !== 'undefined');
 
     let successfulEmails = [];
     let failedEmails = [];
     let payslipIdsToDelete = [];
 
     // Group payslips by batchId to handle them together
+    console.log("📦 Grouping payslips by batchId...");
     const payslipsByBatch = {};
-    for (let payslip of payslips) {
+    for (let i = 0; i < payslips.length; i++) {
+      const payslip = payslips[i];
+      console.log(`📦 Processing payslip ${i + 1}/${payslips.length}:`, {
+        id: payslip.id,
+        batchId: payslip.batchId,
+        name: payslip.name,
+        email: payslip.email,
+        date: payslip.date
+      });
+
+      if (!payslip.batchId) {
+        console.log(`⚠️ Payslip ${i + 1} missing batchId:`, payslip);
+        failedEmails.push({ name: payslip.name || 'Unknown', reason: "Missing batchId" });
+        continue;
+      }
+
       if (!payslipsByBatch[payslip.batchId]) {
         payslipsByBatch[payslip.batchId] = [];
       }
       payslipsByBatch[payslip.batchId].push(payslip);
     }
 
+    console.log("📦 Batch grouping complete:", Object.keys(payslipsByBatch).map(batchId => ({
+      batchId,
+      count: payslipsByBatch[batchId].length
+    })));
+
     // Process each batch
     for (let batchId in payslipsByBatch) {
+      console.log(`\n🔄 Processing batch: ${batchId}`);
       const batchPayslips = payslipsByBatch[batchId];
+      console.log(`📋 Payslips in this batch: ${batchPayslips.length}`);
 
-      // Get the month-year from the first payslip in the batch (assuming all payslips in a batch have the same date)
+      // Validate first payslip has date
+      if (!batchPayslips[0].date) {
+        console.log(`❌ First payslip in batch ${batchId} missing date:`, batchPayslips[0]);
+        for (let payslip of batchPayslips) {
+          failedEmails.push({ name: payslip.name || 'Unknown', reason: "Missing date field" });
+        }
+        continue;
+      }
+
+      // Get the month-year from the first payslip in the batch
       const payslipMonthYear = moment(batchPayslips[0].date).format("YYYY-MM");
+      console.log(`📅 Payslip month-year: ${payslipMonthYear}`);
 
       let controlNumber;
       let formattedControlNumber;
 
       // Check if this batchId already has a control number for this month
-      const existingBatchRecord = await ControlNumberHistory.findOne({
-        where: {
-          monthYear: payslipMonthYear,
-          batchId: batchId
+      console.log(`🔍 Checking for existing control number for batch ${batchId} in month ${payslipMonthYear}...`);
+      
+      let existingBatchRecord;
+      try {
+        existingBatchRecord = await ControlNumberHistory.findOne({
+          where: {
+            monthYear: payslipMonthYear,
+            batchId: batchId
+          }
+        });
+        console.log("🔍 Existing batch record query result:", existingBatchRecord ? "Found" : "Not found");
+      } catch (dbError) {
+        console.log("❌ Database error when checking existing batch record:", dbError);
+        for (let payslip of batchPayslips) {
+          failedEmails.push({ name: payslip.name || 'Unknown', reason: `Database error: ${dbError.message}` });
         }
-      });
+        continue;
+      }
 
       let billingSummary;
       let formattedBillingSummary;
 
       if (existingBatchRecord) {
-        // Use existing control number and billing summary for this batch
+        console.log("✅ Using existing control number and billing summary");
         controlNumber = existingBatchRecord.controlNumber;
         billingSummary = existingBatchRecord.billingSummary;
         formattedControlNumber = `SJM ${payslipMonthYear}-${String(controlNumber).padStart(4, '0')}`;
         formattedBillingSummary = String(billingSummary).padStart(5, '0');
+        console.log(`📋 Existing - Control Number: ${formattedControlNumber}, Billing Summary: ${formattedBillingSummary}`);
       } else {
+        console.log("🆕 Creating new control number and billing summary");
+        
         // This is a new batch, get the next control number for this month
-        const lastRecordForMonth = await ControlNumberHistory.findOne({
-          where: {
-            monthYear: payslipMonthYear
-          },
-          order: [['controlNumber', 'DESC']]
-        });
+        try {
+          const lastRecordForMonth = await ControlNumberHistory.findOne({
+            where: {
+              monthYear: payslipMonthYear
+            },
+            order: [['controlNumber', 'DESC']]
+          });
 
-        if (lastRecordForMonth) {
-          // Increment from the highest control number in this month
-          controlNumber = lastRecordForMonth.controlNumber + 1;
-        } else {
-          // First batch of the month, start with 1
-          controlNumber = 1;
+          if (lastRecordForMonth) {
+            controlNumber = lastRecordForMonth.controlNumber + 1;
+            console.log(`📈 Incrementing control number from ${lastRecordForMonth.controlNumber} to ${controlNumber}`);
+          } else {
+            controlNumber = 1;
+            console.log("🥇 First control number for this month: 1");
+          }
+
+          // Get the next billing summary number (global counter, regardless of month)
+          const lastBillingSummaryRecord = await ControlNumberHistory.findOne({
+            order: [['billingSummary', 'DESC']]
+          });
+
+          if (lastBillingSummaryRecord) {
+            billingSummary = lastBillingSummaryRecord.billingSummary + 1;
+            console.log(`📈 Incrementing billing summary from ${lastBillingSummaryRecord.billingSummary} to ${billingSummary}`);
+          } else {
+            billingSummary = 1;
+            console.log("🥇 First billing summary ever: 1");
+          }
+
+          formattedControlNumber = `SJM ${payslipMonthYear}-${String(controlNumber).padStart(4, '0')}`;
+          formattedBillingSummary = String(billingSummary).padStart(5, '0');
+          console.log(`📋 New - Control Number: ${formattedControlNumber}, Billing Summary: ${formattedBillingSummary}`);
+
+          // Save the new control number and billing summary record for this batch
+          console.log("💾 Saving new control number record...");
+          await ControlNumberHistory.create({
+            monthYear: payslipMonthYear,
+            batchId: batchId,
+            controlNumber: controlNumber,
+            billingSummary: billingSummary,
+          });
+          console.log("✅ Control number record saved successfully");
+
+        } catch (dbError) {
+          console.log("❌ Database error when creating control numbers:", dbError);
+          for (let payslip of batchPayslips) {
+            failedEmails.push({ name: payslip.name || 'Unknown', reason: `Database error: ${dbError.message}` });
+          }
+          continue;
         }
-
-        // Get the next billing summary number (global counter, regardless of month)
-        const lastBillingSummaryRecord = await ControlNumberHistory.findOne({
-          order: [['billingSummary', 'DESC']]
-        });
-
-        if (lastBillingSummaryRecord) {
-          // Increment from the highest billing summary number globally
-          billingSummary = lastBillingSummaryRecord.billingSummary + 1;
-        } else {
-          // First billing summary ever, start with 1
-          billingSummary = 1;
-        }
-
-        formattedControlNumber = `SJM ${payslipMonthYear}-${String(controlNumber).padStart(4, '0')}`;
-        formattedBillingSummary = String(billingSummary).padStart(5, '0');
-
-        // Save the new control number and billing summary record for this batch
-        await ControlNumberHistory.create({
-          monthYear: payslipMonthYear,
-          batchId: batchId,
-          controlNumber: controlNumber,
-          billingSummary: billingSummary,
-        });
       }
 
       // Process all payslips in this batch with the same control number
-      for (let payslip of batchPayslips) {
+      console.log(`📧 Processing ${batchPayslips.length} payslips for email sending...`);
+      
+      for (let i = 0; i < batchPayslips.length; i++) {
+        const payslip = batchPayslips[i];
+        console.log(`\n📧 Processing payslip ${i + 1}/${batchPayslips.length} in batch ${batchId}`);
+        console.log(`👤 Employee: ${payslip.name} (${payslip.email})`);
+
         // Enhanced email validation
         if (!payslip.email || !payslip.email.includes('@') || payslip.email.trim() === '') {
+          console.log(`❌ Invalid email for ${payslip.name}: "${payslip.email}"`);
           failedEmails.push({ name: payslip.name, reason: "Invalid or missing email address" });
           continue;
         }
 
+        // Validate email format more thoroughly
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(payslip.email.trim())) {
+          console.log(`❌ Email format invalid for ${payslip.name}: "${payslip.email}"`);
+          failedEmails.push({ name: payslip.name, reason: "Invalid email format" });
+          continue;
+        }
+
+        console.log(`✅ Email validation passed for ${payslip.email}`);
+
         try {
-          // Add debug logging
-          console.log(`📋 Processing payslip for ${payslip.name} (${payslip.email})`);
-          console.log(`📋 Payslip data:`, JSON.stringify(payslip, null, 2));
+          console.log(`📋 Generating PDF for ${payslip.name}...`);
+          console.log(`📋 Payslip data preview:`, {
+            name: payslip.name,
+            email: payslip.email,
+            ecode: payslip.ecode,
+            netPay: payslip.net_pay || payslip.netPay,
+            cutoffDate: payslip.cutoff_date || payslip.cutoffDate,
+            project: payslip.project,
+            position: payslip.position
+          });
 
-          const pdfBuffer = await generatePayslipPDF(payslip);
+          let pdfBuffer;
+          try {
+            pdfBuffer = await generatePayslipPDF(payslip);
+            console.log(`✅ PDF generated successfully for ${payslip.name}, size: ${pdfBuffer.length} bytes`);
+          } catch (pdfError) {
+            console.log(`❌ PDF generation failed for ${payslip.name}:`, pdfError);
+            failedEmails.push({ name: payslip.name, reason: `PDF generation failed: ${pdfError.message}` });
+            continue;
+          }
 
-          // Send the email with the control number
-          let mailOptions = {
+          // Prepare email options
+          const mailOptions = {
             from: process.env.EMAIL_USER,
-            to: payslip.email,
+            to: payslip.email.trim(),
             subject: `PAYSLIP FOR ${payslip.name}`,
             html: `
               <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
@@ -415,78 +536,152 @@ export const sendPayslips = async (req, res) => {
             ]
           };
 
-          await transporter.sendMail(mailOptions);
-          console.log(`✅ Payslip sent to ${payslip.email} with control number ${formattedControlNumber} and billing summary ${formattedBillingSummary}`);
+          console.log(`📧 Email options prepared for ${payslip.email}:`);
+          console.log(`   - From: ${mailOptions.from}`);
+          console.log(`   - To: ${mailOptions.to}`);
+          console.log(`   - Subject: ${mailOptions.subject}`);
+          console.log(`   - Attachment: ${mailOptions.attachments[0].filename}`);
+          console.log(`   - PDF Size: ${pdfBuffer.length} bytes`);
+
+          // Check transporter configuration
+          if (!transporter) {
+            throw new Error("Email transporter is not configured");
+          }
+
+          console.log(`📤 Sending email to ${payslip.email}...`);
+          const emailResult = await transporter.sendMail(mailOptions);
+          console.log(`✅ Email sent successfully to ${payslip.email}`);
+          console.log(`📧 Email result:`, {
+            messageId: emailResult.messageId,
+            accepted: emailResult.accepted,
+            rejected: emailResult.rejected
+          });
+          
           successfulEmails.push(payslip.email);
 
           // Save to PayslipHistory with proper field mapping
-          await PayslipHistory.create({
-            ecode: payslip.ecode,
-            email: payslip.email,
-            employeeId: payslip.employeeId,
-            name: payslip.name,
-            project: payslip.project || "N/A",
-            position: payslip.position || "N/A",
-            department: payslip.department,
-            cutoffDate: payslip.cutoff_date || payslip.cutoffDate,
-            allowance: +(payslip.allowance || 0),
-            dailyrate: +(payslip.dailyrate || payslip.daily_rate || 0),
-            basicPay: +(payslip.basicPay || payslip.basic_pay || 0),
-            overtimePay: +(payslip.overtimePay || payslip.overtime_pay || 0),
-            holidayPay: +(payslip.holidayPay || payslip.holiday_pay || 0),
-            noOfDays: +(payslip.noOfDays || payslip.no_of_days || 0),
-            totalOvertime: +(payslip.totalOvertime || payslip.total_overtime || 0),
-            nightDifferential: +(payslip.nightDifferential || payslip.night_differential || 0),
-            sss: +(payslip.sss || 0),
-            phic: +(payslip.phic || 0),
-            hdmf: +(payslip.hdmf || 0),
-            loan: +(payslip.loan || 0),
-            totalTardiness: +(payslip.totalTardiness || payslip.total_tardiness || 0),
-            totalHours: +(payslip.totalHours || payslip.total_hours || 0),
-            otherDeductions: +(payslip.otherDeductions || payslip.other_deductions || 0),
-            totalEarnings: +(payslip.totalEarnings || payslip.total_earnings || 0),
-            adjustment: +(payslip.adjustment || 0),
-            gross_pay: +(payslip.gross_pay || 0),
-            totalDeductions: +(payslip.totalDeductions || payslip.total_deductions || 0),
-            netPay: +(payslip.net_pay || payslip.netPay || 0),
-            controlNumber: formattedControlNumber,
-            billingSummary: formattedBillingSummary,
-            batchId: payslip.batchId,
-          });
+          console.log(`💾 Saving payslip history for ${payslip.name}...`);
+          
+          try {
+            const historyRecord = await PayslipHistory.create({
+              ecode: payslip.ecode,
+              email: payslip.email,
+              employeeId: payslip.employeeId,
+              name: payslip.name,
+              project: payslip.project || "N/A",
+              position: payslip.position || "N/A",
+              department: payslip.department,
+              cutoffDate: payslip.cutoff_date || payslip.cutoffDate,
+              allowance: +(payslip.allowance || 0),
+              dailyrate: +(payslip.dailyrate || payslip.daily_rate || 0),
+              basicPay: +(payslip.basicPay || payslip.basic_pay || 0),
+              overtimePay: +(payslip.overtimePay || payslip.overtime_pay || 0),
+              holidayPay: +(payslip.holidayPay || payslip.holiday_pay || 0),
+              noOfDays: +(payslip.noOfDays || payslip.no_of_days || 0),
+              totalOvertime: +(payslip.totalOvertime || payslip.total_overtime || 0),
+              nightDifferential: +(payslip.nightDifferential || payslip.night_differential || 0),
+              sss: +(payslip.sss || 0),
+              phic: +(payslip.phic || 0),
+              hdmf: +(payslip.hdmf || 0),
+              loan: +(payslip.loan || 0),
+              totalTardiness: +(payslip.totalTardiness || payslip.total_tardiness || 0),
+              totalHours: +(payslip.totalHours || payslip.total_hours || 0),
+              otherDeductions: +(payslip.otherDeductions || payslip.other_deductions || 0),
+              totalEarnings: +(payslip.totalEarnings || payslip.total_earnings || 0),
+              adjustment: +(payslip.adjustment || 0),
+              gross_pay: +(payslip.gross_pay || 0),
+              totalDeductions: +(payslip.totalDeductions || payslip.total_deductions || 0),
+              netPay: +(payslip.net_pay || payslip.netPay || 0),
+              controlNumber: formattedControlNumber,
+              billingSummary: formattedBillingSummary,
+              batchId: payslip.batchId,
+            });
+            
+            console.log(`✅ Payslip history saved with ID: ${historyRecord.id}`);
+            payslipIdsToDelete.push(payslip.id);
 
-          payslipIdsToDelete.push(payslip.id);
+          } catch (historyError) {
+            console.log(`⚠️ Failed to save payslip history for ${payslip.name}:`, historyError);
+            // Don't fail the email sending, just log the error
+          }
 
-        } catch (err) {
-          console.log("❌ Failed to send payslip to", payslip.name, "Error:", err.message);
-          console.log("❌ Full error:", err);
-          failedEmails.push({ name: payslip.name, reason: err.message });
+        } catch (emailError) {
+          console.log(`❌ Failed to send payslip to ${payslip.name}:`);
+          console.log(`❌ Error details:`, emailError);
+          console.log(`❌ Error stack:`, emailError.stack);
+          
+          let errorMessage = emailError.message;
+          if (emailError.code) {
+            errorMessage = `${emailError.code}: ${errorMessage}`;
+          }
+          
+          failedEmails.push({ name: payslip.name, reason: errorMessage });
         }
       }
     }
 
+    // Clean up sent payslips
     if (payslipIdsToDelete.length > 0) {
-      await Payslip.destroy({ where: { id: payslipIdsToDelete } });
-      console.log(`🗑 Deleted ${payslipIdsToDelete.length} sent payslips.`);
+      console.log(`🗑 Deleting ${payslipIdsToDelete.length} sent payslips...`);
+      try {
+        const deletedCount = await Payslip.destroy({ where: { id: payslipIdsToDelete } });
+        console.log(`✅ Deleted ${deletedCount} sent payslips successfully`);
+      } catch (deleteError) {
+        console.log(`⚠️ Failed to delete some payslips:`, deleteError);
+      }
     }
 
     // Optional attendance cleanup
     if (req.body.clearAttendance === true) {
-      await AttendanceSummary.destroy({ where: {} });
-      await Attendance.destroy({ where: {} });
-      console.log("🧹 Cleared attendance data.");
+      console.log("🧹 Clearing attendance data...");
+      try {
+        await AttendanceSummary.destroy({ where: {} });
+        await Attendance.destroy({ where: {} });
+        console.log("✅ Attendance data cleared successfully");
+      } catch (cleanupError) {
+        console.log("⚠️ Failed to clear attendance data:", cleanupError);
+      }
     }
 
-    return res.status(200).json({
+    // Final summary
+    console.log("\n📊 FINAL SUMMARY:");
+    console.log(`✅ Successful emails: ${successfulEmails.length}`);
+    console.log(`❌ Failed emails: ${failedEmails.length}`);
+    console.log(`🗑 Payslips deleted: ${payslipIdsToDelete.length}`);
+    
+    if (successfulEmails.length > 0) {
+      console.log("✅ Successful email addresses:", successfulEmails);
+    }
+    
+    if (failedEmails.length > 0) {
+      console.log("❌ Failed emails details:", failedEmails);
+    }
+
+    const response = {
       success: true,
       message: `Successfully sent payslips. Successful emails: ${successfulEmails.length}, Failed emails: ${failedEmails.length}`,
       data: {
         successfulEmails,
         failedEmails,
+        totalProcessed: payslips.length,
+        payslipsDeleted: payslipIdsToDelete.length
       }
+    };
+
+    console.log("📤 Sending response:", response);
+    return res.status(200).json(response);
+
+  } catch (mainError) {
+    console.error("💥 CRITICAL ERROR in sendPayslips:");
+    console.error("💥 Error message:", mainError.message);
+    console.error("💥 Error stack:", mainError.stack);
+    console.error("💥 Error details:", mainError);
+    
+    return res.status(500).json({ 
+      success: false, 
+      message: `Critical error: ${mainError.message}`,
+      error: process.env.NODE_ENV === 'development' ? mainError.stack : undefined
     });
-  } catch (err) {
-    console.error("💥 Error in sendPayslips:", err);
-    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -1108,7 +1303,7 @@ export const generatePayroll = async (req, res) => {
 
     if (employees.length > 0 && attendanceData.length > 0) {
       console.log("📦 Using data provided by frontend");
-      employeesData = employees; // Fixed: removed stray 'z'
+      employeesData = employees;
       attendanceRecords = attendanceData;
       holidays = holidaysData;
       
@@ -1179,7 +1374,6 @@ export const generatePayroll = async (req, res) => {
         // Calculate basic attendance metrics from attendance records
         const daysPresent = employeeAttendance.length;
         const totalLateMinutes = employeeAttendance.reduce((total, record) => {
-          // Assuming attendance record has a late minutes field or calculate it
           return total + (record.lateMinutes || 0);
         }, 0);
 
@@ -1188,11 +1382,11 @@ export const generatePayroll = async (req, res) => {
           await AttendanceSummary.upsert({
             ecode: employee.ecode,
             daysPresent: daysPresent,
-            totalDays: daysPresent, // Simplified for now
-            absentDays: 0, // Can be calculated if needed
+            totalDays: daysPresent,
+            absentDays: 0,
             lateDays: employeeAttendance.filter(record => (record.lateMinutes || 0) > 0).length,
             totalLateMinutes: totalLateMinutes,
-            attendanceRate: daysPresent > 0 ? 100.00 : 0.00 // Simplified calculation
+            attendanceRate: daysPresent > 0 ? 100.00 : 0.00
           }, {
             where: { ecode: employee.ecode }
           });
@@ -1202,61 +1396,86 @@ export const generatePayroll = async (req, res) => {
           console.error(`❌ Failed to update attendance summary for ${employee.ecode}:`, summaryError);
         }
 
-        // Use attendance summary data if available, otherwise use calculated values
-        const finalDaysPresent = attendanceSummaryRecord ? 
+        // FIXED: Use attendance summary data if available, with proper NaN checking
+        let finalDaysPresent = attendanceSummaryRecord ? 
           Number(attendanceSummaryRecord.daysPresent) : daysPresent;
-
-        const finalTotalLateMinutes = attendanceSummaryRecord ? 
+        
+        let finalTotalLateMinutes = attendanceSummaryRecord ? 
           Number(attendanceSummaryRecord.totalLateMinutes) : totalLateMinutes;
+
+        // CRITICAL FIX: Ensure no NaN values
+        finalDaysPresent = isNaN(finalDaysPresent) ? daysPresent : finalDaysPresent;
+        finalTotalLateMinutes = isNaN(finalTotalLateMinutes) ? totalLateMinutes : finalTotalLateMinutes;
+
+        // Ensure we have valid numbers
+        finalDaysPresent = Math.max(0, finalDaysPresent || 0);
+        finalTotalLateMinutes = Math.max(0, finalTotalLateMinutes || 0);
 
         const rates = {
           dailyRate: Number(employeePayrollInfo.daily_rate) || 500,
-          hourlyRate: 65, // Default value since not in PayrollInformation model
-          otHourlyRate: 81.25, // Default value
-          tardinessRate: 1.08 // Default value for tardiness per minute
+          hourlyRate: 65,
+          otHourlyRate: 81.25,
+          tardinessRate: 1.08
         };
 
-        // With this safer version:
+        // FIXED: Safer salary package calculation with NaN protection
         const salaryPackage = Number(employee.salaryPackage) || Number(employee.salary_package) || 0;
-        const allowance = salaryPackage > 0 ? Number((salaryPackage - (rates.dailyRate * 26))/26) * finalDaysPresent : 0;
+        
+        let allowance = 0;
+        if (salaryPackage > 0 && finalDaysPresent > 0) {
+          const allowancePerDay = (salaryPackage - (rates.dailyRate * 26)) / 26;
+          allowance = allowancePerDay * finalDaysPresent;
+          // Ensure allowance is not NaN
+          allowance = isNaN(allowance) ? 0 : Math.max(0, allowance);
+        }
 
-        // Add debugging to see what's happening:
+        // Add debugging with NaN protection
         console.log("Salary package debug:", {
           ecode: employee.ecode,
           name: employee.name,
           salaryPackage: employee.salaryPackage,
-          salary_package: employee.salary_package, // Check alternative naming
+          salary_package: employee.salary_package,
           parsedSalaryPackage: salaryPackage,
           dailyRate: rates.dailyRate,
+          finalDaysPresent: finalDaysPresent,
           calculatedAllowance: allowance,
-          finalTotalLateMinutes:finalTotalLateMinutes,
+          finalTotalLateMinutes: finalTotalLateMinutes,
         });
-        
 
-
-        // Calculate basic pay and gross pay FIRST (before deductions)
+        // FIXED: Calculate basic pay and gross pay with NaN protection
         const basicPay = finalDaysPresent * rates.dailyRate;
-        const grossPay = basicPay + allowance; // Remove rates;
+        const grossPay = basicPay + allowance;
 
-        // NOW calculate deductions using grossPay
+        // Ensure both values are valid numbers
+        const safeBasicPay = isNaN(basicPay) ? 0 : basicPay;
+        const safeGrossPay = isNaN(grossPay) ? safeBasicPay : grossPay;
+
+        // Calculate deductions using safeGrossPay
         const deductions = {
-          sss: calculateSSSContribution(grossPay).employerContribution,          
+          sss: calculateSSSContribution(safeGrossPay).employerContribution,          
           phic: Number(employeePayrollInfo.philhealth_contribution) || 75,
           hdmf: Number(employeePayrollInfo.pagibig_contribution) || 50,
           loan: Number(employeePayrollInfo.loan) || 0,
           otherDeductions: Number(employeePayrollInfo.otherDeductions) || 0,
           taxDeduction: Number(employeePayrollInfo.tax_deduction) || 0,
-          tardiness: finalTotalLateMinutes * (rates.dailyRate / 8)/60 // Convert minutes to hours
+          tardiness: finalTotalLateMinutes * (rates.dailyRate / 8) / 60
         };
 
+        // Ensure all deductions are valid numbers
+        Object.keys(deductions).forEach(key => {
+          if (isNaN(deductions[key])) {
+            deductions[key] = 0;
+          }
+        });
+
         const adjustment = Number(employeePayrollInfo.adjustment) || 0;
+        const safeAdjustment = isNaN(adjustment) ? 0 : adjustment;
 
-        // Simplified overtime calculation - can be enhanced based on your needs
-        const totalRegularOvertime = 0; // Default to 0 for now
-
+        // Simplified overtime calculation
+        const totalRegularOvertime = 0;
         const regularOvertimePay = totalRegularOvertime * rates.otHourlyRate;
 
-        // Simplified holiday pay calculations - set to 0 for now
+        // Simplified holiday pay calculations
         const specialHolidayPay = 0;
         const regularHolidayPay = 0;
         const specialHolidayOTPay = 0;
@@ -1266,12 +1485,13 @@ export const generatePayroll = async (req, res) => {
         const totalHolidayPay = specialHolidayPay + regularHolidayPay;
         const totalOvertimePay = regularOvertimePay + specialHolidayOTPay + regularHolidayOTPay;
 
-        const totalEarnings = grossPay + adjustment;
-        const totalDeductions = deductions.sss + deductions.phic + deductions.hdmf + deductions.loan + deductions.otherDeductions + deductions.taxDeduction + deductions.tardiness;
+        const totalEarnings = safeGrossPay + safeAdjustment;
+        const totalDeductions = deductions.sss + deductions.phic + deductions.hdmf + 
+                               deductions.loan + deductions.otherDeductions + 
+                               deductions.taxDeduction + deductions.tardiness;
         const netPay = totalEarnings - totalDeductions;
-        
-        console.log("Employee project data:", employee["area/section"] || "N/A");
 
+        // CRITICAL: Ensure all values are valid numbers before database insertion
         const payslipData = {
           ecode: employee.ecode,
           email: employee.emailaddress || employee.email || '',
@@ -1282,47 +1502,60 @@ export const generatePayroll = async (req, res) => {
           department: employee.department || "N/A",
           schedule: employee.schedule || "N/A",
           cutoffDate,
-          dailyrate: rates.dailyRate.toFixed(2),
-          basicPay: basicPay.toFixed(2),
-          noOfDays: finalDaysPresent || 0,
-          holidayDays: 0, // Simplified
-          regularDays: finalDaysPresent || 0,
-          overtimePay: totalOvertimePay.toFixed(2),
-          totalOvertime: totalRegularOvertime.toFixed(2),
-          totalRegularHours: (finalDaysPresent * 8).toFixed(2), // Assuming 8 hours per day
-          totalHolidayHours: "0.00",
-          specialHolidayHours: "0.00",
-          regularHolidayHours: "0.00",
-          holidayPay: totalHolidayPay.toFixed(2),
-          specialHolidayPay: specialHolidayPay.toFixed(2),
-          regularHolidayPay: regularHolidayPay.toFixed(2),
-          specialHolidayOTPay: specialHolidayOTPay.toFixed(2),
-          regularHolidayOTPay: regularHolidayOTPay.toFixed(2),
-          nightDifferential: nightDifferentialPay.toFixed(2),
-          nightShiftHours: "0.00",
-          allowance: finalDaysPresent * allowance.toFixed(2),
-          sss: deductions.sss.toFixed(2),
-          phic: deductions.phic.toFixed(2),
-          hdmf: deductions.hdmf.toFixed(2),
-          loan: deductions.loan.toFixed(2),
-          totalTardiness: deductions.tardiness.toFixed(1),
-          totalHours: (finalDaysPresent * 8).toFixed(2), // Assuming 8 hours per day
-          otherDeductions: deductions.otherDeductions.toFixed(2),
-          taxDeduction: deductions.taxDeduction.toFixed(2),
-          totalEarnings: 0,
-          totalDeductions: totalDeductions.toFixed(2),
-          adjustment: adjustment.toFixed(2),
-          gross_pay: grossPay.toFixed(2),
-          netPay: netPay.toFixed(2),
+          dailyrate: parseFloat(rates.dailyRate.toFixed(2)),
+          basicPay: parseFloat(safeBasicPay.toFixed(2)),
+          noOfDays: parseInt(finalDaysPresent) || 0,
+          holidayDays: 0,
+          regularDays: parseInt(finalDaysPresent) || 0,
+          overtimePay: parseFloat(totalOvertimePay.toFixed(2)),
+          totalOvertime: parseFloat(totalRegularOvertime.toFixed(2)),
+          totalRegularHours: parseFloat((finalDaysPresent * 8).toFixed(2)),
+          totalHolidayHours: parseFloat("0.00"),
+          specialHolidayHours: parseFloat("0.00"),
+          regularHolidayHours: parseFloat("0.00"),
+          holidayPay: parseFloat(totalHolidayPay.toFixed(2)),
+          specialHolidayPay: parseFloat(specialHolidayPay.toFixed(2)),
+          regularHolidayPay: parseFloat(regularHolidayPay.toFixed(2)),
+          specialHolidayOTPay: parseFloat(specialHolidayOTPay.toFixed(2)),
+          regularHolidayOTPay: parseFloat(regularHolidayOTPay.toFixed(2)),
+          nightDifferential: parseFloat(nightDifferentialPay.toFixed(2)),
+          nightShiftHours: parseFloat("0.00"),
+          allowance: parseFloat(allowance.toFixed(2)),
+          sss: parseFloat(deductions.sss.toFixed(2)),
+          phic: parseFloat(deductions.phic.toFixed(2)),
+          hdmf: parseFloat(deductions.hdmf.toFixed(2)),
+          loan: parseFloat(deductions.loan.toFixed(2)),
+          totalTardiness: parseFloat(deductions.tardiness.toFixed(2)),
+          totalHours: parseFloat((finalDaysPresent * 8).toFixed(2)),
+          otherDeductions: parseFloat(deductions.otherDeductions.toFixed(2)),
+          taxDeduction: parseFloat(deductions.taxDeduction.toFixed(2)),
+          totalEarnings: parseFloat(totalEarnings.toFixed(2)),
+          totalDeductions: parseFloat(totalDeductions.toFixed(2)),
+          adjustment: parseFloat(safeAdjustment.toFixed(2)),
+          gross_pay: parseFloat(safeGrossPay.toFixed(2)),
+          netPay: parseFloat(netPay.toFixed(2)),
           requestedBy: requestedBy,
           status: "pending",
           batchId
         };
 
+        // Final validation: Check for any remaining NaN values
+        const nanFields = [];
+        Object.keys(payslipData).forEach(key => {
+          if (typeof payslipData[key] === 'number' && isNaN(payslipData[key])) {
+            nanFields.push(key);
+            payslipData[key] = 0; // Set to 0 as fallback
+          }
+        });
+
+        if (nanFields.length > 0) {
+          console.warn(`⚠️ NaN values found and corrected for ${employee.name}:`, nanFields);
+        }
+
         console.log(`💰 Payslip calculated for ${employee.name}:`, {
-          basicPay: basicPay.toFixed(2),
-          daysPresent: finalDaysPresent,
-          netPay: netPay.toFixed(2)
+          basicPay: payslipData.basicPay,
+          daysPresent: payslipData.noOfDays,
+          netPay: payslipData.netPay
         });
 
         const newPayslip = await Payslip.create(payslipData);
