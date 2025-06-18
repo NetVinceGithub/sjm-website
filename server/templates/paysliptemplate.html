@@ -71,12 +71,9 @@
           </th>
         </tr>
         <tr>
-
-          <td class="border h-7 border-black">{{ecode}}</td>
-          <td class="border h-7 border-black">{{employee_name}}</td>
-          <td class="border h-7 border-black">{{position}}</td>
-
-
+          <td class="border h-5 border-black">{{ecode}}</td>
+          <td class="border h-5 border-black">{{employee_name}}</td>
+          <td class="border h-5 border-black">{{project_site}}</td>
         </tr>
       </table>
       <table
@@ -100,12 +97,9 @@
           </td>
         </tr>
         <tr>
-
-          <td class="border h-7 border-[#000000]">{{daily_rate}}</td>
-          <td class="border h-7 border-[#000000]">{{project_site}}</td>
-          <td class="border h-7 border-[#000000]">{{cutoff_date}}</td>
-
-
+          <td class="border h-5 border-[#000000]">{{position}}</td>
+          <td class="border h-5 border-[#000000]">{{cutoff_date}}</td>
+          <td class="border h-5 border-[#000000]">{{cutoff_date}}</td>
         </tr>
       </table>
       <table class="border-collapse text-[10px] mx-auto mt-1 font-sans">
@@ -189,7 +183,7 @@
             {{night_differential}}
           </td>
           <td class="border border-black h-5 border-b-0">SSS Loan</td>
-          <td class="border border-black h-5 border-b-0"></td>
+          <td class="border border-black h-5 border-b-0">{{sss_loan}}</td>
         </tr>
         <tr>
           <td class="border border-t-0 border-b-0 border-black h-5">
@@ -200,6 +194,7 @@
             Pag-IBIG Loan
           </td>
           <td class="border border-black h-5 border-t-0 border-b-0">
+            {{pagibig_loan}}
           </td>
         </tr>
         <tr>
@@ -207,6 +202,7 @@
             <li class="ml-3">Regular</li>
           </td>
           <td class="border border-black h-5 border-t-0 border-b-0">
+            {{reg_holiday_pay}}
           </td>
           <td class="border border-black h-5 border-t-0 border-b-0">
             Tardiness
@@ -222,6 +218,7 @@
             </div>
           </td>
           <td class="border border-[#AA396F] border-t-0 border-b-0 h-5">
+            {{sp_holiday_pay}}
           </td>
           <td class="border border-[#AA396F] h-5 border-t-0 border-b-0">
             Other Deductions
@@ -256,11 +253,8 @@
           <td class="border border-black h-5 border-t-0 italic border-b-0">
             Adjustments
           </td>
-
-          <td class="border border-black h-7 border-t-0 border-b-0 px-2">
-            {{adjustment}}
-
-
+          <td class="border border-black h-5 border-t-0 border-b-0">
+            {{adjustments}}
           </td>
         </tr>
         <tr>
@@ -302,13 +296,13 @@
             colspan="2"
             class="border-t-0 border text-center border-black h-5 w-[22rem]"
           >
+            {{net_pay}}
           </td>
-            {{gross_pay}} 
           <td
             colspan="2"
             class="border border-t-0 text-center border-black h-5 w-[22rem]"
           >
-            {{net_pay}}
+            {{total_deductions}}
           </td>
         </tr>
       </table>
