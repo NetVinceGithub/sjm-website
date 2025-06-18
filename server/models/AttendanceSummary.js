@@ -11,7 +11,7 @@ const AttendanceSummary = sequelize.define("AttendanceSummary", {
   ecode: {
     type: DataTypes.STRING(50),
     allowNull: false,
-    unique: true, // Ensure one record per employee
+    // unique: true, // Ensure one record per employee
   },
   // Changed from daysPresent to presentDays to match frontend
   presentDays: {
