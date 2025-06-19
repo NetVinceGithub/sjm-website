@@ -252,14 +252,13 @@ const Holidays = () => {
               label: "Attendance Computation",
               href: "/admin-dashboard/attendance-computation",
             },
-            { label: "History", href: "" },
             { label: "Holidays", href: "" },
           ]}
         />
 
         <div className="-mt-2 flex flex-row gap-3 flex-1 overflow-hidden">
           {/* Calendar Section - 65% width */}
-          <div className="bg-white h-full rounded-lg p-3 w-[65%] flex flex-col overflow-hidden">
+          <div className="bg-white h-[96] rounded-lg p-3 w-[65%] flex flex-col overflow-hidden">
             <div className="flex justify-between">
               <h2 className="text-sm mb-4 text-neutralDGrey">
                 Holiday Calendar
@@ -355,7 +354,7 @@ const Holidays = () => {
           </div>
 
           {/* Add Holiday Section - 35% width */}
-          <div className="bg-white h-full p-3 w-[35%] rounded-lg flex flex-col overflow-y-auto">
+          <div className="bg-white h-[96] p-3 w-[35%] rounded-lg flex flex-col overflow-y-auto">
             <h3 className="text-sm mb-4 text-neutralDGray">Add Holiday</h3>
             <div className="flex flex-col gap-3 -mt-2">
               <label htmlFor="name" className="text-xs text-neutralDGray">
@@ -431,10 +430,8 @@ const Holidays = () => {
           </div>
         </div>
 
-        {/* List Holidays - Hidden to fit on one screen */}
-
-        <div className="bg-white p-3 mt-3 rounded-lg">
-          <h3 className="text-sm mb-4 text-neutralDGray">Holiday List</h3>
+        <div className="bg-white p-3 h-[10rem] mt-3 rounded-lg overflow-auto">
+          <h3 className="text-sm text-neutralDGray">Holiday List</h3>
           <div className="text-xs">
             <DataTable
               columns={columns}
