@@ -263,7 +263,7 @@ export const saveAttendance = async (req, res) => {
 
 export const saveAttendanceSummary = async (req, res) => {
   try {
-    console.log("Received attendance summary data:", req.body);
+    console.log("Received attendance summary data: it oyung save attendance sumary", req.body);
 
     const attendanceSummaryRecords = req.body.summaryData;
 
