@@ -1,4 +1,4 @@
-// Optimized Attendance.jsx - Auto-detect schedule without custom option
+// Enhanced Attendance.jsx - With Half-Day Logic for <4 hours worked
 
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
@@ -31,8 +31,40 @@ const Attendance = () => {
       end: 21,
     },
     { value: "21-6", label: "Night Shift (21:00 - 06:00)", start: 21, end: 6 },
-    { value: "9-18", label: "Regular Hours (9:00 - 18:00)", start: 9, end: 18 },
   ];
+
+  // Helper function to calculate work duration in hours
+  const calculateWorkHours = (onDutyTime, offDutyTime) => {
+    if (!onDutyTime || !offDutyTime) return 0;
+
+    const [onHours, onMinutes] = onDutyTime.split(":").map(Number);
+    const [offHours, offMinutes] = offDutyTime.split(":").map(Number);
+
+    const onDutyMinutes = onHours * 60 + onMinutes;
+    let offDutyMinutes = offHours * 60 + offMinutes;
+
+    // Handle overnight shifts (e.g., night shift ending next day)
+    if (offDutyMinutes < onDutyMinutes) {
+      offDutyMinutes += 24 * 60; // Add 24 hours for next day
+    }
+
+    const workMinutes = offDutyMinutes - onDutyMinutes;
+    return workMinutes / 60; // Convert to hours
+  };
+
+  // Helper function to determine attendance value (1 for full day, 0.5 for half day)
+  const calculateAttendanceValue = (onDutyTime, offDutyTime) => {
+    if (!offDutyTime) return 0; // Absent
+
+    const workHours = calculateWorkHours(onDutyTime, offDutyTime);
+
+    // If worked less than 4 hours, consider as half day
+    if (workHours < 4) {
+      return 0.5;
+    }
+
+    return 1; // Full day
+  };
 
   // Optimized shift detection with fallback logic
   const determineShift = (onDutyTime) => {
@@ -118,7 +150,6 @@ const Attendance = () => {
     if (shift.includes("Day Shift")) return "bg-blue-100 text-blue-800";
     if (shift.includes("Evening Shift")) return "bg-orange-100 text-orange-800";
     if (shift.includes("Night Shift")) return "bg-purple-100 text-purple-800";
-    if (shift.includes("Regular Hours")) return "bg-green-100 text-green-800";
     return "bg-gray-100 text-gray-800";
   };
 
@@ -250,11 +281,8 @@ const Attendance = () => {
     return result;
   };
 
-// Test the function with 104 minutes
-console.log('Test: 104 minutes =', formatMinutesToHoursMinutes(104));
-console.log('Test: 144 minutes =', formatMinutesToHoursMinutes(144));
+  // Column definitions for attendance table - enhanced with work hours and attendance value
 
-  // Column definitions for attendance table - matching backend fields
   const attendanceColumns = [
     {
       name: "E-Code",
@@ -279,6 +307,24 @@ console.log('Test: 144 minutes =', formatMinutesToHoursMinutes(144));
       width: "80px",
     },
     {
+      name: "Work Hours",
+      selector: (row) => row.workHours?.toFixed(1) || "0.0",
+      width: "100px",
+      cell: (row) => (
+        <span
+          className={`px-2 py-1 rounded text-xs ${
+            row.workHours < 4
+              ? "bg-yellow-100 text-yellow-800"
+              : row.workHours >= 8
+              ? "bg-green-100 text-green-800"
+              : "bg-blue-100 text-blue-800"
+          }`}
+        >
+          {row.workHours?.toFixed(1) || "0.0"}h
+        </span>
+      ),
+    },
+    {
       name: "Shift",
       selector: (row) => row.shift || "Unknown",
       width: "120px",
@@ -301,12 +347,34 @@ console.log('Test: 144 minutes =', formatMinutesToHoursMinutes(144));
           className={`px-2 py-1 rounded text-xs ${
             row.status === "present"
               ? "bg-green-100 text-green-800"
+              : row.status === "half-day"
+              ? "bg-yellow-100 text-yellow-800"
               : row.status === "absent"
               ? "bg-red-100 text-red-800"
               : "bg-gray-100 text-gray-800"
           }`}
         >
-          {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
+          {row.status === "half-day"
+            ? "Half Day"
+            : row.status.charAt(0).toUpperCase() + row.status.slice(1)}
+        </span>
+      ),
+    },
+    {
+      name: "Attendance Value",
+      selector: (row) => row.attendanceValue,
+      width: "130px",
+      cell: (row) => (
+        <span
+          className={`px-2 py-1 rounded text-xs ${
+            row.attendanceValue === 1
+              ? "bg-green-100 text-green-800"
+              : row.attendanceValue === 0.5
+              ? "bg-yellow-100 text-yellow-800"
+              : "bg-red-100 text-red-800"
+          }`}
+        >
+          {row.attendanceValue}
         </span>
       ),
     },
@@ -328,7 +396,7 @@ console.log('Test: 144 minutes =', formatMinutesToHoursMinutes(144));
     },
   ];
 
-  // Updated summary columns - removed custom/other column
+  // Updated summary columns - enhanced with half-day tracking
   const summaryColumns = [
     {
       name: "E-Code",
@@ -343,58 +411,68 @@ console.log('Test: 144 minutes =', formatMinutesToHoursMinutes(144));
     },
     {
       name: "Present",
-      selector: (row) => row.presentDays,
+      selector: (row) => row.presentDays?.toFixed(1) || "0.0",
       width: "90px",
+      cell: (row) => (
+        <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+          {row.presentDays?.toFixed(1) || "0.0"}
+        </span>
+      ),
+    },
+    {
+      name: "Half Days",
+      selector: (row) => row.halfDays || 0,
+      width: "90px",
+      cell: (row) => (
+        <span className="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-800">
+          {row.halfDays || 0}
+        </span>
+      ),
     },
     {
       name: "Absent",
-      selector: (row) => row.absentDays,
+      selector: (row) => row.absentDays?.toFixed(1) || "0.0",
       width: "80px",
+      cell: (row) => (
+        <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-800">
+          {row.absentDays?.toFixed(1) || "0.0"}
+        </span>
+      ),
     },
     {
       name: "Day Shift",
-      selector: (row) => row.dayShiftDays || 0,
+      selector: (row) => row.dayShiftDays?.toFixed(1) || "0.0",
       width: "100px",
       cell: (row) => (
         <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
-          {row.dayShiftDays || 0}
+          {row.dayShiftDays?.toFixed(1) || "0.0"}
         </span>
       ),
     },
     {
       name: "Evening Shift",
-      selector: (row) => row.eveningShiftDays || 0,
+      selector: (row) => row.eveningShiftDays?.toFixed(1) || "0.0",
       width: "120px",
       cell: (row) => (
         <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-800">
-          {row.eveningShiftDays || 0}
+          {row.eveningShiftDays?.toFixed(1) || "0.0"}
         </span>
       ),
     },
     {
       name: "Night Shift",
-      selector: (row) => row.nightShiftDays || 0,
+      selector: (row) => row.nightShiftDays?.toFixed(1) || "0.0",
       width: "110px",
       cell: (row) => (
         <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
-          {row.nightShiftDays || 0}
+          {row.nightShiftDays?.toFixed(1) || "0.0"}
         </span>
       ),
     },
     {
-      name: "Regular Hours",
-      selector: (row) => row.regularHoursDays || 0,
-      width: "110px",
-      cell: (row) => (
-        <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
-          {row.regularHoursDays || 0}
-        </span>
-      ),
-    },
-    {
-      name: "Tardiness",
+      name: "Tardiness (h:m)",
       selector: (row) => formatMinutesToHoursMinutes(row.totalLateMinutes),
-      width: "110px",
+      width: "120px",
       cell: (row) => (
         <span
           className={`px-2 py-1 rounded text-xs ${
@@ -478,25 +556,36 @@ console.log('Test: 144 minutes =', formatMinutesToHoursMinutes(144));
               const onDuty = convertExcelTimeToString(onDutyRaw);
               const offDuty = convertExcelTimeToString(offDutyRaw);
 
-              console.log('Converted on duty time:', onDuty);
-              console.log('Converted off duty time:', offDuty);
+
+              // Calculate work hours
+              const workHours = calculateWorkHours(onDuty, offDuty);
+
+              // Calculate attendance value (1 for full day, 0.5 for half day, 0 for absent)
+              const attendanceValue = calculateAttendanceValue(onDuty, offDuty);
+
 
               // Determine shift based on on-duty time
               const shift = determineShift(onDuty);
               console.log('Determined shift:', shift);
 
-              // Updated status logic: if Off Duty is null/N/A, mark as absent
-              const status = !offDuty ? "absent" : "present";
-              console.log('Status:', status);
+
+              // Enhanced status logic with half-day detection
+              let status;
+              if (!offDuty) {
+                status = "absent";
+              } else if (workHours < 4) {
+                status = "half-day";
+              } else {
+                status = "present";
+              }
 
               // Check if employee is late using optimized detection
-              const late = status === "present" ? isLate(onDuty, shift) : false;
-              console.log('Is late?:', late);
+              const late = status !== "absent" ? isLate(onDuty, shift) : false;
 
               // Calculate late minutes using optimized calculation
               const lateMinutes =
-                status === "present" ? calculateLateMinutes(onDuty, shift) : 0;
-              console.log('Late minutes calculated:', lateMinutes);
+                status !== "absent" ? calculateLateMinutes(onDuty, shift) : 0;
+
 
               const processedRecord = {
                 id: index + 1,
@@ -504,6 +593,8 @@ console.log('Test: 144 minutes =', formatMinutesToHoursMinutes(144));
                 date: formattedDate,
                 onDuty,
                 offDuty,
+                workHours,
+                attendanceValue,
                 shift,
                 status,
                 isLate: late,
@@ -534,7 +625,9 @@ console.log('Test: 144 minutes =', formatMinutesToHoursMinutes(144));
     }
   };
 
-  // UPDATED generateSummary function - ensure proper accumulation
+
+  // Generate summary data from attendance - enhanced with half-day tracking
+
   const generateSummary = (data) => {
     console.log('=== generateSummary Debug ===');
     console.log('Total records:', data.length);
@@ -553,52 +646,55 @@ console.log('Test: 144 minutes =', formatMinutesToHoursMinutes(144));
           ecode: ecode,
           totalDays: 0,
           presentDays: 0,
+          halfDays: 0,
           absentDays: 0,
           lateDays: 0,
           totalLateMinutes: 0, // This will store the raw minutes (e.g., 144)
           dayShiftDays: 0,
           eveningShiftDays: 0,
           nightShiftDays: 0,
-          regularHoursDays: 0,
+          totalWorkHours: 0,
         };
         console.log('Created new summary for:', ecode);
       }
 
       summary[ecode].totalDays++;
-      console.log('Total days for', ecode, ':', summary[ecode].totalDays);
 
-      if (record.status === "present") {
-        summary[ecode].presentDays++;
-        console.log('Present days for', ecode, ':', summary[ecode].presentDays);
+      summary[ecode].totalWorkHours += record.workHours || 0;
 
-        // Count shift-specific days based on the shift type
-        if (record.shift) {
-          if (record.shift.includes("Day Shift")) {
-            summary[ecode].dayShiftDays++;
-          } else if (record.shift.includes("Evening Shift")) {
-            summary[ecode].eveningShiftDays++;
-          } else if (record.shift.includes("Night Shift")) {
-            summary[ecode].nightShiftDays++;
-          } else if (record.shift.includes("Regular Hours")) {
-            summary[ecode].regularHoursDays++;
-          }
+      // Add attendance value instead of just counting days
+      summary[ecode].presentDays += record.attendanceValue || 0;
+
+      if (record.status === "half-day") {
+        summary[ecode].halfDays++;
+      } else if (record.status === "absent") {
+        // Absent days calculation will be done at the end
+      }
+
+      // Count shift-specific days with attendance value
+      if (record.attendanceValue > 0 && record.shift) {
+        if (record.shift.includes("Day Shift")) {
+          summary[ecode].dayShiftDays += record.attendanceValue;
+        } else if (record.shift.includes("Evening Shift")) {
+          summary[ecode].eveningShiftDays += record.attendanceValue;
+        } else if (record.shift.includes("Night Shift")) {
+          summary[ecode].nightShiftDays += record.attendanceValue;
+
         }
+      }
 
-        // Count late days only if actually late
-        if (record.lateMinutes > 0) {
+
+      // Count late days and accumulate late minutes only for present/half-day employees
+      if (record.status !== "absent") {
+        if (record.isLate) {
+
           summary[ecode].lateDays++;
           console.log('Late days for', ecode, ':', summary[ecode].lateDays);
         }
-        
-        // CRITICAL: Add the exact late minutes to total
-        const lateMinutesToAdd = record.lateMinutes || 0;
-        console.log('Adding late minutes:', lateMinutesToAdd, 'to current total:', summary[ecode].totalLateMinutes);
-        summary[ecode].totalLateMinutes += lateMinutesToAdd;
-        console.log('New total late minutes for', ecode, ':', summary[ecode].totalLateMinutes);
-        
-      } else if (record.status === "absent") {
-        summary[ecode].absentDays++;
-        console.log('Absent days for', ecode, ':', summary[ecode].absentDays);
+
+        // Add late minutes to total (even if 0)
+        summary[ecode].totalLateMinutes += record.lateMinutes || 0;
+
       }
     });
 
@@ -608,7 +704,7 @@ console.log('Test: 144 minutes =', formatMinutesToHoursMinutes(144));
     );
     console.log('\nMax total days:', maxTotalDays);
 
-    // Update all employees to have the same total days and recalculate absent days
+    // Update all employees to have the same total days and calculate absent days
     Object.values(summary).forEach((emp) => {
       const oldTotalDays = emp.totalDays;
       const oldAbsentDays = emp.absentDays;
@@ -664,26 +760,21 @@ console.log('Test: 144 minutes =', formatMinutesToHoursMinutes(144));
       if (result.success) {
         toast.success("Attendance data saved successfully!");
 
-        // Step 2: Send comprehensive attendance summary with RAW MINUTES
-        const summaryPayload = summaryData.map((row) => {
-          console.log(`Preparing summary for ${row.ecode}:`);
-          console.log('- Raw totalLateMinutes:', row.totalLateMinutes);
-          
-          return {
-            ecode: row.ecode,
-            presentDays: row.presentDays,
-            totalDays: row.totalDays,
-            absentDays: row.absentDays,
-            lateDays: row.lateDays,
-            totalLateMinutes: row.totalLateMinutes, // This saves the raw 144 minutes
-            dayShiftDays: row.dayShiftDays,
-            eveningShiftDays: row.eveningShiftDays,
-            nightShiftDays: row.nightShiftDays,
-            regularHoursDays: row.regularHoursDays,
-          };
-        });
 
-        console.log('Summary payload being sent:', summaryPayload);
+        // Step 2: Send comprehensive attendance summary to /add-attendance-summary
+        const summaryPayload = summaryData.map((row) => ({
+          ecode: row.ecode,
+          presentDays: row.presentDays,
+          halfDays: row.halfDays,
+          totalDays: row.totalDays,
+          absentDays: row.absentDays,
+          lateDays: row.lateDays,
+          totalLateMinutes: row.totalLateMinutes,
+          dayShiftDays: row.dayShiftDays,
+          eveningShiftDays: row.eveningShiftDays,
+          nightShiftDays: row.nightShiftDays,
+          totalWorkHours: row.totalWorkHours,
+        }));
 
         const summaryResponse = await fetch(
           `${import.meta.env.VITE_API_URL}/api/attendance/add-attendance-summary`,
@@ -736,19 +827,42 @@ console.log('Test: 144 minutes =', formatMinutesToHoursMinutes(144));
       if (data.success) {
         // Process fetched data to match frontend expectations
         const processedData = data.data.map((record) => {
+          // Calculate work hours
+          const workHours = calculateWorkHours(record.onDuty, record.offDuty);
+
+          // Calculate attendance value
+          const attendanceValue = calculateAttendanceValue(
+            record.onDuty,
+            record.offDuty
+          );
+
           // Determine shift based on on-duty time
           const shift = determineShift(record.onDuty);
-          // Updated status logic: if Off Duty is null/N/A, mark as absent
-          const status = !record.offDuty ? "absent" : "present";
+
+          // Enhanced status logic with half-day detection
+          let status;
+          if (!record.offDuty) {
+            status = "absent";
+          } else if (workHours < 4) {
+            status = "half-day";
+          } else {
+            status = "present";
+          }
+
           // Check if employee is late using optimized detection
-          const late = !record.offDuty ? false : isLate(record.onDuty, shift);
+          const late =
+            status !== "absent" ? isLate(record.onDuty, shift) : false;
+
           // Calculate late minutes using optimized calculation
-          const lateMinutes = !record.offDuty
-            ? 0
-            : calculateLateMinutes(record.onDuty, shift);
+          const lateMinutes =
+            status !== "absent"
+              ? calculateLateMinutes(record.onDuty, shift)
+              : 0;
 
           return {
             ...record,
+            workHours,
+            attendanceValue,
             shift,
             status,
             isLate: late,

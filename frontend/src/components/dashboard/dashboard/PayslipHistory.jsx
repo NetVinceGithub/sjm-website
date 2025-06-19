@@ -195,7 +195,7 @@ const PayslipHistory = () => {
             { label: "Payroll History", href: "/admin-dashboard/employees" },
           ]}
         />
-        <div className="bg-white p-3  rounded shadow-sm border -mt-3">
+        <div className="-mt-2 bg-white w-[calc(100vw-310px)] h-[calc(100vh-80px)] p-3 py-3 rounded-lg shadow">
           {loading ? (
             <div>Loading...</div>
           ) : (
@@ -237,7 +237,7 @@ const PayslipHistory = () => {
                 </div>
               </div>
               <hr />
-              <div className="mt-3 border h-[31rem] border-neutralDGray rounded overflow-auto">
+              <div className="mt-3 border border-neutralDGray rounded overflow-auto">
                 <div className="w-full overflow-x-auto">
                   <DataTable
                     columns={columns}

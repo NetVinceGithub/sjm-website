@@ -907,7 +907,7 @@ const List = () => {
         </div>
 
         {/* Containing the table list */}
-        <div className="mt-3 w-full overflow-x-auto">
+        <div className="mt-3 w-full overflow-x-auto ">
           <div className="w-full flex">
             <div className="w-full">
               <div className="border rounded-md">
