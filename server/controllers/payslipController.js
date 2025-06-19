@@ -1,4 +1,3 @@
-
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import Payslip from "../models/Payslip.js";
@@ -12,20 +11,22 @@ import AttendanceSummary from "../models/AttendanceSummary.js";
 import { QueryTypes } from "sequelize";
 import sequelize from "../db/db.js";
 import PayrollReleaseRequest from "../models/PayrollReleaseRequest.js"; // Ensure correct path
-import Holidays from "../models/Holidays.js"
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
+import Holidays from "../models/Holidays.js";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import User from "../models/User.js";
 dotenv.config();
 import moment from "moment"; // Import moment.js for date manipulation
 import { DataTypes } from "sequelize";
 import { Sequelize } from "sequelize";
-import puppeteer from 'puppeteer'; // Make sure puppeteer is installed
+import puppeteer from "puppeteer"; // Make sure puppeteer is installed
 
-import { execSync } from 'child_process';
-import { calculateSSSContribution, updatePayrollWithSSS } from "../utils/sssCalculator.js";
-
+import { execSync } from "child_process";
+import {
+  calculateSSSContribution,
+  updatePayrollWithSSS,
+} from "../utils/sssCalculator.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,8 +43,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-
-
 // Verify SMTP connection once
 transporter.verify((error, success) => {
   if (error) {
@@ -56,8 +55,13 @@ transporter.verify((error, success) => {
 // Function to generate payslip PDF - Modified for 4" x 5" using Playwright
 // Method 1: Read HTML file and replace placeholders
 const loadPayslipTemplate = () => {
-  const templatePath = path.join(__dirname, '..', 'templates', 'paysliptemplate.html');
-  return fs.readFileSync(templatePath, 'utf8');
+  const templatePath = path.join(
+    __dirname,
+    "..",
+    "templates",
+    "paysliptemplate.html"
+  );
+  return fs.readFileSync(templatePath, "utf8");
 };
 
 const fillTemplate = (template, data) => {
@@ -66,42 +70,36 @@ const fillTemplate = (template, data) => {
   });
 };
 
-
-
-
 const generatePayslipPDF = async (payslip) => {
   // In your generatePayslipPDF function, add this before launching:
-  console.log('🔍 Checking Puppeteer executable path...');
+  console.log("🔍 Checking Puppeteer executable path...");
   try {
     const executablePath = await puppeteer.executablePath();
-    console.log('📍 Puppeteer executable path:', executablePath);
+    console.log("📍 Puppeteer executable path:", executablePath);
   } catch (error) {
-    console.log('❌ Error getting executable path:', error.message);
+    console.log("❌ Error getting executable path:", error.message);
   }
 
   let browser = null;
   let page = null;
 
-
-
   try {
     const puppeteerConfig = {
-      headless: 'new',
+      headless: "new",
       executablePath: puppeteer.executablePath(),
       args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
-      ]
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--no-first-run",
+        "--no-zygote",
+        "--single-process",
+        "--disable-gpu",
+      ],
     };
 
-
-    console.log('🚀 Launching Puppeteer browser for payslip generation...');
+    console.log("🚀 Launching Puppeteer browser for payslip generation...");
     browser = await puppeteer.launch(puppeteerConfig);
 
     // Create a new page
@@ -109,9 +107,9 @@ const generatePayslipPDF = async (payslip) => {
 
     // Set viewport (similar to Playwright's context viewport)
     await page.setViewport({
-      width: 396,  // ~4.13 inches at 96 DPI
+      width: 396, // ~4.13 inches at 96 DPI
       height: 561, // ~5.83 inches at 96 DPI
-      deviceScaleFactor: 2
+      deviceScaleFactor: 2,
     });
 
     // Load template and fill with data
@@ -121,145 +119,305 @@ const generatePayslipPDF = async (payslip) => {
       ecode: payslip.ecode || "N/A",
       employee_name: payslip.name || "N/A",
       project_site: payslip.project || "N/A",
-      daily_rate: `₱${payslip.dailyrate ? Number(payslip.dailyrate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      daily_rate: `${
+        payslip.dailyrate
+          ? Number(payslip.dailyrate).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
       position: payslip.position || "N/A",
       cutoff_date: payslip.cutoffDate || "N/A",
-      basic_pay: `₱${payslip.basic_pay ? Number(payslip.basic_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      basic_pay: `${
+        payslip.basic_pay
+          ? Number(payslip.basic_pay).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
       no_of_days: parseInt(payslip.no_of_days, 10) || "0",
-      overtime_pay: `₱${payslip.overtime_pay ? Number(payslip.overtime_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
+      overtime_pay: `${
+        payslip.overtime_pay
+          ? Number(payslip.overtime_pay).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
       total_overtime: payslip.total_overtime || "0",
-      holiday_pay: `₱${payslip.holiday_pay ? Number(payslip.holiday_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-      night_differential: `₱${payslip.night_differential ? Number(payslip.night_differential).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-      allowance: `₱${payslip.allowance ? Number(payslip.allowance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-      sss: `₱${payslip.sss ? Number(payslip.sss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-      sssLoan: `₱${payslip.sssLoan ? Number(payslip.sssLoan).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-      phic: `₱${payslip.phic ? Number(payslip.phic).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-      hdmf: `₱${payslip.hdmf ? Number(payslip.hdmf).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-      hdmfLoan: `₱${payslip.hdmfLoan ? Number(payslip.hdmfLoan).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-      loan: `₱${payslip.loan ? Number(payslip.loan).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-      total_tardiness: `₱${payslip.total_tardiness ? Number(payslip.total_tardiness).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-      other_deductions: `₱${payslip.other_deductions ? Number(payslip.other_deductions).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-      total_earnings: `₱${payslip.total_earnings ? Number(payslip.total_earnings).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-      total_deductions: `₱${payslip.total_deductions ? Number(payslip.total_deductions).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-      adjustment: `₱${payslip.adjustment ? Number(payslip.adjustment).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-      gross_pay: `₱${payslip.gross_pay ? Number(payslip.gross_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`,
-      net_pay: `₱${payslip.net_pay ? Number(payslip.net_pay).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}`
+
+      holiday_pay: `${
+        payslip.holiday_pay
+          ? Number(payslip.holiday_pay).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
+      night_differential: `${
+        payslip.night_differential
+          ? Number(payslip.night_differential).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
+      allowance: `${
+        payslip.allowance
+          ? Number(payslip.allowance).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
+      sss: `${
+        payslip.sss
+          ? Number(payslip.sss).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
+      sssLoan: `${
+        payslip.sssLoan
+          ? Number(payslip.sssLoan).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
+      phic: `${
+        payslip.phic
+          ? Number(payslip.phic).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
+      hdmf: `${
+        payslip.hdmf
+          ? Number(payslip.hdmf).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
+      hdmfLoan: `${
+        payslip.hdmfLoan
+          ? Number(payslip.hdmfLoan).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
+      loan: `${
+        payslip.loan
+          ? Number(payslip.loan).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
+      total_tardiness: `${
+        payslip.total_tardiness
+          ? Number(payslip.total_tardiness).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
+      other_deductions: `${
+        payslip.other_deductions
+          ? Number(payslip.other_deductions).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
+      total_earnings: `${
+        payslip.total_earnings
+          ? Number(payslip.total_earnings).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
+      total_deductions: `${
+        payslip.total_deductions
+          ? Number(payslip.total_deductions).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
+      adjustment: `${
+        payslip.adjustment
+          ? Number(payslip.adjustment).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
+      gross_pay: `${
+        payslip.gross_pay
+          ? Number(payslip.gross_pay).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
+          : "0.00"
+      }`,
+      net_pay: `${
+        payslip.net_pay || payslip.netPay
+          ? Number(payslip.net_pay || payslip.netPay).toLocaleString(
+              undefined,
+              { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+            )
+          : "0.00"
+      }`,
+
     };
 
     const htmlContent = fillTemplate(template, templateData);
 
-    console.log('📄 Setting page content and generating PDF...');
+    console.log("📄 Setting page content and generating PDF...");
     await page.setContent(htmlContent, {
-      waitUntil: 'networkidle0',
-      timeout: 30000
+      waitUntil: "networkidle0",
+      timeout: 30000,
     });
 
     // Wait for DOM content to be loaded (similar to Playwright's domcontentloaded)
-    await page.waitForSelector('body', { timeout: 30000 });
+    await page.waitForSelector("body", { timeout: 30000 });
 
     const pdf = await page.pdf({
-      width: '105mm',
-      height: '148mm',
+      format: "A6", // This explicitly sets A6 format
       printBackground: true,
       margin: {
-        top: '3mm',
-        right: '3mm',
-        bottom: '3mm',
-        left: '3mm'
+        top: "3mm",
+        right: "3mm",
+        bottom: "3mm",
+        left: "3mm",
       },
       preferCSSPageSize: true,
-      timeout: 30000
+      timeout: 30000,
     });
 
-    console.log('✅ PDF generated successfully');
+    console.log("✅ PDF generated successfully");
     return pdf;
-
   } catch (error) {
-    console.error('❌ Error generating payslip PDF:', error);
+    console.error("❌ Error generating payslip PDF:", error);
     throw new Error(`Failed to generate payslip PDF: ${error.message}`);
   } finally {
     // Always close resources to prevent memory leaks
     try {
       if (page) {
         await page.close();
-        console.log('📄 Page closed successfully');
+        console.log("📄 Page closed successfully");
       }
       if (browser) {
         await browser.close();
-        console.log('🔒 Browser closed successfully');
+        console.log("🔒 Browser closed successfully");
       }
     } catch (closeError) {
-      console.error('⚠️ Error closing browser resources:', closeError);
+      console.error("⚠️ Error closing browser resources:", closeError);
     }
   }
 };
 
 // Updated ControlNumberHistory model definition
-const ControlNumberHistory = sequelize.define('ControlNumberHistory', {
-  monthYear: {
-    type: Sequelize.STRING, // Example: '2023-06'
-    allowNull: false,
+const ControlNumberHistory = sequelize.define(
+  "ControlNumberHistory",
+  {
+    monthYear: {
+      type: Sequelize.STRING, // Example: '2023-06'
+      allowNull: false,
+    },
+    batchId: {
+      type: Sequelize.STRING, // Store the batchId
+      allowNull: false,
+    },
+    controlNumber: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+    },
+    billingSummary: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+    },
   },
-  batchId: {
-    type: Sequelize.STRING, // Store the batchId
-    allowNull: false,
-  },
-  controlNumber: {
-    type: Sequelize.INTEGER,
-    allowNull: false,
-  },
-  billingSummary: {
-    type: Sequelize.INTEGER,
-    allowNull: false,
-  }
-}, {
+  {
     // Composite primary key to ensure unique combination of monthYear and batchId
     indexes: [
       {
         unique: true,
-        fields: ['monthYear', 'batchId']
+        fields: ["monthYear", "batchId"],
       },
       {
         unique: true,
-        fields: ['batchId'] // Ensure batchId is globally unique
-      }
-    ]
-  });
+        fields: ["batchId"], // Ensure batchId is globally unique
+      },
+    ],
+  }
+);
 
 export const sendPayslips = async (req, res) => {
   console.log("🚀 Starting sendPayslips function...");
-  
+
   try {
     const { payslips } = req.body;
-    console.log("📨 Received request to send payslips:", payslips?.length || 0, "payslips");
-    console.log("📨 Request body structure:", JSON.stringify(req.body, null, 2));
+    console.log(
+      "📨 Received request to send payslips:",
+      payslips?.length || 0,
+      "payslips"
+    );
+    console.log(
+      "📨 Request body structure:",
+      JSON.stringify(req.body, null, 2)
+    );
 
     // Enhanced validation with detailed logging
     if (!payslips) {
       console.log("❌ No payslips field in request body");
-      return res.status(400).json({ success: false, message: "No payslips field provided in request body." });
+      return res.status(400).json({
+        success: false,
+        message: "No payslips field provided in request body.",
+      });
     }
 
     if (!Array.isArray(payslips)) {
       console.log("❌ Payslips is not an array:", typeof payslips);
-      return res.status(400).json({ success: false, message: "Payslips must be an array." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Payslips must be an array." });
     }
 
     if (payslips.length === 0) {
       console.log("❌ Empty payslips array");
-      return res.status(400).json({ success: false, message: "No payslips provided." });
+      return res
+        .status(400)
+        .json({ success: false, message: "No payslips provided." });
     }
 
     console.log("✅ Payslips validation passed");
 
     // Check if required dependencies are available
     console.log("🔍 Checking dependencies...");
-    console.log("- transporter exists:", typeof transporter !== 'undefined');
-    console.log("- generatePayslipPDF exists:", typeof generatePayslipPDF !== 'undefined');
-    console.log("- ControlNumberHistory exists:", typeof ControlNumberHistory !== 'undefined');
-    console.log("- PayslipHistory exists:", typeof PayslipHistory !== 'undefined');
-    console.log("- Payslip exists:", typeof Payslip !== 'undefined');
-    console.log("- moment exists:", typeof moment !== 'undefined');
+    console.log("- transporter exists:", typeof transporter !== "undefined");
+    console.log(
+      "- generatePayslipPDF exists:",
+      typeof generatePayslipPDF !== "undefined"
+    );
+    console.log(
+      "- ControlNumberHistory exists:",
+      typeof ControlNumberHistory !== "undefined"
+    );
+    console.log(
+      "- PayslipHistory exists:",
+      typeof PayslipHistory !== "undefined"
+    );
+    console.log("- Payslip exists:", typeof Payslip !== "undefined");
+    console.log("- moment exists:", typeof moment !== "undefined");
 
     let successfulEmails = [];
     let failedEmails = [];
@@ -275,12 +433,15 @@ export const sendPayslips = async (req, res) => {
         batchId: payslip.batchId,
         name: payslip.name,
         email: payslip.email,
-        date: payslip.date
+        date: payslip.date,
       });
 
       if (!payslip.batchId) {
         console.log(`⚠️ Payslip ${i + 1} missing batchId:`, payslip);
-        failedEmails.push({ name: payslip.name || 'Unknown', reason: "Missing batchId" });
+        failedEmails.push({
+          name: payslip.name || "Unknown",
+          reason: "Missing batchId",
+        });
         continue;
       }
 
@@ -290,10 +451,13 @@ export const sendPayslips = async (req, res) => {
       payslipsByBatch[payslip.batchId].push(payslip);
     }
 
-    console.log("📦 Batch grouping complete:", Object.keys(payslipsByBatch).map(batchId => ({
-      batchId,
-      count: payslipsByBatch[batchId].length
-    })));
+    console.log(
+      "📦 Batch grouping complete:",
+      Object.keys(payslipsByBatch).map((batchId) => ({
+        batchId,
+        count: payslipsByBatch[batchId].length,
+      }))
+    );
 
     // Process each batch
     for (let batchId in payslipsByBatch) {
@@ -303,9 +467,15 @@ export const sendPayslips = async (req, res) => {
 
       // Validate first payslip has date
       if (!batchPayslips[0].date) {
-        console.log(`❌ First payslip in batch ${batchId} missing date:`, batchPayslips[0]);
+        console.log(
+          `❌ First payslip in batch ${batchId} missing date:`,
+          batchPayslips[0]
+        );
         for (let payslip of batchPayslips) {
-          failedEmails.push({ name: payslip.name || 'Unknown', reason: "Missing date field" });
+          failedEmails.push({
+            name: payslip.name || "Unknown",
+            reason: "Missing date field",
+          });
         }
         continue;
       }
@@ -318,21 +488,32 @@ export const sendPayslips = async (req, res) => {
       let formattedControlNumber;
 
       // Check if this batchId already has a control number for this month
-      console.log(`🔍 Checking for existing control number for batch ${batchId} in month ${payslipMonthYear}...`);
-      
+      console.log(
+        `🔍 Checking for existing control number for batch ${batchId} in month ${payslipMonthYear}...`
+      );
+
       let existingBatchRecord;
       try {
         existingBatchRecord = await ControlNumberHistory.findOne({
           where: {
             monthYear: payslipMonthYear,
-            batchId: batchId
-          }
+            batchId: batchId,
+          },
         });
-        console.log("🔍 Existing batch record query result:", existingBatchRecord ? "Found" : "Not found");
+        console.log(
+          "🔍 Existing batch record query result:",
+          existingBatchRecord ? "Found" : "Not found"
+        );
       } catch (dbError) {
-        console.log("❌ Database error when checking existing batch record:", dbError);
+        console.log(
+          "❌ Database error when checking existing batch record:",
+          dbError
+        );
         for (let payslip of batchPayslips) {
-          failedEmails.push({ name: payslip.name || 'Unknown', reason: `Database error: ${dbError.message}` });
+          failedEmails.push({
+            name: payslip.name || "Unknown",
+            reason: `Database error: ${dbError.message}`,
+          });
         }
         continue;
       }
@@ -344,24 +525,30 @@ export const sendPayslips = async (req, res) => {
         console.log("✅ Using existing control number and billing summary");
         controlNumber = existingBatchRecord.controlNumber;
         billingSummary = existingBatchRecord.billingSummary;
-        formattedControlNumber = `SJM ${payslipMonthYear}-${String(controlNumber).padStart(4, '0')}`;
-        formattedBillingSummary = String(billingSummary).padStart(5, '0');
-        console.log(`📋 Existing - Control Number: ${formattedControlNumber}, Billing Summary: ${formattedBillingSummary}`);
+        formattedControlNumber = `SJM ${payslipMonthYear}-${String(
+          controlNumber
+        ).padStart(4, "0")}`;
+        formattedBillingSummary = String(billingSummary).padStart(5, "0");
+        console.log(
+          `📋 Existing - Control Number: ${formattedControlNumber}, Billing Summary: ${formattedBillingSummary}`
+        );
       } else {
         console.log("🆕 Creating new control number and billing summary");
-        
+
         // This is a new batch, get the next control number for this month
         try {
           const lastRecordForMonth = await ControlNumberHistory.findOne({
             where: {
-              monthYear: payslipMonthYear
+              monthYear: payslipMonthYear,
             },
-            order: [['controlNumber', 'DESC']]
+            order: [["controlNumber", "DESC"]],
           });
 
           if (lastRecordForMonth) {
             controlNumber = lastRecordForMonth.controlNumber + 1;
-            console.log(`📈 Incrementing control number from ${lastRecordForMonth.controlNumber} to ${controlNumber}`);
+            console.log(
+              `📈 Incrementing control number from ${lastRecordForMonth.controlNumber} to ${controlNumber}`
+            );
           } else {
             controlNumber = 1;
             console.log("🥇 First control number for this month: 1");
@@ -369,20 +556,26 @@ export const sendPayslips = async (req, res) => {
 
           // Get the next billing summary number (global counter, regardless of month)
           const lastBillingSummaryRecord = await ControlNumberHistory.findOne({
-            order: [['billingSummary', 'DESC']]
+            order: [["billingSummary", "DESC"]],
           });
 
           if (lastBillingSummaryRecord) {
             billingSummary = lastBillingSummaryRecord.billingSummary + 1;
-            console.log(`📈 Incrementing billing summary from ${lastBillingSummaryRecord.billingSummary} to ${billingSummary}`);
+            console.log(
+              `📈 Incrementing billing summary from ${lastBillingSummaryRecord.billingSummary} to ${billingSummary}`
+            );
           } else {
             billingSummary = 1;
             console.log("🥇 First billing summary ever: 1");
           }
 
-          formattedControlNumber = `SJM ${payslipMonthYear}-${String(controlNumber).padStart(4, '0')}`;
-          formattedBillingSummary = String(billingSummary).padStart(5, '0');
-          console.log(`📋 New - Control Number: ${formattedControlNumber}, Billing Summary: ${formattedBillingSummary}`);
+          formattedControlNumber = `SJM ${payslipMonthYear}-${String(
+            controlNumber
+          ).padStart(4, "0")}`;
+          formattedBillingSummary = String(billingSummary).padStart(5, "0");
+          console.log(
+            `📋 New - Control Number: ${formattedControlNumber}, Billing Summary: ${formattedBillingSummary}`
+          );
 
           // Save the new control number and billing summary record for this batch
           console.log("💾 Saving new control number record...");
@@ -393,36 +586,61 @@ export const sendPayslips = async (req, res) => {
             billingSummary: billingSummary,
           });
           console.log("✅ Control number record saved successfully");
-
         } catch (dbError) {
-          console.log("❌ Database error when creating control numbers:", dbError);
+          console.log(
+            "❌ Database error when creating control numbers:",
+            dbError
+          );
           for (let payslip of batchPayslips) {
-            failedEmails.push({ name: payslip.name || 'Unknown', reason: `Database error: ${dbError.message}` });
+            failedEmails.push({
+              name: payslip.name || "Unknown",
+              reason: `Database error: ${dbError.message}`,
+            });
           }
           continue;
         }
       }
 
       // Process all payslips in this batch with the same control number
-      console.log(`📧 Processing ${batchPayslips.length} payslips for email sending...`);
-      
+      console.log(
+        `📧 Processing ${batchPayslips.length} payslips for email sending...`
+      );
+
       for (let i = 0; i < batchPayslips.length; i++) {
         const payslip = batchPayslips[i];
-        console.log(`\n📧 Processing payslip ${i + 1}/${batchPayslips.length} in batch ${batchId}`);
+        console.log(
+          `\n📧 Processing payslip ${i + 1}/${
+            batchPayslips.length
+          } in batch ${batchId}`
+        );
         console.log(`👤 Employee: ${payslip.name} (${payslip.email})`);
 
         // Enhanced email validation
-        if (!payslip.email || !payslip.email.includes('@') || payslip.email.trim() === '') {
-          console.log(`❌ Invalid email for ${payslip.name}: "${payslip.email}"`);
-          failedEmails.push({ name: payslip.name, reason: "Invalid or missing email address" });
+        if (
+          !payslip.email ||
+          !payslip.email.includes("@") ||
+          payslip.email.trim() === ""
+        ) {
+          console.log(
+            `❌ Invalid email for ${payslip.name}: "${payslip.email}"`
+          );
+          failedEmails.push({
+            name: payslip.name,
+            reason: "Invalid or missing email address",
+          });
           continue;
         }
 
         // Validate email format more thoroughly
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(payslip.email.trim())) {
-          console.log(`❌ Email format invalid for ${payslip.name}: "${payslip.email}"`);
-          failedEmails.push({ name: payslip.name, reason: "Invalid email format" });
+          console.log(
+            `❌ Email format invalid for ${payslip.name}: "${payslip.email}"`
+          );
+          failedEmails.push({
+            name: payslip.name,
+            reason: "Invalid email format",
+          });
           continue;
         }
 
@@ -437,16 +655,24 @@ export const sendPayslips = async (req, res) => {
             netPay: payslip.net_pay || payslip.netPay,
             cutoffDate: payslip.cutoff_date || payslip.cutoffDate,
             project: payslip.project,
-            position: payslip.position
+            position: payslip.position,
           });
 
           let pdfBuffer;
           try {
             pdfBuffer = await generatePayslipPDF(payslip);
-            console.log(`✅ PDF generated successfully for ${payslip.name}, size: ${pdfBuffer.length} bytes`);
+            console.log(
+              `✅ PDF generated successfully for ${payslip.name}, size: ${pdfBuffer.length} bytes`
+            );
           } catch (pdfError) {
-            console.log(`❌ PDF generation failed for ${payslip.name}:`, pdfError);
-            failedEmails.push({ name: payslip.name, reason: `PDF generation failed: ${pdfError.message}` });
+            console.log(
+              `❌ PDF generation failed for ${payslip.name}:`,
+              pdfError
+            );
+            failedEmails.push({
+              name: payslip.name,
+              reason: `PDF generation failed: ${pdfError.message}`,
+            });
             continue;
           }
 
@@ -463,7 +689,9 @@ export const sendPayslips = async (req, res) => {
                 </div>
                 
                 <div style="padding: 30px; border: 1px solid #ddd; background-color: #fff;">
-                  <h2 style="color: #333; margin-top: 0;">Dear ${payslip.name},</h2>
+                  <h2 style="color: #333; margin-top: 0;">Dear ${
+                    payslip.name
+                  },</h2>
                   
                   <p style="font-size: 16px; line-height: 1.6;">
                     Please find your detailed payslip attached as a PDF file. Please download and save it for your records.
@@ -482,23 +710,37 @@ export const sendPayslips = async (req, res) => {
                       </tr>
                       <tr>
                         <td style="padding: 8px 0; font-weight: bold; border-top: 1px solid #ddd;">Payroll Period:</td>
-                        <td style="padding: 8px 0; border-top: 1px solid #ddd;">${payslip.cutoff_date || payslip.cutoffDate || "N/A"}</td>
+                        <td style="padding: 8px 0; border-top: 1px solid #ddd;">${
+                          payslip.cutoff_date || payslip.cutoffDate || "N/A"
+                        }</td>
                       </tr>
                       <tr>
                         <td style="padding: 8px 0; font-weight: bold; border-top: 1px solid #ddd;">Employee Code:</td>
-                        <td style="padding: 8px 0; border-top: 1px solid #ddd;">${payslip.ecode || "N/A"}</td>
+                        <td style="padding: 8px 0; border-top: 1px solid #ddd;">${
+                          payslip.ecode || "N/A"
+                        }</td>
                       </tr>
                       <tr>
                         <td style="padding: 8px 0; font-weight: bold; border-top: 1px solid #ddd;">Position:</td>
-                        <td style="padding: 8px 0; border-top: 1px solid #ddd;">${payslip.position || "N/A"}</td>
+                        <td style="padding: 8px 0; border-top: 1px solid #ddd;">${
+                          payslip.position || "N/A"
+                        }</td>
                       </tr>
                       <tr>
                         <td style="padding: 8px 0; font-weight: bold; border-top: 1px solid #ddd;">Project Site:</td>
-                        <td style="padding: 8px 0; border-top: 1px solid #ddd;">${payslip.project || "N/A"}</td>
+                        <td style="padding: 8px 0; border-top: 1px solid #ddd;">${
+                          payslip.project || "N/A"
+                        }</td>
                       </tr>
                       <tr style="background-color: #e8f5e8;">
                         <td style="padding: 12px 8px; font-weight: bold; font-size: 18px; border-top: 2px solid #0093DD;">Net Pay:</td>
-                        <td style="padding: 12px 8px; font-weight: bold; font-size: 18px; color: #28a745; border-top: 2px solid #0093DD;">₱${(payslip.net_pay || payslip.netPay) ? Number(payslip.net_pay || payslip.netPay).toLocaleString() : "0.00"}</td>
+                        <td style="padding: 12px 8px; font-weight: bold; font-size: 18px; color: #28a745; border-top: 2px solid #0093DD;">${
+                          payslip.net_pay || payslip.netPay
+                            ? Number(
+                                payslip.net_pay || payslip.netPay
+                              ).toLocaleString()
+                            : "0.00"
+                        }</td>
                       </tr>
                     </table>
                   </div>
@@ -529,18 +771,22 @@ export const sendPayslips = async (req, res) => {
             `,
             attachments: [
               {
-                filename: `${payslip.name}_Payslip_${payslip.cutoff_date || payslip.cutoffDate || 'Current'}.pdf`,
+                filename: `${payslip.name}_Payslip_${
+                  payslip.cutoff_date || payslip.cutoffDate || "Current"
+                }.pdf`,
                 content: pdfBuffer,
-                contentType: 'application/pdf'
-              }
-            ]
+                contentType: "application/pdf",
+              },
+            ],
           };
 
           console.log(`📧 Email options prepared for ${payslip.email}:`);
           console.log(`   - From: ${mailOptions.from}`);
           console.log(`   - To: ${mailOptions.to}`);
           console.log(`   - Subject: ${mailOptions.subject}`);
-          console.log(`   - Attachment: ${mailOptions.attachments[0].filename}`);
+          console.log(
+            `   - Attachment: ${mailOptions.attachments[0].filename}`
+          );
           console.log(`   - PDF Size: ${pdfBuffer.length} bytes`);
 
           // Check transporter configuration
@@ -554,14 +800,14 @@ export const sendPayslips = async (req, res) => {
           console.log(`📧 Email result:`, {
             messageId: emailResult.messageId,
             accepted: emailResult.accepted,
-            rejected: emailResult.rejected
+            rejected: emailResult.rejected,
           });
-          
+
           successfulEmails.push(payslip.email);
 
           // Save to PayslipHistory with proper field mapping
           console.log(`💾 Saving payslip history for ${payslip.name}...`);
-          
+
           try {
             const historyRecord = await PayslipHistory.create({
               ecode: payslip.ecode,
@@ -578,43 +824,70 @@ export const sendPayslips = async (req, res) => {
               overtimePay: +(payslip.overtimePay || payslip.overtime_pay || 0),
               holidayPay: +(payslip.holidayPay || payslip.holiday_pay || 0),
               noOfDays: +(payslip.noOfDays || payslip.no_of_days || 0),
-              totalOvertime: +(payslip.totalOvertime || payslip.total_overtime || 0),
-              nightDifferential: +(payslip.nightDifferential || payslip.night_differential || 0),
+              totalOvertime: +(
+                payslip.totalOvertime ||
+                payslip.total_overtime ||
+                0
+              ),
+              nightDifferential: +(
+                payslip.nightDifferential ||
+                payslip.night_differential ||
+                0
+              ),
               sss: +(payslip.sss || 0),
               phic: +(payslip.phic || 0),
               hdmf: +(payslip.hdmf || 0),
               loan: +(payslip.loan || 0),
-              totalTardiness: +(payslip.totalTardiness || payslip.total_tardiness || 0),
+              totalTardiness: +(
+                payslip.totalTardiness ||
+                payslip.total_tardiness ||
+                0
+              ),
               totalHours: +(payslip.totalHours || payslip.total_hours || 0),
-              otherDeductions: +(payslip.otherDeductions || payslip.other_deductions || 0),
-              totalEarnings: +(payslip.totalEarnings || payslip.total_earnings || 0),
+              otherDeductions: +(
+                payslip.otherDeductions ||
+                payslip.other_deductions ||
+                0
+              ),
+              totalEarnings: +(
+                payslip.totalEarnings ||
+                payslip.total_earnings ||
+                0
+              ),
               adjustment: +(payslip.adjustment || 0),
               gross_pay: +(payslip.gross_pay || 0),
-              totalDeductions: +(payslip.totalDeductions || payslip.total_deductions || 0),
+              totalDeductions: +(
+                payslip.totalDeductions ||
+                payslip.total_deductions ||
+                0
+              ),
               netPay: +(payslip.net_pay || payslip.netPay || 0),
               controlNumber: formattedControlNumber,
               billingSummary: formattedBillingSummary,
               batchId: payslip.batchId,
             });
-            
-            console.log(`✅ Payslip history saved with ID: ${historyRecord.id}`);
-            payslipIdsToDelete.push(payslip.id);
 
+            console.log(
+              `✅ Payslip history saved with ID: ${historyRecord.id}`
+            );
+            payslipIdsToDelete.push(payslip.id);
           } catch (historyError) {
-            console.log(`⚠️ Failed to save payslip history for ${payslip.name}:`, historyError);
+            console.log(
+              `⚠️ Failed to save payslip history for ${payslip.name}:`,
+              historyError
+            );
             // Don't fail the email sending, just log the error
           }
-
         } catch (emailError) {
           console.log(`❌ Failed to send payslip to ${payslip.name}:`);
           console.log(`❌ Error details:`, emailError);
           console.log(`❌ Error stack:`, emailError.stack);
-          
+
           let errorMessage = emailError.message;
           if (emailError.code) {
             errorMessage = `${emailError.code}: ${errorMessage}`;
           }
-          
+
           failedEmails.push({ name: payslip.name, reason: errorMessage });
         }
       }
@@ -624,7 +897,9 @@ export const sendPayslips = async (req, res) => {
     if (payslipIdsToDelete.length > 0) {
       console.log(`🗑 Deleting ${payslipIdsToDelete.length} sent payslips...`);
       try {
-        const deletedCount = await Payslip.destroy({ where: { id: payslipIdsToDelete } });
+        const deletedCount = await Payslip.destroy({
+          where: { id: payslipIdsToDelete },
+        });
         console.log(`✅ Deleted ${deletedCount} sent payslips successfully`);
       } catch (deleteError) {
         console.log(`⚠️ Failed to delete some payslips:`, deleteError);
@@ -648,11 +923,11 @@ export const sendPayslips = async (req, res) => {
     console.log(`✅ Successful emails: ${successfulEmails.length}`);
     console.log(`❌ Failed emails: ${failedEmails.length}`);
     console.log(`🗑 Payslips deleted: ${payslipIdsToDelete.length}`);
-    
+
     if (successfulEmails.length > 0) {
       console.log("✅ Successful email addresses:", successfulEmails);
     }
-    
+
     if (failedEmails.length > 0) {
       console.log("❌ Failed emails details:", failedEmails);
     }
@@ -664,28 +939,26 @@ export const sendPayslips = async (req, res) => {
         successfulEmails,
         failedEmails,
         totalProcessed: payslips.length,
-        payslipsDeleted: payslipIdsToDelete.length
-      }
+        payslipsDeleted: payslipIdsToDelete.length,
+      },
     };
 
     console.log("📤 Sending response:", response);
     return res.status(200).json(response);
-
   } catch (mainError) {
     console.error("💥 CRITICAL ERROR in sendPayslips:");
     console.error("💥 Error message:", mainError.message);
     console.error("💥 Error stack:", mainError.stack);
     console.error("💥 Error details:", mainError);
-    
-    return res.status(500).json({ 
-      success: false, 
+
+    return res.status(500).json({
+      success: false,
       message: `Critical error: ${mainError.message}`,
-      error: process.env.NODE_ENV === 'development' ? mainError.stack : undefined
+      error:
+        process.env.NODE_ENV === "development" ? mainError.stack : undefined,
     });
   }
 };
-
-
 
 // 🔹 Add Payslip
 export const addPayslip = async (req, res) => {
@@ -779,7 +1052,10 @@ export const getPayslipByEmployeeId = async (req, res) => {
 
   // Extract numeric part (Remove 'M' prefix)
   const numericEmployeeId = parseInt(employeeId.replace(/\D/g, ""), 10);
-  console.log("🔍 Searching for payslip with numericEmployeeId:", numericEmployeeId);
+  console.log(
+    "🔍 Searching for payslip with numericEmployeeId:",
+    numericEmployeeId
+  );
 
   try {
     const payslip = await PayslipHistory.findAll({
@@ -788,39 +1064,51 @@ export const getPayslipByEmployeeId = async (req, res) => {
 
     if (!payslip || payslip.length === 0) {
       console.log("❌ No payslip found for Employee ID:", numericEmployeeId);
-      return res.status(404).json({ success: false, message: "Payslip not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Payslip not found" });
     }
 
     res.status(200).json({ success: true, payslip });
   } catch (error) {
     console.error("🔥 Database error:", error);
-    res.status(500).json({ success: false, message: "Server error", error: error.message });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
   }
 };
-
-
 
 export const getAvailableBatches = async (req, res) => {
   try {
     const batches = await Payslip.findAll({
-      attributes: ['batchId'],
-      group: ['batchId'],
-      order: [['batchId', 'DESC']],
+      attributes: ["batchId"],
+      group: ["batchId"],
+      order: [["batchId", "DESC"]],
       raw: true,
     });
 
     const batchDetails = await Promise.all(
-      batches.map(async ({ batchId, date }) => { // Make sure 'date' is destructured from batches
+      batches.map(async ({ batchId, date }) => {
+        // Make sure 'date' is destructured from batches
         const payslips = await Payslip.findAll({
           where: { batchId },
-          attributes: ['id', 'employeeId', 'name', 'cutoffDate', 'status', 'netPay', 'requested_by', 'date'],
-          order: [['name', 'ASC']],
+          attributes: [
+            "id",
+            "employeeId",
+            "name",
+            "cutoffDate",
+            "status",
+            "netPay",
+            "requested_by",
+            "date",
+          ],
+          order: [["name", "ASC"]],
           raw: true,
         });
 
-        const statuses = payslips.map(p => p.status);
+        const statuses = payslips.map((p) => p.status);
         const uniqueStatuses = [...new Set(statuses)];
-        const requested_name = payslips.map(p => p.requested_by);
+        const requested_name = payslips.map((p) => p.requested_by);
         const requestedBy = [...new Set(requested_name)];
 
         // Get the first cutoff date since they're all the same
@@ -832,7 +1120,7 @@ export const getAvailableBatches = async (req, res) => {
           uniqueStatuses,
           cutoffDate,
           payslips,
-          requestedBy
+          requestedBy,
         };
       })
     );
@@ -840,11 +1128,11 @@ export const getAvailableBatches = async (req, res) => {
     res.status(200).json(batchDetails);
   } catch (error) {
     console.error("Error fetching available batches:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch batch details" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch batch details" });
   }
 };
-
-
 
 export const requestPayrollRelease = async (req, res) => {
   try {
@@ -881,15 +1169,16 @@ export const releasePayroll = async (req, res) => {
 
     console.log("Payslips after release:", payslips);
 
-    return res.json({ success: true, message: "Payroll released", data: payslips });
+    return res.json({
+      success: true,
+      message: "Payroll released",
+      data: payslips,
+    });
   } catch (error) {
     console.error("Error releasing payroll:", error);
     res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 };
-
-
-
 
 export const pendingRequests = async (req, res) => {
   try {
@@ -950,12 +1239,13 @@ export const deleteAllPayslips = async (req, res) => {
   }
 };
 
-
 export const releasePayrollByProject = async (req, res) => {
   const { project } = req.body;
 
   if (!project) {
-    return res.status(400).json({ success: false, message: "Project is required." });
+    return res
+      .status(400)
+      .json({ success: false, message: "Project is required." });
   }
 
   try {
@@ -963,7 +1253,7 @@ export const releasePayrollByProject = async (req, res) => {
       "UPDATE payslips SET status = 'released' WHERE status = 'pending' AND project = :project",
       {
         replacements: { project },
-        type: QueryTypes.UPDATE
+        type: QueryTypes.UPDATE,
       }
     );
 
@@ -972,12 +1262,15 @@ export const releasePayrollByProject = async (req, res) => {
         "SELECT * FROM payslips WHERE status = 'released' AND project = :project",
         {
           replacements: { project },
-          type: QueryTypes.SELECT
+          type: QueryTypes.SELECT,
         }
       );
 
       try {
-        await axios.post(`${import.meta.env.VITE_API_URL}/api/payslip/send-payslip`, { payslips });
+        await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/payslip/send-payslip`,
+          { payslips }
+        );
         return res.json({
           success: true,
           message: `Payroll for '${project}' successfully released and payslips sent.`,
@@ -990,17 +1283,18 @@ export const releasePayrollByProject = async (req, res) => {
         });
       }
     } else {
-      return res.json({ success: false, message: "No pending payslips found for this project." });
+      return res.json({
+        success: false,
+        message: "No pending payslips found for this project.",
+      });
     }
   } catch (error) {
     console.error("Error releasing project-specific payroll:", error);
-    return res.status(500).json({ success: false, error: "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ success: false, error: "Internal Server Error" });
   }
 };
-
-
-
-
 
 export const getContributions = async (req, res) => {
   try {
@@ -1011,27 +1305,29 @@ export const getContributions = async (req, res) => {
     let replacements = {};
 
     if (employeeId) {
-      whereConditions.push('e.id = :employeeId');
+      whereConditions.push("e.id = :employeeId");
       replacements.employeeId = employeeId;
     }
 
     // Fix date filtering - use 'date' column from PayslipHistory
     if (startDate && endDate) {
-      whereConditions.push('ph.date BETWEEN :startDate AND :endDate');
+      whereConditions.push("ph.date BETWEEN :startDate AND :endDate");
       replacements.startDate = startDate;
       replacements.endDate = endDate;
     } else if (year) {
-      whereConditions.push('YEAR(ph.date) = :year');
+      whereConditions.push("YEAR(ph.date) = :year");
       replacements.year = year;
 
       if (month) {
-        whereConditions.push('MONTH(ph.date) = :month');
+        whereConditions.push("MONTH(ph.date) = :month");
         replacements.month = month;
       }
     }
 
-    const whereClause = whereConditions.length > 0 ?
-      `WHERE ${whereConditions.join(' AND ')}` : '';
+    const whereClause =
+      whereConditions.length > 0
+        ? `WHERE ${whereConditions.join(" AND ")}`
+        : "";
 
     // Fixed SQL query with correct table name (Employees with capital E)
     const query = `
@@ -1063,11 +1359,11 @@ export const getContributions = async (req, res) => {
     `;
     const results = await sequelize.query(query, {
       replacements,
-      type: QueryTypes.SELECT
+      type: QueryTypes.SELECT,
     });
 
     // Format the results
-    const contributionsData = results.map(row => ({
+    const contributionsData = results.map((row) => ({
       employeeId: row.employeeId,
       employeeCode: row.employeeCode,
       name: row.name,
@@ -1078,40 +1374,43 @@ export const getContributions = async (req, res) => {
       contributions: {
         sss: {
           total: parseFloat(row.totalSSS || 0),
-          count: parseInt(row.sssCount || 0)
+          count: parseInt(row.sssCount || 0),
         },
         philhealth: {
           total: parseFloat(row.totalPhilhealth || 0),
-          count: parseInt(row.philhealthCount || 0)
+          count: parseInt(row.philhealthCount || 0),
         },
         pagibig: {
           total: parseFloat(row.totalPagibig || 0),
-          count: parseInt(row.pagibigCount || 0)
-        }
+          count: parseInt(row.pagibigCount || 0),
+        },
       },
       grandTotal: parseFloat(row.grandTotal || 0),
-      payslipCount: parseInt(row.payslipCount || 0)
+      payslipCount: parseInt(row.payslipCount || 0),
     }));
 
     // Calculate overall summary
-    const overallSummary = contributionsData.reduce((acc, employee) => {
-      acc.totalEmployees++;
-      acc.totalSSS += employee.contributions.sss.total;
-      acc.totalPhilhealth += employee.contributions.philhealth.total;
-      acc.totalPagibig += employee.contributions.pagibig.total;
-      acc.grandTotal += employee.grandTotal;
-      return acc;
-    }, {
+    const overallSummary = contributionsData.reduce(
+      (acc, employee) => {
+        acc.totalEmployees++;
+        acc.totalSSS += employee.contributions.sss.total;
+        acc.totalPhilhealth += employee.contributions.philhealth.total;
+        acc.totalPagibig += employee.contributions.pagibig.total;
+        acc.grandTotal += employee.grandTotal;
+        return acc;
+      },
+      {
         totalEmployees: 0,
         totalSSS: 0,
         totalPhilhealth: 0,
         totalPagibig: 0,
-        grandTotal: 0
-      });
+        grandTotal: 0,
+      }
+    );
 
     // Format summary numbers
-    Object.keys(overallSummary).forEach(key => {
-      if (key !== 'totalEmployees') {
+    Object.keys(overallSummary).forEach((key) => {
+      if (key !== "totalEmployees") {
         overallSummary[key] = parseFloat(overallSummary[key].toFixed(2));
       }
     });
@@ -1119,7 +1418,7 @@ export const getContributions = async (req, res) => {
     // Return success response
     res.status(200).json({
       success: true,
-      message: 'Contributions retrieved successfully',
+      message: "Contributions retrieved successfully",
       data: {
         summary: overallSummary,
         employees: contributionsData,
@@ -1128,17 +1427,16 @@ export const getContributions = async (req, res) => {
           startDate: startDate || null,
           endDate: endDate || null,
           year: year || null,
-          month: month || null
-        }
-      }
+          month: month || null,
+        },
+      },
     });
-
   } catch (error) {
-    console.error('Error fetching contributions:', error);
+    console.error("Error fetching contributions:", error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -1152,7 +1450,7 @@ export const getEmployeeContributions = async (req, res) => {
     if (!employeeId) {
       return res.status(400).json({
         success: false,
-        message: 'Employee ID is required'
+        message: "Employee ID is required",
       });
     }
 
@@ -1160,47 +1458,67 @@ export const getEmployeeContributions = async (req, res) => {
     const payslipWhere = {};
     if (startDate && endDate) {
       payslipWhere.payPeriod = {
-        [Op.between]: [new Date(startDate), new Date(endDate)]
+        [Op.between]: [new Date(startDate), new Date(endDate)],
       };
     }
 
     // Fetch specific employee with payslip history
     const employee = await Employee.findByPk(employeeId, {
-      include: [{
-        model: PayslipHistory,
-        where: payslipWhere,
-        required: false,
-        attributes: ['id', 'sss', 'philhealth', 'pagibig', 'payPeriod', 'createdAt']
-      }],
-      attributes: ['id', 'name', 'sss', 'philhealth', 'pagibig', 'employeeCode']
+      include: [
+        {
+          model: PayslipHistory,
+          where: payslipWhere,
+          required: false,
+          attributes: [
+            "id",
+            "sss",
+            "philhealth",
+            "pagibig",
+            "payPeriod",
+            "createdAt",
+          ],
+        },
+      ],
+      attributes: [
+        "id",
+        "name",
+        "sss",
+        "philhealth",
+        "pagibig",
+        "employeeCode",
+      ],
     });
 
     if (!employee) {
       return res.status(404).json({
         success: false,
-        message: 'Employee not found'
+        message: "Employee not found",
       });
     }
 
     const payslips = employee.PayslipHistories || [];
 
     // Calculate totals
-    const totals = payslips.reduce((acc, payslip) => {
-      acc.totalSSS += parseFloat(payslip.sss || 0);
-      acc.totalPhilhealth += parseFloat(payslip.philhealth || 0);
-      acc.totalPagibig += parseFloat(payslip.pagibig || 0);
-      return acc;
-    }, {
+    const totals = payslips.reduce(
+      (acc, payslip) => {
+        acc.totalSSS += parseFloat(payslip.sss || 0);
+        acc.totalPhilhealth += parseFloat(payslip.philhealth || 0);
+        acc.totalPagibig += parseFloat(payslip.pagibig || 0);
+        return acc;
+      },
+      {
         totalSSS: 0,
         totalPhilhealth: 0,
-        totalPagibig: 0
-      });
+        totalPagibig: 0,
+      }
+    );
 
-    const grandTotal = totals.totalSSS + totals.totalPhilhealth + totals.totalPagibig;
+    const grandTotal =
+      totals.totalSSS + totals.totalPhilhealth + totals.totalPagibig;
 
     res.status(200).json({
       success: true,
-      message: 'Employee contributions retrieved successfully',
+      message: "Employee contributions retrieved successfully",
       data: {
         employeeId: employee.id,
         employeeCode: employee.employeeCode,
@@ -1211,134 +1529,150 @@ export const getEmployeeContributions = async (req, res) => {
         contributions: {
           sss: {
             total: parseFloat(totals.totalSSS.toFixed(2)),
-            count: payslips.filter(p => p.sss && parseFloat(p.sss) > 0).length
+            count: payslips.filter((p) => p.sss && parseFloat(p.sss) > 0)
+              .length,
           },
           philhealth: {
             total: parseFloat(totals.totalPhilhealth.toFixed(2)),
-            count: payslips.filter(p => p.philhealth && parseFloat(p.philhealth) > 0).length
+            count: payslips.filter(
+              (p) => p.philhealth && parseFloat(p.philhealth) > 0
+            ).length,
           },
           pagibig: {
             total: parseFloat(totals.totalPagibig.toFixed(2)),
-            count: payslips.filter(p => p.pagibig && parseFloat(p.pagibig) > 0).length
-          }
+            count: payslips.filter(
+              (p) => p.pagibig && parseFloat(p.pagibig) > 0
+            ).length,
+          },
         },
         grandTotal: parseFloat(grandTotal.toFixed(2)),
         payslipCount: payslips.length,
-        payslips: payslips.map(payslip => ({
+        payslips: payslips.map((payslip) => ({
           id: payslip.id,
           sss: parseFloat(payslip.sss || 0),
           philhealth: parseFloat(payslip.philhealth || 0),
           pagibig: parseFloat(payslip.pagibig || 0),
           payPeriod: payslip.payPeriod,
-          createdAt: payslip.createdAt
-        }))
-      }
+          createdAt: payslip.createdAt,
+        })),
+      },
     });
-
   } catch (error) {
-    console.error('Error fetching employee contributions:', error);
+    console.error("Error fetching employee contributions:", error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
 
-
-
 ///////////////////////payroll generation/////////////////////////
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // Function to calculate attendance metrics per employee
 
+// Helper functions for holiday detection and calculation
+const isHoliday = (date, holidays) => {
+  const dateStr = new Date(date).toISOString().split("T")[0]; // Format: YYYY-MM-DD
+  return holidays.find((holiday) => {
+    const holidayDateStr = new Date(holiday.date).toISOString().split("T")[0];
+    return holidayDateStr === dateStr;
+  });
+};
+
+const calculateHolidayPay = (holidayType, dailyRate) => {
+  switch (holidayType) {
+    case "Regular":
+      return dailyRate; // 200% for regular holidays
+    case "Special":
+      return dailyRate * 1.3; // 130% for special holidays
+    case "Special Non-Working":
+      return dailyRate * 1.3; // 130% for special non-working holidays
+    default:
+      return dailyRate;
+  }
+};
+
 export const generatePayroll = async (req, res) => {
-  const { 
-    cutoffDate, 
-    selectedEmployees = [], 
+  const {
+    cutoffDate,
+    selectedEmployees = [],
     selectedSchedules = [],
     employees = [],
     attendanceData = [],
     holidaysData = [],
     individualOvertime = {},
-    maxOvertime = 0, 
-    requestedBy 
+    maxOvertime = 0,
+    requestedBy,
   } = req.body;
 
-  console.log("🔍 Incoming request:", { 
-    cutoffDate, 
-    selectedEmployees, 
+  console.log("🔍 Incoming request:", {
+    cutoffDate,
+    selectedEmployees,
     selectedSchedules,
     employeesCount: employees.length,
     attendanceCount: attendanceData.length,
     holidaysCount: holidaysData.length,
     individualOvertime,
-    maxOvertime, 
-    requestedBy 
+    maxOvertime,
+    requestedBy,
   });
 
   try {
     const now = new Date();
-    const batchId = `SJM-PayrollBatch-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${now.getTime()}`;
+    const batchId = `SJM-PayrollBatch-${now.getFullYear()}${(now.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}${now
+      .getDate()
+      .toString()
+      .padStart(2, "0")}-${now.getTime()}`;
     console.log(`🔗 Generated batchId: ${batchId}`);
 
-    let employeesData, attendanceRecords, payrollInformations, holidays, attendanceSummary;
+    let employeesData,
+      attendanceRecords,
+      payrollInformations,
+      holidays,
+      attendanceSummary;
 
     if (employees.length > 0 && attendanceData.length > 0) {
       console.log("📦 Using data provided by frontend");
       employeesData = employees;
       attendanceRecords = attendanceData;
       holidays = holidaysData;
-      
     } else {
       console.log("📦 Fetching data from database");
       employeesData = await Employee.findAll({
-        where: { status: { [Op.ne]: "Inactive" } }
-      }).catch(async error => {
+        where: { status: { [Op.ne]: "Inactive" } },
+      }).catch(async (error) => {
         console.error("❌ Error fetching employees:", error);
         let allEmployees = await Employee.findAll();
-        return allEmployees.filter(emp => emp.status !== "Inactive");
+        return allEmployees.filter((emp) => emp.status !== "Inactive");
       });
 
-      attendanceRecords = await Attendance.findAll().catch(error => {
+      attendanceRecords = await Attendance.findAll().catch((error) => {
         console.error("❌ Error fetching attendance records:", error);
         return [];
       });
 
       console.log(`✅ Fetched ${attendanceRecords.length} attendance records`);
 
-      holidays = await Holidays.findAll().catch(error => {
+      holidays = await Holidays.findAll().catch((error) => {
         console.error("❌ Error fetching holidays:", error);
         return [];
       });
 
-      attendanceSummary = await AttendanceSummary.findAll().catch(error => {
+      attendanceSummary = await AttendanceSummary.findAll().catch((error) => {
         console.error("❌ Error fetching attendance summary:", error);
         return [];
       });
     }
 
-    employeesData = employeesData.filter(employee => employee.status !== "Inactive");
+    employeesData = employeesData.filter(
+      (employee) => employee.status !== "Inactive"
+    );
     console.log(`✅ Processing ${employeesData.length} active employees`);
 
-    payrollInformations = await PayrollInformation.findAll().catch(error => {
+    payrollInformations = await PayrollInformation.findAll().catch((error) => {
       console.error("❌ Error fetching payroll information:", error);
       return [];
     });
@@ -1346,7 +1680,7 @@ export const generatePayroll = async (req, res) => {
     if (!employeesData || employeesData.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "No active employees found!"
+        message: "No active employees found!",
       });
     }
 
@@ -1357,55 +1691,116 @@ export const generatePayroll = async (req, res) => {
       const employee = employeesData[i];
 
       try {
-        console.log(`📝 Processing ${i + 1}/${employeesData.length}: ${employee.name} (${employee.ecode})`);
+        console.log(
+          `📝 Processing ${i + 1}/${employeesData.length}: ${employee.name} (${
+            employee.ecode
+          })`
+        );
 
         const employeeAttendance = attendanceRecords.filter(
-          record => record.ecode === employee.ecode
+          (record) => record.ecode === employee.ecode
         );
 
         if (!employeeAttendance || employeeAttendance.length === 0) {
-          console.log(`⏭️ Skipping ${employee.name} (${employee.ecode}) - No attendance data found`);
+          console.log(
+            `⏭️ Skipping ${employee.name} (${employee.ecode}) - No attendance data found`
+          );
           continue;
         }
 
-        const employeePayrollInfo = payrollInformations.find(info => info.ecode === employee.ecode) || {};
-        const attendanceSummaryRecord = attendanceSummary ? attendanceSummary.find(info => info.ecode === employee.ecode) : null;
+
+        const employeePayrollInfo =
+          payrollInformations.find((info) => info.ecode === employee.ecode) ||
+          {};
+        const attendanceSummaryRecord = attendanceSummary
+          ? attendanceSummary.find((info) => info.ecode === employee.ecode)
+          : null;
+
+        // Get employee's shift hours (default to 4.5 for day shift, but allow customization)
+        const shiftHours = parseFloat(
+          employee.shift_hours || employee.shiftHours || 4.5
+        );
+        console.log(`⏰ Employee ${employee.name} shift hours: ${shiftHours}`);
+
 
         // Calculate basic attendance metrics from attendance records
         const daysPresent = employeeAttendance.length;
+        
+        // Improved tardiness calculation with multiple field name checks
         const totalLateMinutes = employeeAttendance.reduce((total, record) => {
-          return total + (record.lateMinutes || 0);
+
         }, 0);
 
-        // Update or create attendance summary record
+        // Update or create attendance summary record - FIXED field names
         try {
-          await AttendanceSummary.upsert({
-            ecode: employee.ecode,
-            daysPresent: daysPresent,
+
+          await AttendanceSummary.upsert(
+            {
+              ecode: employee.ecode,
+              presentDays: daysPresent,
+              totalDays: daysPresent,
+              absentDays: 0,
+              lateDays: employeeAttendance.filter(
+                (record) => (record.lateMinutes || 0) > 0
+              ).length,
+              totalLateMinutes: totalLateMinutes,
+              attendanceRate: daysPresent > 0 ? 100.0 : 0.0,
+            },
+            {
+              where: { ecode: employee.ecode },
+            }
+          );
+
+          console.log(
+            `📊 Attendance summary updated for ${employee.ecode} - Days Present: ${daysPresent}`
+          );
+
+            presentDays: daysPresent, // Changed from daysPresent to match model
             totalDays: daysPresent,
             absentDays: 0,
-            lateDays: employeeAttendance.filter(record => (record.lateMinutes || 0) > 0).length,
+            lateDays: employeeAttendance.filter(record => {
+              const lateMinutes = record.lateMinutes || record.late_minutes || record.tardiness || 0;
+              return Number(lateMinutes) > 0;
+            }).length,
             totalLateMinutes: totalLateMinutes,
-            attendanceRate: daysPresent > 0 ? 100.00 : 0.00
+            attendanceRate: daysPresent > 0 ? 100.00 : 0.00,
+            // Add the new fields from your model
+            dayShiftDays: 0,
+            eveningShiftDays: 0,
+            nightShiftDays: 0,
+            regularHoursDays: daysPresent
+
           }, {
             where: { ecode: employee.ecode }
           });
 
-          console.log(`📊 Attendance summary updated for ${employee.ecode} - Days Present: ${daysPresent}`);
+          console.log(`📊 Attendance summary updated for ${employee.ecode} - Days Present: ${daysPresent}, Late Minutes: ${totalLateMinutes}`);
+
         } catch (summaryError) {
-          console.error(`❌ Failed to update attendance summary for ${employee.ecode}:`, summaryError);
+          console.error(
+            `❌ Failed to update attendance summary for ${employee.ecode}:`,
+            summaryError
+          );
         }
 
-        // FIXED: Use attendance summary data if available, with proper NaN checking
-        let finalDaysPresent = attendanceSummaryRecord ? 
-          Number(attendanceSummaryRecord.daysPresent) : daysPresent;
-        
-        let finalTotalLateMinutes = attendanceSummaryRecord ? 
-          Number(attendanceSummaryRecord.totalLateMinutes) : totalLateMinutes;
+
+        // Use attendance summary data if available, with proper field names and NaN checking
+        let finalDaysPresent = attendanceSummaryRecord
+          ? Number(attendanceSummaryRecord.presentDays)
+          : daysPresent;
+
+        let finalTotalLateMinutes = attendanceSummaryRecord
+          ? Number(attendanceSummaryRecord.totalLateMinutes)
+          : totalLateMinutes;
+
 
         // CRITICAL FIX: Ensure no NaN values
-        finalDaysPresent = isNaN(finalDaysPresent) ? daysPresent : finalDaysPresent;
-        finalTotalLateMinutes = isNaN(finalTotalLateMinutes) ? totalLateMinutes : finalTotalLateMinutes;
+        finalDaysPresent = isNaN(finalDaysPresent)
+          ? daysPresent
+          : finalDaysPresent;
+        finalTotalLateMinutes = isNaN(finalTotalLateMinutes)
+          ? totalLateMinutes
+          : finalTotalLateMinutes;
 
         // Ensure we have valid numbers
         finalDaysPresent = Math.max(0, finalDaysPresent || 0);
@@ -1413,60 +1808,223 @@ export const generatePayroll = async (req, res) => {
 
         const rates = {
           dailyRate: Number(employeePayrollInfo.daily_rate) || 500,
-          hourlyRate: 65,
-          otHourlyRate: 81.25,
-          tardinessRate: 1.08
+          hourlyRate:
+            Number(employeePayrollInfo.hourly_rate) ||
+            (Number(employeePayrollInfo.daily_rate) || 500) / shiftHours,
+          otHourlyRate:
+            ((Number(employeePayrollInfo.daily_rate) || 500) / shiftHours) *
+            1.25, // 125% of regular hourly rate
+          tardinessRate:
+            (Number(employeePayrollInfo.daily_rate) || 500) / 8 / 60, // per minute rate
         };
 
-        // FIXED: Safer salary package calculation with NaN protection
-        const salaryPackage = Number(employee.salaryPackage) || Number(employee.salary_package) || 0;
-        
+
+        console.log(`💰 Calculated rates for ${employee.name}:`, {
+          dailyRate: rates.dailyRate,
+          hourlyRate: rates.hourlyRate.toFixed(2),
+          otHourlyRate: rates.otHourlyRate.toFixed(2),
+          tardinessRate: rates.tardinessRate.toFixed(4),
+          shiftHours: shiftHours,
+        });
+
+        // Safer salary package calculation with NaN protection
+        const salaryPackage =
+          Number(employee.salaryPackage) ||
+          Number(employee.salary_package) ||
+          0;
+
+        // DEBUG: Add debugging for attendance data structure
+        console.log(`🔍 DEBUG for ${employee.name} (${employee.ecode}):`);
+        console.log(
+          `   📊 employeeAttendance.length: ${employeeAttendance.length}`
+        );
+        console.log(`   📊 finalDaysPresent: ${finalDaysPresent}`);
+        console.log(
+          `   📋 Sample attendance records:`,
+          employeeAttendance.slice(0, 3).map((record) => ({
+            date: record.date,
+            ecode: record.ecode,
+            present: record.present || "undefined",
+            status: record.status || "undefined",
+          }))
+        );
+
+        // Initialize counters
+        let regularHolidayDays = 0;
+        let specialHolidayDays = 0;
+        let specialNonWorkingHolidayDays = 0;
+        let regularDaysWorked = 0;
+
+        let specialHolidayPay = 0;
+        let regularHolidayPay = 0;
+
+        console.log(
+          `   🎯 Starting counters - regularDaysWorked: ${regularDaysWorked}`
+        );
+
+        // Categorize attendance days based on actual attendance records only
+        employeeAttendance.forEach((record) => {
+          const holiday = isHoliday(record.date, holidays);
+
+          if (holiday) {
+            console.log(
+              `   🎉 Holiday found: ${record.date} - ${holiday.type}`
+            );
+            switch (holiday.type) {
+              case "Regular":
+                regularHolidayDays++;
+                regularHolidayPay += calculateHolidayPay(
+                  "Regular",
+                  rates.dailyRate
+                );
+                break;
+              case "Special":
+                specialHolidayDays++;
+                specialHolidayPay += calculateHolidayPay(
+                  "Special",
+                  rates.dailyRate
+                );
+                break;
+              case "Special Non-Working":
+                specialNonWorkingHolidayDays++;
+                specialHolidayPay += calculateHolidayPay(
+                  "Special Non-Working",
+                  rates.dailyRate
+                );
+                break;
+            }
+          } else {
+            regularDaysWorked++;
+            console.log(
+              `   📅 Regular day: ${record.date} - Total regular days now: ${regularDaysWorked}`
+            );
+          }
+        });
+
+        // DEBUG: Final counts
+        console.log(`   📊 FINAL COUNTS for ${employee.name}:`);
+        console.log(`      regularDaysWorked: ${regularDaysWorked}`);
+        console.log(`      regularHolidayDays: ${regularHolidayDays}`);
+        console.log(`      specialHolidayDays: ${specialHolidayDays}`);
+        console.log(
+          `      specialNonWorkingHolidayDays: ${specialNonWorkingHolidayDays}`
+        );
+        console.log(
+          `      Total holiday days: ${
+            regularHolidayDays +
+            specialHolidayDays +
+            specialNonWorkingHolidayDays
+          }`
+        );
+        console.log(
+          `      Sum should equal employeeAttendance.length: ${
+            regularDaysWorked +
+            regularHolidayDays +
+            specialHolidayDays +
+            specialNonWorkingHolidayDays
+          } = ${employeeAttendance.length}`
+        );
+
+        // Total holiday days and pay
+        const totalHolidayDays =
+          regularHolidayDays +
+          specialHolidayDays +
+          specialNonWorkingHolidayDays;
+        const totalHolidayPay = specialHolidayPay + regularHolidayPay;
+        const totalSpecialHolidayPay = specialHolidayPay;
+
+        // Calculate basic pay using finalDaysPresent (from AttendanceSummary.presentDays)
+        const basicPay =
+          (finalDaysPresent - totalHolidayDays) * rates.dailyRate;
+
+        console.log(`💰 Basic Pay Calculation for ${employee.name}:`);
+        console.log(`   📊 finalDaysPresent: ${finalDaysPresent}`);
+        console.log(`   💵 dailyRate: ${rates.dailyRate}`);
+        console.log(
+          `   🧮 basicPay: ${finalDaysPresent} × ${rates.dailyRate} = ${basicPay}`
+        );
+
+        // Verify the calculation
+        console.log(`📊 Days breakdown for ${employee.name}:`, {
+          totalAttendanceDays: employeeAttendance.length,
+          regularDaysWorked: regularDaysWorked,
+          totalHolidayDays: totalHolidayDays,
+          finalDaysPresent: finalDaysPresent,
+          shouldEqual: regularDaysWorked + totalHolidayDays,
+          regularHolidayDays: regularHolidayDays,
+          specialHolidayDays: specialHolidayDays,
+          specialNonWorkingHolidayDays: specialNonWorkingHolidayDays,
+        });
+
+        // Verify the math
+        if (
+          regularDaysWorked + totalHolidayDays !==
+          employeeAttendance.length
+        ) {
+          console.warn(`⚠️ Days calculation mismatch for ${employee.name}:`, {
+            regularDaysWorked,
+            totalHolidayDays,
+            sum: regularDaysWorked + totalHolidayDays,
+            attendanceRecords: employeeAttendance.length,
+          });
+        }
+
         let allowance = 0;
         if (salaryPackage > 0 && finalDaysPresent > 0) {
-          const allowancePerDay = (salaryPackage - (rates.dailyRate * 26)) / 26;
+          const allowancePerDay = (salaryPackage - rates.dailyRate * 26) / 26;
           allowance = allowancePerDay * finalDaysPresent;
           // Ensure allowance is not NaN
           allowance = isNaN(allowance) ? 0 : Math.max(0, allowance);
         }
 
+
         // Add debugging with NaN protection
         console.log("Salary package debug:", {
           ecode: employee.ecode,
           name: employee.name,
+          project: employee["area/section"],
           salaryPackage: employee.salaryPackage,
           salary_package: employee.salary_package,
           parsedSalaryPackage: salaryPackage,
           dailyRate: rates.dailyRate,
-          finalDaysPresent: finalDaysPresent,
+
           calculatedAllowance: allowance,
           finalTotalLateMinutes: finalTotalLateMinutes,
+          regularDaysWorked: regularDaysWorked,
+          totalHolidayDays: totalHolidayDays,
+          regularHolidayDays: regularHolidayDays,
         });
 
-        // FIXED: Calculate basic pay and gross pay with NaN protection
-        const basicPay = finalDaysPresent * rates.dailyRate;
-        const grossPay = basicPay + allowance;
+        // Calculate gross pay with proper basic pay and holiday pay
+        const grossPay = basicPay + totalSpecialHolidayPay + allowance;
 
-        // Ensure both values are valid numbers
-        const safeBasicPay = isNaN(basicPay) ? 0 : basicPay;
-        const safeGrossPay = isNaN(grossPay) ? safeBasicPay : grossPay;
 
-        // Calculate deductions using safeGrossPay
+        // Ensure gross pay is valid number
+        const safeGrossPay = isNaN(grossPay) ? basicPay : grossPay;
+
+
+        // Calculate deductions using safeGrossPay and decimal-aware tardiness calculation
+
+
         const deductions = {
-          sss: calculateSSSContribution(safeGrossPay).employerContribution,          
+          sss: calculateSSSContribution(safeGrossPay).employerContribution,
           phic: Number(employeePayrollInfo.philhealth_contribution) || 75,
           hdmf: Number(employeePayrollInfo.pagibig_contribution) || 50,
           loan: Number(employeePayrollInfo.loan) || 0,
           otherDeductions: Number(employeePayrollInfo.otherDeductions) || 0,
           taxDeduction: Number(employeePayrollInfo.tax_deduction) || 0,
-          tardiness: finalTotalLateMinutes * (rates.dailyRate / 8) / 60
+
+          tardiness: finalTotalLateMinutes * rates.tardinessRate, // Now uses proper per-minute rate
+
         };
 
         // Ensure all deductions are valid numbers
-        Object.keys(deductions).forEach(key => {
+        Object.keys(deductions).forEach((key) => {
           if (isNaN(deductions[key])) {
             deductions[key] = 0;
           }
         });
+
 
         const adjustment = Number(employeePayrollInfo.adjustment) || 0;
         const safeAdjustment = isNaN(adjustment) ? 0 : adjustment;
@@ -1475,26 +2033,57 @@ export const generatePayroll = async (req, res) => {
         const totalRegularOvertime = 0;
         const regularOvertimePay = totalRegularOvertime * rates.otHourlyRate;
 
-        // Simplified holiday pay calculations
-        const specialHolidayPay = 0;
-        const regularHolidayPay = 0;
+        // Simplified holiday overtime pay calculations
         const specialHolidayOTPay = 0;
         const regularHolidayOTPay = 0;
         const nightDifferentialPay = 0;
 
-        const totalHolidayPay = specialHolidayPay + regularHolidayPay;
-        const totalOvertimePay = regularOvertimePay + specialHolidayOTPay + regularHolidayOTPay;
+        const totalOvertimePay =
+          regularOvertimePay + specialHolidayOTPay + regularHolidayOTPay;
 
         const totalEarnings = safeGrossPay + safeAdjustment;
-        const totalDeductions = deductions.sss + deductions.phic + deductions.hdmf + 
-                               deductions.loan + deductions.otherDeductions + 
-                               deductions.taxDeduction + deductions.tardiness;
-        const netPay = totalEarnings - totalDeductions;
+
+        const totalDeductions =
+          deductions.sss +
+          deductions.phic +
+          deductions.hdmf +
+          deductions.loan +
+          deductions.otherDeductions +
+          deductions.taxDeduction +
+          deductions.tardiness;
+        const netPay = grossPay - totalDeductions;
+
+        // Calculate total hours using decimal shift hours
+        const totalRegularHours = parseFloat(
+          (regularDaysWorked * shiftHours).toFixed(2)
+        );
+        const totalHolidayHours = parseFloat(
+          (totalHolidayDays * shiftHours).toFixed(2)
+        );
+        const specialHolidayHours = parseFloat(
+          (specialHolidayDays * shiftHours).toFixed(2)
+        );
+        const regularHolidayHours = parseFloat(
+          (regularHolidayDays * shiftHours).toFixed(2)
+        );
+        const totalHours = parseFloat(
+          (finalDaysPresent * shiftHours).toFixed(2)
+        );
+
+        console.log(`⏰ Hours breakdown for ${employee.name}:`, {
+          shiftHours: shiftHours,
+          totalRegularHours: totalRegularHours,
+          totalHolidayHours: totalHolidayHours,
+          specialHolidayHours: specialHolidayHours,
+          regularHolidayHours: regularHolidayHours,
+          totalHours: totalHours,
+        });
+
 
         // CRITICAL: Ensure all values are valid numbers before database insertion
         const payslipData = {
           ecode: employee.ecode,
-          email: employee.emailaddress || employee.email || '',
+          email: employee.emailaddress || employee.email || "",
           employeeId: employee.id,
           name: employee.name,
           project: employee["area/section"] || "N/A",
@@ -1502,71 +2091,134 @@ export const generatePayroll = async (req, res) => {
           department: employee.department || "N/A",
           schedule: employee.schedule || "N/A",
           cutoffDate,
+
           dailyrate: parseFloat(rates.dailyRate.toFixed(2)),
-          basicPay: parseFloat(safeBasicPay.toFixed(2)),
+          basicPay: parseFloat(basicPay.toFixed(2)),
           noOfDays: parseInt(finalDaysPresent) || 0,
-          holidayDays: 0,
-          regularDays: parseInt(finalDaysPresent) || 0,
+
+          // Holiday fields
+          holidayDays: totalHolidayDays,
+          regularDays: regularDaysWorked,
+          specialHolidayDays: specialHolidayDays,
+          regularHolidayDays: regularHolidayDays,
+          specialNonWorkingHolidayDays: specialNonWorkingHolidayDays,
+
+          // Overtime fields
           overtimePay: parseFloat(totalOvertimePay.toFixed(2)),
           totalOvertime: parseFloat(totalRegularOvertime.toFixed(2)),
-          totalRegularHours: parseFloat((finalDaysPresent * 8).toFixed(2)),
-          totalHolidayHours: parseFloat("0.00"),
-          specialHolidayHours: parseFloat("0.00"),
-          regularHolidayHours: parseFloat("0.00"),
+
+          // Updated hours fields to use decimal shift hours
+          totalRegularHours: totalRegularHours,
+          totalHolidayHours: totalHolidayHours,
+          specialHolidayHours: specialHolidayHours,
+          regularHolidayHours: regularHolidayHours,
+
+          // Holiday pay fields
           holidayPay: parseFloat(totalHolidayPay.toFixed(2)),
           specialHolidayPay: parseFloat(specialHolidayPay.toFixed(2)),
           regularHolidayPay: parseFloat(regularHolidayPay.toFixed(2)),
           specialHolidayOTPay: parseFloat(specialHolidayOTPay.toFixed(2)),
           regularHolidayOTPay: parseFloat(regularHolidayOTPay.toFixed(2)),
+
+          // Night shift
           nightDifferential: parseFloat(nightDifferentialPay.toFixed(2)),
           nightShiftHours: parseFloat("0.00"),
+
+          // Allowances
           allowance: parseFloat(allowance.toFixed(2)),
+
+          // Government contributions
           sss: parseFloat(deductions.sss.toFixed(2)),
           phic: parseFloat(deductions.phic.toFixed(2)),
           hdmf: parseFloat(deductions.hdmf.toFixed(2)),
+
+          // Loans - separate SSS and Pag-IBIG loans
           loan: parseFloat(deductions.loan.toFixed(2)),
+          sssLoan: parseFloat(
+            (Number(employeePayrollInfo.sss_loan) || 0).toFixed(2)
+          ),
+          pagibigLoan: parseFloat(
+            (Number(employeePayrollInfo.pagibig_loan) || 0).toFixed(2)
+          ),
+
+          // Other deductions - updated tardiness calculation
           totalTardiness: parseFloat(deductions.tardiness.toFixed(2)),
-          totalHours: parseFloat((finalDaysPresent * 8).toFixed(2)),
+          totalHours: totalHours, // Now uses decimal shift hours
           otherDeductions: parseFloat(deductions.otherDeductions.toFixed(2)),
           taxDeduction: parseFloat(deductions.taxDeduction.toFixed(2)),
+
+          // Totals
           totalEarnings: parseFloat(totalEarnings.toFixed(2)),
           totalDeductions: parseFloat(totalDeductions.toFixed(2)),
           adjustment: parseFloat(safeAdjustment.toFixed(2)),
           gross_pay: parseFloat(safeGrossPay.toFixed(2)),
           netPay: parseFloat(netPay.toFixed(2)),
+
+
+          // System fields
+
           requestedBy: requestedBy,
           status: "pending",
-          batchId
+          batchId,
+
+          // Add shift hours to payslip data for reference
+          shiftHours: parseFloat(shiftHours.toFixed(2)),
         };
 
         // Final validation: Check for any remaining NaN values
         const nanFields = [];
-        Object.keys(payslipData).forEach(key => {
-          if (typeof payslipData[key] === 'number' && isNaN(payslipData[key])) {
+        Object.keys(payslipData).forEach((key) => {
+          if (typeof payslipData[key] === "number" && isNaN(payslipData[key])) {
             nanFields.push(key);
             payslipData[key] = 0; // Set to 0 as fallback
           }
         });
 
         if (nanFields.length > 0) {
-          console.warn(`⚠️ NaN values found and corrected for ${employee.name}:`, nanFields);
+          console.warn(
+            `⚠️ NaN values found and corrected for ${employee.name}:`,
+            nanFields
+          );
         }
 
+        // Add logging for holiday information
+        console.log(`🎉 Holiday breakdown for ${employee.name}:`, {
+          totalHolidayDays,
+          regularHolidayDays,
+          specialHolidayDays,
+          specialNonWorkingHolidayDays,
+          regularDaysWorked,
+          totalHolidayPay: totalHolidayPay.toFixed(2),
+          regularHolidayPay: regularHolidayPay.toFixed(2),
+          specialHolidayPay: specialHolidayPay.toFixed(2),
+        });
+
         console.log(`💰 Payslip calculated for ${employee.name}:`, {
+
           basicPay: payslipData.basicPay,
+          holidayPay: payslipData.holidayPay,
           daysPresent: payslipData.noOfDays,
-          netPay: payslipData.netPay
+
+          holidayDays: payslipData.holidayDays,
+          regularDays: payslipData.regularDays,
+          netPay: payslipData.netPay,
+          shiftHours: payslipData.shiftHours,
+          totalHours: payslipData.totalHours,
+          tardinessDeduction: payslipData.totalTardiness,
+
         });
 
         const newPayslip = await Payslip.create(payslipData);
         generatedPayslips.push(newPayslip);
-
       } catch (employeeError) {
-        console.error(`❌ Error processing employee ${employee.name}:`, employeeError);
+        console.error(
+          `❌ Error processing employee ${employee.name}:`,
+          employeeError
+        );
         errors.push({
           employee: employee.name,
           ecode: employee.ecode,
-          error: employeeError.message
+          error: employeeError.message,
         });
       }
     }
@@ -1576,19 +2228,24 @@ export const generatePayroll = async (req, res) => {
       await AttendanceSummary.destroy({ where: {}, truncate: true });
       await Attendance.destroy({ where: {}, truncate: true });
       console.log("🧹 Cleaned up attendance data and summary tables");
-    } catch(error) {
+    } catch (error) {
       console.log("❌ Error cleaning up attendance data:", error);
     }
 
     // Email notification logic
-    const approvers = await User.findAll({ where: { role: 'approver', isBlocked: false } });
+    const approvers = await User.findAll({
+      where: { role: "approver", isBlocked: false },
+    });
     const successfulEmails = [];
 
     for (const approver of approvers) {
-      const scheduleInfo = selectedSchedules.length > 0 
-        ? ` (using schedules: ${selectedSchedules.join(', ')} for tardiness calculation)` 
-        : '';
-      
+      const scheduleInfo =
+        selectedSchedules.length > 0
+          ? ` (using schedules: ${selectedSchedules.join(
+              ", "
+            )} for tardiness calculation)`
+          : "";
+
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to: approver.email,
@@ -1622,7 +2279,7 @@ export const generatePayroll = async (req, res) => {
             </div>
             <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
          </div>
-        `
+        `,
       };
 
       const transporter = nodemailer.createTransport({
@@ -1641,7 +2298,10 @@ export const generatePayroll = async (req, res) => {
         successfulEmails.push(approver.email);
         console.log(`✅ Email sent to ${approver.email}`);
       } catch (emailError) {
-        console.error(`❌ Failed to send email to ${approver.email}:`, emailError);
+        console.error(
+          `❌ Failed to send email to ${approver.email}:`,
+          emailError
+        );
       }
     }
 
@@ -1652,16 +2312,18 @@ export const generatePayroll = async (req, res) => {
       payslips: generatedPayslips,
       notified: successfulEmails,
       schedulesUsedForTardiness: selectedSchedules,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
     });
-
   } catch (error) {
     console.error("❌ Payroll Generation Critical Error:", error);
     res.status(500).json({
       success: false,
       message: "Server error during payroll generation.",
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      error:
+        process.env.NODE_ENV === "development"
+          ? error.message
+          : "Internal server error",
+      details: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 };

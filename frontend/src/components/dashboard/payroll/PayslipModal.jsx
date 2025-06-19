@@ -48,33 +48,87 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
     return Promise.all(promises);
   };
 
-  const downloadPDF = async () => {
+  const saveAsImage = async () => {
     const element = payslipRef.current;
+    if (!element) return;
 
     await preloadImages(); // Ensure all images are loaded before rendering
 
-    const opt = {
-      margin: 0,
-      filename: `${payslip?.name || "payslip"}_${
-        payslip?.cutoffDate || "cutoff"
-      }.pdf`,
-      image: { type: "jpeg", quality: 1.0 },
-      html2canvas: {
-        scale: 4,
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+
+      const canvas = await html2canvas(element, {
+        scale: 4, // High resolution for crisp image
         useCORS: true,
         allowTaint: false,
+        backgroundColor: "#ffffff",
+        width: element.offsetWidth,
+        height: element.offsetHeight,
         scrollX: 0,
         scrollY: 0,
-      },
-      jsPDF: {
-        unit: "mm",
-        format: "a6",
-        orientation: "portrait",
-      },
-      pagebreak: { mode: ["avoid-all", "css", "legacy"] },
-    };
+      });
 
-    html2pdf().set(opt).from(element).save();
+      // Create download link for image
+      const link = document.createElement("a");
+      link.download = `${payslip?.name || "payslip"}_${
+        payslip?.cutoffDate || "cutoff"
+      }.png`;
+      link.href = canvas.toDataURL("image/png", 1.0);
+      link.click();
+    } catch (error) {
+      console.error("Image generation failed:", error);
+      alert("Failed to generate image. Please try again.");
+    }
+  };
+
+  const downloadPDF = async () => {
+    const element = payslipRef.current;
+    if (!element) return;
+
+    await preloadImages(); // Ensure all images are loaded before rendering
+
+    try {
+      // Create high-quality canvas image using html2canvas
+      const html2canvas = (await import("html2canvas")).default;
+
+      const canvas = await html2canvas(element, {
+        scale: 4, // High resolution
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: "#ffffff",
+        scrollX: 0,
+        scrollY: 0,
+      });
+
+      // Convert canvas to image data
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+
+      // Import jsPDF and set up A6 PDF
+      const { jsPDF } = await import("jspdf");
+
+      const pdfWidth = 105; // A6 width in mm
+      const pdfHeight = 148; // A6 height in mm
+
+      const pdf = new jsPDF({
+        unit: "mm",
+        format: [pdfWidth, pdfHeight],
+        orientation: "portrait",
+      });
+
+      // Stretch image to exactly fill the entire A6 page (no margin)
+      const x = 0;
+      const y = 0;
+      const scaledWidth = pdfWidth;
+      const scaledHeight = pdfHeight;
+
+      pdf.addImage(imgData, "JPEG", x, y, scaledWidth, scaledHeight);
+      pdf.save(
+        `${payslip?.name || "payslip"}_${payslip?.cutoffDate || "cutoff"}.pdf`
+      );
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+      alert("Failed to generate PDF. Please try again.");
+    }
   };
 
   if (!isOpen) return null;
@@ -106,7 +160,14 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
             ) : !payslip ? (
               <p>No payslip data found.</p>
             ) : (
-              <div className="bg-white p-4 overflow-hidden text-[10px] font-sans">
+              <div
+                ref={payslipRef}
+                className="bg-white p-4 overflow-hidden text-[10px] font-sans"
+                style={{
+                  width: "400px", // Fixed width for consistent A6 generation
+                  maxWidth: "400px",
+                }}
+              >
                 <div className="relative flex h-28 w-full overflow-hidden text-white font-sans border bg-[#6e203a] mb-3">
                   <div className="flex-1 p-4 flex flex-col justify-between">
                     <div>
@@ -123,11 +184,8 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                         Services Company, Inc.
                       </p>
                     </div>
-                    <p className="text-[11px] mt-1">
-                      E-PAYSLIP NO. 2025-01-0001
-                    </p>
+                    <p className="text-[11px] mt-1">E-PAYSLIP NO.</p>
                   </div>
-
                   <div
                     style={{
                       clipPath:
@@ -143,245 +201,251 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                   </div>
                 </div>
 
-                <table className="border-collapse text-xs mx-auto font-sans text-center">
+                <table className="border-collapse text-xs mx-auto -mt-3 font-sans text-center w-full">
                   <tbody>
                     <tr>
-                      <th className="border h-5 w-[10rem] uppercase bg-gray-400 border-black font-bold">
+                      <th className="border h-5 uppercase bg-gray-400 border-black font-bold text-[9px] px-1">
                         E-code
                       </th>
-                      <th className="border h-5 w-[20rem] uppercase bg-gray-400 border-black font-bold">
+                      <th className="border h-5 uppercase bg-gray-400 border-black font-bold text-[9px] px-1">
                         Employee Name
                       </th>
-                      <th className="border h-5 w-[14rem] uppercase bg-gray-400 border-black font-bold">
+                      <th className="border h-5 uppercase bg-gray-400 border-black font-bold text-[9px] px-1">
                         Position
                       </th>
                     </tr>
                     <tr>
-                      <td className="border h-5 border-black">
+                      <td className="border h-5 border-black text-[9px] px-1">
                         {payslip?.ecode || "N/A"}
                       </td>
-                      <td className="border h-5 border-black">
+                      <td className="border h-5 border-black text-[9px] px-1">
                         {payslip?.name || "N/A"}
                       </td>
-                      <td className="border h-5 border-black">
+                      <td className="border h-5 border-black text-[9px] px-1">
                         {payslip?.position || "N/A"}
                       </td>
                     </tr>
                   </tbody>
                 </table>
 
-                <table className="border-collapse text-xs -mt-7 mx-auto text-center font-sans">
+                <table className="border-collapse text-xs mx-auto -mt-7 text-center font-sans w-full">
                   <tbody>
                     <tr>
-                      <td className="border h-5 w-[10rem] uppercase bg-gray-400 border-black font-bold">
+                      <td className="border h-5 uppercase bg-gray-400 border-black font-bold text-[9px] px-1">
                         Rate
                       </td>
-                      <td className="border h-5 w-[20rem] uppercase bg-gray-400 border-black font-bold">
+                      <td className="border h-5 uppercase bg-gray-400 border-black font-bold text-[9px] px-1">
                         Project Site
                       </td>
-                      <td className="border h-5 w-[14rem] uppercase bg-gray-400 border-black font-bold">
+                      <td className="border h-5 uppercase bg-gray-400 border-black font-bold text-[9px] px-1">
                         Cut-off date
                       </td>
                     </tr>
                     <tr>
-                      <td className="border h-5 border-black">
+                      <td className="border h-5 border-black text-[9px] px-1">
                         {formatNumber(payslip?.dailyrate)}
                       </td>
-                      <td className="border h-5 border-black">
+                      <td className="border h-5 border-black text-[9px] px-1">
                         {payslip?.project}
                       </td>
-                      <td className="border h-5 border-black">
+                      <td className="border h-5 border-black text-[9px] px-1">
                         {payslip?.cutoffDate || "N/A"}
                       </td>
                     </tr>
                   </tbody>
                 </table>
 
-                <table className="border-collapse text-xs mx-auto -mt-7 font-sans">
+                <table className="border-collapse text-xs mx-auto -mt-7 font-sans w-full">
                   <tbody>
                     <tr>
-                      <td className="border w-[14rem] h-5 uppercase bg-gray-400 border-black px-2 text-center font-bold">
+                      <td className="border px-2 h-5 uppercase bg-gray-400 border-black text-center font-bold text-[9px]">
                         Earnings
                       </td>
-                      <td className="border w-[7rem] px-2 h-5 uppercase bg-gray-400 border-black text-center font-bold">
+                      <td className="border px-1 h-5 uppercase bg-gray-400 border-black text-center font-bold text-[9px]">
                         Figures
                       </td>
-                      <td className="border w-[14rem] px-2 h-5 uppercase bg-gray-400 border-black text-center font-bold">
+                      <td className="border px-2 h-5 uppercase bg-gray-400 border-black text-center font-bold text-[9px]">
                         Deductions
                       </td>
-                      <td className="border w-[7rem] px-2 h-5 uppercase bg-gray-400 border-black text-center font-bold">
+                      <td className="border px-1 h-5 uppercase bg-gray-400 border-black text-center font-bold text-[9px]">
                         Figures
                       </td>
                     </tr>
                     <tr>
-                      <td className="h-5 border-l border-r border-t border-black">
+                      <td className="h-5 border-l border-r border-t border-black text-[9px] px-1">
                         Basic Pay
                       </td>
-                      <td className="h-5">
+                      <td className="h-5 border-l border-r border-t border-black text-[9px] px-1">
                         {formatNumber(payslip?.basicPay)}
                       </td>
-                      <td className="h-5 border-l border-r border-t border-black">
-                        <div className="text-[9px] bg-[#AA396F] h-fit w-fit flex justify-center items-center text-white rounded-lg text-center font-bold">
+                      <td className="h-5 border-l border-r border-t border-black text-[9px] px-1">
+                        <div className="text-[8px] bg-[#AA396F] h-fit w-fit flex justify-center items-center text-white rounded-lg text-center font-bold px-1">
                           <p>GOVERNMENT CONTRIBUTIONS</p>
                         </div>
                       </td>
-                      <td className="h-5 border-l border-r border-t border-black"></td>
+                      <td className="h-5 border-l border-r border-t border-black text-[9px] px-1"></td>
                     </tr>
                     <tr>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
-                        <div className="border-b-2 border-black py-2">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
+                        <div className="border-b-2 border-black">
                           No. of Days Worked
                         </div>
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         {payslip?.noOfDays || "0"}
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         SSS
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         {formatNumber(payslip?.sss)}
                       </td>
                     </tr>
                     <tr>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         Overtime Pay
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         {formatNumber(payslip?.overtimePay)}
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         PHIC
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         {formatNumber(payslip?.phic)}
                       </td>
                     </tr>
                     <tr>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         Overtime Hours
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         {payslip?.totalOvertime || "0.00"}
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         HDMF
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         {formatNumber(payslip?.hdmf)}
                       </td>
                     </tr>
                     <tr>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
-                        <div className="border-b-2 border-black py-2">Night Differential</div>
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
+                        <div className="border-b-2 border-black">
+                          Night Differential
+                        </div>
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         {formatNumber(payslip?.nightDifferential)}
                       </td>
-                      <td className="h-5 border-l border-r border-t border-black">
+                      <td className="h-5 border-l border-r border-t border-black text-[9px] px-1">
                         SSS Loan
                       </td>
-                      <td className="h-5 border-l border-r border-t border-black">
+                      <td className="h-5 border-l border-r border-t border-black text-[9px] px-1">
                         {formatNumber(payslip?.loan)}
                       </td>
                     </tr>
                     <tr>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         Holiday Pay
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
-                        {formatNumber(payslip?.holidayPay)}
-                      </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1"></td>
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         Pag-IBIG Loan
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black"></td>
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1"></td>
                     </tr>
                     <tr>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
-                        <li className="ml-3">Regular</li>
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
+                        <li className="ml-2 text-left">Regular</li>
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black"></td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
+                        {formatNumber(payslip?.regularHolidayPay)}
+                      </td>
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         Tardiness
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         {formatNumber(payslip?.totalTardiness)}
                       </td>
                     </tr>
                     <tr>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
-                        <div className="border-b-2 border-black py-2"><li className="ml-3">Special</li></div>
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
+                        <div className="border-b-2 border-black">
+                          <li className="ml-2 text-left">Special</li>
+                        </div>
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black"></td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
+                        {formatNumber(payslip?.specialHolidayPay)}
+                      </td>
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         Other Deductions
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         {formatNumber(payslip?.otherDeductions)}
                       </td>
                     </tr>
                     <tr>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         Allowances
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         {formatNumber(payslip?.allowance)}
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black"></td>
-                      <td className="h-5 border-l border-r border-t-0 border-black"></td>
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1"></td>
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1"></td>
                     </tr>
                     <tr>
-                      <td className="h-5 border-l border-r border-t-0 border-black"></td>
-                      <td className="h-5 border-l border-r border-t-0 border-black"></td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1"></td>
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1"></td>
+                      <td className="h-5 border-l border-r border-t-0 font-semibold border-black text-[9px] px-1">
                         Total Deductions
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         {formatNumber(payslip?.totalDeductions)}
                       </td>
                     </tr>
                     <tr>
-                      <td className="h-5 border-l border-r border-t-0 border-black"></td>
-                      <td className="h-5 border-l border-r border-t-0 border-black"></td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1"></td>
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1"></td>
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         Adjustments
                       </td>
-                      <td className="h-5 border-l border-r border-t-0 border-black">
+                      <td className="h-5 border-l border-r border-t-0 border-black text-[9px] px-1">
                         {formatNumber(payslip?.adjusment)}
                       </td>
                     </tr>
                     <tr>
-                      <td className="h-5 border-l border-r border-t-0 border-b border-black"></td>
-                      <td className="h-5 border-l border-r border-t-0 border-b border-black"></td>
-                      <td className="h-5 border-l border-r border-t-0 border-b border-black"></td>
-                      <td className="h-5 border-l border-r border-t-0 border-b border-black"></td>
+                      <td className="h-5 border-l border-r border-t-0 border-b border-black text-[9px] px-1"></td>
+                      <td className="h-5 border-l border-r border-t-0 border-b border-black text-[9px] px-1"></td>
+                      <td className="h-5 border-l border-r border-t-0 border-b border-black text-[9px] px-1"></td>
+                      <td className="h-5 border-l border-r border-t-0 border-b border-black text-[9px] px-1"></td>
                     </tr>
                   </tbody>
                 </table>
 
-                <table className="border-collapse mx-auto -mt-7 text-xs font-sans">
+                <table className="border-collapse mx-auto -mt-7 text-xs font-sans w-full">
                   <tbody>
                     <tr>
                       <td
                         colSpan="2"
-                        className="border border-black border-t-0 font-bold w-[22rem] uppercase bg-gray-400 text-center"
+                        className="border border-black border-t-0 font-bold uppercase bg-gray-400 text-center text-[9px]"
                       ></td>
                       <td
                         colSpan="2"
-                        className="border border-black border-t-0 font-bold h-2 w-[22rem] uppercase bg-gray-400 text-center"
+                        className="border border-black border-t-0 font-bold h-2 uppercase bg-gray-400 text-center text-[9px]"
                       ></td>
                     </tr>
                     <tr>
                       <td
                         colSpan="2"
-                        className="border border-t-0 text-center border-black h-5 w-[22rem] px-2"
+                        className="border border-t-0 border-b-0 text-center border-black h-5 px-2 text-[9px]"
                       >
                         Gross Pay
                       </td>
                       <td
                         colSpan="2"
-                        className="border border-t-0 text-center border-black h-5 w-[22rem] px-2"
+                        className="border border-t-0 border-b-0 text-center border-black h-5 px-2 text-[9px]"
                       >
                         Net Pay
                       </td>
@@ -389,18 +453,18 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                   </tbody>
                 </table>
 
-                <table className="border-collapse -mt-7 text-xs mx-auto font-sans">
+                <table className="border-collapse text-xs mx-auto -mt-7 font-sans w-full">
                   <tbody>
                     <tr>
                       <td
                         colSpan="2"
-                        className="border-t-0 border text-center border-black h-5 w-[22rem] px-2"
+                        className="border-t-0 border text-center border-black h-5 px-2 text-[9px]"
                       >
                         {formatNumber(payslip?.gross_pay)}
                       </td>
                       <td
                         colSpan="2"
-                        className="border border-t-0 text-center border-black h-5 w-[22rem] px-2"
+                        className="border border-t-0 text-center border-black h-5 px-2 text-[9px]"
                       >
                         {formatNumber(payslip?.netPay)}
                       </td>
@@ -408,16 +472,22 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                   </tbody>
                 </table>
 
-                <div className="grid grid-cols-2 gap-5 mt-12 mb-4">
-                  <div className="text-center">
-                    <div className="border-t border-black w-full mb-2"></div>
-                    <p className="text-xs italic">Prepared by</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="border-t border-black w-full mb-2"></div>
-                    <p className="text-xs italic">Employee's Signature</p>
-                  </div>
-                </div>
+                <table className="border-collapse text-[9px] mx-auto font-sans mt-4 w-full">
+                  <tbody>
+                    <tr>
+                      <td className="text-center px-2">
+                        <div className="border-t border-black py-2">
+                          Prepared by
+                        </div>
+                      </td>
+                      <td className="text-center px-2">
+                        <div className="border-t border-black py-2">
+                          Employee's Signature
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
