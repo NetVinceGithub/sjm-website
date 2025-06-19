@@ -384,18 +384,7 @@ const EmployeePayrollInformationsList = () => {
       width: "110px",
     },
     {
-      name: (
-        <Tooltip
-          title={
-            <div style={{ whiteSpace: "pre-line", textAlign: "center" }}>
-              This column is subject to change,{"\n"}based on Daily Rate.
-            </div>
-          }
-          arrow
-        >
-          <span>Holiday Pay</span>
-        </Tooltip>
-      ),
+      name: "Holiday Pay",
       selector: (row) =>
         `₱${parseFloat(row.holiday_pay || 0).toLocaleString()}`,
       sortable: true,

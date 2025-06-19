@@ -1,4 +1,4 @@
-// Optimized Attendance.jsx - Auto-detect schedule without custom option
+// Enhanced Attendance.jsx - With Half-Day Logic for <4 hours worked
 
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
@@ -31,8 +31,40 @@ const Attendance = () => {
       end: 21,
     },
     { value: "21-6", label: "Night Shift (21:00 - 06:00)", start: 21, end: 6 },
-    { value: "9-18", label: "Regular Hours (9:00 - 18:00)", start: 9, end: 18 },
   ];
+
+  // Helper function to calculate work duration in hours
+  const calculateWorkHours = (onDutyTime, offDutyTime) => {
+    if (!onDutyTime || !offDutyTime) return 0;
+
+    const [onHours, onMinutes] = onDutyTime.split(":").map(Number);
+    const [offHours, offMinutes] = offDutyTime.split(":").map(Number);
+
+    const onDutyMinutes = onHours * 60 + onMinutes;
+    let offDutyMinutes = offHours * 60 + offMinutes;
+
+    // Handle overnight shifts (e.g., night shift ending next day)
+    if (offDutyMinutes < onDutyMinutes) {
+      offDutyMinutes += 24 * 60; // Add 24 hours for next day
+    }
+
+    const workMinutes = offDutyMinutes - onDutyMinutes;
+    return workMinutes / 60; // Convert to hours
+  };
+
+  // Helper function to determine attendance value (1 for full day, 0.5 for half day)
+  const calculateAttendanceValue = (onDutyTime, offDutyTime) => {
+    if (!offDutyTime) return 0; // Absent
+
+    const workHours = calculateWorkHours(onDutyTime, offDutyTime);
+
+    // If worked less than 4 hours, consider as half day
+    if (workHours < 4) {
+      return 0.5;
+    }
+
+    return 1; // Full day
+  };
 
   // Optimized shift detection with fallback logic
   const determineShift = (onDutyTime) => {
@@ -118,7 +150,6 @@ const Attendance = () => {
     if (shift.includes("Day Shift")) return "bg-blue-100 text-blue-800";
     if (shift.includes("Evening Shift")) return "bg-orange-100 text-orange-800";
     if (shift.includes("Night Shift")) return "bg-purple-100 text-purple-800";
-    if (shift.includes("Regular Hours")) return "bg-green-100 text-green-800";
     return "bg-gray-100 text-gray-800";
   };
 
@@ -206,7 +237,7 @@ const Attendance = () => {
     return `${hours}h ${minutes}m`;
   };
 
-  // Column definitions for attendance table - matching backend fields
+  // Column definitions for attendance table - enhanced with work hours and attendance value
   const attendanceColumns = [
     {
       name: "E-Code",
@@ -231,6 +262,24 @@ const Attendance = () => {
       width: "80px",
     },
     {
+      name: "Work Hours",
+      selector: (row) => row.workHours?.toFixed(1) || "0.0",
+      width: "100px",
+      cell: (row) => (
+        <span
+          className={`px-2 py-1 rounded text-xs ${
+            row.workHours < 4
+              ? "bg-yellow-100 text-yellow-800"
+              : row.workHours >= 8
+              ? "bg-green-100 text-green-800"
+              : "bg-blue-100 text-blue-800"
+          }`}
+        >
+          {row.workHours?.toFixed(1) || "0.0"}h
+        </span>
+      ),
+    },
+    {
       name: "Shift",
       selector: (row) => row.shift || "Unknown",
       width: "120px",
@@ -253,12 +302,34 @@ const Attendance = () => {
           className={`px-2 py-1 rounded text-xs ${
             row.status === "present"
               ? "bg-green-100 text-green-800"
+              : row.status === "half-day"
+              ? "bg-yellow-100 text-yellow-800"
               : row.status === "absent"
               ? "bg-red-100 text-red-800"
               : "bg-gray-100 text-gray-800"
           }`}
         >
-          {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
+          {row.status === "half-day"
+            ? "Half Day"
+            : row.status.charAt(0).toUpperCase() + row.status.slice(1)}
+        </span>
+      ),
+    },
+    {
+      name: "Attendance Value",
+      selector: (row) => row.attendanceValue,
+      width: "130px",
+      cell: (row) => (
+        <span
+          className={`px-2 py-1 rounded text-xs ${
+            row.attendanceValue === 1
+              ? "bg-green-100 text-green-800"
+              : row.attendanceValue === 0.5
+              ? "bg-yellow-100 text-yellow-800"
+              : "bg-red-100 text-red-800"
+          }`}
+        >
+          {row.attendanceValue}
         </span>
       ),
     },
@@ -280,7 +351,7 @@ const Attendance = () => {
     },
   ];
 
-  // Updated summary columns - removed custom/other column
+  // Updated summary columns - enhanced with half-day tracking
   const summaryColumns = [
     {
       name: "E-Code",
@@ -295,58 +366,68 @@ const Attendance = () => {
     },
     {
       name: "Present",
-      selector: (row) => row.presentDays,
+      selector: (row) => row.presentDays?.toFixed(1) || "0.0",
       width: "90px",
+      cell: (row) => (
+        <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+          {row.presentDays?.toFixed(1) || "0.0"}
+        </span>
+      ),
+    },
+    {
+      name: "Half Days",
+      selector: (row) => row.halfDays || 0,
+      width: "90px",
+      cell: (row) => (
+        <span className="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-800">
+          {row.halfDays || 0}
+        </span>
+      ),
     },
     {
       name: "Absent",
-      selector: (row) => row.absentDays,
+      selector: (row) => row.absentDays?.toFixed(1) || "0.0",
       width: "80px",
+      cell: (row) => (
+        <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-800">
+          {row.absentDays?.toFixed(1) || "0.0"}
+        </span>
+      ),
     },
     {
       name: "Day Shift",
-      selector: (row) => row.dayShiftDays || 0,
+      selector: (row) => row.dayShiftDays?.toFixed(1) || "0.0",
       width: "100px",
       cell: (row) => (
         <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
-          {row.dayShiftDays || 0}
+          {row.dayShiftDays?.toFixed(1) || "0.0"}
         </span>
       ),
     },
     {
       name: "Evening Shift",
-      selector: (row) => row.eveningShiftDays || 0,
+      selector: (row) => row.eveningShiftDays?.toFixed(1) || "0.0",
       width: "120px",
       cell: (row) => (
         <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-800">
-          {row.eveningShiftDays || 0}
+          {row.eveningShiftDays?.toFixed(1) || "0.0"}
         </span>
       ),
     },
     {
       name: "Night Shift",
-      selector: (row) => row.nightShiftDays || 0,
+      selector: (row) => row.nightShiftDays?.toFixed(1) || "0.0",
       width: "110px",
       cell: (row) => (
         <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
-          {row.nightShiftDays || 0}
+          {row.nightShiftDays?.toFixed(1) || "0.0"}
         </span>
       ),
     },
     {
-      name: "Regular Hours",
-      selector: (row) => row.regularHoursDays || 0,
-      width: "110px",
-      cell: (row) => (
-        <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
-          {row.regularHoursDays || 0}
-        </span>
-      ),
-    },
-    {
-      name: "Tardiness",
+      name: "Tardiness (h:m)",
       selector: (row) => formatMinutesToHoursMinutes(row.totalLateMinutes),
-      width: "110px",
+      width: "120px",
       cell: (row) => (
         <span
           className={`px-2 py-1 rounded text-xs ${
@@ -419,18 +500,31 @@ const Attendance = () => {
               const onDuty = convertExcelTimeToString(onDutyRaw);
               const offDuty = convertExcelTimeToString(offDutyRaw);
 
+              // Calculate work hours
+              const workHours = calculateWorkHours(onDuty, offDuty);
+
+              // Calculate attendance value (1 for full day, 0.5 for half day, 0 for absent)
+              const attendanceValue = calculateAttendanceValue(onDuty, offDuty);
+
               // Determine shift based on on-duty time
               const shift = determineShift(onDuty);
 
-              // Updated status logic: if Off Duty is null/N/A, mark as absent
-              const status = !offDuty ? "absent" : "present";
+              // Enhanced status logic with half-day detection
+              let status;
+              if (!offDuty) {
+                status = "absent";
+              } else if (workHours < 4) {
+                status = "half-day";
+              } else {
+                status = "present";
+              }
 
               // Check if employee is late using optimized detection
-              const late = status === "present" ? isLate(onDuty, shift) : false;
+              const late = status !== "absent" ? isLate(onDuty, shift) : false;
 
               // Calculate late minutes using optimized calculation
               const lateMinutes =
-                status === "present" ? calculateLateMinutes(onDuty, shift) : 0;
+                status !== "absent" ? calculateLateMinutes(onDuty, shift) : 0;
 
               return {
                 id: index + 1,
@@ -438,6 +532,8 @@ const Attendance = () => {
                 date: formattedDate,
                 onDuty,
                 offDuty,
+                workHours,
+                attendanceValue,
                 shift,
                 status,
                 isLate: late,
@@ -457,7 +553,7 @@ const Attendance = () => {
     }
   };
 
-  // Generate summary data from attendance - updated to remove custom shift tracking
+  // Generate summary data from attendance - enhanced with half-day tracking
   const generateSummary = (data) => {
     const summary = {};
 
@@ -468,43 +564,47 @@ const Attendance = () => {
           ecode: ecode,
           totalDays: 0,
           presentDays: 0,
+          halfDays: 0,
           absentDays: 0,
           lateDays: 0,
           totalLateMinutes: 0,
           dayShiftDays: 0,
           eveningShiftDays: 0,
           nightShiftDays: 0,
-          regularHoursDays: 0,
+          totalWorkHours: 0,
         };
       }
 
       summary[ecode].totalDays++;
+      summary[ecode].totalWorkHours += record.workHours || 0;
 
-      if (record.status === "present") {
-        summary[ecode].presentDays++;
+      // Add attendance value instead of just counting days
+      summary[ecode].presentDays += record.attendanceValue || 0;
 
-        // Count shift-specific days based on the shift type
-        if (record.shift) {
-          if (record.shift.includes("Day Shift")) {
-            summary[ecode].dayShiftDays++;
-          } else if (record.shift.includes("Evening Shift")) {
-            summary[ecode].eveningShiftDays++;
-          } else if (record.shift.includes("Night Shift")) {
-            summary[ecode].nightShiftDays++;
-          } else if (record.shift.includes("Regular Hours")) {
-            summary[ecode].regularHoursDays++;
-          }
-          // Removed custom shift handling - all shifts should now be properly detected
+      if (record.status === "half-day") {
+        summary[ecode].halfDays++;
+      } else if (record.status === "absent") {
+        // Absent days calculation will be done at the end
+      }
+
+      // Count shift-specific days with attendance value
+      if (record.attendanceValue > 0 && record.shift) {
+        if (record.shift.includes("Day Shift")) {
+          summary[ecode].dayShiftDays += record.attendanceValue;
+        } else if (record.shift.includes("Evening Shift")) {
+          summary[ecode].eveningShiftDays += record.attendanceValue;
+        } else if (record.shift.includes("Night Shift")) {
+          summary[ecode].nightShiftDays += record.attendanceValue;
         }
+      }
 
-        // Count late days and accumulate late minutes only for present employees
+      // Count late days and accumulate late minutes only for present/half-day employees
+      if (record.status !== "absent") {
         if (record.isLate) {
           summary[ecode].lateDays++;
         }
         // Add late minutes to total (even if 0)
         summary[ecode].totalLateMinutes += record.lateMinutes || 0;
-      } else if (record.status === "absent") {
-        summary[ecode].absentDays++;
       }
     });
 
@@ -513,7 +613,7 @@ const Attendance = () => {
       ...Object.values(summary).map((emp) => emp.totalDays)
     );
 
-    // Update all employees to have the same total days and recalculate absent days
+    // Update all employees to have the same total days and calculate absent days
     Object.values(summary).forEach((emp) => {
       emp.totalDays = maxTotalDays;
       emp.absentDays = maxTotalDays - emp.presentDays;
@@ -561,6 +661,7 @@ const Attendance = () => {
         const summaryPayload = summaryData.map((row) => ({
           ecode: row.ecode,
           presentDays: row.presentDays,
+          halfDays: row.halfDays,
           totalDays: row.totalDays,
           absentDays: row.absentDays,
           lateDays: row.lateDays,
@@ -568,7 +669,7 @@ const Attendance = () => {
           dayShiftDays: row.dayShiftDays,
           eveningShiftDays: row.eveningShiftDays,
           nightShiftDays: row.nightShiftDays,
-          regularHoursDays: row.regularHoursDays,
+          totalWorkHours: row.totalWorkHours,
         }));
 
         const summaryResponse = await fetch(
@@ -624,19 +725,42 @@ const Attendance = () => {
       if (data.success) {
         // Process fetched data to match frontend expectations
         const processedData = data.data.map((record) => {
+          // Calculate work hours
+          const workHours = calculateWorkHours(record.onDuty, record.offDuty);
+
+          // Calculate attendance value
+          const attendanceValue = calculateAttendanceValue(
+            record.onDuty,
+            record.offDuty
+          );
+
           // Determine shift based on on-duty time
           const shift = determineShift(record.onDuty);
-          // Updated status logic: if Off Duty is null/N/A, mark as absent
-          const status = !record.offDuty ? "absent" : "present";
+
+          // Enhanced status logic with half-day detection
+          let status;
+          if (!record.offDuty) {
+            status = "absent";
+          } else if (workHours < 4) {
+            status = "half-day";
+          } else {
+            status = "present";
+          }
+
           // Check if employee is late using optimized detection
-          const late = !record.offDuty ? false : isLate(record.onDuty, shift);
+          const late =
+            status !== "absent" ? isLate(record.onDuty, shift) : false;
+
           // Calculate late minutes using optimized calculation
-          const lateMinutes = !record.offDuty
-            ? 0
-            : calculateLateMinutes(record.onDuty, shift);
+          const lateMinutes =
+            status !== "absent"
+              ? calculateLateMinutes(record.onDuty, shift)
+              : 0;
 
           return {
             ...record,
+            workHours,
+            attendanceValue,
             shift,
             status,
             isLate: late,
