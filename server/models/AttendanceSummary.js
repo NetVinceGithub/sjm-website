@@ -68,6 +68,7 @@ const AttendanceSummary = sequelize.define(
       defaultValue: 0.0,
     },
   },
+
   {
     tableName: "attendancesummary",
     timestamps: true, // Enable timestamps for tracking when records are created/updated
@@ -79,5 +80,6 @@ const AttendanceSummary = sequelize.define(
     ],
   }
 );
+
 
 export default AttendanceSummary;

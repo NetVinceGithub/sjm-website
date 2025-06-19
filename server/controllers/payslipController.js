@@ -147,6 +147,7 @@ const generatePayslipPDF = async (payslip) => {
           : "0.00"
       }`,
       total_overtime: payslip.total_overtime || "0",
+
       holiday_pay: `${
         payslip.holiday_pay
           ? Number(payslip.holiday_pay).toLocaleString(undefined, {
@@ -275,6 +276,7 @@ const generatePayslipPDF = async (payslip) => {
             )
           : "0.00"
       }`,
+
     };
 
     const htmlContent = fillTemplate(template, templateData);
@@ -1706,6 +1708,7 @@ export const generatePayroll = async (req, res) => {
           continue;
         }
 
+
         const employeePayrollInfo =
           payrollInformations.find((info) => info.ecode === employee.ecode) ||
           {};
@@ -1719,14 +1722,18 @@ export const generatePayroll = async (req, res) => {
         );
         console.log(`⏰ Employee ${employee.name} shift hours: ${shiftHours}`);
 
+
         // Calculate basic attendance metrics from attendance records
         const daysPresent = employeeAttendance.length;
+        
+        // Improved tardiness calculation with multiple field name checks
         const totalLateMinutes = employeeAttendance.reduce((total, record) => {
-          return total + (record.lateMinutes || 0);
+
         }, 0);
 
-        // Update or create attendance summary record
+        // Update or create attendance summary record - FIXED field names
         try {
+
           await AttendanceSummary.upsert(
             {
               ecode: employee.ecode,
@@ -1747,12 +1754,35 @@ export const generatePayroll = async (req, res) => {
           console.log(
             `📊 Attendance summary updated for ${employee.ecode} - Days Present: ${daysPresent}`
           );
+
+            presentDays: daysPresent, // Changed from daysPresent to match model
+            totalDays: daysPresent,
+            absentDays: 0,
+            lateDays: employeeAttendance.filter(record => {
+              const lateMinutes = record.lateMinutes || record.late_minutes || record.tardiness || 0;
+              return Number(lateMinutes) > 0;
+            }).length,
+            totalLateMinutes: totalLateMinutes,
+            attendanceRate: daysPresent > 0 ? 100.00 : 0.00,
+            // Add the new fields from your model
+            dayShiftDays: 0,
+            eveningShiftDays: 0,
+            nightShiftDays: 0,
+            regularHoursDays: daysPresent
+
+          }, {
+            where: { ecode: employee.ecode }
+          });
+
+          console.log(`📊 Attendance summary updated for ${employee.ecode} - Days Present: ${daysPresent}, Late Minutes: ${totalLateMinutes}`);
+
         } catch (summaryError) {
           console.error(
             `❌ Failed to update attendance summary for ${employee.ecode}:`,
             summaryError
           );
         }
+
 
         // Use attendance summary data if available, with proper field names and NaN checking
         let finalDaysPresent = attendanceSummaryRecord
@@ -1762,6 +1792,7 @@ export const generatePayroll = async (req, res) => {
         let finalTotalLateMinutes = attendanceSummaryRecord
           ? Number(attendanceSummaryRecord.totalLateMinutes)
           : totalLateMinutes;
+
 
         // CRITICAL FIX: Ensure no NaN values
         finalDaysPresent = isNaN(finalDaysPresent)
@@ -1786,6 +1817,7 @@ export const generatePayroll = async (req, res) => {
           tardinessRate:
             (Number(employeePayrollInfo.daily_rate) || 500) / 8 / 60, // per minute rate
         };
+
 
         console.log(`💰 Calculated rates for ${employee.name}:`, {
           dailyRate: rates.dailyRate,
@@ -1945,15 +1977,17 @@ export const generatePayroll = async (req, res) => {
           allowance = isNaN(allowance) ? 0 : Math.max(0, allowance);
         }
 
+
         // Add debugging with NaN protection
         console.log("Salary package debug:", {
           ecode: employee.ecode,
           name: employee.name,
+          project: employee["area/section"],
           salaryPackage: employee.salaryPackage,
           salary_package: employee.salary_package,
           parsedSalaryPackage: salaryPackage,
           dailyRate: rates.dailyRate,
-          finalDaysPresent: finalDaysPresent,
+
           calculatedAllowance: allowance,
           finalTotalLateMinutes: finalTotalLateMinutes,
           regularDaysWorked: regularDaysWorked,
@@ -1964,10 +1998,14 @@ export const generatePayroll = async (req, res) => {
         // Calculate gross pay with proper basic pay and holiday pay
         const grossPay = basicPay + totalSpecialHolidayPay + allowance;
 
+
         // Ensure gross pay is valid number
         const safeGrossPay = isNaN(grossPay) ? basicPay : grossPay;
 
+
         // Calculate deductions using safeGrossPay and decimal-aware tardiness calculation
+
+
         const deductions = {
           sss: calculateSSSContribution(safeGrossPay).employerContribution,
           phic: Number(employeePayrollInfo.philhealth_contribution) || 75,
@@ -1975,7 +2013,9 @@ export const generatePayroll = async (req, res) => {
           loan: Number(employeePayrollInfo.loan) || 0,
           otherDeductions: Number(employeePayrollInfo.otherDeductions) || 0,
           taxDeduction: Number(employeePayrollInfo.tax_deduction) || 0,
+
           tardiness: finalTotalLateMinutes * rates.tardinessRate, // Now uses proper per-minute rate
+
         };
 
         // Ensure all deductions are valid numbers
@@ -1984,6 +2024,7 @@ export const generatePayroll = async (req, res) => {
             deductions[key] = 0;
           }
         });
+
 
         const adjustment = Number(employeePayrollInfo.adjustment) || 0;
         const safeAdjustment = isNaN(adjustment) ? 0 : adjustment;
@@ -2001,6 +2042,7 @@ export const generatePayroll = async (req, res) => {
           regularOvertimePay + specialHolidayOTPay + regularHolidayOTPay;
 
         const totalEarnings = safeGrossPay + safeAdjustment;
+
         const totalDeductions =
           deductions.sss +
           deductions.phic +
@@ -2037,6 +2079,7 @@ export const generatePayroll = async (req, res) => {
           totalHours: totalHours,
         });
 
+
         // CRITICAL: Ensure all values are valid numbers before database insertion
         const payslipData = {
           ecode: employee.ecode,
@@ -2048,6 +2091,7 @@ export const generatePayroll = async (req, res) => {
           department: employee.department || "N/A",
           schedule: employee.schedule || "N/A",
           cutoffDate,
+
           dailyrate: parseFloat(rates.dailyRate.toFixed(2)),
           basicPay: parseFloat(basicPay.toFixed(2)),
           noOfDays: parseInt(finalDaysPresent) || 0,
@@ -2110,7 +2154,9 @@ export const generatePayroll = async (req, res) => {
           gross_pay: parseFloat(safeGrossPay.toFixed(2)),
           netPay: parseFloat(netPay.toFixed(2)),
 
+
           // System fields
+
           requestedBy: requestedBy,
           status: "pending",
           batchId,
@@ -2148,15 +2194,18 @@ export const generatePayroll = async (req, res) => {
         });
 
         console.log(`💰 Payslip calculated for ${employee.name}:`, {
+
           basicPay: payslipData.basicPay,
           holidayPay: payslipData.holidayPay,
           daysPresent: payslipData.noOfDays,
+
           holidayDays: payslipData.holidayDays,
           regularDays: payslipData.regularDays,
           netPay: payslipData.netPay,
           shiftHours: payslipData.shiftHours,
           totalHours: payslipData.totalHours,
           tardinessDeduction: payslipData.totalTardiness,
+
         });
 
         const newPayslip = await Payslip.create(payslipData);
