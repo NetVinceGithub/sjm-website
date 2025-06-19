@@ -209,6 +209,7 @@ const PayrollSummary = () => {
     setModalOpen(true);
   };
 
+  // 3. Enhanced handleCheckboxChange with better overtime management
   const handleCheckboxChange = (ecode) => {
     setSelectedOvertime((prevSelected) => {
       const isCurrentlySelected = prevSelected.includes(ecode);
@@ -231,6 +232,94 @@ const PayrollSummary = () => {
       }
     });
   };
+
+  const EnhancedModalFooter = () => {
+  const handleApproveOvertime = () => {
+    // Validate overtime data before proceeding
+    const validationIssues = validateOvertimeData();
+    
+    if (validationIssues.length > 0) {
+      toast.error(
+        <div style={{ fontSize: "0.9rem" }}>
+          Please fix the following issues:<br/>
+          {validationIssues.slice(0, 3).map((issue, index) => (
+            <div key={index}>• {issue}</div>
+          ))}
+          {validationIssues.length > 3 && <div>...and {validationIssues.length - 3} more</div>}
+        </div>,
+        {
+          autoClose: 5000,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          closeButton: false,
+          position: "top-right",
+        }
+      );
+      return;
+    }
+
+    // Log what's being sent for debugging
+    console.log("🚀 Approving overtime for employees:", {
+      selectedEmployees: selectedOvertime,
+      individualOvertime,
+      totalEmployees: selectedOvertime.length,
+      totalOvertimeHours: Object.values(individualOvertime)
+        .reduce((sum, hours) => sum + Number(hours || 0), 0)
+    });
+
+    proceedWithPayroll(selectedOvertime);
+    handleClose();
+  };
+
+  return (
+    <Modal.Footer>
+      <button
+        className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+        onClick={handleApproveOvertime}
+        disabled={selectedOvertime.length === 0}
+      >
+        Approve Overtime ({selectedOvertime.length} employees)
+      </button>
+      <button
+        className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+        onClick={handleClose}
+      >
+        Close
+      </button>
+    </Modal.Footer>
+  );
+};
+
+
+
+  // 5. Debug function to verify data before sending
+  const debugOvertimeData = () => {
+    console.log("🔍 OVERTIME DEBUG INFO:");
+    console.log("Selected Overtime Employees:", selectedOvertime);
+    console.log("Individual Overtime Values:", individualOvertime);
+    console.log("Max Overtime Setting:", maxOvertime);
+    console.log("Payroll Type:", payrollType);
+    console.log("Cutoff Date:", cutoffDate);
+    
+    // Verify each selected employee has overtime data
+    selectedOvertime.forEach(ecode => {
+      const overtimeHours = individualOvertime[ecode];
+      console.log(`Employee ${ecode}: ${overtimeHours} hours`);
+    });
+  };
+
+  // 6. Enhanced overtime input validation
+  const handleOvertimeChange = (ecode, value) => {
+    // Validate input
+    if (value === '' || (!isNaN(value) && Number(value) >= 0)) {
+      setIndividualOvertime((prev) => ({
+        ...prev,
+        [ecode]: value,
+      }));
+    }
+  };
+
 
   const fetchPayslips = async () => {
     try {
@@ -336,6 +425,10 @@ const PayrollSummary = () => {
     return isLoading || !hasCutoff;
   };
 
+
+  // Key changes to ensure overtime data is properly sent to backend
+
+  // 1. Enhanced proceedWithPayroll function with better overtime handling
   const proceedWithPayroll = async (selectedEmployees) => {
     // Validate cutoff date
     if (!cutoffDate) {
@@ -345,9 +438,7 @@ const PayrollSummary = () => {
 
     // Additional validation: ensure selected employees
     if (!selectedEmployees || selectedEmployees.length === 0) {
-      setMessage(
-        "Please select at least one employee before generating payroll."
-      );
+      setMessage("Please select at least one employee before generating payroll.");
       return;
     }
 
@@ -364,17 +455,27 @@ const PayrollSummary = () => {
       console.log("📊 Fetched attendance data:", attendanceData);
 
       if (!attendanceData.length) {
-        console.log(
-          "🚫 No attendance data found! Stopping payroll generation."
-        );
+        console.log("🚫 No attendance data found! Stopping payroll generation.");
         setNoAttendanceModalOpen(true);
         setLoading(false);
         return;
       }
 
-      console.log("📩 Sending payroll request with cutoffDate:", cutoffDate);
+      // Enhanced overtime processing
+      console.log("⏰ Processing overtime data...");
+      console.log("Selected employees:", selectedEmployees);
+      console.log("Individual overtime values:", individualOvertime);
 
-      // Apply individual overtime values for each employee
+      // Create overtime summary for backend
+      const overtimeApprovals = selectedEmployees.map(ecode => ({
+        ecode,
+        approvedOvertimeHours: Number(individualOvertime[ecode] || 0),
+        isApproved: true
+      }));
+
+      console.log("✅ Overtime approvals to send:", overtimeApprovals);
+
+      // Apply individual overtime values for each attendance record
       const updatedAttendanceData = attendanceData.map((record) => {
         const employeeOvertime = selectedEmployees.includes(record.ecode)
           ? Number(individualOvertime[record.ecode] || 0)
@@ -382,20 +483,42 @@ const PayrollSummary = () => {
 
         return {
           ...record,
-          overtimeHours: Math.min(record.overtimeHours, employeeOvertime),
+          // Ensure we don't exceed approved overtime
+          overtimeHours: Math.min(record.overtimeHours || 0, employeeOvertime),
+          approvedOvertimeHours: employeeOvertime,
+          overtimeApproved: selectedEmployees.includes(record.ecode)
         };
       });
 
-      // Send request with individual overtime data
+      console.log("📩 Sending comprehensive payroll request...");
+
+      // Enhanced request payload
+      const payrollRequest = {
+        cutoffDate: cutoffDate.trim(),
+        selectedEmployees,
+        attendanceData: updatedAttendanceData,
+        individualOvertime, // Individual overtime hours per employee
+        overtimeApprovals, // Structured overtime approval data
+        payrollType, // Include payroll type (weekly/biweekly)
+        requestedBy: user.name,
+        generatedAt: new Date().toISOString(),
+        // Additional metadata for backend processing
+        metadata: {
+          totalEmployeesSelected: selectedEmployees.length,
+          employeesWithOvertime: selectedEmployees.filter(ecode => 
+            Number(individualOvertime[ecode] || 0) > 0
+          ).length,
+          totalOvertimeHours: Object.values(individualOvertime)
+            .reduce((sum, hours) => sum + Number(hours || 0), 0)
+        }
+      };
+
+      console.log("📤 Final payroll request payload:", payrollRequest);
+
+      // Send request with comprehensive overtime data
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/payslip/generate`,
-        {
-          cutoffDate: cutoffDate.trim(),
-          selectedEmployees,
-          attendanceData: updatedAttendanceData,
-          individualOvertime,
-          requestedBy: user.name,
-        }
+        payrollRequest
       );
 
       console.log("✅ Payroll response:", response.data);
@@ -409,6 +532,9 @@ const PayrollSummary = () => {
           toast.success(
             <div style={{ fontSize: "0.9rem" }}>
               Payroll successfully generated for {selectedEmployees.length} employee(s).
+              {overtimeApprovals.filter(oa => oa.approvedOvertimeHours > 0).length > 0 && 
+                ` Overtime approved for ${overtimeApprovals.filter(oa => oa.approvedOvertimeHours > 0).length} employee(s).`
+              }
             </div>,
             {
               autoClose: 3000,
@@ -424,8 +550,7 @@ const PayrollSummary = () => {
       } else {
         toast.error(
           <div style={{ fontSize: "0.9rem" }}>
-            Failed to generate payroll:{" "}
-            {response?.data?.message || "Unknown error"}
+            Failed to generate payroll: {response?.data?.message || "Unknown error"}
           </div>,
           {
             autoClose: 3000,
@@ -441,8 +566,7 @@ const PayrollSummary = () => {
       console.error("❌ Full error response:", error.response?.data || error);
       toast.error(
         <div style={{ fontSize: "0.9rem" }}>
-          {error?.response?.data?.message ||
-            "An error occurred while generating payroll."}
+          {error?.response?.data?.message || "An error occurred while generating payroll."}
         </div>,
         {
           autoClose: 3000,
@@ -457,6 +581,27 @@ const PayrollSummary = () => {
       setLoading(false);
     }
   };
+
+
+  // 2. Enhanced overtime validation before sending
+  const validateOvertimeData = () => {
+    const issues = [];
+    
+    // Check if any selected employees have invalid overtime values
+    selectedOvertime.forEach(ecode => {
+      const overtimeValue = individualOvertime[ecode];
+      if (overtimeValue === undefined || overtimeValue === null || overtimeValue === '') {
+        issues.push(`Employee ${ecode} has no overtime value set`);
+      } else if (isNaN(Number(overtimeValue))) {
+        issues.push(`Employee ${ecode} has invalid overtime value: ${overtimeValue}`);
+      } else if (Number(overtimeValue) < 0) {
+        issues.push(`Employee ${ecode} has negative overtime value: ${overtimeValue}`);
+      }
+    });
+    
+    return issues;
+  };
+
 
   const handleClose = () => {
     setShow(false);
