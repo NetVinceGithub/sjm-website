@@ -26,6 +26,11 @@ const Attendance = sequelize.define('Attendance', {
     allowNull: true,
     field: 'offDuty'
   },
+  status: {
+    type: DataTypes.ENUM('present', 'absent'),
+    allowNull: false,
+    defaultValue: 'absent'
+  }
 }, {
   tableName: 'attendance',
   timestamps: true,
@@ -37,6 +42,9 @@ const Attendance = sequelize.define('Attendance', {
     },
     {
       fields: ['date']
+    },
+    {
+      fields: ['status']
     }
   ]
 });

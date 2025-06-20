@@ -1837,42 +1837,43 @@ export const generatePayroll = async (req, res) => {
 
         // Categorize attendance days based on actual attendance records only
         employeeAttendance.forEach((record) => {
+          // Check if employee was actually present on this day
+          const isPresent = record.present === true || 
+                          record.present === 1 || 
+                          record.present === "1" || 
+                          record.status === "present" ||
+                          record.status === "Present";
+          
+          // Only process if employee was present
+          if (!isPresent) {
+            console.log(`   ⏭️ Skipping ${record.date} for ${employee.name} - Employee was absent`);
+            return; // Skip this record if employee was absent
+          }
+
           const holiday = isHoliday(record.date, holidays);
 
           if (holiday) {
-            console.log(
-              `   🎉 Holiday found: ${record.date} - ${holiday.type}`
-            );
+            console.log(`   🎉 Holiday found (Present): ${record.date} - ${holiday.type}`);
             switch (holiday.type) {
               case "Regular":
                 regularHolidayDays++;
-                regularHolidayPay += calculateHolidayPay(
-                  "Regular",
-                  rates.dailyRate
-                );
+                regularHolidayPay += calculateHolidayPay("Regular", rates.dailyRate);
                 break;
               case "Special":
                 specialHolidayDays++;
-                specialHolidayPay += calculateHolidayPay(
-                  "Special",
-                  rates.dailyRate
-                );
+                specialHolidayPay += calculateHolidayPay("Special", rates.dailyRate);
                 break;
               case "Special Non-Working":
                 specialNonWorkingHolidayDays++;
-                specialHolidayPay += calculateHolidayPay(
-                  "Special Non-Working",
-                  rates.dailyRate
-                );
+                specialHolidayPay += calculateHolidayPay("Special Non-Working", rates.dailyRate);
                 break;
             }
           } else {
             regularDaysWorked++;
-            console.log(
-              `   📅 Regular day: ${record.date} - Total regular days now: ${regularDaysWorked}`
-            );
+            console.log(`   📅 Regular day (Present): ${record.date} - Total regular days now: ${regularDaysWorked}`);
           }
         });
+
 
         // DEBUG: Final counts
         console.log(`   📊 FINAL COUNTS for ${employee.name}:`);
@@ -1905,10 +1906,11 @@ export const generatePayroll = async (req, res) => {
           specialNonWorkingHolidayDays;
         const totalHolidayPay = specialHolidayPay + regularHolidayPay;
         const totalSpecialHolidayPay = specialHolidayPay;
+        const actualDaysPresent = regularDaysWorked + totalHolidayDays;
 
-        // Calculate basic pay using finalDaysPresent (from AttendanceSummary.presentDays)
-        const basicPay =
-          (finalDaysPresent - totalHolidayDays) * rates.dailyRate;
+
+        const basicPay = regularDaysWorked * rates.dailyRate;
+
 
         console.log(`💰 Basic Pay Calculation for ${employee.name}:`);
         console.log(`   📊 finalDaysPresent: ${finalDaysPresent}`);
