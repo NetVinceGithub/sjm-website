@@ -65,12 +65,19 @@ export const uploadAttendanceFile = async (req, res) => {
         const onDuty = parseTimeToHHMMSS(row['ON Duty'] || row['on duty'] || row['onDuty']);
         const offDuty = parseTimeToHHMMSS(row['OFF Duty'] || row['off duty'] || row['offDuty']);
 
+        // Determine status based on offDuty
+        let status = 'absent';
+        if (offDuty && offDuty !== 'N/A' && offDuty.trim() !== '') {
+          status = 'present';
+        }
+
         // Return object matching the Attendance model structure
         return {
           ecode,        // from Name column
           date,         // formatted date
           onDuty,       // from ON Duty column
-          offDuty       // from OFF Duty column
+          offDuty,      // from OFF Duty column
+          status        // present or absent based on offDuty
         };
       })
       .filter(record => record.date && record.ecode); // Only filter out completely invalid records
@@ -90,7 +97,8 @@ export const uploadAttendanceFile = async (req, res) => {
       ecode: record.ecode,
       date: record.date,
       onDuty: record.onDuty,
-      offDuty: record.offDuty
+      offDuty: record.offDuty,
+      status: record.status
     }));
 
     // Insert data into Attendance table only
@@ -168,6 +176,8 @@ export const uploadAttendanceFile = async (req, res) => {
     });
   }
 };
+
+
 
 export const saveAttendance = async (req, res) => {
   try {
