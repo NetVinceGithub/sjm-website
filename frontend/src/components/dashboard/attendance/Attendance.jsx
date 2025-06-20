@@ -22,16 +22,24 @@ const Attendance = () => {
   const [filterComponentModal, setFilterComponentModal] = useState(false);
 
   // Optimized schedule options - removed custom schedule
-  const scheduleOptions = [
-    { value: "8-17", label: "Day Shift (8:00 - 17:00)", start: 8, end: 17 },
-    {
-      value: "17-21",
-      label: "Evening Shift (17:00 - 21:00)",
-      start: 17,
-      end: 21,
-    },
-    { value: "21-6", label: "Night Shift (21:00 - 06:00)", start: 21, end: 6 },
+  const defaultScheduleOptions = [
+    { id: 1, value: "8-17", label: "Day Shift", start: 8, end: 17, isDefault: true },
+    { id: 2, value: "17-21", label: "Evening Shift", start: 17, end: 21, isDefault: true },
+    { id: 3, value: "21-6", label: "Night Shift", start: 21, end: 6, isDefault: true },
   ];
+
+  const [scheduleOptions, setScheduleOptions] = useState(defaultScheduleOptions);
+  const [selectedSchedules, setSelectedSchedules] = useState([]);
+  const [selectedSchedule, setSelectedSchedule] = useState(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [newSchedule, setNewSchedule] = useState({
+  label: "",
+  start: "",
+  end: "",
+  });
+
+
+
 
   // Helper function to calculate work duration in hours
   const calculateWorkHours = (onDutyTime, offDutyTime) => {
@@ -53,8 +61,14 @@ const Attendance = () => {
   };
 
   // Helper function to determine attendance value (1 for full day, 0.5 for half day)
-  const calculateAttendanceValue = (onDutyTime, offDutyTime) => {
-    if (!offDutyTime) return 0; // Absent
+  const calculateAttendanceValue = (onDutyTime, offDutyTime, detectedShift) => {
+    if (!offDutyTime) return 0; // Absent - no off duty time
+
+    // If no valid schedule match, mark as absent
+    if (!detectedShift || detectedShift === "No Schedule Match" || detectedShift === "Unknown") {
+      console.log('No valid schedule match, marking as absent');
+      return 0;
+    }
 
     const workHours = calculateWorkHours(onDutyTime, offDutyTime);
 
@@ -66,83 +80,156 @@ const Attendance = () => {
     return 1; // Full day
   };
 
+  // FIXED: Enhanced status determination with schedule validation
+  const calculateAttendanceStatus = (onDutyTime, offDutyTime, detectedShift) => {
+    if (!offDutyTime) {
+      return "absent";
+    }
+
+    // If no valid schedule match, mark as absent
+    if (!detectedShift || detectedShift === "No Schedule Match" || detectedShift === "Unknown") {
+      console.log('No valid schedule match, marking as absent due to schedule mismatch');
+      return "absent";
+    }
+
+    const workHours = calculateWorkHours(onDutyTime, offDutyTime);
+
+    if (workHours < 4) {
+      return "half-day";
+    }
+
+    return "present";
+  };
+
   // Optimized shift detection with fallback logic
-  const determineShift = (onDutyTime) => {
-    if (!onDutyTime) return "Unknown";
+
+  // FIXED: determineShiftFromSchedules function with proper validation
+  const determineShiftFromSchedules = (onDutyTime, selectedScheduleList) => {
+    if (!onDutyTime || selectedScheduleList.length === 0) return "No Schedule Match";
 
     const [hours, minutes] = onDutyTime.split(":").map(Number);
     const onDutyHour = hours + minutes / 60;
 
-    // Create an array to store potential matches with their proximity scores
-    const matches = [];
+    console.log(`\n=== Shift Detection Debug ===`);
+    console.log('On duty time:', onDutyTime);
+    console.log('On duty hour (decimal):', onDutyHour);
+    console.log('Available schedules:', selectedScheduleList.map(s => `${s.label} (${s.start}-${s.end})`));
 
-    for (const schedule of scheduleOptions) {
-      let proximity = 0;
-      let isMatch = false;
+    // Find schedules where the employee clock-in time falls within the shift range
+    const matchingSchedules = [];
 
-      if (schedule.value === "21-6") {
-        // Night shift spans midnight (21:00 to 06:00)
-        if (onDutyHour >= 21 || onDutyHour <= 6) {
-          isMatch = true;
-          // Calculate proximity to shift start
-          if (onDutyHour >= 21) {
-            proximity = Math.abs(onDutyHour - 21);
-          } else {
-            // For early morning (0-6), calculate distance from 21:00 previous day
-            proximity = Math.abs(onDutyHour + 24 - 21);
-          }
+    for (const schedule of selectedScheduleList) {
+      let isWithinRange = false;
+      let tolerance = 2; // 2-hour tolerance for shift start time
+
+      console.log(`\nChecking schedule: ${schedule.label} (${schedule.start}-${schedule.end})`);
+
+      if (schedule.end < schedule.start) {
+        // Overnight shift (like 21-6)
+        console.log('Processing overnight shift...');
+        // Check if clock-in time is within shift start range (with tolerance)
+        if (onDutyHour >= (schedule.start - tolerance) || onDutyHour <= schedule.end) {
+          isWithinRange = true;
+          console.log('Within overnight shift range');
         }
       } else {
-        // Regular shifts (don't span midnight)
-        if (onDutyHour >= schedule.start && onDutyHour < schedule.end) {
-          isMatch = true;
-          proximity = Math.abs(onDutyHour - schedule.start);
+        // Regular shift (like 8-17 or 17-21)
+        console.log('Processing regular shift...');
+        // Check if clock-in time is within shift start range (with tolerance)
+        if (onDutyHour >= (schedule.start - tolerance) && onDutyHour <= (schedule.start + tolerance)) {
+          isWithinRange = true;
+          console.log('Within regular shift start range');
         }
       }
 
-      if (isMatch) {
-        matches.push({ schedule, proximity });
+      if (isWithinRange) {
+        matchingSchedules.push(schedule);
       }
     }
 
-    // If we have matches, return the one with the smallest proximity (closest to shift start)
-    if (matches.length > 0) {
-      matches.sort((a, b) => a.proximity - b.proximity);
-      return matches[0].schedule.label;
+    console.log('Matching schedules:', matchingSchedules.map(s => s.label));
+
+    // If no matching schedule found, return "No Schedule Match"
+    if (matchingSchedules.length === 0) {
+      console.log('No matching schedule found for clock-in time:', onDutyTime);
+      console.log('=== End Shift Detection Debug ===\n');
+      return "No Schedule Match";
     }
 
-    // Fallback logic: find the closest shift even if not within exact bounds
-    let closestShift = scheduleOptions[0];
+    // If multiple matches, choose the closest one to clock-in time
+    let bestMatch = matchingSchedules[0];
+    if (matchingSchedules.length > 1) {
+      let minDistance = Math.abs(onDutyHour - bestMatch.start);
+      for (const schedule of matchingSchedules) {
+        const distance = Math.abs(onDutyHour - schedule.start);
+        if (distance < minDistance) {
+          minDistance = distance;
+          bestMatch = schedule;
+        }
+      }
+    }
+
+    console.log('Final selected shift:', bestMatch.label);
+    console.log('=== End Shift Detection Debug ===\n');
+
+    return bestMatch.label;
+  };
+
+  // Also, let's add a simplified version for testing
+  const determineShiftSimple = (onDutyTime, selectedScheduleList) => {
+    if (!onDutyTime || selectedScheduleList.length === 0) return "Unknown";
+
+    const [hours, minutes] = onDutyTime.split(":").map(Number);
+    const onDutyHour = hours + minutes / 60;
+
+    // For each schedule, check if the time falls within it
+    for (const schedule of selectedScheduleList) {
+      if (schedule.end < schedule.start) {
+        // Overnight shift
+        if (onDutyHour >= schedule.start || onDutyHour <= schedule.end) {
+          return schedule.label;
+        }
+      } else {
+        // Regular shift
+        if (onDutyHour >= schedule.start && onDutyHour <= schedule.end) {
+          return schedule.label;
+        }
+      }
+    }
+
+    // If no exact match, find the closest one
+    let bestMatch = null;
     let minDistance = Infinity;
 
-    for (const schedule of scheduleOptions) {
+    for (const schedule of selectedScheduleList) {
       let distance;
-
-      if (schedule.value === "21-6") {
-        // Special handling for night shift
-        const distanceToStart =
-          onDutyHour >= 21
-            ? Math.abs(onDutyHour - 21)
-            : Math.abs(onDutyHour + 24 - 21);
-        const distanceToEnd =
-          onDutyHour <= 6
-            ? Math.abs(onDutyHour - 6)
-            : Math.abs(onDutyHour - 6 - 24);
-        distance = Math.min(distanceToStart, distanceToEnd);
+      if (schedule.end < schedule.start) {
+        // Overnight shift distance calculation
+        if (onDutyHour >= schedule.start) {
+          distance = onDutyHour - schedule.start;
+        } else if (onDutyHour <= schedule.end) {
+          distance = schedule.start - onDutyHour;
+        } else {
+          distance = Math.min(
+            schedule.start - onDutyHour,
+            onDutyHour - schedule.end
+          );
+        }
       } else {
-        // Calculate distance to start and end of shift
-        const distanceToStart = Math.abs(onDutyHour - schedule.start);
-        const distanceToEnd = Math.abs(onDutyHour - schedule.end);
-        distance = Math.min(distanceToStart, distanceToEnd);
+        // Regular shift distance calculation
+        distance = Math.min(
+          Math.abs(onDutyHour - schedule.start),
+          Math.abs(onDutyHour - schedule.end)
+        );
       }
 
       if (distance < minDistance) {
         minDistance = distance;
-        closestShift = schedule;
+        bestMatch = schedule;
       }
     }
 
-    return closestShift.label;
+    return bestMatch ? bestMatch.label : "Unknown";
   };
 
   // Helper function to get shift badge color
@@ -174,77 +261,96 @@ const Attendance = () => {
 
   // Updated sections of your Attendance component with fixed tardiness calculation
 
-  // REPLACE your existing calculateLateMinutes function with this:
-  const calculateLateMinutes = (onDutyTime, detectedShift) => {
-    console.log('=== calculateLateMinutes Debug ===');
-    console.log('onDutyTime:', onDutyTime);
-    console.log('detectedShift:', detectedShift);
+  const calculateLateMinutesWithSelectedSchedules = (onDutyTime, detectedShift, selectedScheduleList) => {
+    if (!onDutyTime || !detectedShift || selectedScheduleList.length === 0) return 0;
 
-    if (!onDutyTime || !detectedShift) {
-      console.log('Missing onDutyTime or detectedShift, returning 0');
-      return 0;
-    }
+    // Find the matching schedule
+    const matchingSchedule = selectedScheduleList.find(schedule => 
+      detectedShift.includes(schedule.label) || schedule.label.includes(detectedShift.split(' ')[0])
+    );
+
+    if (!matchingSchedule) return 0;
 
     const [hours, minutes] = onDutyTime.split(":").map(Number);
     const onDutyMinutes = hours * 60 + minutes;
-    
-    console.log('Parsed time - hours:', hours, 'minutes:', minutes);
-    console.log('onDutyMinutes:', onDutyMinutes);
+    const shiftStartMinutes = matchingSchedule.start * 60;
 
-    // Find the corresponding schedule for the detected shift
-    const schedule = scheduleOptions.find((s) =>
-      detectedShift.includes(s.label.split(" (")[0])
-    );
-    
-    console.log('Found schedule:', schedule);
-    
-    if (!schedule) {
-      console.log('No schedule found, returning 0');
-      return 0;
-    }
-
-    let lateMinutes = 0;
-    
-    if (schedule.value === "21-6") {
-      // Night shift: calculate lateness from 21:00
-      const shiftStartMinutes = 21 * 60; // 21:00 = 1260 minutes
-      console.log('Night shift - shiftStartMinutes:', shiftStartMinutes);
-      
+    if (matchingSchedule.value === "21-6" || matchingSchedule.end < matchingSchedule.start) {
+      // Night shift or overnight shift
       if (onDutyMinutes >= shiftStartMinutes) {
-        // Same day arrival after 21:00
-        lateMinutes = Math.max(0, onDutyMinutes - shiftStartMinutes);
-      } else if (onDutyMinutes <= 6 * 60) {
-        // Next day arrival (00:00 to 06:00) - they're on time for night shift
-        lateMinutes = 0;
+        return Math.max(0, onDutyMinutes - shiftStartMinutes);
+      } else if (onDutyMinutes <= matchingSchedule.end * 60) {
+        return 0; // On time for night shift
       } else {
-        // Arrival between 06:01-20:59 - very late
-        lateMinutes = onDutyMinutes + (24 * 60 - shiftStartMinutes);
+        return onDutyMinutes + (24 * 60 - shiftStartMinutes);
       }
-      
-      console.log('Night shift calculation - lateMinutes:', lateMinutes);
     } else {
-      // Regular shifts: calculate lateness from shift start
-      const shiftStartMinutes = schedule.start * 60;
-      console.log('Regular shift - shiftStartMinutes:', shiftStartMinutes);
-      
-      // This is the key fix - ensure we're calculating correctly
-      lateMinutes = Math.max(0, onDutyMinutes - shiftStartMinutes);
-      console.log('Regular shift calculation - lateMinutes:', lateMinutes);
+      // Regular shifts
+      return Math.max(0, onDutyMinutes - shiftStartMinutes);
     }
-
-    console.log('Final lateMinutes:', lateMinutes);
-    console.log('=== End Debug ===');
-    
-    return lateMinutes;
   };
+
+// 4. ADD these new functions for schedule management
+
+const addNewSchedule = () => {
+  if (!newSchedule.label || !newSchedule.start || !newSchedule.end) {
+    toast.error("Please fill in all schedule fields");
+    return;
+  }
+
+  const startHour = parseInt(newSchedule.start);
+  const endHour = parseInt(newSchedule.end);
+
+  if (startHour < 0 || startHour > 23 || endHour < 0 || endHour > 23) {
+    toast.error("Hours must be between 0 and 23");
+    return;
+  }
+
+  const newId = Math.max(...scheduleOptions.map(s => s.id)) + 1;
+  const scheduleValue = `${startHour}-${endHour}`;
+  
+  const newScheduleOption = {
+    id: newId,
+    value: scheduleValue,
+    label: newSchedule.label,
+    start: startHour,
+    end: endHour,
+    isDefault: false
+  };
+
+  setScheduleOptions([...scheduleOptions, newScheduleOption]);
+  setNewSchedule({ label: "", start: "", end: "" });
+  toast.success("Schedule added successfully");
+};
+
+const removeSchedule = (scheduleId) => {
+  const scheduleToRemove = scheduleOptions.find(s => s.id === scheduleId);
+  if (scheduleToRemove?.isDefault) {
+    toast.error("Cannot remove default schedules");
+    return;
+  }
+  
+  setScheduleOptions(scheduleOptions.filter(s => s.id !== scheduleId));
+  setSelectedSchedules(selectedSchedules.filter(s => s.id !== scheduleId));
+  toast.success("Schedule removed successfully");
+};
+
+const toggleScheduleSelection = (schedule) => {
+  const isSelected = selectedSchedules.some(s => s.id === schedule.id);
+  if (isSelected) {
+    setSelectedSchedules(selectedSchedules.filter(s => s.id !== schedule.id));
+  } else {
+    setSelectedSchedules([...selectedSchedules, schedule]);
+  }
+};
 
 
     // Optimized lateness detection based on detected shift
-    // REPLACE your existing isLate function with this:
+    // 4. REPLACE the isLate function (if you're still using it)
     const isLate = (onDutyTime, detectedShift) => {
       if (!onDutyTime || !detectedShift) return false;
 
-      const lateMinutes = calculateLateMinutes(onDutyTime, detectedShift);
+      const lateMinutes = calculateLateMinutesWithSelectedSchedules(onDutyTime, detectedShift, getActiveSchedules());
       
       // Consider late if more than 0 minutes after shift start
       return lateMinutes > 0;
@@ -497,8 +603,211 @@ const Attendance = () => {
     },
   ];
 
-  // Handle file upload and preview
+  const handleScheduleConfirm = () => {
+    setShowScheduleModal(false);
+    // Refresh attendance data with new schedules if data exists
+    refreshAttendanceDataWithNewSchedules();
+    toast.success(`${selectedSchedules.length} schedules selected and data refreshed`);
+  };
+
+
+  const ScheduleSelectionModal = () => (
+    <Modal
+      show={showScheduleModal}
+      onHide={() => setShowScheduleModal(false)}
+      backdrop="static"
+      keyboard={false}
+      centered
+      size="lg"
+    >
+      <Modal.Header className="py-3 px-4">
+        <Modal.Title className="text-lg text-neutralDGray">
+          Manage Work Schedules
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body className="p-4">
+        {/* Add New Schedule Section */}
+        <div className="mb-4 p-3 border rounded-lg bg-gray-50">
+          <h6 className="text-sm font-medium text-neutralDGray mb-3">Add New Schedule</h6>
+          <div className="grid grid-cols-4 gap-3">
+            <input
+              type="text"
+              placeholder="Schedule Name"
+              value={newSchedule.label}
+              onChange={(e) => setNewSchedule({...newSchedule, label: e.target.value})}
+              className="px-3 py-2 border rounded text-sm"
+            />
+            <input
+              type="number"
+              placeholder="Start Hour (0-23)"
+              min="0"
+              max="23"
+              value={newSchedule.start}
+              onChange={(e) => setNewSchedule({...newSchedule, start: e.target.value})}
+              className="px-3 py-2 border rounded text-sm"
+            />
+            <input
+              type="number"
+              placeholder="End Hour (0-23)"
+              min="0"
+              max="23"
+              value={newSchedule.end}
+              onChange={(e) => setNewSchedule({...newSchedule, end: e.target.value})}
+              className="px-3 py-2 border rounded text-sm"
+            />
+            <button
+              onClick={addNewSchedule}
+              className="px-3 py-2 bg-green-400 text-white rounded text-sm hover:bg-green-500 flex items-center justify-center gap-1"
+            >
+             Add
+            </button>
+          </div>
+        </div>
+
+        {/* Schedule Selection Section */}
+        <div>
+          <h6 className="text-sm font-medium text-neutralDGray mb-3">
+            Select Active Schedules ({selectedSchedules.length} selected)
+          </h6>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {scheduleOptions.map((schedule) => (
+              <div
+                key={schedule.id}
+                className={`p-3 border rounded-lg cursor-pointer transition-all flex items-center justify-between ${
+                  selectedSchedules.some(s => s.id === schedule.id)
+                    ? 'border-green-400 bg-green-50'
+                    : 'border-gray-300 hover:border-green-300'
+                }`}
+                onClick={() => toggleScheduleSelection(schedule)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                    selectedSchedules.some(s => s.id === schedule.id)
+                      ? 'border-green-400 bg-green-400'
+                      : 'border-gray-300'
+                  }`}>
+                    {selectedSchedules.some(s => s.id === schedule.id) && (
+                      <div className="w-2 h-2 bg-white rounded"></div>
+                    )}
+                  </div>
+                  <div>
+                    <h6 className="font-medium text-neutralDGray">{schedule.label}</h6>
+                    <p className="text-xs text-gray-600">
+                      {schedule.start}:00 - {schedule.end === 6 && schedule.start === 21 ? '06:00 (next day)' : `${schedule.end}:00`}
+                    </p>
+                  </div>
+                </div>
+                {!schedule.isDefault && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeSchedule(schedule.id);
+                    }}
+                    className="text-red-500 hover:text-red-700 p-1"
+                  >
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </Modal.Body>
+      <Modal.Footer className="p-4">
+        <button
+          onClick={handleScheduleConfirm}
+          disabled={selectedSchedules.length === 0}
+          className={`px-6 py-2 rounded-md text-sm transition-all ${
+            selectedSchedules.length > 0
+              ? 'bg-green-400 text-white hover:bg-green-500'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
+        >
+          Confirm Schedules ({selectedSchedules.length})
+        </button>
+      </Modal.Footer>
+    </Modal>
+  );
+
+  useEffect(() => {
+    // Only refresh if we have existing attendance data and schedules have changed
+    if (attendanceData.length > 0 && selectedSchedules.length > 0) {
+      console.log('Schedules changed, refreshing data...');
+      refreshAttendanceDataWithNewSchedules();
+    }
+  }, [selectedSchedules]); // This will trigger when selectedSchedules changes
+
+// 8. ALSO UPDATE the load data useEffect to not automatically load on mount
+// Replace the existing useEffect at the bottom with:
+useEffect(() => {
+  // Only fetch data if we have selected schedules, otherwise it will be empty
+  if (selectedSchedules.length > 0) {
+    fetchAttendanceData();
+  }
+}, []);
+
+  const isLateWithSchedule = (onDutyTime, schedule) => {
+  if (!onDutyTime || !schedule) return false;
+
+  const [hours, minutes] = onDutyTime.split(":").map(Number);
+  const onDutyMinutes = hours * 60 + minutes;
+  const shiftStartMinutes = schedule.start * 60;
+
+  if (schedule.value === "21-6") {
+    // Night shift: late if arriving after 21:00 on same day
+    if (onDutyMinutes >= shiftStartMinutes) {
+      return onDutyMinutes > shiftStartMinutes;
+    } else if (onDutyMinutes <= 6 * 60) {
+      // Next day arrival (00:00 to 06:00) - on time for night shift
+      return false;
+    } else {
+      // Arrival between 06:01-20:59 - very late
+      return true;
+    }
+  } else {
+    // Regular shifts
+    return onDutyMinutes > shiftStartMinutes;
+  }
+};
+
+  const calculateLateMinutesWithSchedule = (onDutyTime, schedule) => {
+    if (!onDutyTime || !schedule) return 0;
+
+    const [hours, minutes] = onDutyTime.split(":").map(Number);
+    const onDutyMinutes = hours * 60 + minutes;
+    const shiftStartMinutes = schedule.start * 60;
+
+    if (schedule.value === "21-6") {
+      // Night shift
+      if (onDutyMinutes >= shiftStartMinutes) {
+        return Math.max(0, onDutyMinutes - shiftStartMinutes);
+      } else if (onDutyMinutes <= 6 * 60) {
+        // Next day arrival (00:00 to 06:00) - on time
+        return 0;
+      } else {
+        // Very late - calculate from previous day's shift start
+        return onDutyMinutes + (24 * 60 - shiftStartMinutes);
+      }
+    } else {
+      // Regular shifts
+      return Math.max(0, onDutyMinutes - shiftStartMinutes);
+    }
+  };
+
+  const getActiveSchedules = () => {
+    return selectedSchedules.length > 0 ? selectedSchedules : defaultScheduleOptions;
+  };
+
+
+  // FIXED: handleFileUpload function with proper schedule validation
   const handleFileUpload = (event) => {
+    // Check if schedule is selected first
+    if (selectedSchedules.length === 0) {
+      toast.error("Please select work schedules before uploading the file");
+      setShowScheduleModal(true);
+      event.target.value = '';
+      return;
+    }
+
     const file = event.target.files[0];
     if (file) {
       setSelectedFile(file.name);
@@ -513,10 +822,11 @@ const Attendance = () => {
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-          // Process data to match backend expectations
-          // Debug version of the data processing part in handleFileUpload
-          // Replace the processedData mapping section with this:
+          // Get current active schedules
+          const currentActiveSchedules = selectedSchedules.length > 0 ? selectedSchedules : defaultScheduleOptions;
+          console.log('Active schedules for processing:', currentActiveSchedules);
 
+          // Process data to match backend expectations
           const processedData = jsonData
             .map((row, index) => {
               console.log(`\n=== Processing Excel Row ${index + 1} ===`);
@@ -541,51 +851,33 @@ const Attendance = () => {
               }
 
               const ecode = String(row.Name || row.name || "").trim();
-              console.log('Employee code:', ecode);
-              console.log('Date:', formattedDate);
 
               // Convert Excel time decimals to HH:MM format
-              const onDutyRaw =
-                row["ON Duty"] || row["on duty"] || row["onDuty"] || null;
-              const offDutyRaw =
-                row["OFF Duty"] || row["off duty"] || row["offDuty"] || null;
-
-              console.log('Raw on duty time:', onDutyRaw);
-              console.log('Raw off duty time:', offDutyRaw);
+              const onDutyRaw = row["ON Duty"] || row["on duty"] || row["onDuty"] || null;
+              const offDutyRaw = row["OFF Duty"] || row["off duty"] || row["offDuty"] || null;
 
               const onDuty = convertExcelTimeToString(onDutyRaw);
               const offDuty = convertExcelTimeToString(offDutyRaw);
 
-
               // Calculate work hours
               const workHours = calculateWorkHours(onDuty, offDuty);
 
-              // Calculate attendance value (1 for full day, 0.5 for half day, 0 for absent)
-              const attendanceValue = calculateAttendanceValue(onDuty, offDuty);
+              // FIXED: Determine shift first, then use it for attendance calculation
+              const shift = determineShiftFromSchedules(onDuty, currentActiveSchedules);
 
+              // FIXED: Calculate attendance value with schedule validation
+              const attendanceValue = calculateAttendanceValue(onDuty, offDuty, shift);
 
-              // Determine shift based on on-duty time
-              const shift = determineShift(onDuty);
-              console.log('Determined shift:', shift);
+              // FIXED: Enhanced status logic with schedule validation
+              const status = calculateAttendanceStatus(onDuty, offDuty, shift);
 
+              // FIXED: Calculate late minutes only if valid schedule match
+              const lateMinutes = (status !== "absent" && shift !== "No Schedule Match") ? 
+                calculateLateMinutesWithSelectedSchedules(onDuty, shift, currentActiveSchedules) : 
+                0;
 
-              // Enhanced status logic with half-day detection
-              let status;
-              if (!offDuty) {
-                status = "absent";
-              } else if (workHours < 4) {
-                status = "half-day";
-              } else {
-                status = "present";
-              }
-
-              // Check if employee is late using optimized detection
-              const late = status !== "absent" ? isLate(onDuty, shift) : false;
-
-              // Calculate late minutes using optimized calculation
-              const lateMinutes =
-                status !== "absent" ? calculateLateMinutes(onDuty, shift) : 0;
-
+              // Check if late
+              const late = lateMinutes > 0;
 
               const processedRecord = {
                 id: index + 1,
@@ -602,8 +894,6 @@ const Attendance = () => {
               };
               
               console.log('Final processed record:', processedRecord);
-              console.log('=== End Row Processing ===\n');
-              
               return processedRecord;
             })
             .filter((record) => {
@@ -614,6 +904,7 @@ const Attendance = () => {
               return isValid;
             });
 
+          console.log('Setting processed data:', processedData);
           setAttendanceData(processedData);
           generateSummary(processedData);
         } catch (error) {
@@ -626,20 +917,26 @@ const Attendance = () => {
   };
 
 
-  // Generate summary data from attendance - enhanced with half-day tracking
 
   const generateSummary = (data) => {
     console.log('=== generateSummary Debug ===');
     console.log('Total records:', data.length);
+    console.log('Sample records:', data.slice(0, 3));
     
     const summary = {};
 
     data.forEach((record, index) => {
       console.log(`\n--- Processing record ${index + 1} ---`);
-      console.log('Record:', record);
+      console.log('Record:', {
+        ecode: record.ecode,
+        status: record.status,
+        attendanceValue: record.attendanceValue,
+        shift: record.shift,
+        lateMinutes: record.lateMinutes,
+        isLate: record.isLate
+      });
       
       const ecode = record.ecode;
-      console.log('Employee code:', ecode);
       
       if (!summary[ecode]) {
         summary[ecode] = {
@@ -649,7 +946,7 @@ const Attendance = () => {
           halfDays: 0,
           absentDays: 0,
           lateDays: 0,
-          totalLateMinutes: 0, // This will store the raw minutes (e.g., 144)
+          totalLateMinutes: 0,
           dayShiftDays: 0,
           eveningShiftDays: 0,
           nightShiftDays: 0,
@@ -658,72 +955,119 @@ const Attendance = () => {
         console.log('Created new summary for:', ecode);
       }
 
+      // Count total days
       summary[ecode].totalDays++;
 
+      // Add work hours
       summary[ecode].totalWorkHours += record.workHours || 0;
 
-      // Add attendance value instead of just counting days
+      // FIXED: Add attendance value (0.5 for half-day, 1 for full day, 0 for absent)
       summary[ecode].presentDays += record.attendanceValue || 0;
 
+      // Count half days
       if (record.status === "half-day") {
         summary[ecode].halfDays++;
-      } else if (record.status === "absent") {
-        // Absent days calculation will be done at the end
       }
 
-      // Count shift-specific days with attendance value
+      // FIXED: Count shift-specific days using attendance value
       if (record.attendanceValue > 0 && record.shift) {
-        if (record.shift.includes("Day Shift")) {
-          summary[ecode].dayShiftDays += record.attendanceValue;
-        } else if (record.shift.includes("Evening Shift")) {
-          summary[ecode].eveningShiftDays += record.attendanceValue;
-        } else if (record.shift.includes("Night Shift")) {
-          summary[ecode].nightShiftDays += record.attendanceValue;
-
+        const shiftValue = record.attendanceValue; // Use the actual attendance value
+        
+        if (record.shift.includes("Day Shift") || record.shift.includes("Day")) {
+          summary[ecode].dayShiftDays += shiftValue;
+        } else if (record.shift.includes("Evening Shift") || record.shift.includes("Evening")) {
+          summary[ecode].eveningShiftDays += shiftValue;
+        } else if (record.shift.includes("Night Shift") || record.shift.includes("Night")) {
+          summary[ecode].nightShiftDays += shiftValue;
         }
       }
 
-
-      // Count late days and accumulate late minutes only for present/half-day employees
+      // FIXED: Count late days and accumulate late minutes only for present/half-day employees
       if (record.status !== "absent") {
-        if (record.isLate) {
-
+        if (record.isLate || record.lateMinutes > 0) {
           summary[ecode].lateDays++;
-          console.log('Late days for', ecode, ':', summary[ecode].lateDays);
         }
-
-        // Add late minutes to total (even if 0)
+        // Add late minutes to total
         summary[ecode].totalLateMinutes += record.lateMinutes || 0;
-
       }
+
+      console.log(`Updated summary for ${ecode}:`, {
+        totalDays: summary[ecode].totalDays,
+        presentDays: summary[ecode].presentDays,
+        halfDays: summary[ecode].halfDays,
+        totalLateMinutes: summary[ecode].totalLateMinutes,
+        dayShiftDays: summary[ecode].dayShiftDays,
+        eveningShiftDays: summary[ecode].eveningShiftDays,
+        nightShiftDays: summary[ecode].nightShiftDays
+      });
     });
 
-    // Find the highest total days value
-    const maxTotalDays = Math.max(
-      ...Object.values(summary).map((emp) => emp.totalDays)
-    );
-    console.log('\nMax total days:', maxTotalDays);
-
-    // Update all employees to have the same total days and calculate absent days
+    // Calculate absent days for each employee
     Object.values(summary).forEach((emp) => {
-      const oldTotalDays = emp.totalDays;
-      const oldAbsentDays = emp.absentDays;
-      
-      emp.totalDays = maxTotalDays;
-      emp.absentDays = maxTotalDays - emp.presentDays;
+      emp.absentDays = emp.totalDays - emp.presentDays;
       
       console.log(`\nFinal summary for ${emp.ecode}:`);
-      console.log('- Total days:', oldTotalDays, '->', emp.totalDays);
-      console.log('- Absent days:', oldAbsentDays, '->', emp.absentDays);
-      console.log('- Total late minutes (RAW):', emp.totalLateMinutes); // This should be 144
+      console.log('- Total days:', emp.totalDays);
+      console.log('- Present days:', emp.presentDays);
+      console.log('- Half days:', emp.halfDays);
+      console.log('- Absent days:', emp.absentDays);
+      console.log('- Late days:', emp.lateDays);
+      console.log('- Total late minutes:', emp.totalLateMinutes);
+      console.log('- Day shift days:', emp.dayShiftDays);
+      console.log('- Evening shift days:', emp.eveningShiftDays);
+      console.log('- Night shift days:', emp.nightShiftDays);
     });
 
-    console.log('\n=== Final Summary ===');
-    console.log(Object.values(summary));
+    const finalSummary = Object.values(summary);
+    console.log('\n=== Final Summary Array ===');
+    console.log(finalSummary);
     console.log('=== End generateSummary Debug ===');
 
-    setSummaryData(Object.values(summary));
+    setSummaryData(finalSummary);
   };
+
+  // FIXED: refreshAttendanceDataWithNewSchedules function
+  const refreshAttendanceDataWithNewSchedules = () => {
+    if (attendanceData.length > 0) {
+      console.log('Refreshing attendance data with new schedules...');
+      
+      // Get current active schedules
+      const currentActiveSchedules = selectedSchedules.length > 0 ? selectedSchedules : defaultScheduleOptions;
+      
+      // Reprocess existing attendance data with new schedules
+      const reprocessedData = attendanceData.map((record) => {
+        // Recalculate shift based on new schedules
+        const shift = determineShiftFromSchedules(record.onDuty, currentActiveSchedules);
+        
+        // Recalculate attendance value with schedule validation
+        const attendanceValue = calculateAttendanceValue(record.onDuty, record.offDuty, shift);
+        
+        // Recalculate status with schedule validation
+        const status = calculateAttendanceStatus(record.onDuty, record.offDuty, shift);
+        
+        // Recalculate late minutes with new schedules
+        const lateMinutes = (status !== "absent" && shift !== "No Schedule Match") 
+            ? calculateLateMinutesWithSelectedSchedules(record.onDuty, shift, currentActiveSchedules) 
+            : 0;
+        
+        const late = lateMinutes > 0;
+        
+        return {
+          ...record,
+          shift,
+          attendanceValue,
+          status,
+          lateMinutes,
+          isLate: late,
+        };
+      });
+      
+      console.log('Reprocessed data with new schedules:', reprocessedData);
+      setAttendanceData(reprocessedData);
+      generateSummary(reprocessedData);
+    }
+  };
+
 
 
   const handleSubmit = async () => {
@@ -815,7 +1159,7 @@ const Attendance = () => {
     }
   };
 
-  // Fetch attendance data from API
+  // FIXED: fetchAttendanceData function
   const fetchAttendanceData = async () => {
     try {
       const response = await fetch(
@@ -825,39 +1169,30 @@ const Attendance = () => {
 
       const data = await response.json();
       if (data.success) {
+        // Get current active schedules
+        const currentActiveSchedules = selectedSchedules.length > 0 ? selectedSchedules : defaultScheduleOptions;
+        console.log('Active schedules for fetched data processing:', currentActiveSchedules);
+
         // Process fetched data to match frontend expectations
         const processedData = data.data.map((record) => {
           // Calculate work hours
           const workHours = calculateWorkHours(record.onDuty, record.offDuty);
 
-          // Calculate attendance value
-          const attendanceValue = calculateAttendanceValue(
-            record.onDuty,
-            record.offDuty
-          );
+          // FIXED: Determine shift first, then use it for validation
+          const shift = determineShiftFromSchedules(record.onDuty, currentActiveSchedules);
 
-          // Determine shift based on on-duty time
-          const shift = determineShift(record.onDuty);
+          // FIXED: Calculate attendance value with schedule validation
+          const attendanceValue = calculateAttendanceValue(record.onDuty, record.offDuty, shift);
 
-          // Enhanced status logic with half-day detection
-          let status;
-          if (!record.offDuty) {
-            status = "absent";
-          } else if (workHours < 4) {
-            status = "half-day";
-          } else {
-            status = "present";
-          }
+          // FIXED: Enhanced status logic with schedule validation
+          const status = calculateAttendanceStatus(record.onDuty, record.offDuty, shift);
 
-          // Check if employee is late using optimized detection
-          const late =
-            status !== "absent" ? isLate(record.onDuty, shift) : false;
-
-          // Calculate late minutes using optimized calculation
-          const lateMinutes =
-            status !== "absent"
-              ? calculateLateMinutes(record.onDuty, shift)
+          // FIXED: Calculate late minutes only if valid schedule match
+          const lateMinutes = (status !== "absent" && shift !== "No Schedule Match") 
+              ? calculateLateMinutesWithSelectedSchedules(record.onDuty, shift, currentActiveSchedules) 
               : 0;
+
+          const late = lateMinutes > 0;
 
           return {
             ...record,
@@ -870,6 +1205,7 @@ const Attendance = () => {
           };
         });
 
+        console.log('Setting fetched processed data:', processedData);
         setAttendanceData(processedData);
         generateSummary(processedData);
       }
@@ -938,28 +1274,58 @@ const Attendance = () => {
               </button>
             </Tooltip>
           </div>
-          <div className="flex items-center justify-between border border-neutralDGray rounded-md p-2 bg-slate-50">
-            <label className="px-4 text-xs py-2 border hover:bg-green-400 hover:text-white text-neutralDGray rounded-md cursor-pointer">
-              Upload File
-              <input
-                type="file"
-                accept=".xlsx, .xls"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
-            <span className="text-xs text-neutralDGray">
-              {selectedFile || "No file selected"}
-            </span>
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="px-4 text-xs py-2 h-auto border hover:bg-green-400 hover:text-white text-neutralDGray cursor-pointer rounded-md disabled:bg-gray-400"
-            >
-              {loading ? "Saving..." : "Save Attendance"}
-            </button>
-          </div>
+      <div className="flex items-center justify-between border border-neutralDGray rounded-md p-2 bg-slate-50">
+        <div className="flex items-center gap-3">
+          <label className="px-4 text-xs py-2 border hover:bg-green-400 hover:text-white text-neutralDGray rounded-md cursor-pointer">
+            Upload File
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+          </label>
+          {selectedSchedules.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-green-600">Active Schedules:</span>
+              <div className="flex gap-1">
+                {selectedSchedules.slice(0, 2).map((schedule, index) => (
+                  <span key={schedule.id} className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
+                    {schedule.label}
+                  </span>
+                ))}
+                {selectedSchedules.length > 2 && (
+                  <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                    +{selectedSchedules.length - 2} more
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setShowScheduleModal(true)}
+                className="text-xs text-blue-600 hover:text-blue-800 underline"
+              >
+                Manage
+              </button>
+            </div>
+          )}
         </div>
+        <span className="text-xs text-neutralDGray">
+          {selectedFile || "No file selected"}
+        </span>
+        <button
+          onClick={handleSubmit}
+          disabled={loading || selectedSchedules.length === 0}
+          className={`px-4 text-xs py-2 h-auto border rounded-md cursor-pointer transition-all ${
+            loading || selectedSchedules.length === 0
+              ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+              : 'hover:bg-green-400 hover:text-white text-neutralDGray'
+          }`}
+        >
+          {loading ? "Saving..." : "Save Attendance"}
+        </button>
+      </div>
+        </div>
+        <ScheduleSelectionModal />
 
         <div className="grid mt-3 grid-cols-2 gap-3">
           {/* Attendance Table */}
