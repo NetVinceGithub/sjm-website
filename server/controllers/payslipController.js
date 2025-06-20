@@ -147,7 +147,6 @@ const generatePayslipPDF = async (payslip) => {
           : "0.00"
       }`,
       total_overtime: payslip.total_overtime || "0",
-
       holiday_pay: `${
         payslip.holiday_pay
           ? Number(payslip.holiday_pay).toLocaleString(undefined, {
@@ -276,7 +275,6 @@ const generatePayslipPDF = async (payslip) => {
             )
           : "0.00"
       }`,
-
     };
 
     const htmlContent = fillTemplate(template, templateData);
@@ -1593,6 +1591,9 @@ const calculateHolidayPay = (holidayType, dailyRate) => {
   }
 };
 
+
+
+
 export const generatePayroll = async (req, res) => {
   const {
     cutoffDate,
@@ -1602,6 +1603,7 @@ export const generatePayroll = async (req, res) => {
     attendanceData = [],
     holidaysData = [],
     individualOvertime = {},
+    overtimeApprovals, 
     maxOvertime = 0,
     requestedBy,
   } = req.body;
@@ -1614,6 +1616,7 @@ export const generatePayroll = async (req, res) => {
     attendanceCount: attendanceData.length,
     holidaysCount: holidaysData.length,
     individualOvertime,
+    overtimeApprovals,
     maxOvertime,
     requestedBy,
   });
@@ -1708,7 +1711,6 @@ export const generatePayroll = async (req, res) => {
           continue;
         }
 
-
         const employeePayrollInfo =
           payrollInformations.find((info) => info.ecode === employee.ecode) ||
           {};
@@ -1722,18 +1724,14 @@ export const generatePayroll = async (req, res) => {
         );
         console.log(`⏰ Employee ${employee.name} shift hours: ${shiftHours}`);
 
-
         // Calculate basic attendance metrics from attendance records
         const daysPresent = employeeAttendance.length;
-        
-        // Improved tardiness calculation with multiple field name checks
         const totalLateMinutes = employeeAttendance.reduce((total, record) => {
-
+          return total + (record.lateMinutes || 0);
         }, 0);
 
-        // Update or create attendance summary record - FIXED field names
+        // Update or create attendance summary record
         try {
-
           await AttendanceSummary.upsert(
             {
               ecode: employee.ecode,
@@ -1754,35 +1752,12 @@ export const generatePayroll = async (req, res) => {
           console.log(
             `📊 Attendance summary updated for ${employee.ecode} - Days Present: ${daysPresent}`
           );
-
-            presentDays: daysPresent, // Changed from daysPresent to match model
-            totalDays: daysPresent,
-            absentDays: 0,
-            lateDays: employeeAttendance.filter(record => {
-              const lateMinutes = record.lateMinutes || record.late_minutes || record.tardiness || 0;
-              return Number(lateMinutes) > 0;
-            }).length,
-            totalLateMinutes: totalLateMinutes,
-            attendanceRate: daysPresent > 0 ? 100.00 : 0.00,
-            // Add the new fields from your model
-            dayShiftDays: 0,
-            eveningShiftDays: 0,
-            nightShiftDays: 0,
-            regularHoursDays: daysPresent
-
-          }, {
-            where: { ecode: employee.ecode }
-          });
-
-          console.log(`📊 Attendance summary updated for ${employee.ecode} - Days Present: ${daysPresent}, Late Minutes: ${totalLateMinutes}`);
-
         } catch (summaryError) {
           console.error(
             `❌ Failed to update attendance summary for ${employee.ecode}:`,
             summaryError
           );
         }
-
 
         // Use attendance summary data if available, with proper field names and NaN checking
         let finalDaysPresent = attendanceSummaryRecord
@@ -1792,7 +1767,6 @@ export const generatePayroll = async (req, res) => {
         let finalTotalLateMinutes = attendanceSummaryRecord
           ? Number(attendanceSummaryRecord.totalLateMinutes)
           : totalLateMinutes;
-
 
         // CRITICAL FIX: Ensure no NaN values
         finalDaysPresent = isNaN(finalDaysPresent)
@@ -1817,7 +1791,6 @@ export const generatePayroll = async (req, res) => {
           tardinessRate:
             (Number(employeePayrollInfo.daily_rate) || 500) / 8 / 60, // per minute rate
         };
-
 
         console.log(`💰 Calculated rates for ${employee.name}:`, {
           dailyRate: rates.dailyRate,
@@ -1977,17 +1950,15 @@ export const generatePayroll = async (req, res) => {
           allowance = isNaN(allowance) ? 0 : Math.max(0, allowance);
         }
 
-
         // Add debugging with NaN protection
         console.log("Salary package debug:", {
           ecode: employee.ecode,
           name: employee.name,
-          project: employee["area/section"],
           salaryPackage: employee.salaryPackage,
           salary_package: employee.salary_package,
           parsedSalaryPackage: salaryPackage,
           dailyRate: rates.dailyRate,
-
+          finalDaysPresent: finalDaysPresent,
           calculatedAllowance: allowance,
           finalTotalLateMinutes: finalTotalLateMinutes,
           regularDaysWorked: regularDaysWorked,
@@ -1995,17 +1966,76 @@ export const generatePayroll = async (req, res) => {
           regularHolidayDays: regularHolidayDays,
         });
 
-        // Calculate gross pay with proper basic pay and holiday pay
-        const grossPay = basicPay + totalSpecialHolidayPay + allowance;
+        // UPDATED: Proper overtime calculation using overtimeApprovals
+        let totalRegularOvertime = 0;
+        let totalHolidayOvertime = 0;
+        let specialHolidayOvertime = 0;
+        let regularHolidayOvertime = 0;
 
+        // Find approved overtime for this employee
+        const employeeOvertimeApproval = overtimeApprovals?.find(
+          (approval) => approval.ecode === employee.ecode && approval.isApproved
+        );
+
+        if (employeeOvertimeApproval) {
+          const approvedOvertimeHours = Number(employeeOvertimeApproval.approvedOvertimeHours) || 0;
+          
+          console.log(`⏰ Processing overtime for ${employee.name} (${employee.ecode}):`, {
+            approvedOvertimeHours,
+            isApproved: employeeOvertimeApproval.isApproved
+          });
+
+          // Categorize overtime hours based on when they were worked
+          // For now, we'll assume all overtime is regular overtime
+          // You can enhance this logic to distribute overtime across different day types
+          totalRegularOvertime = approvedOvertimeHours;
+
+          // If you want to distribute overtime proportionally across different day types:
+          // const totalWorkDays = regularDaysWorked + totalHolidayDays;
+          // if (totalWorkDays > 0) {
+          //   const regularRatio = regularDaysWorked / totalWorkDays;
+          //   const holidayRatio = totalHolidayDays / totalWorkDays;
+          //   const specialHolidayRatio = specialHolidayDays / totalWorkDays;
+          //   const regularHolidayRatio = regularHolidayDays / totalWorkDays;
+          //   
+          //   totalRegularOvertime = approvedOvertimeHours * regularRatio;
+          //   specialHolidayOvertime = approvedOvertimeHours * specialHolidayRatio;
+          //   regularHolidayOvertime = approvedOvertimeHours * regularHolidayRatio;
+          //   totalHolidayOvertime = specialHolidayOvertime + regularHolidayOvertime;
+          // }
+        }
+
+        // Calculate overtime pay
+        const regularOvertimePay = totalRegularOvertime * rates.otHourlyRate;
+        
+        // Holiday overtime rates are typically higher
+        const specialHolidayOTRate = rates.otHourlyRate * 1.3; // 130% of regular OT rate
+        const regularHolidayOTRate = rates.otHourlyRate * 1.6; // 160% of regular OT rate
+        
+        const specialHolidayOTPay = specialHolidayOvertime * specialHolidayOTRate;
+        const regularHolidayOTPay = regularHolidayOvertime * regularHolidayOTRate;
+        
+        const totalOvertimePay = regularOvertimePay + specialHolidayOTPay + regularHolidayOTPay;
+
+        console.log(`⏰ Overtime calculation for ${employee.name}:`, {
+          totalRegularOvertime: totalRegularOvertime.toFixed(2),
+          specialHolidayOvertime: specialHolidayOvertime.toFixed(2),
+          regularHolidayOvertime: regularHolidayOvertime.toFixed(2),
+          regularOvertimePay: regularOvertimePay.toFixed(2),
+          specialHolidayOTPay: specialHolidayOTPay.toFixed(2),
+          regularHolidayOTPay: regularHolidayOTPay.toFixed(2),
+          totalOvertimePay: totalOvertimePay.toFixed(2),
+        });
+
+        const nightDifferentialPay = 0;
+
+        // Calculate gross pay with proper basic pay, holiday pay, and overtime pay
+        const grossPay = basicPay + totalSpecialHolidayPay + allowance + totalOvertimePay;
 
         // Ensure gross pay is valid number
         const safeGrossPay = isNaN(grossPay) ? basicPay : grossPay;
 
-
         // Calculate deductions using safeGrossPay and decimal-aware tardiness calculation
-
-
         const deductions = {
           sss: calculateSSSContribution(safeGrossPay).employerContribution,
           phic: Number(employeePayrollInfo.philhealth_contribution) || 75,
@@ -2013,9 +2043,7 @@ export const generatePayroll = async (req, res) => {
           loan: Number(employeePayrollInfo.loan) || 0,
           otherDeductions: Number(employeePayrollInfo.otherDeductions) || 0,
           taxDeduction: Number(employeePayrollInfo.tax_deduction) || 0,
-
           tardiness: finalTotalLateMinutes * rates.tardinessRate, // Now uses proper per-minute rate
-
         };
 
         // Ensure all deductions are valid numbers
@@ -2025,24 +2053,10 @@ export const generatePayroll = async (req, res) => {
           }
         });
 
-
         const adjustment = Number(employeePayrollInfo.adjustment) || 0;
         const safeAdjustment = isNaN(adjustment) ? 0 : adjustment;
 
-        // Simplified overtime calculation
-        const totalRegularOvertime = 0;
-        const regularOvertimePay = totalRegularOvertime * rates.otHourlyRate;
-
-        // Simplified holiday overtime pay calculations
-        const specialHolidayOTPay = 0;
-        const regularHolidayOTPay = 0;
-        const nightDifferentialPay = 0;
-
-        const totalOvertimePay =
-          regularOvertimePay + specialHolidayOTPay + regularHolidayOTPay;
-
         const totalEarnings = safeGrossPay + safeAdjustment;
-
         const totalDeductions =
           deductions.sss +
           deductions.phic +
@@ -2067,7 +2081,7 @@ export const generatePayroll = async (req, res) => {
           (regularHolidayDays * shiftHours).toFixed(2)
         );
         const totalHours = parseFloat(
-          (finalDaysPresent * shiftHours).toFixed(2)
+          (finalDaysPresent * shiftHours + totalRegularOvertime + totalHolidayOvertime).toFixed(2)
         );
 
         console.log(`⏰ Hours breakdown for ${employee.name}:`, {
@@ -2076,9 +2090,9 @@ export const generatePayroll = async (req, res) => {
           totalHolidayHours: totalHolidayHours,
           specialHolidayHours: specialHolidayHours,
           regularHolidayHours: regularHolidayHours,
+          overtimeHours: (totalRegularOvertime + totalHolidayOvertime).toFixed(2),
           totalHours: totalHours,
         });
-
 
         // CRITICAL: Ensure all values are valid numbers before database insertion
         const payslipData = {
@@ -2091,7 +2105,6 @@ export const generatePayroll = async (req, res) => {
           department: employee.department || "N/A",
           schedule: employee.schedule || "N/A",
           cutoffDate,
-
           dailyrate: parseFloat(rates.dailyRate.toFixed(2)),
           basicPay: parseFloat(basicPay.toFixed(2)),
           noOfDays: parseInt(finalDaysPresent) || 0,
@@ -2103,9 +2116,11 @@ export const generatePayroll = async (req, res) => {
           regularHolidayDays: regularHolidayDays,
           specialNonWorkingHolidayDays: specialNonWorkingHolidayDays,
 
-          // Overtime fields
+          // UPDATED: Overtime fields with proper calculation
           overtimePay: parseFloat(totalOvertimePay.toFixed(2)),
-          totalOvertime: parseFloat(totalRegularOvertime.toFixed(2)),
+          totalOvertime: parseFloat((totalRegularOvertime + totalHolidayOvertime).toFixed(2)),
+          regularOvertime: parseFloat(totalRegularOvertime.toFixed(2)),
+          holidayOvertime: parseFloat(totalHolidayOvertime.toFixed(2)),
 
           // Updated hours fields to use decimal shift hours
           totalRegularHours: totalRegularHours,
@@ -2143,7 +2158,7 @@ export const generatePayroll = async (req, res) => {
 
           // Other deductions - updated tardiness calculation
           totalTardiness: parseFloat(deductions.tardiness.toFixed(2)),
-          totalHours: totalHours, // Now uses decimal shift hours
+          totalHours: totalHours, // Now includes overtime hours
           otherDeductions: parseFloat(deductions.otherDeductions.toFixed(2)),
           taxDeduction: parseFloat(deductions.taxDeduction.toFixed(2)),
 
@@ -2154,9 +2169,7 @@ export const generatePayroll = async (req, res) => {
           gross_pay: parseFloat(safeGrossPay.toFixed(2)),
           netPay: parseFloat(netPay.toFixed(2)),
 
-
           // System fields
-
           requestedBy: requestedBy,
           status: "pending",
           batchId,
@@ -2194,18 +2207,18 @@ export const generatePayroll = async (req, res) => {
         });
 
         console.log(`💰 Payslip calculated for ${employee.name}:`, {
-
           basicPay: payslipData.basicPay,
           holidayPay: payslipData.holidayPay,
+          overtimePay: payslipData.overtimePay,
+          totalOvertimeHours: payslipData.totalOvertime,
           daysPresent: payslipData.noOfDays,
-
           holidayDays: payslipData.holidayDays,
           regularDays: payslipData.regularDays,
           netPay: payslipData.netPay,
+          grossPay: payslipData.gross_pay,
           shiftHours: payslipData.shiftHours,
           totalHours: payslipData.totalHours,
           tardinessDeduction: payslipData.totalTardiness,
-
         });
 
         const newPayslip = await Payslip.create(payslipData);
