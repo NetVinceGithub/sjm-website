@@ -1593,7 +1593,6 @@ const calculateHolidayPay = (holidayType, dailyRate) => {
 
 
 
-
 export const generatePayroll = async (req, res) => {
   const {
     cutoffDate,
@@ -1699,6 +1698,10 @@ export const generatePayroll = async (req, res) => {
             employee.ecode
           })`
         );
+
+        // Check if employee is rank-and-file
+        const isRankAndFile = employee.employmentrank === "RANK-AND-FILE EMPLOYEE";
+        console.log(`👤 Employee ${employee.name} - Employment Rank: ${employee.employmentrank}, Is Rank-and-File: ${isRankAndFile}`);
 
         const employeeAttendance = attendanceRecords.filter(
           (record) => record.ecode === employee.ecode
@@ -1874,7 +1877,6 @@ export const generatePayroll = async (req, res) => {
           }
         });
 
-
         // DEBUG: Final counts
         console.log(`   📊 FINAL COUNTS for ${employee.name}:`);
         console.log(`      regularDaysWorked: ${regularDaysWorked}`);
@@ -1908,9 +1910,7 @@ export const generatePayroll = async (req, res) => {
         const totalSpecialHolidayPay = specialHolidayPay;
         const actualDaysPresent = regularDaysWorked + totalHolidayDays;
 
-
         const basicPay = regularDaysWorked * rates.dailyRate;
-
 
         console.log(`💰 Basic Pay Calculation for ${employee.name}:`);
         console.log(`   📊 finalDaysPresent: ${finalDaysPresent}`);
@@ -1944,8 +1944,9 @@ export const generatePayroll = async (req, res) => {
           });
         }
 
+        // RANK-AND-FILE LOGIC: Skip allowance for rank-and-file employees
         let allowance = 0;
-        if (salaryPackage > 0 && finalDaysPresent > 0) {
+        if (!isRankAndFile && salaryPackage > 0 && finalDaysPresent > 0) {
           const allowancePerDay = (salaryPackage - rates.dailyRate * 26) / 26;
           allowance = allowancePerDay * finalDaysPresent;
           // Ensure allowance is not NaN
@@ -1956,6 +1957,7 @@ export const generatePayroll = async (req, res) => {
         console.log("Salary package debug:", {
           ecode: employee.ecode,
           name: employee.name,
+          isRankAndFile: isRankAndFile,
           salaryPackage: employee.salaryPackage,
           salary_package: employee.salary_package,
           parsedSalaryPackage: salaryPackage,
@@ -1991,20 +1993,6 @@ export const generatePayroll = async (req, res) => {
           // For now, we'll assume all overtime is regular overtime
           // You can enhance this logic to distribute overtime across different day types
           totalRegularOvertime = approvedOvertimeHours;
-
-          // If you want to distribute overtime proportionally across different day types:
-          // const totalWorkDays = regularDaysWorked + totalHolidayDays;
-          // if (totalWorkDays > 0) {
-          //   const regularRatio = regularDaysWorked / totalWorkDays;
-          //   const holidayRatio = totalHolidayDays / totalWorkDays;
-          //   const specialHolidayRatio = specialHolidayDays / totalWorkDays;
-          //   const regularHolidayRatio = regularHolidayDays / totalWorkDays;
-          //   
-          //   totalRegularOvertime = approvedOvertimeHours * regularRatio;
-          //   specialHolidayOvertime = approvedOvertimeHours * specialHolidayRatio;
-          //   regularHolidayOvertime = approvedOvertimeHours * regularHolidayRatio;
-          //   totalHolidayOvertime = specialHolidayOvertime + regularHolidayOvertime;
-          // }
         }
 
         // Calculate overtime pay
@@ -2037,16 +2025,26 @@ export const generatePayroll = async (req, res) => {
         // Ensure gross pay is valid number
         const safeGrossPay = isNaN(grossPay) ? basicPay : grossPay;
 
-        // Calculate deductions using safeGrossPay and decimal-aware tardiness calculation
+        // RANK-AND-FILE LOGIC: Apply different deduction rules
         const deductions = {
-          sss: calculateSSSContribution(safeGrossPay).employerContribution,
-          phic: Number(employeePayrollInfo.philhealth_contribution) || 75,
-          hdmf: Number(employeePayrollInfo.pagibig_contribution) || 50,
-          loan: Number(employeePayrollInfo.loan) || 0,
-          otherDeductions: Number(employeePayrollInfo.otherDeductions) || 0,
-          taxDeduction: Number(employeePayrollInfo.tax_deduction) || 0,
-          tardiness: finalTotalLateMinutes * rates.tardinessRate, // Now uses proper per-minute rate
+          sss: !isRankAndFile ? (calculateSSSContribution(safeGrossPay).employerContribution) : 0,
+          phic: !isRankAndFile ? (Number(employeePayrollInfo.philhealth_contribution) || 75) : 0,
+          hdmf: !isRankAndFile ? (Number(employeePayrollInfo.pagibig_contribution) || 50) : 0,
+          loan: Number(employeePayrollInfo.loan) || 0, // Loans still apply to rank-and-file
+          otherDeductions: !isRankAndFile ? (Number(employeePayrollInfo.otherDeductions) || 0) : 0,
+          taxDeduction: !isRankAndFile ? (Number(employeePayrollInfo.tax_deduction) || 0) : 0,
+          tardiness: finalTotalLateMinutes * rates.tardinessRate, // Tardiness still applies
         };
+
+        console.log(`💳 Deductions for ${employee.name} (Rank-and-File: ${isRankAndFile}):`, {
+          sss: deductions.sss,
+          phic: deductions.phic,
+          hdmf: deductions.hdmf,
+          loan: deductions.loan,
+          otherDeductions: deductions.otherDeductions,
+          taxDeduction: deductions.taxDeduction,
+          tardiness: deductions.tardiness.toFixed(2),
+        });
 
         // Ensure all deductions are valid numbers
         Object.keys(deductions).forEach((key) => {
@@ -2074,7 +2072,7 @@ export const generatePayroll = async (req, res) => {
           (regularDaysWorked * shiftHours).toFixed(2)
         );
         const totalHolidayHours = parseFloat(
-          (totalHolidayDays * shiftHours).toFixed(2)
+          (totalHolidayDays * shiftHours).toFixed(2)  
         );
         const specialHolidayHours = parseFloat(
           (specialHolidayDays * shiftHours).toFixed(2)
@@ -2141,10 +2139,10 @@ export const generatePayroll = async (req, res) => {
           nightDifferential: parseFloat(nightDifferentialPay.toFixed(2)),
           nightShiftHours: parseFloat("0.00"),
 
-          // Allowances
+          // Allowances (0 for rank-and-file)
           allowance: parseFloat(allowance.toFixed(2)),
 
-          // Government contributions
+          // Government contributions (0 for rank-and-file)
           sss: parseFloat(deductions.sss.toFixed(2)),
           phic: parseFloat(deductions.phic.toFixed(2)),
           hdmf: parseFloat(deductions.hdmf.toFixed(2)),
@@ -2176,8 +2174,10 @@ export const generatePayroll = async (req, res) => {
           status: "pending",
           batchId,
 
-          // Add shift hours to payslip data for reference
+          // Add shift hours and employment rank to payslip data for reference
           shiftHours: parseFloat(shiftHours.toFixed(2)),
+          employmentRank: employee.employmentrank || "N/A",
+          isRankAndFile: isRankAndFile,
         };
 
         // Final validation: Check for any remaining NaN values
@@ -2208,10 +2208,11 @@ export const generatePayroll = async (req, res) => {
           specialHolidayPay: specialHolidayPay.toFixed(2),
         });
 
-        console.log(`💰 Payslip calculated for ${employee.name}:`, {
+        console.log(`💰 Payslip calculated for ${employee.name} (Rank-and-File: ${isRankAndFile}):`, {
           basicPay: payslipData.basicPay,
           holidayPay: payslipData.holidayPay,
           overtimePay: payslipData.overtimePay,
+          allowance: payslipData.allowance,
           totalOvertimeHours: payslipData.totalOvertime,
           daysPresent: payslipData.noOfDays,
           holidayDays: payslipData.holidayDays,
@@ -2221,6 +2222,7 @@ export const generatePayroll = async (req, res) => {
           shiftHours: payslipData.shiftHours,
           totalHours: payslipData.totalHours,
           tardinessDeduction: payslipData.totalTardiness,
+          totalDeductions: payslipData.totalDeductions,
         });
 
         const newPayslip = await Payslip.create(payslipData);
@@ -2247,98 +2249,98 @@ export const generatePayroll = async (req, res) => {
       console.log("❌ Error cleaning up attendance data:", error);
     }
 
-    // Email notification logic
-    const approvers = await User.findAll({
-      where: { role: "approver", isBlocked: false },
+  // Email notification logic
+  const approvers = await User.findAll({
+    where: { role: "approver", isBlocked: false },
+  });
+  const successfulEmails = [];
+
+  for (const approver of approvers) {
+    const scheduleInfo =
+      selectedSchedules.length > 0
+        ? ` (using schedules: ${selectedSchedules.join(
+            ", "
+          )} for tardiness calculation)`
+        : "";
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: approver.email,
+      subject: `Payroll Generated: ${cutoffDate} (Batch: ${batchId})`,
+      html: `
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Payroll Request</title>
+      </head>
+
+      <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
+        <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
+          <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
+
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h3>Hello ${approver.name},</h3>
+            <p>Payroll has been successfully generated for the cutoff date <strong>${cutoffDate}</strong>${scheduleInfo}.</p>
+            <p>Batch ID: <strong>${batchId}</strong></p>
+            <p>Total Payslips Generated: <strong>${generatedPayslips.length}</strong></p>
+            <p>Please review the payslips in the payroll system.</p>
+            <br />
+            <p>Best regards,<br />SJM Payroll System</p>
+          </div>
+            <p style="color: #333; font-size: 15px;">Please login to <a href="https://payroll.stjohnmajore.com/">https://payroll.stjohnmajore.com/</a> to review and take appropriate action.</p>
+            
+            <p style="color: #333; font-size: 15px;">Best regards,<br />SJM Payroll System</p>
+          <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
+            <strong>This is an automated email—please do not reply.</strong><br />
+            Keep this message for your records.
+          </div>
+          <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
+        </div>
+      `,
+    };
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
     });
-    const successfulEmails = [];
 
-    for (const approver of approvers) {
-      const scheduleInfo =
-        selectedSchedules.length > 0
-          ? ` (using schedules: ${selectedSchedules.join(
-              ", "
-            )} for tardiness calculation)`
-          : "";
-
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: approver.email,
-        subject: `Payroll Generated: ${cutoffDate} (Batch: ${batchId})`,
-        html: `
-        <head>
-          <meta charset="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <title>Payroll Request</title>
-        </head>
-
-        <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
-          <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
-            <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
-
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h3>Hello ${approver.name},</h3>
-              <p>Payroll has been successfully generated for the cutoff date <strong>${cutoffDate}</strong>${scheduleInfo}.</p>
-              <p>Batch ID: <strong>${batchId}</strong></p>
-              <p>Total Payslips Generated: <strong>${generatedPayslips.length}</strong></p>
-              <p>Please review the payslips in the payroll system.</p>
-              <br />
-              <p>Best regards,<br />SJM Payroll System</p>
-            </div>
-              <p style="color: #333; font-size: 15px;">Please login to <a href="https://payroll.stjohnmajore.com/">https://payroll.stjohnmajore.com/</a> to review and take appropriate action.</p>
-              
-              <p style="color: #333; font-size: 15px;">Best regards,<br />SJM Payroll System</p>
-            <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
-              <strong>This is an automated email—please do not reply.</strong><br />
-              Keep this message for your records.
-            </div>
-            <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
-         </div>
-        `,
-      };
-
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-        tls: {
-          rejectUnauthorized: false,
-        },
-      });
-
-      try {
-        await transporter.sendMail(mailOptions);
-        successfulEmails.push(approver.email);
-        console.log(`✅ Email sent to ${approver.email}`);
-      } catch (emailError) {
-        console.error(
-          `❌ Failed to send email to ${approver.email}:`,
-          emailError
-        );
-      }
+    try {
+      await transporter.sendMail(mailOptions);
+      successfulEmails.push(approver.email);
+      console.log(`✅ Email sent to ${approver.email}`);
+    } catch (emailError) {
+      console.error(
+        `❌ Failed to send email to ${approver.email}:`,
+        emailError
+      );
     }
-
-    res.status(201).json({
-      success: true,
-      message: `Payroll generated for ${generatedPayslips.length} employees!`,
-      batchId,
-      payslips: generatedPayslips,
-      notified: successfulEmails,
-      schedulesUsedForTardiness: selectedSchedules,
-      errors: errors.length > 0 ? errors : undefined,
-    });
-  } catch (error) {
-    console.error("❌ Payroll Generation Critical Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error during payroll generation.",
-      error:
-        process.env.NODE_ENV === "development"
-          ? error.message
-          : "Internal server error",
-      details: process.env.NODE_ENV === "development" ? error.stack : undefined,
-    });
   }
+
+  res.status(201).json({
+    success: true,
+    message: `Payroll generated for ${generatedPayslips.length} employees!`,
+    batchId,
+    payslips: generatedPayslips,
+    notified: successfulEmails,
+    schedulesUsedForTardiness: selectedSchedules,
+    errors: errors.length > 0 ? errors : undefined,
+  });
+} catch (error) {
+  console.error("❌ Payroll Generation Critical Error:", error);
+  res.status(500).json({
+    success: false,
+    message: "Server error during payroll generation.",
+    error:
+      process.env.NODE_ENV === "development"
+        ? error.message
+        : "Internal server error",
+    details: process.env.NODE_ENV === "development" ? error.stack : undefined,
+  });
+}
 };
