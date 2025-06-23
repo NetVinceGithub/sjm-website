@@ -16,7 +16,7 @@
           <div>
             <p
               style="font-family: 'AR Julian', serif"
-              class="text-xl text-nowrap font-bold leading-tight"
+              class="text-2xl text-nowrap font-bold leading-tight"
             >
               ST. JOHN MAJORE
             </p>
@@ -54,17 +54,17 @@
         <table class="border-collapse text-xs mx-auto font-sans text-center">
           <tr>
             <th
-              class="border h-7 w-[10rem] uppercase bg-gray-400 border-black font-bold"
+              class="border h-7 w-[6rem] uppercase bg-gray-400 border-black font-bold"
             >
               E-code
             </th>
             <th
-              class="border h-7 w-[20rem] uppercase bg-gray-400 border-black font-bold"
+              class="border h-7 w-[16rem] uppercase bg-gray-400 border-black font-bold"
             >
               Employee Name
             </th>
             <th
-              class="border h-7 w-[14rem] uppercase bg-gray-400 border-black font-bold"
+              class="border h-7 w-[22rem] uppercase bg-gray-400 border-black font-bold"
             >
               Position
             </th>
@@ -72,7 +72,9 @@
           <tr>
             <td class="border h-7 border-black">{{ecode}}</td>
             <td class="border h-7 border-black">{{employee_name}}</td>
-            <td class="border h-7 border-black break-normal">{{position}}</td>
+            <td class="border h-7 text-[10px] border-black break-normal">
+              {{position}}
+            </td>
           </tr>
         </table>
         <table
@@ -80,17 +82,17 @@
         >
           <tr>
             <td
-              class="border h-7 w-[10rem] uppercase bg-gray-400 border-[#000000] font-bold"
+              class="border h-7 w-[6rem] uppercase bg-gray-400 border-[#000000] font-bold"
             >
               Daily Rate
             </td>
             <td
-              class="border h-7 w-[20rem] uppercase bg-gray-400 border-[#000000] font-bold"
+              class="border h-7 w-[16rem] uppercase bg-gray-400 border-[#000000] font-bold"
             >
               Project Site
             </td>
             <td
-              class="border h-7 w-[14rem] uppercase bg-gray-400 border-[#000000] font-bold"
+              class="border h-7 w-[22rem] uppercase bg-gray-400 border-[#000000] font-bold"
             >
               Cut-off date
             </td>
@@ -104,29 +106,33 @@
         <table class="border-collapse text-xs mx-auto mt-1 font-sans">
           <tr>
             <td
-              class="border w-[16rem] h-7 uppercase bg-gray-400 border-black text-center font-bold"
+              class="border w-[16rem] h-7 uppercase bg-gray-400 border-black border-r-0 text-center font-bold"
             >
               Earnings
             </td>
             <td
-              class="border w-[7rem] h-7 uppercase bg-gray-400 border-black text-center font-bold"
+              class="border w-[6rem] h-7 uppercase bg-gray-400 border-black border-l-white text-center font-bold"
             >
               Figures
             </td>
             <td
-              class="border w-[14rem] h-7 uppercase bg-gray-400 border-black text-center font-bold"
+              class="border w-[16rem] h-7 uppercase bg-gray-400 border-black text-center font-bold"
             >
               Deductions
             </td>
             <td
-              class="border w-[7rem] h-7 uppercase bg-gray-400 border-black text-center font-bold"
+              class="border w-[6rem] h-7 uppercase bg-gray-400 border-black text-center font-bold"
             >
               Figures
             </td>
           </tr>
           <tr>
-            <td class="border h-7 border-b-0 border-black">Basic Pay</td>
-            <td class="border h-7 border-black border-t-0 border-b-0">
+            <td class="border h-7 border-b-0 border-black border-r-0">
+              Basic Pay
+            </td>
+            <td
+              class="border h-7 border-black text-center border-l-white border-t-0 border-b-0"
+            >
               {{basic_pay}}
             </td>
             <td
@@ -141,126 +147,186 @@
             <td class="border border-black h-7 border-t-0 border-b-0"></td>
           </tr>
           <tr>
-            <td class="border border-t-0 border-b-0 border-black h-7">
-              <div class="border-b-2 border-black">No. of Days Worked</div>
+            <td
+              class="border border-t-0 border-b-0 border-black h-7 border-r-0"
+            >
+              <div class="border-b-2 border-black border-r-0">
+                No. of Days Worked
+              </div>
             </td>
-            <td class="border border-t-0 border-b-0 border-black h-7">
+            <td
+              class="border border-t-0 border-b-0 text-center border-l-white border-black h-7"
+            >
               {{no_of_days}}
             </td>
             <td class="border border-t-0 border-b-0 border-black h-7">SSS</td>
-            <td class="border border-t-0 border-b-0 border-black h-7">
+            <td
+              class="border border-t-0 border-b-0 border-black h-7 text-right"
+            >
               {{sss}}
             </td>
           </tr>
           <tr>
-            <td class="border border-t-0 border-b-0 border-black h-7">
+            <td
+              class="border border-t-0 border-b-0 border-black h-7 border-r-0"
+            >
               Overtime Pay
             </td>
-            <td class="border border-black h-7 border-t-0 border-b-0">
+            <td
+              class="border border-black h-7 text-center border-l-white border-t-0 border-b-0"
+            >
               {{overtime_pay}}
             </td>
             <td class="border border-black h-7 border-t-0 border-b-0">PHIC</td>
-            <td class="border border-black h-7 border-t-0 border-b-0">
+            <td
+              class="border border-black h-7 border-t-0 border-b-0 text-right"
+            >
               {{phic}}
             </td>
           </tr>
           <tr>
-            <td class="border border-t-0 border-b-0 border-black h-7">
+            <td
+              class="border border-t-0 border-b-0 border-r-0 border-black h-7"
+            >
               Overtime Hours
             </td>
-            <td class="border border-black h-7 border-t-0 border-b-0">
+            <td
+              class="border border-black h-7 text-center border-l-white border-t-0 border-b-0"
+            >
               {{total_overtime}}
             </td>
             <td class="border border-black h-7 border-t-0 border-b-0">HDMF</td>
-            <td class="border border-black h-7 border-t-0 border-b-0">
+            <td
+              class="border border-black h-7 border-t-0 border-b-0 text-right"
+            >
               {{hdmf}}
             </td>
           </tr>
           <tr>
-            <td class="border border-t-0 border-b-0 border-black h-7">
+            <td
+              class="border border-t-0 border-b-0 border-r-0 border-black h-7"
+            >
               <div class="border-b-2 border-black">Night Differential</div>
             </td>
-            <td class="border border-black h-7 border-t-0 border-b-0">
+            <td
+              class="border border-black border-r-0 h-7 text-center border-l-white border-t-0 border-b-0"
+            >
               {{night_differential}}
             </td>
             <td class="border border-black h-7 border-b-0">SSS Loan</td>
-            <td class="border border-black h-7 border-b-0">{{sssLoan}}</td>
+            <td class="border border-black h-7 border-b-0 text-right">
+              {{sssLoan}}
+            </td>
           </tr>
           <tr>
-            <td class="border border-t-0 border-b-0 border-black h-7">
+            <td
+              class="border border-t-0 border-b-0 border-r-0 border-black h-7"
+            >
               Holiday Pay
             </td>
-            <td class="border border-black h-7 border-t-0 border-b-0"></td>
+            <td
+              class="border border-black h-7 text-center border-l-white border-t-0 border-b-0"
+            ></td>
             <td class="border border-black h-7 border-t-0 border-b-0">
               Pag-IBIG Loan
             </td>
-            <td class="border border-black h-7 border-t-0 border-b-0">
+            <td
+              class="border border-black h-7 border-t-0 border-b-0 text-right"
+            >
               {{hdmfLoan}}
             </td>
           </tr>
           <tr>
-            <td class="border border-t-0 border-b-0 border-black h-7">
+            <td
+              class="border border-t-0 border-b-0 border-r-0 border-black h-7"
+            >
               <li class="ml-3">Regular</li>
             </td>
-            <td class="border border-black h-7 border-t-0 border-b-0">
+            <td
+              class="border border-black text-center border-l-white h-7 border-t-0 border-b-0"
+            >
               {{reg_holiday_pay}}
             </td>
             <td class="border border-black h-7 border-t-0 border-b-0">
               Tardiness
             </td>
-            <td class="border border-black h-7 border-t-0 border-b-0">
+            <td
+              class="border border-black h-7 border-t-0 border-b-0 text-right"
+            >
               {{total_tardiness}}
             </td>
           </tr>
           <tr>
-            <td class="border border-black border-t-0 border-b-0 h-7">
-              <div class="border-b-2 border-black">
+            <td
+              class="border border-black border-t-0 border-r-0 border-b-0 h-7"
+            >
+              <div class="border-b-2 border-r-0 border-black">
                 <li class="ml-3">Special</li>
               </div>
             </td>
-            <td class="border border-black border-t-0 border-b-0 h-7">
+            <td
+              class="border border-black text-center border-l-white border-t-0 border-b-0 h-7"
+            >
               {{sp_holiday_pay}}
             </td>
             <td class="border border-black h-7 border-t-0 border-b-0">
               Other Deductions
             </td>
-            <td class="border border-black h-7 border-t-0 border-b-0">
+            <td
+              class="border border-black h-7 border-t-0 border-b-0 text-right"
+            >
               {{other_deductions}}
             </td>
           </tr>
           <tr>
-            <td class="border border-black h-7 border-t-0 border-b-0">
+            <td
+              class="border border-black border-r-0 h-7 border-t-0 border-b-0"
+            >
               Allowances
             </td>
-            <td class="border border-black h-7 border-t-0 border-b-0">
+            <td
+              class="border border-black text-center border-l-white h-7 border-t-0 border-b-0"
+            >
               {{allowance}}
             </td>
             <td class="border border-black h-7 border-t-0 border-b-0"></td>
             <td class="border border-black h-7 border-t-0 border-b-0"></td>
           </tr>
           <tr>
-            <td class="border border-black h-7 border-t-0 border-b-0"></td>
-            <td class="border border-black h-7 border-t-0 border-b-0"></td>
+            <td
+              class="border border-black h-7 border-t-0 border-b-0 border-r-0"
+            ></td>
+            <td
+              class="border border-black h-7 border-t-0 border-b-0 border-l-white"
+            ></td>
             <td class="border border-black h-7 border-t-0 border-b-0 font-bold">
               Total Deductions
             </td>
-            <td class="border border-black h-7 border-t-0 border-b-0">
+            <td
+              class="border border-black h-7 border-t-0 border-b-0 text-right"
+            >
               {{total_deductions}}
             </td>
           </tr>
           <tr>
-            <td class="border border-black h-7 border-t-0 border-b-0"></td>
-            <td class="border border-black h-7 border-t-0 border-b-0"></td>
+            <td
+              class="border border-black h-7 border-t-0 border-b-0 border-r-0"
+            ></td>
+            <td
+              class="border border-black h-7 border-t-0 border-b-0 border-l-white"
+            ></td>
             <td class="border border-black h-7 border-t-0 italic border-b-0">
               Adjustments
             </td>
-            <td class="border border-black h-7 border-t-0 border-b-0">
+            <td
+              class="border border-black h-7 border-t-0 border-b-0 text-right"
+            >
               {{adjustment}}
             </td>
           </tr>
           <tr>
-            <td class="border border-black h-5 border-t-0"></td>
-            <td class="border border-black h-5 border-t-0"></td>
+            <td class="border border-black h-5 border-t-0 border-r-0"></td>
+            <td class="border border-black h-5 border-t-0 border-l-white"></td>
             <td class="border border-black h-5 border-t-0 italic"></td>
             <td class="border border-black h-5 border-t-0"></td>
           </tr>
