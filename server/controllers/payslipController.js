@@ -2076,7 +2076,6 @@ export const generatePayroll = async (req, res) => {
 
         // RANK-AND-FILE LOGIC: Apply different deduction rules
         const deductions = {
-<<<<<<< HEAD
           sss: !isOnCall ? (calculateSSSContribution(safeGrossPay).employerContribution) : 0,
           phic: !isOnCall ? (Number(employeePayrollInfo.philhealth_contribution) || 75) : 0,
           hdmf: !isOnCall ? (Number(employeePayrollInfo.pagibig_contribution) || 50) : 0,
@@ -2095,39 +2094,6 @@ export const generatePayroll = async (req, res) => {
           taxDeduction: deductions.taxDeduction,
           tardiness: deductions.tardiness.toFixed(2),
         });
-=======
-          sss: !isRankAndFile
-            ? calculateSSSContribution(safeGrossPay).employerContribution
-            : 0,
-          phic: !isRankAndFile
-            ? Number(employeePayrollInfo.philhealth_contribution) || 75
-            : 0,
-          hdmf: !isRankAndFile
-            ? Number(employeePayrollInfo.pagibig_contribution) || 50
-            : 0,
-          loan: Number(employeePayrollInfo.loan) || 0, // Loans still apply to rank-and-file
-          otherDeductions: !isRankAndFile
-            ? Number(employeePayrollInfo.otherDeductions) || 0
-            : 0,
-          taxDeduction: !isRankAndFile
-            ? Number(employeePayrollInfo.tax_deduction) || 0
-            : 0,
-          tardiness: finalTotalLateMinutes * rates.tardinessRate, // Tardiness still applies
-        };
-
-        console.log(
-          `💳 Deductions for ${employee.name} (Rank-and-File: ${isRankAndFile}):`,
-          {
-            sss: deductions.sss,
-            phic: deductions.phic,
-            hdmf: deductions.hdmf,
-            loan: deductions.loan,
-            otherDeductions: deductions.otherDeductions,
-            taxDeduction: deductions.taxDeduction,
-            tardiness: deductions.tardiness.toFixed(2),
-          }
-        );
->>>>>>> b9b78a968ca6b39df80e30212b0253ecfdb1cd39
 
         // Ensure all deductions are valid numbers
         Object.keys(deductions).forEach((key) => {
