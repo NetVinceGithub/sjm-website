@@ -308,10 +308,10 @@ const generatePayslipPDF = async (payslip) => {
       format: "A6", // This explicitly sets A6 format
       printBackground: true,
       margin: {
-        top: "3mm",
-        right: "3mm",
-        bottom: "3mm",
-        left: "3mm",
+        top: "2mm",
+        right: "2mm",
+        bottom: "2mm",
+        left: "2mm",
       },
       preferCSSPageSize: true,
       timeout: 30000,
