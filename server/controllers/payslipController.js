@@ -128,16 +128,16 @@ const generatePayslipPDF = async (payslip) => {
           : "0.00"
       }`,
       reg_holiday_pay: `${
-        payslip.regularHolidayPay
-          ? Number(payslip.regularHolidayPay).toLocaleString(undefined, {
+        payslip.regular_holiday_pay
+          ? Number(payslip.regular_holiday_pay).toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })
           : "0.00"
       }`,
       sp_holiday_pay: `${
-        payslip.specialHolidayPay
-          ? Number(payslip.specialHolidayPay).toLocaleString(undefined, {
+        payslip.special_holiday_pay
+          ? Number(payslip.special_holiday_pay).toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })
@@ -1343,7 +1343,7 @@ export const getContributions = async (req, res) => {
         ? `WHERE ${whereConditions.join(" AND ")}`
         : "";
 
-    // Fixed SQL query with correct table name (Employees with capital E)
+    // Fixed SQL query with correct column names
     const query = `
     SELECT
         e.id as employeeId,
@@ -1351,7 +1351,7 @@ export const getContributions = async (req, res) => {
         e.ecode as employeeCode,
         e.sss as employeeSSS,
         e.philhealth as employeePhilhealth,
-        e.pagibig as employeePagibig,
+        e.\`pag-ibig\` as employeePagibig,
         e.employmentstatus as employeeStatus,
         COUNT(ph.id) as payslipCount,
         COALESCE(SUM(CAST(ph.sss AS DECIMAL(10,2))), 0) as totalSSS,
@@ -1365,12 +1365,13 @@ export const getContributions = async (req, res) => {
         COUNT(CASE WHEN CAST(ph.sss AS DECIMAL(10,2)) > 0 THEN 1 END) as sssCount,
         COUNT(CASE WHEN CAST(ph.phic AS DECIMAL(10,2)) > 0 THEN 1 END) as philhealthCount,
         COUNT(CASE WHEN CAST(ph.hdmf AS DECIMAL(10,2)) > 0 THEN 1 END) as pagibigCount
-    FROM Employees e
+    FROM employees e
     LEFT JOIN paysliphistories ph ON e.id = ph.employee_id
     ${whereClause}
-    GROUP BY e.id, e.name, e.ecode, e.sss, e.philhealth, e.pagibig
+    GROUP BY e.id, e.name, e.ecode, e.sss, e.philhealth, e.\`pag-ibig\`, e.employmentstatus
     ORDER BY e.name
     `;
+    
     const results = await sequelize.query(query, {
       replacements,
       type: QueryTypes.SELECT,
