@@ -1715,18 +1715,10 @@ export const generatePayroll = async (req, res) => {
         );
 
         // Check if employee is rank-and-file
-<<<<<<< HEAD
         const isRankAndFile = employee.employmentrank === "RANK-AND-FILE EMPLOYEE";
         const isOnCall = employee.employmentstatus === "ON-CALL";
         console.log(`👤 Employee ${employee.name} - Employment Rank: ${employee.employmentrank}, Is Rank-and-File: ${isRankAndFile}`);
         console.log(`👤 Employee ${employee.name} - Employment Status: ${employee.employmentstatus}, ON-CALL: ${isOnCall}`);
-=======
-        const isRankAndFile =
-          employee.employmentrank === "RANK-AND-FILE EMPLOYEE";
-        console.log(
-          `👤 Employee ${employee.name} - Employment Rank: ${employee.employmentrank}, Is Rank-and-File: ${isRankAndFile}`
-        );
->>>>>>> b9b78a968ca6b39df80e30212b0253ecfdb1cd39
 
         const employeeAttendance = attendanceRecords.filter(
           (record) => record.ecode === employee.ecode
