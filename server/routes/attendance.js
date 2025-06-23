@@ -4,7 +4,7 @@ import multer from 'multer';
 const upload = multer({ storage: multer.memoryStorage() });
 const router = express.Router();
 
-router.post("/upload", upload.single('attendanceFile'), uploadAtendanceFile);
+router.post("/upload", upload.single('attendanceFile'), uploadAttendanceFile);
 
 
 router.post("/add-attendance", saveAttendance);
