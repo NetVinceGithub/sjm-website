@@ -1718,7 +1718,9 @@ export const generatePayroll = async (req, res) => {
 
         // Check if employee is rank-and-file
         const isRankAndFile = employee.employmentrank === "RANK-AND-FILE EMPLOYEE";
+        const isOnCall = employee.employmentstatus === "ON-CALL";
         console.log(`👤 Employee ${employee.name} - Employment Rank: ${employee.employmentrank}, Is Rank-and-File: ${isRankAndFile}`);
+        console.log(`👤 Employee ${employee.name} - Employment Status: ${employee.employmentstatus}, ON-CALL: ${isOnCall}`);
 
         const employeeAttendance = attendanceRecords.filter(
           (record) => record.ecode === employee.ecode
@@ -2044,16 +2046,16 @@ export const generatePayroll = async (req, res) => {
 
         // RANK-AND-FILE LOGIC: Apply different deduction rules
         const deductions = {
-          sss: !isRankAndFile ? (calculateSSSContribution(safeGrossPay).employerContribution) : 0,
-          phic: !isRankAndFile ? (Number(employeePayrollInfo.philhealth_contribution) || 75) : 0,
-          hdmf: !isRankAndFile ? (Number(employeePayrollInfo.pagibig_contribution) || 50) : 0,
+          sss: !isOnCall ? (calculateSSSContribution(safeGrossPay).employerContribution) : 0,
+          phic: !isOnCall ? (Number(employeePayrollInfo.philhealth_contribution) || 75) : 0,
+          hdmf: !isOnCall ? (Number(employeePayrollInfo.pagibig_contribution) || 50) : 0,
           loan: Number(employeePayrollInfo.loan) || 0, // Loans still apply to rank-and-file
-          otherDeductions: !isRankAndFile ? (Number(employeePayrollInfo.otherDeductions) || 0) : 0,
-          taxDeduction: !isRankAndFile ? (Number(employeePayrollInfo.tax_deduction) || 0) : 0,
+          otherDeductions: !isOnCall ? (Number(employeePayrollInfo.otherDeductions) || 0) : 0,
+          taxDeduction: !isOnCall ? (Number(employeePayrollInfo.tax_deduction) || 0) : 0,
           tardiness: finalTotalLateMinutes * rates.tardinessRate, // Tardiness still applies
         };
 
-        console.log(`💳 Deductions for ${employee.name} (Rank-and-File: ${isRankAndFile}):`, {
+        console.log(`💳 Deductions for ${employee.name} (Rank-and-File: ${isOnCall}):`, {
           sss: deductions.sss,
           phic: deductions.phic,
           hdmf: deductions.hdmf,
