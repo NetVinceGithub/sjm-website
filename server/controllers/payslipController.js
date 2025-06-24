@@ -130,16 +130,16 @@ const generatePayslipPDF = async (payslip) => {
           : "0.00"
       }`,
       regular_holiday_pay: `${
-        payslip.regular_holiday_pay
-          ? Number(payslip.regular_holiday_pay).toLocaleString(undefined, {
+        payslip.regular_holiday_pay || payslip.regularHolidayPay
+          ? Number(payslip.regular_holiday_pay || payslip.regularHolidayPay).toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })
           : "0.00"
       }`,
       special_holiday_pay: `${
-        payslip.special_holiday_pay
-          ? Number(payslip.special_holiday_pay).toLocaleString(undefined, {
+        payslip.special_holiday_pay || payslip.specialHolidayPay
+          ? Number(payslip.special_holiday_pay || payslip.specialHolidayPay).toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })
