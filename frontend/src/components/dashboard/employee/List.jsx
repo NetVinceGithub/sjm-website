@@ -550,7 +550,13 @@ const List = () => {
     },
     {
       name: "Emergency Contact",
-      selector: (row) => row.contact_name,
+      selector: (row) => row.emergencyContact,
+      sortable: true,
+      width: "230px",
+    },
+    {
+      name: "Employment Rank",
+      selector: (row) => row.employmentrank,
       sortable: true,
       width: "230px",
     },
@@ -562,7 +568,7 @@ const List = () => {
           Contact Number
         </div>
       ),
-      selector: (row) => row.contact_number,
+      selector: (row) => row.emergencyContactNumber,
       sortable: true,
       width: "160px",
     },

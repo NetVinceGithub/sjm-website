@@ -1371,7 +1371,7 @@ export const getContributions = async (req, res) => {
         COUNT(CASE WHEN CAST(ph.sss AS DECIMAL(10,2)) > 0 THEN 1 END) as sssCount,
         COUNT(CASE WHEN CAST(ph.phic AS DECIMAL(10,2)) > 0 THEN 1 END) as philhealthCount,
         COUNT(CASE WHEN CAST(ph.hdmf AS DECIMAL(10,2)) > 0 THEN 1 END) as pagibigCount
-    FROM employees e
+    FROM Employees e
     LEFT JOIN paysliphistories ph ON e.id = ph.employee_id
     ${whereClause}
     GROUP BY e.id, e.name, e.ecode, e.sss, e.philhealth, e.\`pag-ibig\`, e.employmentstatus
@@ -1738,6 +1738,7 @@ export const generatePayroll = async (req, res) => {
           })`
         );
 
+
         const isRankAndFile =
           employee.employmentrank === "RANK-AND-FILE EMPLOYEE";
         const isOnCall = employee.employmentstatus === "ON-CALL";
@@ -1747,6 +1748,7 @@ export const generatePayroll = async (req, res) => {
         console.log(
           `👤 Employee ${employee.name} - Employment Status: ${employee.employmentstatus}, ON-CALL: ${isOnCall}`
         );
+
 
         const employeeAttendance = attendanceRecords.filter(
           (record) => record.ecode === employee.ecode
@@ -2096,6 +2098,7 @@ export const generatePayroll = async (req, res) => {
 
         // RANK-AND-FILE LOGIC: Apply different deduction rules
         const deductions = {
+
           sss: !isOnCall
             ? calculateSSSWithCutoff(safeGrossPay, new Date(cutoffDate))
                 .employeeContribution // ✅ NEW CODE
@@ -2128,6 +2131,7 @@ export const generatePayroll = async (req, res) => {
             tardiness: deductions.tardiness.toFixed(2),
           }
         );
+
 
         // Ensure all deductions are valid numbers
         Object.keys(deductions).forEach((key) => {
