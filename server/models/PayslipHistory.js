@@ -7,14 +7,14 @@ const PayslipHistory = sequelize.define(
     id: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
-      primaryKey: true
+      primaryKey: true,
     },
     ecode: DataTypes.STRING,
     email: DataTypes.STRING,
     employeeId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      field: "employee_id"
+      field: "employee_id",
     },
     name: DataTypes.STRING,
     project: DataTypes.STRING,
@@ -30,6 +30,9 @@ const PayslipHistory = sequelize.define(
     nightDifferential: DataTypes.DECIMAL(10, 2),
     allowance: DataTypes.DECIMAL(10, 2),
     sss: DataTypes.DECIMAL(10, 2),
+    sssEmployerShare: DataTypes.DECIMAL(10, 2),
+    sssEC: DataTypes.DECIMAL(10, 2),
+    sssTotalContribution: DataTypes.DECIMAL(10, 2),
     phic: DataTypes.DECIMAL(10, 2),
     hdmf: DataTypes.DECIMAL(10, 2),
     loan: DataTypes.DECIMAL(10, 2),
@@ -41,23 +44,21 @@ const PayslipHistory = sequelize.define(
     adjustment: DataTypes.DECIMAL(10, 2),
     gross_pay: DataTypes.DECIMAL(10, 2),
     netPay: DataTypes.DECIMAL(10, 2),
-    billingSummary: DataTypes. INTEGER,
+    billingSummary: DataTypes.INTEGER,
     controlNumber: DataTypes.STRING,
     date: {
       type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW
+      defaultValue: DataTypes.NOW,
     },
     batchId: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  }
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
   },
   {
     tableName: "paysliphistories", // Explicitly define table name
     timestamps: false, // Disable timestamps if not needed
   }
 );
-
-
 
 export default PayslipHistory;
