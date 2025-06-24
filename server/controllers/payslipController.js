@@ -278,11 +278,14 @@ const generatePayslipPDF = async (payslip) => {
           : "0.00"
       }`,
       gross_pay: `${
-        payslip.gross_pay
-          ? Number(payslip.gross_pay).toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })
+        payslip.gross_pay || payslip.grossPay
+          ? Number(payslip.gross_pay || payslip.grossPay).toLocaleString(
+              undefined,
+              {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              }
+            )
           : "0.00"
       }`,
       net_pay: `${
