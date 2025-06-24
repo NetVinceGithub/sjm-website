@@ -155,7 +155,7 @@ const generatePayslipPDF = async (payslip) => {
             })
           : "0.00"
       }`,
-      no_of_days: parseInt(payslip.no_of_days, 10) || "0",
+      no_of_days: parseInt(payslip.noOfDays, 10) || "0",
       overtime_pay: `${
         payslip.overtime_pay
           ? Number(payslip.overtime_pay).toLocaleString(undefined, {
@@ -286,11 +286,14 @@ const generatePayslipPDF = async (payslip) => {
           : "0.00"
       }`,
       net_pay: `${
-        payslip.netPay
-          ? Number(payslip.netPay).toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })
+        payslip.netPay || payslip.net_pay
+          ? Number(payslip.netPay || payslip.net_pay).toLocaleString(
+              undefined,
+              {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              }
+            )
           : "0.00"
       }`,
     };
@@ -1738,7 +1741,6 @@ export const generatePayroll = async (req, res) => {
           })`
         );
 
-
         const isRankAndFile =
           employee.employmentrank === "RANK-AND-FILE EMPLOYEE";
         const isOnCall = employee.employmentstatus === "ON-CALL";
@@ -1748,7 +1750,6 @@ export const generatePayroll = async (req, res) => {
         console.log(
           `👤 Employee ${employee.name} - Employment Status: ${employee.employmentstatus}, ON-CALL: ${isOnCall}`
         );
-
 
         const employeeAttendance = attendanceRecords.filter(
           (record) => record.ecode === employee.ecode
@@ -2098,7 +2099,6 @@ export const generatePayroll = async (req, res) => {
 
         // RANK-AND-FILE LOGIC: Apply different deduction rules
         const deductions = {
-
           sss: !isOnCall
             ? calculateSSSWithCutoff(safeGrossPay, new Date(cutoffDate))
                 .employeeContribution // ✅ NEW CODE
@@ -2131,7 +2131,6 @@ export const generatePayroll = async (req, res) => {
             tardiness: deductions.tardiness.toFixed(2),
           }
         );
-
 
         // Ensure all deductions are valid numbers
         Object.keys(deductions).forEach((key) => {

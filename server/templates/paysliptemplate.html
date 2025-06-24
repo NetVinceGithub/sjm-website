@@ -66,7 +66,7 @@
               Employee Name
             </th>
             <th
-              class="border h-5 w-[40vw] uppercase bg-gray-400 border-black text-[9px] font-bold"
+              class="border h-5 w-[40vw] uppercase bg-gray-400 border-black text-[9px] border-r-0 font-bold"
             >
               Position
             </th>
@@ -74,7 +74,9 @@
           <tr>
             <td class="border h-5 border-black border-l-0">{{ecode}}</td>
             <td class="border h-5 border-black">{{employee_name}}</td>
-            <td class="border h-5 text-[7px] border-black break-normal">
+            <td
+              class="border h-5 text-[7px] border-black break-normal border-r-0"
+            >
               {{position}}
             </td>
           </tr>
@@ -94,17 +96,19 @@
               Project Site
             </td>
             <td
-              class="border h-5 w-[40vw] uppercase bg-gray-400 border-[#000000] text-[9px] font-bold"
+              class="border h-5 w-[40vw] uppercase bg-gray-400 border-[#000000] text-[9px] font-bold border-r-0"
             >
               Cut-off date
             </td>
           </tr>
           <tr>
-            <td class="border h-5 border-l-0 border-[#000000]">
+            <td class="border h-5 border-l-0 border-[#000000] border-r-0">
               {{daily_rate}}
             </td>
             <td class="border h-5 border-[#000000]">{{project_site}}</td>
-            <td class="border h-5 border-[#000000]">{{cutoff_date}}</td>
+            <td class="border h-5 border-[#000000] border-r-0">
+              {{cutoff_date}}
+            </td>
           </tr>
         </table>
         <table class="border-collapse w-full text-[8px] mx-auto mt-1 font-sans">
@@ -125,7 +129,7 @@
               Deductions
             </td>
             <td
-              class="border w-[10vw] h-5 uppercase bg-gray-400 border-black text-center text-[9px] font-bold"
+              class="border w-[10vw] h-5 uppercase bg-gray-400 border-black text-center text-[9px] font-bold border-r-0"
             >
               Figures
             </td>
@@ -150,7 +154,9 @@
                 <p>GOVERNMENT CONTRIBUTIONS</p>
               </div>
             </td>
-            <td class="border border-black h-5 border-t-0 border-b-0"></td>
+            <td
+              class="border border-black h-5 border-t-0 border-b-0 border-r-0"
+            ></td>
           </tr>
           <tr>
             <td
@@ -167,7 +173,7 @@
             </td>
             <td class="border border-t-0 border-b-0 border-black h-5">SSS</td>
             <td
-              class="border border-t-0 border-b-0 border-black h-5 text-right"
+              class="border border-t-0 border-b-0 border-black h-5 text-right border-r-0"
             >
               {{sss}}
             </td>
@@ -185,7 +191,7 @@
             </td>
             <td class="border border-black h-5 border-t-0 border-b-0">PHIC</td>
             <td
-              class="border border-black h-5 border-t-0 border-b-0 text-right"
+              class="border border-black h-5 border-t-0 border-b-0 text-right border-r-0"
             >
               {{phic}}
             </td>
@@ -203,14 +209,14 @@
             </td>
             <td class="border border-black h-5 border-t-0 border-b-0">HDMF</td>
             <td
-              class="border border-black h-5 border-t-0 border-b-0 text-right"
+              class="border border-black h-5 border-t-0 border-b-0 text-right border-r-0"
             >
               {{hdmf}}
             </td>
           </tr>
           <tr>
             <td
-              class="border border-t-0 border-b-0 border-r-0 border-black h-5"
+              class="border border-t-0 border-b-0 border-l-0 border-r-0 border-black h-5"
             >
               <div class="border-b-2 border-black">Night Differential</div>
             </td>
@@ -220,7 +226,9 @@
               {{night_differential}}
             </td>
             <td class="border border-black h-5 border-b-0">SSS Loan</td>
-            <td class="border border-black h-5 border-b-0 text-right">
+            <td
+              class="border border-black h-5 border-b-0 text-right border-r-0"
+            >
               {{sssLoan}}
             </td>
           </tr>
@@ -237,7 +245,7 @@
               Pag-IBIG Loan
             </td>
             <td
-              class="border border-black h-5 border-t-0 border-b-0 text-right"
+              class="border border-black h-5 border-t-0 border-b-0 text-right border-r-0"
             >
               {{hdmfLoan}}
             </td>
@@ -257,14 +265,14 @@
               Tardiness
             </td>
             <td
-              class="border border-black h-5 border-t-0 border-b-0 text-right"
+              class="border border-black h-5 border-t-0 border-b-0 text-right border-r-0"
             >
               {{total_tardiness}}
             </td>
           </tr>
           <tr>
             <td
-              class="border border-black border-t-0 border-r-0 border-b-0 h-5"
+              class="border border-black border-t-0 border-r-0 border-l-0 border-b-0 h-5"
             >
               <div class="border-b-2 border-l-0 border-r-0 border-black">
                 <li class="ml-3 text-[7px]">Special</li>
@@ -279,7 +287,7 @@
               Other Deductions
             </td>
             <td
-              class="border border-black h-5 border-t-0 border-b-0 text-right"
+              class="border border-black h-5 border-t-0 border-b-0 text-right border-r-0"
             >
               {{other_deductions}}
             </td>
@@ -296,7 +304,9 @@
               {{allowance}}
             </td>
             <td class="border border-black h-5 border-t-0 border-b-0"></td>
-            <td class="border border-black h-5 border-t-0 border-b-0"></td>
+            <td
+              class="border border-black h-5 border-t-0 border-b-0 border-r-0"
+            ></td>
           </tr>
           <tr>
             <td
@@ -311,7 +321,7 @@
               Total Deductions
             </td>
             <td
-              class="border border-black h-5 border-t-0 border-b-0 text-right"
+              class="border border-black h-5 border-t-0 border-b-0 text-right border-r-0"
             >
               {{total_deductions}}
             </td>
@@ -327,7 +337,7 @@
               Adjustments
             </td>
             <td
-              class="border border-black h-5 border-t-0 border-b-0 text-right"
+              class="border border-black h-5 border-t-0 border-b-0 text-right border-r-0"
             >
               {{adjustment}}
             </td>
@@ -338,7 +348,7 @@
             ></td>
             <td class="border border-black h-3 border-t-0 border-l-white"></td>
             <td class="border border-black h-3 border-t-0 italic"></td>
-            <td class="border border-black h-3 border-t-0"></td>
+            <td class="border border-black h-3 border-t-0 border-r-0"></td>
           </tr>
         </table>
         <table class="border-collapse mx-auto w-full text-[8px] font-sans">
@@ -349,7 +359,7 @@
             ></td>
             <td
               colspan="2"
-              class="border h-2 border-black border-t-0 font-bold w-[40vw] uppercase bg-gray-400 text-center"
+              class="border h-2 border-black border-t-0 font-bold w-[40vw] uppercase bg-gray-400 text-center border-r-0"
             ></td>
           </tr>
           <tr>
@@ -361,7 +371,7 @@
             </td>
             <td
               colspan="2"
-              class="border border-black text-[9px] font-bold h-5 w-[40vw] uppercase text-center"
+              class="border border-black text-[9px] font-bold h-5 w-[40vw] uppercase text-center border-r-0"
             >
               Net Pay
             </td>
@@ -377,7 +387,7 @@
             </td>
             <td
               colspan="2"
-              class="border border-t-0 text-center border-black h-5 w-[40vw]"
+              class="border border-t-0 text-center border-black h-5 w-[40vw] border-r-0"
             >
               {{total_deductions}}
             </td>
