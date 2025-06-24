@@ -25,6 +25,7 @@ import puppeteer from "puppeteer"; // Make sure puppeteer is installed
 import { execSync } from "child_process";
 import {
   calculateSSSContribution,
+  calculateSSSWithCutoff,
   updatePayrollWithSSS,
 } from "../utils/sssCalculator.js";
 
@@ -849,6 +850,9 @@ export const sendPayslips = async (req, res) => {
                 0
               ),
               sss: +(payslip.sss || 0),
+              sssEmployerShare: +(payslip.sssEmployerShare || 0),
+              sssEC: +(payslip.sssEC || 0),
+              sssTotalContribution: +(payslip.sssTotalContribution || 0),
               phic: +(payslip.phic || 0),
               hdmf: +(payslip.hdmf || 0),
               loan: +(payslip.loan || 0),
@@ -1386,6 +1390,8 @@ export const getContributions = async (req, res) => {
       employeeSSS: row.employeeSSS,
       employeePhilhealth: row.employeePhilhealth,
       employeePagibig: row.employeePagibig,
+      employerSSSshare: 100,
+      employerPagibigShare: 100,
       contributions: {
         sss: {
           total: parseFloat(row.totalSSS || 0),
@@ -1608,6 +1614,22 @@ const calculateHolidayPay = (holidayType, dailyRate) => {
   }
 };
 
+const determineCutoffPeriod = (cutoffDate) => {
+  const date = new Date(cutoffDate);
+  const dayOfMonth = date.getDate();
+  const isSecondCutoff = dayOfMonth >= 16;
+
+  console.log(`📅 Cut-off period analysis for ${cutoffDate}:`, {
+    dayOfMonth,
+    isSecondCutoff,
+    cutoffType: isSecondCutoff
+      ? "Second Cut-off (EC included)"
+      : "First Cut-off (No EC)",
+  });
+
+  return isSecondCutoff;
+};
+
 export const generatePayroll = async (req, res) => {
   const {
     cutoffDate,
@@ -1714,11 +1736,17 @@ export const generatePayroll = async (req, res) => {
           })`
         );
 
-        // Check if employee is rank-and-file
-        const isRankAndFile = employee.employmentrank === "RANK-AND-FILE EMPLOYEE";
+
+        const isRankAndFile =
+          employee.employmentrank === "RANK-AND-FILE EMPLOYEE";
         const isOnCall = employee.employmentstatus === "ON-CALL";
-        console.log(`👤 Employee ${employee.name} - Employment Rank: ${employee.employmentrank}, Is Rank-and-File: ${isRankAndFile}`);
-        console.log(`👤 Employee ${employee.name} - Employment Status: ${employee.employmentstatus}, ON-CALL: ${isOnCall}`);
+        console.log(
+          `👤 Employee ${employee.name} - Employment Rank: ${employee.employmentrank}, Is Rank-and-File: ${isRankAndFile}`
+        );
+        console.log(
+          `👤 Employee ${employee.name} - Employment Status: ${employee.employmentstatus}, ON-CALL: ${isOnCall}`
+        );
+
 
         const employeeAttendance = attendanceRecords.filter(
           (record) => record.ecode === employee.ecode
@@ -2061,31 +2089,47 @@ export const generatePayroll = async (req, res) => {
 
         // Calculate gross pay with proper basic pay, holiday pay, and overtime pay
         const grossPay =
-          basicPay + totalSpecialHolidayPay + allowance + totalOvertimePay;
+          basicPay + totalHolidayPay + allowance + totalOvertimePay;
 
         // Ensure gross pay is valid number
         const safeGrossPay = isNaN(grossPay) ? basicPay : grossPay;
 
         // RANK-AND-FILE LOGIC: Apply different deduction rules
         const deductions = {
-          sss: !isOnCall ? (calculateSSSContribution(safeGrossPay).employerContribution) : 0,
-          phic: !isOnCall ? (Number(employeePayrollInfo.philhealth_contribution) || 75) : 0,
-          hdmf: !isOnCall ? (Number(employeePayrollInfo.pagibig_contribution) || 50) : 0,
-          loan: Number(employeePayrollInfo.loan) || 0, // Loans still apply to rank-and-file
-          otherDeductions: !isOnCall ? (Number(employeePayrollInfo.otherDeductions) || 0) : 0,
-          taxDeduction: !isOnCall ? (Number(employeePayrollInfo.tax_deduction) || 0) : 0,
-          tardiness: finalTotalLateMinutes * rates.tardinessRate, // Tardiness still applies
+
+          sss: !isOnCall
+            ? calculateSSSWithCutoff(safeGrossPay, new Date(cutoffDate))
+                .employeeContribution // ✅ NEW CODE
+            : 0,
+          phic: !isOnCall
+            ? Number(employeePayrollInfo.philhealth_contribution) || 75
+            : 0,
+          hdmf: !isOnCall
+            ? Number(employeePayrollInfo.pagibig_contribution) || 50
+            : 0,
+          loan: Number(employeePayrollInfo.loan) || 0,
+          otherDeductions: !isOnCall
+            ? Number(employeePayrollInfo.otherDeductions) || 0
+            : 0,
+          taxDeduction: !isOnCall
+            ? Number(employeePayrollInfo.tax_deduction) || 0
+            : 0,
+          tardiness: finalTotalLateMinutes * rates.tardinessRate,
         };
 
-        console.log(`💳 Deductions for ${employee.name} (Rank-and-File: ${isOnCall}):`, {
-          sss: deductions.sss,
-          phic: deductions.phic,
-          hdmf: deductions.hdmf,
-          loan: deductions.loan,
-          otherDeductions: deductions.otherDeductions,
-          taxDeduction: deductions.taxDeduction,
-          tardiness: deductions.tardiness.toFixed(2),
-        });
+        console.log(
+          `💳 Deductions for ${employee.name} (Is on call: ${isOnCall}):`,
+          {
+            sss: deductions.sss,
+            phic: deductions.phic,
+            hdmf: deductions.hdmf,
+            loan: deductions.loan,
+            otherDeductions: deductions.otherDeductions,
+            taxDeduction: deductions.taxDeduction,
+            tardiness: deductions.tardiness.toFixed(2),
+          }
+        );
+
 
         // Ensure all deductions are valid numbers
         Object.keys(deductions).forEach((key) => {
@@ -2141,6 +2185,26 @@ export const generatePayroll = async (req, res) => {
           totalHours: totalHours,
         });
 
+        let sssBreakdown = {
+          employeeContribution: 0,
+          employerContribution: 0,
+          ecContribution: 0,
+          totalContribution: 0,
+        };
+        if (!isOnCall) {
+          sssBreakdown = calculateSSSWithCutoff(
+            safeGrossPay,
+            new Date(cutoffDate)
+          );
+          console.log(`🏛️ SSS Breakdown for ${employee.name}:`, {
+            employeeContribution: sssBreakdown.employeeContribution,
+            employerContribution: sssBreakdown.employerContribution,
+            ecContribution: sssBreakdown.ecContribution,
+            totalContribution: sssBreakdown.totalContribution,
+            isSecondCutoff: new Date(cutoffDate).getDate() >= 16,
+          });
+        }
+
         // CRITICAL: Ensure all values are valid numbers before database insertion
         const payslipData = {
           ecode: employee.ecode,
@@ -2192,7 +2256,13 @@ export const generatePayroll = async (req, res) => {
           allowance: parseFloat(allowance.toFixed(2)),
 
           // Government contributions (0 for rank-and-file)
-          sss: parseFloat(deductions.sss.toFixed(2)),
+          sss: parseFloat(sssBreakdown.employeeContribution.toFixed(2)),
+          sssEmployerShare: parseFloat(
+            sssBreakdown.employerContribution.toFixed(2)
+          ),
+          sssEC: parseFloat(sssBreakdown.ecContribution.toFixed(2)),
+          sssTotalContribution: parseFloat(sssBreakdown.totalContribution),
+
           phic: parseFloat(deductions.phic.toFixed(2)),
           hdmf: parseFloat(deductions.hdmf.toFixed(2)),
 
@@ -2274,6 +2344,11 @@ export const generatePayroll = async (req, res) => {
             totalHours: payslipData.totalHours,
             tardinessDeduction: payslipData.totalTardiness,
             totalDeductions: payslipData.totalDeductions,
+            // ADD THESE NEW LINES:
+            sssEmployee: payslipData.sss,
+            sssEmployer: payslipData.sssEmployerShare,
+            sssEC: payslipData.sssEC,
+            isSecondCutoff: new Date(cutoffDate).getDate() >= 16,
           }
         );
 
