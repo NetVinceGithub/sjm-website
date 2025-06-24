@@ -115,6 +115,7 @@ const generatePayslipPDF = async (payslip) => {
 
     // Load template and fill with data
     const template = loadPayslipTemplate();
+
     const templateData = {
       payslip_number: `${payslip.ecode || "N/A"}-${new Date().getTime()}`,
       ecode: payslip.ecode || "N/A",
@@ -147,8 +148,8 @@ const generatePayslipPDF = async (payslip) => {
       position: payslip.position || "N/A",
       cutoff_date: payslip.cutoffDate || "N/A",
       basic_pay: `${
-        payslip.basic_pay
-          ? Number(payslip.basic_pay).toLocaleString(undefined, {
+        payslip.basicPay
+          ? Number(payslip.basicPay).toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })
@@ -285,11 +286,11 @@ const generatePayslipPDF = async (payslip) => {
           : "0.00"
       }`,
       net_pay: `${
-        payslip.net_pay || payslip.netPay
-          ? Number(payslip.net_pay || payslip.netPay).toLocaleString(
-              undefined,
-              { minimumFractionDigits: 2, maximumFractionDigits: 2 }
-            )
+        payslip.netPay
+          ? Number(payslip.netPay).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })
           : "0.00"
       }`,
     };
@@ -665,9 +666,10 @@ export const sendPayslips = async (req, res) => {
           console.log(`📋 Generating PDF for ${payslip.name}...`);
           console.log(`📋 Payslip data preview:`, {
             name: payslip.name,
+            basicPay: payslip.basicPay,
             email: payslip.email,
             ecode: payslip.ecode,
-            netPay: payslip.net_pay || payslip.netPay,
+            netPay: payslip.netPay,
             cutoffDate: payslip.cutoff_date || payslip.cutoffDate,
             project: payslip.project,
             position: payslip.position,
