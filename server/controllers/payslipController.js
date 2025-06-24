@@ -129,7 +129,7 @@ const generatePayslipPDF = async (payslip) => {
             })
           : "0.00"
       }`,
-      reg_holiday_pay: `${
+      regular_holiday_pay: `${
         payslip.regular_holiday_pay
           ? Number(payslip.regular_holiday_pay).toLocaleString(undefined, {
               minimumFractionDigits: 2,
@@ -137,7 +137,7 @@ const generatePayslipPDF = async (payslip) => {
             })
           : "0.00"
       }`,
-      sp_holiday_pay: `${
+      special_holiday_pay: `${
         payslip.special_holiday_pay
           ? Number(payslip.special_holiday_pay).toLocaleString(undefined, {
               minimumFractionDigits: 2,
@@ -1880,7 +1880,7 @@ export const generatePayroll = async (req, res) => {
         let regularHolidayDays = 0;
         let specialHolidayDays = 0;
         let specialNonWorkingHolidayDays = 0;
-        let regularDaysWorked = 0;
+        let regularDaysWorked = 0.0;
 
         let specialHolidayPay = 0;
         let regularHolidayPay = 0;

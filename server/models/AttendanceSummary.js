@@ -1,4 +1,4 @@
-// Fixed AttendanceSummary Model
+// Updated AttendanceSummary Model with fractional days support
 import { DataTypes } from "sequelize";
 import sequelize from "../db/db.js";
 
@@ -15,19 +15,19 @@ const AttendanceSummary = sequelize.define(
       allowNull: false,
       unique: true, // Ensure one record per employee
     },
-    // Changed from daysPresent to presentDays to match frontend
+    // Changed to DECIMAL to support fractional days (0.5, 1.0, etc.)
     presentDays: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2), // Supports up to 99999999.99 with 2 decimal places
       allowNull: false,
       defaultValue: 0,
     },
     totalDays: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL(10, 2), // Also support fractional total days
       allowNull: false,
       defaultValue: 0,
     },
     absentDays: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL(10, 2), // Support fractional absent days
       allowNull: false,
       defaultValue: 0,
     },
@@ -41,24 +41,24 @@ const AttendanceSummary = sequelize.define(
       allowNull: false,
       defaultValue: 0,
     },
-    // Added shift-specific day counts to match frontend
+    // Updated shift-specific day counts to support fractional days
     dayShiftDays: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       defaultValue: 0,
     },
     eveningShiftDays: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       defaultValue: 0,
     },
     nightShiftDays: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       defaultValue: 0,
     },
     regularHoursDays: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       defaultValue: 0,
     },
@@ -80,6 +80,5 @@ const AttendanceSummary = sequelize.define(
     ],
   }
 );
-
 
 export default AttendanceSummary;
