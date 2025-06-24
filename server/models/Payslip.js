@@ -83,6 +83,9 @@ const Payslip = db.define(
 
     // Government contributions
     sss: DataTypes.DECIMAL(10, 2),
+    sssEmployerShare: DataTypes.DECIMAL(10, 2),
+    sssEC: DataTypes.DECIMAL(10, 2),
+    sssTotalContribution: DataTypes.DECIMAL(10, 2),
     phic: DataTypes.DECIMAL(10, 2),
     hdmf: DataTypes.DECIMAL(10, 2),
 

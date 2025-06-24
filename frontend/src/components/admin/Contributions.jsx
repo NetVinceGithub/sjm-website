@@ -149,7 +149,8 @@ const Contributions = () => {
     philhealth: employee.contributions.philhealth.total,
     pagibig: employee.contributions.pagibig.total,
     employeeShare: employee.grandTotal / 2, // Assuming 50/50 split
-    employerShare: employee.grandTotal / 2, // Assuming 50/50 split
+    employerSSSshare: employee.employerSSSshare, // Assuming 50/50 split
+    employerPagibigShare: employee.employerPagibigShare, // Assuming 50/50 split
   }));
 
   // Use summary data from API for totals
@@ -241,7 +242,7 @@ const Contributions = () => {
           (SSS)
         </div>
       ),
-      selector: (row) => `₱${(row.employeeShare || 0).toLocaleString()}`,
+      selector: (row) => `₱${(row.employerSSSshare || 0).toLocaleString()}`,
       sortable: true,
       width: "150px",
     },
@@ -254,18 +255,6 @@ const Contributions = () => {
         </div>
       ),
       selector: (row) => `₱${(row.employerShare || 0).toLocaleString()}`,
-      sortable: true,
-      width: "150px",
-    },
-    {
-      name: (
-        <div style={{ textAlign: "center" }}>
-          Employer Share
-          <br />
-          (PhilHealth)
-        </div>
-      ),
-      selector: (row) => `₱${(row.philhealth || 0).toLocaleString()}`,
       sortable: true,
       width: "150px",
     },
@@ -301,7 +290,7 @@ const Contributions = () => {
           (Pag-IBIG)
         </div>
       ),
-      selector: (row) => `₱${(row.pagibig || 0).toLocaleString()}`,
+      selector: (row) => `₱${(row.employerPagibigShare || 0).toLocaleString()}`,
       sortable: true,
       width: "150px",
     },
