@@ -1786,22 +1786,22 @@ export const generatePayroll = async (req, res) => {
 
         // Update or create attendance summary record
         try {
-          await AttendanceSummary.upsert(
-            {
-              ecode: employee.ecode,
-              presentDays: daysPresent,
-              totalDays: daysPresent,
-              absentDays: 0,
-              lateDays: employeeAttendance.filter(
-                (record) => (record.lateMinutes || 0) > 0
-              ).length,
-              totalLateMinutes: totalLateMinutes,
-              attendanceRate: daysPresent > 0 ? 100.0 : 0.0,
-            },
-            {
-              where: { ecode: employee.ecode },
-            }
-          );
+            await AttendanceSummary.upsert(
+              {
+                ecode: employee.ecode,
+                presentDays: parseFloat(daysPresent.toFixed(2)), // Preserve decimals
+                totalDays: parseFloat(daysPresent.toFixed(2)),
+                absentDays: 0.0,
+                lateDays: employeeAttendance.filter(
+                  (record) => (record.lateMinutes || 0) > 0
+                ).length,
+                totalLateMinutes: totalLateMinutes,
+                attendanceRate: daysPresent > 0 ? 100.0 : 0.0,
+              },
+              {
+                where: { ecode: employee.ecode },
+              }
+            );
 
           console.log(
             `📊 Attendance summary updated for ${employee.ecode} - Days Present: ${daysPresent}`
@@ -1831,7 +1831,7 @@ export const generatePayroll = async (req, res) => {
           : finalTotalLateMinutes;
 
         // Ensure we have valid numbers
-        finalDaysPresent = Math.max(0, finalDaysPresent || 0);
+        finalDaysPresent = Math.max(0.0, parseFloat(finalDaysPresent) || 0.0);
         finalTotalLateMinutes = Math.max(0, finalTotalLateMinutes || 0);
 
         const rates = {
@@ -1890,59 +1890,51 @@ export const generatePayroll = async (req, res) => {
         );
 
         // Categorize attendance days based on actual attendance records only
-        employeeAttendance.forEach((record) => {
-          // Check if employee was actually present on this day
-          const isPresent =
-            record.present === true ||
-            record.present === 1 ||
-            record.present === "1" ||
-            record.status === "present" ||
-            record.status === "Present";
+          employeeAttendance.forEach((record) => {
+            const isPresent =
+              record.present === true ||
+              record.present === 1 ||
+              record.present === "1" ||
+              record.status === "present" ||
+              record.status === "Present";
 
-          // Only process if employee was present
-          if (!isPresent) {
-            console.log(
-              `   ⏭️ Skipping ${record.date} for ${employee.name} - Employee was absent`
-            );
-            return; // Skip this record if employee was absent
-          }
-
-          const holiday = isHoliday(record.date, holidays);
-
-          if (holiday) {
-            console.log(
-              `   🎉 Holiday found (Present): ${record.date} - ${holiday.type}`
-            );
-            switch (holiday.type) {
-              case "Regular":
-                regularHolidayDays++;
-                regularHolidayPay += calculateHolidayPay(
-                  "Regular",
-                  rates.dailyRate
-                );
-                break;
-              case "Special":
-                specialHolidayDays++;
-                specialHolidayPay += calculateHolidayPay(
-                  "Special",
-                  rates.dailyRate
-                );
-                break;
-              case "Special Non-Working":
-                specialNonWorkingHolidayDays++;
-                specialHolidayPay += calculateHolidayPay(
-                  "Special Non-Working",
-                  rates.dailyRate
-                );
-                break;
+            if (!isPresent) {
+              console.log(
+                `   ⏭️ Skipping ${record.date} for ${employee.name} - Employee was absent`
+              );
+              return;
             }
-          } else {
-            regularDaysWorked++;
-            console.log(
-              `   📅 Regular day (Present): ${record.date} - Total regular days now: ${regularDaysWorked}`
-            );
-          }
-        });
+
+            // Get the fractional day value (1.0 for full day, 0.5 for half day, etc.)
+            const dayValue = parseFloat(record.dayValue || record.day_value || 1.0);
+
+            const holiday = isHoliday(record.date, holidays);
+
+            if (holiday) {
+              console.log(
+                `   🎉 Holiday found (Present): ${record.date} - ${holiday.type} - Day Value: ${dayValue}`
+              );
+              switch (holiday.type) {
+                case "Regular":
+                  regularHolidayDays += dayValue; // Use fractional value
+                  regularHolidayPay += calculateHolidayPay("Regular", rates.dailyRate) * dayValue;
+                  break;
+                case "Special":
+                  specialHolidayDays += dayValue;
+                  specialHolidayPay += calculateHolidayPay("Special", rates.dailyRate) * dayValue;
+                  break;
+                case "Special Non-Working":
+                  specialNonWorkingHolidayDays += dayValue;
+                  specialHolidayPay += calculateHolidayPay("Special Non-Working", rates.dailyRate) * dayValue;
+                  break;
+              }
+            } else {
+              regularDaysWorked += dayValue; // Use fractional value
+              console.log(
+                `   📅 Regular day (Present): ${record.date} - Day Value: ${dayValue} - Total regular days now: ${regularDaysWorked}`
+              );
+            }
+          });
 
         // DEBUG: Final counts
         console.log(`   📊 FINAL COUNTS for ${employee.name}:`);
@@ -1977,7 +1969,7 @@ export const generatePayroll = async (req, res) => {
         const totalSpecialHolidayPay = specialHolidayPay;
         const actualDaysPresent = regularDaysWorked + totalHolidayDays;
 
-        const basicPay = regularDaysWorked * rates.dailyRate;
+        const basicPay = finalDaysPresent * rates.dailyRate; // This will now work with decimals
 
         console.log(`💰 Basic Pay Calculation for ${employee.name}:`);
         console.log(`   📊 finalDaysPresent: ${finalDaysPresent}`);
@@ -1999,14 +1991,17 @@ export const generatePayroll = async (req, res) => {
         });
 
         // Verify the math
-        if (
-          regularDaysWorked + totalHolidayDays !==
-          employeeAttendance.length
-        ) {
+        const calculatedTotal = parseFloat((regularDaysWorked + totalHolidayDays).toFixed(2));
+        const expectedTotal = employeeAttendance.reduce((sum, record) => {
+          return sum + parseFloat(record.dayValue || record.day_value || 1.0);
+        }, 0);
+
+        if (Math.abs(calculatedTotal - expectedTotal) > 0.01) { // Allow small floating point differences
           console.warn(`⚠️ Days calculation mismatch for ${employee.name}:`, {
-            regularDaysWorked,
-            totalHolidayDays,
-            sum: regularDaysWorked + totalHolidayDays,
+            regularDaysWorked: regularDaysWorked.toFixed(2),
+            totalHolidayDays: totalHolidayDays.toFixed(2),
+            calculatedTotal: calculatedTotal.toFixed(2),
+            expectedTotal: expectedTotal.toFixed(2),
             attendanceRecords: employeeAttendance.length,
           });
         }
@@ -2222,14 +2217,14 @@ export const generatePayroll = async (req, res) => {
           cutoffDate,
           dailyrate: parseFloat(rates.dailyRate.toFixed(2)),
           basicPay: parseFloat(basicPay.toFixed(2)),
-          noOfDays: parseInt(finalDaysPresent) || 0,
+          noOfDays: parseFloat(finalDaysPresent.toFixed(2)) || 0,
 
           // Holiday fields
-          holidayDays: totalHolidayDays,
-          regularDays: regularDaysWorked,
-          specialHolidayDays: specialHolidayDays,
-          regularHolidayDays: regularHolidayDays,
-          specialNonWorkingHolidayDays: specialNonWorkingHolidayDays,
+          holidayDays: parseFloat(totalHolidayDays.toFixed(2)),
+          regularDays: parseFloat(regularDaysWorked.toFixed(2)),
+          specialHolidayDays: parseFloat(specialHolidayDays.toFixed(2)),
+          regularHolidayDays: parseFloat(regularHolidayDays.toFixed(2)),
+          specialNonWorkingHolidayDays: parseFloat(specialNonWorkingHolidayDays.toFixed(2)),
 
           // UPDATED: Overtime fields with proper calculation
           overtimePay: parseFloat(totalOvertimePay.toFixed(2)),
@@ -2240,10 +2235,10 @@ export const generatePayroll = async (req, res) => {
           holidayOvertime: parseFloat(totalHolidayOvertime.toFixed(2)),
 
           // Updated hours fields to use decimal shift hours
-          totalRegularHours: totalRegularHours,
-          totalHolidayHours: totalHolidayHours,
-          specialHolidayHours: specialHolidayHours,
-          regularHolidayHours: regularHolidayHours,
+          totalRegularHours: parseFloat((regularDaysWorked * shiftHours).toFixed(2)),
+          totalHolidayHours: parseFloat((totalHolidayDays * shiftHours).toFixed(2)),
+          specialHolidayHours: parseFloat((specialHolidayDays * shiftHours).toFixed(2)),
+          regularHolidayHours: parseFloat((regularHolidayDays * shiftHours).toFixed(2)),
 
           // Holiday pay fields
           holidayPay: parseFloat(totalHolidayPay.toFixed(2)),
