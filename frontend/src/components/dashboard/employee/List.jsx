@@ -473,6 +473,12 @@ const List = () => {
       width: "310px",
     },
     {
+      name: "Project",
+      selector: (row) => row.project || "N/A",
+      sortable: true,
+      width: "200px",
+    },
+    {
       name: "Department",
       selector: (row) => row.department,
       sortable: true,
@@ -482,7 +488,13 @@ const List = () => {
       name: "Area/Section",
       selector: (row) => row["area/section"] || "N/A",
       sortable: true,
-      width: "120px",
+      width: "200px",
+    },
+    {
+      name: "Employment Rank",
+      selector: (row) => row.employmentrank,
+      sortable: true,
+      width: "230px",
     },
     {
       name: "Date of Hire",
@@ -543,38 +555,8 @@ const List = () => {
       width: "80px",
     },
     {
-      name: "Contact No.",
-      selector: (row) => row.contactno,
-      sortable: true,
-      width: "130px",
-    },
-    {
-      name: "Emergency Contact",
-      selector: (row) => row.emergencyContact,
-      sortable: true,
-      width: "230px",
-    },
-    {
-      name: "Employment Rank",
-      selector: (row) => row.employmentrank,
-      sortable: true,
-      width: "230px",
-    },
-    {
-      name: (
-        <div style={{ textAlign: "center" }}>
-          Emergency
-          <br />
-          Contact Number
-        </div>
-      ),
-      selector: (row) => row.emergencyContactNumber,
-      sortable: true,
-      width: "160px",
-    },
-    {
-      name: "Emergency Contact Address",
-      selector: (row) => row.contact_address,
+      name: "Current Address",
+      selector: (row) => row.address || "N/A",
       sortable: true,
       width: "400px",
     },
@@ -585,10 +567,10 @@ const List = () => {
       width: "400px",
     },
     {
-      name: "Current Address",
-      selector: (row) => row.address || "N/A",
+      name: "Contact No.",
+      selector: (row) => row.contactno,
       sortable: true,
-      width: "400px",
+      width: "130px",
     },
     {
       name: "Email Address",
@@ -598,10 +580,34 @@ const List = () => {
       width: "200px",
     },
     {
-      name: "Last Attended (T/S)",
-      selector: (row) => row.attendedtrainingandseminar || "N/A",
+      name: "Emergency Contact",
+      selector: (row) => row.emergencyContact,
       sortable: true,
-      width: "160px",
+      width: "230px",
+    },
+    {
+      name: <div style={{ textAlign: "center" }}>Emergency Contact No.</div>,
+      selector: (row) => row.emergencyContactNumber,
+      sortable: true,
+      width: "180px",
+    },
+    {
+      name: "Emergency Contact Address",
+      selector: (row) => row.contact_address,
+      sortable: true,
+      width: "400px",
+    },
+    {
+      name: "Health Card",
+      selector: (row) => row.contact_address,
+      sortable: true,
+      width: "150px",
+    },
+    {
+      name: "PRP",
+      selector: (row) => row.contact_address,
+      sortable: true,
+      width: "150px",
       cell: (row) => {
         const dateStr = row.attendedtrainingandseminar;
         const expiring = isTrainingExpiringSoon(dateStr);
@@ -623,10 +629,29 @@ const List = () => {
       },
     },
     {
-      name: "Date of Separation",
-      selector: (row) => row.dateofseparation || "N/A",
+      name: "Safety",
+      selector: (row) => row.attendedtrainingandseminar || "N/A",
       sortable: true,
       width: "150px",
+      cell: (row) => {
+        const dateStr = row.attendedtrainingandseminar;
+        const expiring = isTrainingExpiringSoon(dateStr);
+
+        return (
+          <div
+            style={{
+              backgroundColor: expiring ? "#ff5e58" : "transparent",
+              padding: "4px",
+              borderRadius: "4px",
+              color: expiring ? "#333" : "inherit",
+              fontWeight: expiring ? "bold" : "normal",
+            }}
+          >
+            {dateStr || "N/A"}{" "}
+            {expiring && <span style={{ color: "#b36b00" }}>⚠️</span>}
+          </div>
+        );
+      },
     },
     {
       name: "Medical",
@@ -652,6 +677,12 @@ const List = () => {
           </div>
         );
       },
+    },
+    {
+      name: "Date of Separation",
+      selector: (row) => row.dateofseparation || "N/A",
+      sortable: true,
+      width: "150px",
     },
     {
       name: "Options",
