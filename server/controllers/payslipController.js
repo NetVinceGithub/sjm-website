@@ -119,6 +119,7 @@ const generatePayslipPDF = async (payslip) => {
     const templateData = {
       payslip_number: `${payslip.ecode || "N/A"}-${new Date().getTime()}`,
       ecode: payslip.ecode || "N/A",
+      project: payslip.project || "N/A",
       employee_name: payslip.name || "N/A",
       project_site: payslip.project || "N/A",
       daily_rate: `${
@@ -2210,7 +2211,7 @@ export const generatePayroll = async (req, res) => {
           email: employee.emailaddress || employee.email || "",
           employeeId: employee.id,
           name: employee.name,
-          project: employee["area/section"] || "N/A",
+          project: employee.project || "N/A",
           position: employee.positiontitle || employee.position || "N/A",
           department: employee.department || "N/A",
           schedule: employee.schedule || "N/A",
@@ -2297,6 +2298,8 @@ export const generatePayroll = async (req, res) => {
           employmentRank: employee.employmentrank || "N/A",
           isRankAndFile: isRankAndFile,
         };
+
+        console.log("ito yung na save sa data base",payslipData);
 
         // Final validation: Check for any remaining NaN values
         const nanFields = [];

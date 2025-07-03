@@ -556,7 +556,7 @@ const List = () => {
     },
     {
       name: "Current Address",
-      selector: (row) => row.address || "N/A",
+      selector: (row) => row.currentaddress || "N/A",
       sortable: true,
       width: "400px",
     },
