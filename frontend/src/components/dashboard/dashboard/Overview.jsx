@@ -46,6 +46,8 @@ const Overview = () => {
   const [year, setYear] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
+
 
   // Helper function to determine payroll status
   const getPayrollStatus = (cutoff, currentDate) => {
@@ -99,33 +101,64 @@ const Overview = () => {
     return [firstCutoff, secondCutoff];
   };
 
-  // Filter function to apply month/year filters
   const applyFilters = (payslipsData, filterMonth, filterYear) => {
     if (!filterMonth && !filterYear) {
       return payslipsData;
     }
 
     return payslipsData.filter((payslip) => {
-      // Assuming payslip has a date field (adjust field name as needed)
-      const payslipDate = new Date(
-        payslip.cutoff_date || payslip.date || payslip.created_at
-      );
+      let payslipDate;
+      
+      // Handle your cutoffDate format: "June 1-15, 2025"
+      if (payslip.cutoffDate) {
+        const cutoffDateStr = payslip.cutoffDate;
+        // Extract year from the end
+        const yearMatch = cutoffDateStr.match(/(\d{4})$/);
+        // Extract month name from the beginning
+        const monthMatch = cutoffDateStr.match(/^([A-Za-z]+)/);
+        
+        if (yearMatch && monthMatch) {
+          const year = parseInt(yearMatch[1]);
+          const monthName = monthMatch[1];
+          const monthNumber = new Date(`${monthName} 1, 2000`).getMonth() + 1;
+          payslipDate = new Date(year, monthNumber - 1, 1);
+        }
+      } 
+      // Fallback to date field if cutoffDate parsing fails
+      else if (payslip.date) {
+        payslipDate = new Date(payslip.date);
+      } else {
+        return false;
+      }
 
-      const matchesMonth =
-        !filterMonth || payslipDate.getMonth() + 1 === parseInt(filterMonth);
-      const matchesYear =
-        !filterYear || payslipDate.getFullYear() === parseInt(filterYear);
+      const matchesMonth = !filterMonth || payslipDate.getMonth() + 1 === parseInt(filterMonth);
+      const matchesYear = !filterYear || payslipDate.getFullYear() === parseInt(filterYear);
 
       return matchesMonth && matchesYear;
     });
   };
 
+  const filterEmployeesByPayslips = (allEmployees, filteredPayslips) => {
+    if (!filteredPayslips.length) return [];
+    
+    // Match by name since your payslip data has "name" field
+    const payslipEmployeeNames = filteredPayslips.map(p => p.name?.toLowerCase().trim());
+    return allEmployees.filter(emp => 
+      payslipEmployeeNames.includes(emp.name?.toLowerCase().trim())
+    );
+  };
+
+
   const handleConfirm = () => {
     const filtered = applyFilters(payslips, month, year);
     setFilteredPayslips(filtered);
+    
+    // Filter employees based on filtered payslips
+    const filteredEmps = filterEmployeesByPayslips(employees, filtered);
+    setFilteredEmployees(filteredEmps);
+    
     setShowFilterModal(false);
 
-    // Show toast notification about applied filters
     const filterText = [];
     if (month)
       filterText.push(
@@ -136,7 +169,7 @@ const Overview = () => {
     if (year) filterText.push(`Year: ${year}`);
 
     if (filterText.length > 0) {
-      toast.success(`Filters applied: ${filterText.join(", ")}`, {
+      toast.success(`Filters applied: ${filterText.join(", ")}. Found ${filtered.length} payslips, ${filteredEmps.length} employees.`, {
         position: "top-right",
         autoClose: 3000,
         closeButton: false,
@@ -149,6 +182,7 @@ const Overview = () => {
     setMonth("");
     setYear("");
     setFilteredPayslips(payslips);
+    setFilteredEmployees(employees);
     setShowFilterModal(false);
     toast.warning("Filters cleared", {
       position: "top-right",
@@ -199,6 +233,17 @@ const Overview = () => {
     }
   };
 
+
+    // Additional helper if date is in the ID format
+  const extractDateFromId = (id) => {
+    const match = id.match(/(\d{4})-(\d{2})-(\d{4})/);
+    if (match) {
+      const [, year, month] = match;
+      return new Date(year, month - 1, 1);
+    }
+    return null;
+  };
+
   // All useEffect hooks at the component level
   useEffect(() => {
     const fetchPayslips = async () => {
@@ -208,7 +253,14 @@ const Overview = () => {
         );
         const payslipsData = Array.isArray(response.data) ? response.data : [];
         setPayslips(payslipsData);
-        setFilteredPayslips(payslipsData); // Initialize filtered payslips
+        
+        // Apply current filters to new data if filters are active
+        if (month || year) {
+          const filtered = applyFilters(payslipsData, month, year);
+          setFilteredPayslips(filtered);
+        } else {
+          setFilteredPayslips(payslipsData);
+        }
       } catch (error) {
         console.error("Error fetching payslips:", error);
         setPayslips([]);
@@ -220,6 +272,19 @@ const Overview = () => {
     fetchRequests();
     fetchPayslips();
   }, []);
+
+  useEffect(() => {
+    if (month || year) {
+      const filtered = applyFilters(payslips, month, year);
+      setFilteredPayslips(filtered);
+      
+      const filteredEmps = filterEmployeesByPayslips(employees, filtered);
+      setFilteredEmployees(filteredEmps);
+    } else {
+      setFilteredPayslips(payslips);
+      setFilteredEmployees(employees);
+    }
+  }, [month, year, payslips, employees]);
 
   useEffect(() => {
     const checkUserRole = async () => {
@@ -309,10 +374,11 @@ const Overview = () => {
     };
   });
 
-  // Use filtered payslips for all calculations
-  const displayPayslips =
-    filteredPayslips.length > 0 ? filteredPayslips : payslips;
+  const displayPayslips = (month || year) ? filteredPayslips : payslips;
   const safePayslips = Array.isArray(displayPayslips) ? displayPayslips : [];
+
+  const displayEmployees = (month || year) ? filteredEmployees : employees;
+  const safeEmployees = Array.isArray(displayEmployees) ? displayEmployees : [];
 
   const handleCreatePayroll = async () => {
     if (!cutoffDate) {
@@ -410,11 +476,16 @@ const Overview = () => {
   };
 
   function toProperCase(str) {
-    return str
-      .toLowerCase()
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+      // Handle null, undefined, or non-string values
+      if (!str || typeof str !== 'string') {
+          return '';
+      }
+      
+      return str
+          .toLowerCase()
+          .split(" ")
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(" ");
   }
 
   const [notes, setNotes] = useState([
@@ -679,7 +750,7 @@ const Overview = () => {
           <SummaryCard
             icon={<FaUsers />}
             title="Total Headcount"
-            number={safePayslips.length}
+            number={safeEmployees.length} // Changed from safePayslips.length
             color="bg-yellow-400"
           />
         </div>
@@ -689,7 +760,7 @@ const Overview = () => {
           {/* Left - Chart + Notes */}
           <div className="laptop:col-span-5 flex flex-col gap-3">
             <PayrollLineChart
-              payslips={safePayslips}
+              payslips={safePayslips} // This ensures the chart uses filtered data
               className="border border-neutralDGray"
             />
 
@@ -785,37 +856,43 @@ const Overview = () => {
             <div className="bg-white relative border border-neutralDGray rounded shadow-sm p-2 lg:p-3 h-full flex flex-col">
               <div className="flex-none">
                 <div className="flex justify-left items-center gap-6 mb-2">
-                  <h6 className="text-neutralDGray text-sm">Employee Status</h6>
+                  <div className="flex justify-left items-center gap-6 mb-2">
+                    <h6 className="text-neutralDGray text-sm">Employee Status</h6>
+                    {(month || year) && (
+                      <span className="text-xs text-gray-500 bg-blue-100 px-2 py-1 rounded">
+                        Filtered ({safeEmployees.length})
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <hr className="-mt-1 mb-2" />
               </div>
               <div className="flex-1 overflow-auto">
-                {employees.map((employee, index) => (
-                  <div key={index} className="border-b">
-                    <p className="text-sm mt-0.5 text-neutralDGray">
-                      {toProperCase(employee.name)}
-                    </p>
-                    <p className="text-xs -mt-5 italic text-gray-500">
-                      {toProperCase(employee.positiontitle)}
-                    </p>
-                    <p
-                      className={`text-xs font-medium -mt-3 mb-2 px-2 rounded-full w-fit
-                        ${
-                          employee.employmentstatus === "RESIGNED"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : employee.status === "Active"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                    >
-                      {employee.employmentstatus === "RESIGNED"
-                        ? `${employee.employmentstatus.charAt(
-                            0
-                          )}${employee.employmentstatus.slice(1).toLowerCase()}`
-                        : employee.status}
-                    </p>
-                  </div>
-                ))}
+
+              {safeEmployees.map((employee, index) => (
+                <div key={index} className="border-b">
+                  <p className="text-sm mt-0.5 text-neutralDGray">
+                    {toProperCase(employee.name)}
+                  </p>
+                  <p className="text-xs -mt-5 italic text-gray-500">
+                    {toProperCase(employee.positiontitle)}
+                  </p>
+                  <p
+                    className={`text-xs font-medium -mt-3 mb-2 px-2 rounded-full w-fit
+                      ${
+                        employee.employmentstatus === "RESIGNED"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : (employee.status || "").toLowerCase() === "active"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                  >
+                    {employee.employmentstatus === "RESIGNED"
+                      ? `${employee.employmentstatus.charAt(0)}${employee.employmentstatus.slice(1).toLowerCase()}`
+                      : employee.status || "Unknown"}
+                  </p>
+                </div>
+              ))}
               </div>
               <div className="flex-none mt-3">
                 <div className="relative">
