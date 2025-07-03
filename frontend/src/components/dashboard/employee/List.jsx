@@ -599,18 +599,18 @@ const List = () => {
     },
     {
       name: "Health Card",
-      selector: (row) => row.contact_address,
+      selector: (row) => row.healthcard,
       sortable: true,
       width: "150px",
     },
     {
       name: "PRP",
-      selector: (row) => row.contact_address,
+      selector: (row) => row.prp || "N/A",
       sortable: true,
       width: "150px",
       cell: (row) => {
-        const dateStr = row.attendedtrainingandseminar;
-        const expiring = isTrainingExpiringSoon(dateStr);
+        const dateStr = row.prp;
+        const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
 
         return (
           <div
@@ -630,12 +630,12 @@ const List = () => {
     },
     {
       name: "Safety",
-      selector: (row) => row.attendedtrainingandseminar || "N/A",
+      selector: (row) => row.safety || "N/A",
       sortable: true,
       width: "150px",
       cell: (row) => {
-        const dateStr = row.attendedtrainingandseminar;
-        const expiring = isTrainingExpiringSoon(dateStr);
+        const dateStr = row.safety;
+        const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
 
         return (
           <div
@@ -749,14 +749,13 @@ const List = () => {
     return diff >= 0 && diff <= daysAhead;
   };
 
-  const isTrainingExpiringSoon = (
-    attendedtrainingandseminar,
-    daysAhead = 30
-  ) => {
+  const isTrainingExpiringSoon = (trainingDate, daysAhead = 30) => {
+    if (!trainingDate) return false;
+
     const today = new Date();
     const currentYear = today.getFullYear();
 
-    const attendedDate = new Date(attendedtrainingandseminar);
+    const attendedDate = new Date(trainingDate);
     attendedDate.setFullYear(currentYear);
 
     const diff = (attendedDate - today) / (1000 * 60 * 60 * 24);
