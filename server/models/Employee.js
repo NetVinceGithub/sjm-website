@@ -210,6 +210,10 @@ const Employee = sequelize.define(
       type: DataTypes.STRING,
       defaultValue: "N/A",
     },
+    currentaddress: {
+      type: DataTypes.STRING,
+      defaultValue: "N/A",
+    },
     contactno: {
       type: DataTypes.STRING,
       defaultValue: "N/A",
@@ -226,6 +230,10 @@ const Employee = sequelize.define(
       defaultValue: "N/A",
     },
     emergencyContact: {
+      type: DataTypes.STRING,
+      defaultValue: "N/A",
+    },
+    emergencycontactAddress: {
       type: DataTypes.STRING,
       defaultValue: "N/A",
     },
