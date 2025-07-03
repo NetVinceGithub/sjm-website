@@ -12,12 +12,7 @@ const PayslipHistoryModal = ({ isOpen, onClose, employeeId }) => {
   const payslipRef = useRef();
 
   useEffect(() => {
-    if (!isOpen || !employeeId) {
-      console.log("Payslip modal is closed or employeeId is missing.");
-      return;
-    }
-
-    console.log(`Fetching payslip for Employee ID: ${employeeId}`);
+    if (!isOpen || !employeeId) return;
 
     const fetchPayslip = async () => {
       setLoading(true);
@@ -27,9 +22,8 @@ const PayslipHistoryModal = ({ isOpen, onClose, employeeId }) => {
         const response = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/payslip/history/${employeeId}`
         );
-
-        console.log("API Response:", response.data);
-        setPayslip(response.data?.payslip ?? []);
+        console.log(response.data);
+        setPayslip(response.data);
       } catch (err) {
         console.error("Error fetching payslip:", err);
         setError("Failed to load payslip.");
@@ -137,6 +131,16 @@ const PayslipHistoryModal = ({ isOpen, onClose, employeeId }) => {
   };
 
   if (!isOpen) return null;
+
+  const formatNumber = (value, fallback = "0.00") => {
+    const num = Number(value);
+    return isNaN(num)
+      ? fallback
+      : num.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+  };
 
   return (
     <>
