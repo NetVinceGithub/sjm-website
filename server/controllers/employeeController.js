@@ -197,6 +197,9 @@ const fetchAndSaveEmployees = async () => {
       'pag-ibig': 'pag-ibig',
       'esignature': 'esignature',
       'e_signature': 'esignature',
+      'tin': 'tinnumber',
+      'tinnumber': 'tinnumber',
+      'tinnumber': 'tin',
     };
 
     console.log("🔍 Emergency contact address mapping:", 
