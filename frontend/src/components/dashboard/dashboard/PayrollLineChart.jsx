@@ -1,19 +1,17 @@
-import axios from "axios";
 import { useState, useEffect } from "react";
-import { 
-  ResponsiveContainer, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  Legend, 
-  CartesianGrid 
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid,
 } from "recharts";
 
-
-export default function PayrollLineChart() {
-  const [payslips, setPayslips] = useState([]);
+export default function PayrollLineChart({ payslips = [] }) {
+  const [chartData, setChartData] = useState([]);
   const [totals, setTotals] = useState({
     payroll: 0,
     grossSalary: 0,
@@ -21,59 +19,59 @@ export default function PayrollLineChart() {
   });
 
   useEffect(() => {
-    const fetchPayslips = async () => {
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
-        const payslipData = response.data;
+    // Process the payslips data passed from parent component
+    if (payslips && payslips.length > 0) {
+      // Calculate totals
+      const totalPayroll = payslips.reduce(
+        (sum, pay) => sum + parseFloat(pay.netPay || 0),
+        0
+      );
+      const totalGrossSalary = payslips.reduce(
+        (sum, pay) => sum + parseFloat(pay.gross_pay || 0),
+        0
+      );
+      const totalBenefits = payslips.reduce(
+        (sum, pay) => sum + parseFloat(pay.allowance || 0),
+        0
+      );
 
-        // Calculate total payroll, gross salary, and benefits
-        const totalPayroll = payslipData.reduce(
-          (sum, pay) => sum + parseFloat(pay.netPay || 0),
-          0
-        );
-        const totalGrossSalary = payslipData.reduce(
-          (sum, pay) => sum + parseFloat(pay.gross_pay || 0),
-          0
-        );
-        const totalBenefits = payslipData.reduce(
-          (sum, pay) => sum + parseFloat(pay.allowance || 0),
-          0
-        );
+      setTotals({
+        payroll: totalPayroll,
+        grossSalary: totalGrossSalary,
+        benefits: totalBenefits,
+      });
 
-        setTotals({
-          payroll: totalPayroll,
-          grossSalary: totalGrossSalary,
-          benefits: totalBenefits,
-        });
+      // Format data for chart
+      const formattedData = payslips.map((pay) => ({
+        date: new Date(pay.date).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+        payroll: parseFloat(pay.netPay) || 0,
+        grossSalary: parseFloat(pay.gross_pay) || 0,
+        benefits: parseFloat(pay.allowance) || 0,
+      }));
 
-        // Format data for chart
-        const formattedData = payslipData.map((pay) => ({
-          date: new Date(pay.date).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          }),
-          payroll: parseFloat(pay.netPay) || 0,
-          grossSalary: parseFloat(pay.gross_pay) || 0,
-          benefits: parseFloat(pay.allowance) || 0,
-        }));
-
-        setPayslips(formattedData);
-      } catch (error) {
-        console.error("Error fetching payslips:", error);
-      }
-    };
-
-    fetchPayslips();
-  }, []);
+      setChartData(formattedData);
+    } else {
+      // Reset data when no payslips
+      setChartData([]);
+      setTotals({
+        payroll: 0,
+        grossSalary: 0,
+        benefits: 0,
+      });
+    }
+  }, [payslips]); // Watch for changes in payslips prop
 
   return (
-    <div className="p-2 bg-white shadow-sm rounded border border-neutral-300">
+    <div className="p-2">
       {/* Payroll Chart */}
-      <h2 className="text-lg -mt-1 text-sm text-neutralDGray mb-3">
+      <h2 className=" -mt-1 text-sm text-neutralDGray mb-3">
         Payroll Overview
       </h2>
-      <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={payslips}>
+      <ResponsiveContainer width="100%" height={313}>
+        <BarChart data={chartData}>
           <XAxis
             dataKey="date"
             tick={{ fontSize: 12 }}
@@ -108,7 +106,7 @@ export default function PayrollLineChart() {
             fill="#80B646"
             name="Gross Salary"
             barSize={30}
-            radius={[5, 5, 0, 0]} 
+            radius={[5, 5, 0, 0]}
           />
           <Bar
             dataKey="benefits"

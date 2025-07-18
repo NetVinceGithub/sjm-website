@@ -17,7 +17,6 @@ import {
   FaChevronUp,
   FaBookOpen,
   FaClipboardList,
-  FaUserPlus,
   FaCalendarPlus,
   FaCalendarCheck,
   FaFileInvoiceDollar,
@@ -28,6 +27,9 @@ import {
   FaRegEnvelope,
   FaHandshake,
   FaBuildingLock,
+  FaUserPlus,
+  FaHeadset,
+  FaTableList,
 } from "react-icons/fa6";
 import Logo from "/public/logo-rembg.png";
 
@@ -163,9 +165,23 @@ const AdminSidebar = () => {
                 {/* Admin Settings: HR or Admin */}
                 {(isHr || isAdmin || isApprover) && (
                   <NavLink
-                    to="/admin-dashboard/lounge"
+                    to="/admin-dashboard/menu"
                     className={({ isActive }) =>
-                      `flex -mt-3 items-center space-x-3 text-white no-underline mb-3 py-2 px-4 rounded-md ${
+                      `flex items-center space-x-3 text-white no-underline py-2 px-4 rounded-md ${
+                        isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                      }`
+                    }
+                  >
+                    <FaTableList />
+                    <span>Menu</span>
+                  </NavLink>
+                )}
+
+                {isApprover && (
+                  <NavLink
+                    to="/admin-dashboard/admin-settings"
+                    className={({ isActive }) =>
+                      `flex items-center space-x-3 text-white no-underline py-2 px-4 rounded-md ${
                         isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
                       }`
                     }
@@ -199,12 +215,12 @@ const AdminSidebar = () => {
             {/* Employee Submenu */}
             {activeDropdown === "employee" && (
               <div className="ml-6 mt-1 space-y-1">
-                {isApprover || isHr ? (
+                {isHr || isApprover ? (
                   <>
                     <NavLink
                       to="/admin-dashboard/employees"
                       className={({ isActive }) =>
-                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md mb-[12px] transition-all duration-300 ${
+                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${
                           isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
                         }`
                       }
@@ -217,10 +233,34 @@ const AdminSidebar = () => {
                 ) : (
                   <button
                     onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md mb-[11px]"
+                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
                   >
-                    <FaClipboardList />
+                    <FaUsers />
                     <span>Masterlist</span>
+                  </button>
+                )}
+                {isHr || isApprover ? (
+                  <>
+                    <NavLink
+                      to="/admin-dashboard/employees/add-employee"
+                      className={({ isActive }) =>
+                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${
+                          isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                        }`
+                      }
+                      end
+                    >
+                      <FaUserPlus />
+                      <span>Add Employee</span>
+                    </NavLink>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleRestrictedAccess}
+                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                  >
+                    <FaUserPlus />
+                    <span>Add Employee</span>
                   </button>
                 )}
               </div>
@@ -297,17 +337,6 @@ const AdminSidebar = () => {
                 )}
                 {isHr || isApprover ? (
                   <>
-                    {/* <NavLink
-                      to="/admin-dashboard/attendance-computation"
-                      className={({ isActive }) =>
-                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
-                        }`
-                      }
-                      end
-                    >
-                      <FaCalculator />
-                      <span>A. Computation</span>
-                    </NavLink> */}
                     <NavLink
                       to="/admin-dashboard/holidays"
                       className={({ isActive }) =>
@@ -477,6 +506,31 @@ const AdminSidebar = () => {
                   >
                     <FaScroll />
                     <span>Invoice</span>
+                  </button>
+                )}
+
+                {isApprover || isHr ? (
+                  <NavLink
+                    to="client/add-client"
+                    className={({ isActive }) =>
+                      `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                        isActive
+                          ? "bg-[#5f2e3d] font-bold border-l-4"
+                          : "hover:bg-[#924F64]"
+                      }`
+                    }
+                    end
+                  >
+                    <FaHeadset />
+                    <span>Add Client</span>
+                  </NavLink>
+                ) : (
+                  <button
+                    onClick={handleRestrictedAccess}
+                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                  >
+                    <FaHeadset />
+                    <span>Add Client</span>
                   </button>
                 )}
 
