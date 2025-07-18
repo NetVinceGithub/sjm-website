@@ -39,6 +39,7 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
         });
 
         if (response.data.success) {
+          console.log(response.data.employee);
           setEmployee(response.data.employee);
         } else {
           console.error("Failed to fetch employee data.");
@@ -515,18 +516,18 @@ const EmployeeIDCard = ({ show, handleClose, employeeId }) => {
             <div className="id-back">
               <div className="id-content-back">
                 <div className="user-info-back">
-                  <p className="address">{employee.address}</p>
+                  <p className="address">{employee.currentaddress}</p>
                   <p className="sss">SSS: {employee.sss}</p>
                   <p className="tin">TIN: {employee.tin}</p>
                   <p className="philhealth">PHILHEALTH: {employee.philhealth}</p>
-                  <p className="pagibig">PAGIBIG: {employee.pagibig}</p>
+                  <p className="pagibig">PAGIBIG: {employee["pag-ibig"]}</p>
                   <p className="bday">DATE OF BIRTH: {formattedDOB}</p>
                 </div>
                 <div className="emergency">
                   <p className="emergency-title">In case of emergency, please notify:</p>
-                  <p className="emergency-name">{employee.contact_name || "No name available"}</p>
-                  <p className="emergency-contact">{employee.contact_number || "No contact available"}</p>
-                  <p className="emergency-address">{employee.contact_address || "No address avaible"}</p>
+                  <p className="emergency-name">{employee.emergencyContact || "No name available"}</p>
+                  <p className="emergency-contact">{employee.emergencyContactNumber || "No contact available"}</p>
+                  <p className="emergency-address address">{employee.emergencycontactAddress || "No address avaible"}</p>
                 </div>
                 <div className="hr">
                   <img src={hr_signature} alt="HR Signature" className="hr-signature" />

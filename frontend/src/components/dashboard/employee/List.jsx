@@ -556,7 +556,7 @@ const List = () => {
     },
     {
       name: "Current Address",
-      selector: (row) => row.address || "N/A",
+      selector: (row) => row.currentaddress || "N/A",
       sortable: true,
       width: "400px",
     },
@@ -593,7 +593,7 @@ const List = () => {
     },
     {
       name: "Emergency Contact Address",
-      selector: (row) => row.contact_address,
+      selector: (row) => row.emergencycontactAddress,
       sortable: true,
       width: "400px",
     },
