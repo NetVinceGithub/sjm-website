@@ -129,7 +129,7 @@ const Employee = sequelize.define(
     ecode: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: "unique_ecode", // Prevents Sequelize from creating multiple indexes
+      unique: "unique_ecode", 
     },
     name: {
       type: DataTypes.STRING,
@@ -210,6 +210,10 @@ const Employee = sequelize.define(
       type: DataTypes.STRING,
       defaultValue: "N/A",
     },
+    currentaddress: {
+      type: DataTypes.STRING,
+      defaultValue: "N/A",
+    },
     contactno: {
       type: DataTypes.STRING,
       defaultValue: "N/A",
@@ -226,6 +230,10 @@ const Employee = sequelize.define(
       defaultValue: "N/A",
     },
     emergencyContact: {
+      type: DataTypes.STRING,
+      defaultValue: "N/A",
+    },
+    emergencycontactAddress: {
       type: DataTypes.STRING,
       defaultValue: "N/A",
     },

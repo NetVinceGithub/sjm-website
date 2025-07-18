@@ -119,6 +119,7 @@ const generatePayslipPDF = async (payslip) => {
     const templateData = {
       payslip_number: `${payslip.ecode || "N/A"}-${new Date().getTime()}`,
       ecode: payslip.ecode || "N/A",
+      project: payslip.project || "N/A",
       employee_name: payslip.name || "N/A",
       project_site: payslip.project || "N/A",
       daily_rate: `${
@@ -1074,35 +1075,25 @@ export const getPayslipsHistory = async (req, res) => {
 // 🔹 Fetch Payslip History by Employee Code
 
 export const getPayslipByEmployeeId = async (req, res) => {
-  let { employeeId } = req.params;
-
-  // Extract numeric part (Remove 'M' prefix)
-  const numericEmployeeId = parseInt(employeeId.replace(/\D/g, ""), 10);
-  console.log(
-    "🔍 Searching for payslip with numericEmployeeId:",
-    numericEmployeeId
-  );
-
   try {
-    const payslip = await PayslipHistory.findAll({
-      where: { employeeId: numericEmployeeId }, // Now matching the integer ID
+    const { employeeId } = req.params;
+
+    const payslip = await PayslipHistory.findOne({ 
+      where: { ecode: employeeId } // ✅ use actual DB column
     });
 
-    if (!payslip || payslip.length === 0) {
-      console.log("❌ No payslip found for Employee ID:", numericEmployeeId);
-      return res
-        .status(404)
-        .json({ success: false, message: "Payslip not found" });
+    if (!payslip) {
+      console.log(`Payslip not found for employee_id: ${employeeId}`);
+      return res.status(404).json({ message: "Payslip not found" });
     }
-
-    res.status(200).json({ success: true, payslip });
+    
+    res.status(200).json(payslip);
   } catch (error) {
-    console.error("🔥 Database error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error: error.message });
+    console.error("Error in getPayslipByEmployeeId:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 export const getAvailableBatches = async (req, res) => {
   try {
@@ -1248,6 +1239,24 @@ export const getPayslipById = async (req, res) => {
     if (!payslip) {
       console.log(`Payslip not found for employee_id: ${id}`);
       return res.status(404).json({ message: "Payslip not found" });
+    }
+    res.status(200).json(payslip);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+export const getPayslipHistoryById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Fetch payslip from the database
+    const payslip = await PayslipHistory.findOne({ where: { employee_id: id } });
+
+    if (!payslip) {
+      console.log(`Payslip not found for employee_id: ${id}`);
+      return res.status(404).json({ message: "Payslip History not found" });
     }
     res.status(200).json(payslip);
   } catch (error) {
@@ -2210,7 +2219,7 @@ export const generatePayroll = async (req, res) => {
           email: employee.emailaddress || employee.email || "",
           employeeId: employee.id,
           name: employee.name,
-          project: employee["area/section"] || "N/A",
+          project: employee.project || "N/A",
           position: employee.positiontitle || employee.position || "N/A",
           department: employee.department || "N/A",
           schedule: employee.schedule || "N/A",
@@ -2297,6 +2306,8 @@ export const generatePayroll = async (req, res) => {
           employmentRank: employee.employmentrank || "N/A",
           isRankAndFile: isRankAndFile,
         };
+
+        console.log("ito yung na save sa data base",payslipData);
 
         // Final validation: Check for any remaining NaN values
         const nanFields = [];

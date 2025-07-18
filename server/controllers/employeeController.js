@@ -89,6 +89,7 @@ const fetchAndSaveEmployees = async () => {
 
     // Create field mapping from processed headers to model field names
     // Add ALL possible variations of your important fields
+    // Create field mapping from processed headers to model field names
     const fieldMapping = {
       // Employee Code variations
       'ecode': 'ecode',
@@ -105,7 +106,7 @@ const fetchAndSaveEmployees = async () => {
       'dailypay': 'dailyRate',
       'daily': 'dailyRate',
       
-      // Salary Package variations - ENHANCED
+      // Salary Package variations
       'salarypackage': 'salaryPackage',
       'salary_package': 'salaryPackage',
       'package': 'salaryPackage',
@@ -126,26 +127,44 @@ const fetchAndSaveEmployees = async () => {
       'employeename': 'name',
       'fullname': 'name',
       'employee_name': 'name',
-      
-      // Other common mappings
       'firstname': 'firstname',
       'first_name': 'firstname',
       'lastname': 'lastname',
       'last_name': 'lastname',
       'middlename': 'middlename',
       'middle_name': 'middlename',
+      
+      // Contact Number variations - FIXED
+      'contactno.': 'contactno',           // Keep as contactno
+      'contact_no': 'contactno',          // Map contact_no to contactno
+      'contactnumber': 'contactno',       // Map contactnumber to contactno
+      'contact_number': 'contactno',      // Map contact_number to contactno
+      'phone': 'contactno',               // Map phone to contactno
+      'phonenumber': 'contactno',         // Map phonenumber to contactno
+      'phone_number': 'contactno',        // Map phone_number to contactno
+      'mobile': 'contactno',              // Map mobile to contactno
+      'mobilenumber': 'contactno',        // Map mobilenumber to contactno
+      'mobile_number': 'contactno',       // Map mobile_number to contactno
+      
+      // Email variations
       'emailaddress': 'emailaddress',
       'email_address': 'emailaddress',
       'email': 'emailaddress',
-      'contactno': 'contactno',
-      'contact_no': 'contactno',
-      'contactnumber': 'contactno',
-      'contact_number': 'contactno',
-      'phone': 'contactno',
+      
+      // Emergency Contact variations
       'emergencycontact': 'emergencyContact',
       'emergency_contact': 'emergencyContact',
       'emergencycontactnumber': 'emergencyContactNumber',
       'emergency_contact_number': 'emergencyContactNumber',
+    // Using the exact database field name: emergencycontactAddress
+      'emergencycontactaddress': 'emergencycontactAddress',      // Main mapping
+      'emergency_contact_address': 'emergencycontactAddress',    // Alternative format
+      'emergencycontactlocation': 'emergencycontactAddress',     // Alternative name
+      'emergency_contact_location': 'emergencycontactAddress',   // Alternative name
+      'emergencyaddress': 'emergencycontactAddress',             // Shorter version
+      'emergency_address': 'emergencycontactAddress',  
+      
+      // Other fields...
       'healthcard': 'healthCard',
       'health_card': 'healthCard',
       'profileimage': 'profileImage',
@@ -164,6 +183,8 @@ const fetchAndSaveEmployees = async () => {
       'birth_date': 'birthdate',
       'permanentaddress': 'permanentaddress',
       'permanent_address': 'permanentaddress',
+      'currentaddress': 'currentaddress',
+      'current_address': 'currentaddress',
       'governmentidnumber': 'governmentidnumber',
       'government_id_number': 'governmentidnumber',
       'employmentstatus': 'employmentstatus',
@@ -176,7 +197,15 @@ const fetchAndSaveEmployees = async () => {
       'pag-ibig': 'pag-ibig',
       'esignature': 'esignature',
       'e_signature': 'esignature',
+      'tin': 'tinnumber',
+      'tinnumber': 'tinnumber',
+      'tinnumber': 'tin',
     };
+
+    console.log("🔍 Emergency contact address mapping:", 
+    processedHeaders.includes('emergencycontactaddress') ? 'FOUND' : 'NOT FOUND');
+    console.log("🔍 Contact number mapping:", 
+    processedHeaders.includes('contactno.') ? 'FOUND' : 'NOT FOUND');
 
     // Enhanced debug logging
     console.log("🔍 Raw headers from sheet:", rawHeaders);
@@ -311,6 +340,7 @@ const fetchAndSaveEmployees = async () => {
       "governmentidnumber",
       "emergencyContact",
       "emergencyContactNumber",
+      "emergencycontactAddress",  // ✅ Matches database field exactly
       "healthCard",
       "prp",
       "safety",

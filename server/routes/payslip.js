@@ -10,7 +10,8 @@ import {
   getPayslipByEmployeeId,
   releasePayrollByProject,
   getAvailableBatches,
-  getContributions 
+  getContributions,
+  getPayslipHistoryById 
 } from "../controllers/payslipController.js";
 import { sequelize } from "../db/db.js"; // Ensure correct path
 import { QueryTypes } from "sequelize";
