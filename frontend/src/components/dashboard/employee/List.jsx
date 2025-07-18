@@ -14,6 +14,7 @@ import {
   FaRegFileExcel,
   FaRegFilePdf,
   FaRegEnvelope,
+  FaFilter,
 } from "react-icons/fa6";
 import { FaEnvelope, FaMinusSquare, FaTimes } from "react-icons/fa";
 import BlockEmployeeModal from "../modals/BlockEmployeeModal";
@@ -443,12 +444,6 @@ const List = () => {
       width: "80px",
     },
     {
-      name: "Name",
-      selector: (row) => row.name,
-      sortable: true,
-      width: "230px",
-    },
-    {
       name: "Last Name",
       selector: (row) => row.lastname,
       sortable: true,
@@ -467,7 +462,13 @@ const List = () => {
       width: "120px",
     },
     {
-      name: "Position Title",
+      name: "Full Name",
+      selector: (row) => row.name,
+      sortable: true,
+      width: "230px",
+    },
+    {
+      name: "Position",
       selector: (row) => row.positiontitle,
       sortable: true,
       width: "310px",
@@ -501,6 +502,12 @@ const List = () => {
       selector: (row) => row.dateofhire,
       sortable: true,
       width: "120px",
+    },
+    {
+      name: "Date of Separation",
+      selector: (row) => row.dateofseparation || "N/A",
+      sortable: true,
+      width: "150px",
     },
     {
       name: "Tenurity to Client",
@@ -677,12 +684,6 @@ const List = () => {
           </div>
         );
       },
-    },
-    {
-      name: "Date of Separation",
-      selector: (row) => row.dateofseparation || "N/A",
-      sortable: true,
-      width: "150px",
     },
     {
       name: "Options",
@@ -874,74 +875,71 @@ const List = () => {
           { label: "Masterlist", href: "/admin-dashboard/employees" },
         ]}
       />
-      <div className="-mt-2 bg-white w-[calc(100vw-310px)] p-3 py-3 rounded-lg shadow">
-        <div className="flex items-center justify-between">
-          {/* Button Group - Centered Vertically */}
-          <div className="inline-flex border border-neutralDGray rounded h-8">
-            <button
-              onClick={bulkMessage}
-              className="px-3 w-20 h-full border-r  hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
-            >
-              <FaRegEnvelope
-                title="Print"
-                className="text-neutralDGray] transition-all duration-300"
-              />
-            </button>
+      <div className="bg-white rounded-lg mb-4 w-[calc(100vw-310px)]  h-fit px-3 shadow-sm flex items-center justify-between">
+        {/* Button Group - Centered Vertically */}
+        <div className="inline-flex border border-neutralDGray rounded h-8">
+          <button
+            onClick={bulkMessage}
+            className="px-3 w-20 h-full border-r  hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
+          >
+            <FaRegEnvelope
+              title="Print"
+              className="text-neutralDGray] transition-all duration-300"
+            />
+          </button>
 
-            <button
-              onClick={exportToPDF} // Export as PDF
-              className="px-3 w-20 h-full hover:bg-neutralSilver border-l-0 transition-all duration-300 rounded-r flex items-center justify-center"
-            >
-              <FaRegFilePdf
-                title="Export to PDF"
-                className=" text-neutralDGray"
-              />
-            </button>
-          </div>
-
-          {/* Search & Sync Section - Aligned with Buttons */}
-          <div className="flex items-center gap-3">
-            <div className="flex rounded items-center">
-              <input
-                type="text"
-                placeholder="Search Employee"
-                onChange={handleFilter}
-                className="px-2 rounded py-0.5 border"
-              />
-              <FaSearch className="ml-[-20px] text-neutralDGray" />
-            </div>
-            <button
-              onClick={syncEmployees}
-              disabled={syncing}
-              className="px-3 py-0.5 h-8 border text-neutralDGray hover:bg-brandPrimary hover:text-white rounded flex items-center space-x-2 disabled:opacity-50"
-            >
-              <FaSyncAlt className="w-4 h-4" />
-              <span>{syncing ? "Syncing..." : "Sync Employees"}</span>
-            </button>
-
-            {modalOpen && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
-                  <h3 className="text-base mb-2 text-green-500">
-                    Sync Successful!
-                  </h3>
-                  <p className="text-justify text-sm">
-                    Employees have been successfully synchronized.
-                  </p>
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => setModalOpen(false)}
-                      className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <button
+            onClick={exportToExcel} // Export as Excel
+            className="px-3 w-20 h-full hover:bg-neutralSilver border-l-0 transition-all duration-300 rounded-r flex items-center justify-center"
+          >
+            <FaRegFileExcel
+              title="Export to PDF"
+              className=" text-neutralDGray"
+            />
+          </button>
         </div>
 
+        {/* Search & Sync Section - Aligned with Buttons */}
+        <div className="flex items-center gap-3">
+          <div className="flex rounded items-center">
+            <input
+              type="text"
+              placeholder="Search Employee"
+              onChange={handleFilter}
+              className="px-2 rounded h-8 py-0.5 border"
+            />
+            <FaSearch className="ml-[-20px] text-neutralDGray" />
+          </div>
+          <div
+            className="mb-3 px-2 w-fit mt-3 h-8 border flex justify-center items-center text-xs text-center text-neutralDGray/60 rounded hover:bg-gray-200 transition-all cursor-pointer"
+            onClick={() => setShowFilterModal(true)}
+          >
+            <FaFilter className="mr-2" /> Filter Options
+          </div>
+
+          {modalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
+                <h3 className="text-base mb-2 text-green-500">
+                  Sync Successful!
+                </h3>
+                <p className="text-justify text-sm">
+                  Employees have been successfully synchronized.
+                </p>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setModalOpen(false)}
+                    className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="-mt-2 bg-white w-[calc(100vw-310px)] p-3 py-3 rounded-lg shadow">
         {/* Containing the table list */}
         <div className="mt-3 w-full overflow-x-auto ">
           <div className="w-full flex">
