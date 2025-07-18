@@ -1,7 +1,13 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { useEffect } from "react";
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import EmployeeDashboard from "./pages/EmloyeeDashboard";
@@ -11,7 +17,6 @@ import DepartmentList from "./components/dashboard/department/DepartmentList";
 import AddDepartment from "./components/dashboard/department/AddDepartment";
 import EditDepartment from "./components/dashboard/department/EditDepartment";
 import List from "./components/dashboard/employee/List";
-import Add from "./components/dashboard/employee/Add";
 import View from "./components/dashboard/employee/View";
 import Edit from "./components/dashboard/employee/Edit";
 import Allowance from "./components/dashboard/employee/Allowance";
@@ -33,8 +38,10 @@ import EmployeePayslipHistory from "./components/dashboard/payroll/EmployeePaysl
 import EmployeePayrollInformationsList from "./components/dashboard/employee/EmployeePayrollInformationsList";
 import InvoiceList from "./components/dashboard/invoice/InvoiceList";
 import ClientList from "./components/dashboard/invoice/ClientList";
+import AddClient from "./components/dashboard/invoice/AddClient";
 import Attendance from "./components/dashboard/attendance/Attendance";
-import 'bootstrap/dist/css/bootstrap.min.css';
+import Menu from "./components/dashboard/dashboard/Menu";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 import Overview from "./components/dashboard/dashboard/Overview";
 import AddNew from "./components/dashboard/employee/AddNew";
@@ -56,7 +63,8 @@ const PageTitleUpdater = () => {
       "/payroll-management-login": "SJM Payroll Management Portal",
     };
 
-    document.title = titleMap[location.pathname] || "SJM Payroll Management Portal";
+    document.title =
+      titleMap[location.pathname] || "SJM Payroll Management Portal";
   }, [location.pathname]);
 
   return null;
@@ -71,7 +79,13 @@ function App() {
 }
 
 function AppContent() {
-  const publicRoutes = ["/", "/admin", "/faqs", "/careers", "/services-offered"];
+  const publicRoutes = [
+    "/",
+    "/admin",
+    "/faqs",
+    "/careers",
+    "/services-offered",
+  ];
   const location = useLocation().pathname;
 
   return (
@@ -81,9 +95,8 @@ function AppContent() {
       <Routes>
         {/* Public Routes */}
         <Route path="/payroll-management-login" element={<Login />} />
-        <Route path="/forgot-password" element ={<ForgotPassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-
 
         {/* Redirect "/" to the admin dashboard */}
         <Route path="/" element={<Navigate to="/admin-dashboard" />} />
@@ -106,35 +119,51 @@ function AppContent() {
           <Route path="add-department" element={<AddDepartment />} />
           <Route path="department/:id" element={<EditDepartment />} />
           <Route path="employees" element={<List />} />
-          <Route path="employees/payroll-informations/list" element={<EmployeePayrollInformationsList />} />
-          <Route path="add" element={<Add />} />
-          <Route path="add-employee" element={<AddNew />} />
+          <Route path="menu" element={<Menu />} />
+          <Route path="employees/add-employee" element={<AddNew />} />
+          <Route
+            path="employees/payroll-informations/list"
+            element={<EmployeePayrollInformationsList />}
+          />
           <Route path="add-masterlist" element={<AddMasterlist />} />
           <Route path="employees/edit/:id" element={<Edit />} />
           <Route path="employee/:id" element={<EmployeeIDCard />} />
-          <Route path="lounge" element={<AdminLounge />} />
+          <Route path="admin-settings" element={<AdminLounge />} />
           <Route path="employees/rates" element={<PayrollSystemData />} />
           <Route path="rates-data-dashboard" element={<RatesDashboard />} />
           <Route path="create-payroll" element={<CreatePayroll />} />
-          <Route path="employees/payroll-data/:id" element={<EmployeePayrollData />} />
+          <Route
+            path="employees/payroll-data/:id"
+            element={<EmployeePayrollData />}
+          />
           <Route path="payslip-history" element={<PayslipHistory />} />
-          <Route path="payroll-summary" element={<PayrollSummary/>}/>
+          <Route path="payroll-summary" element={<PayrollSummary />} />
           <Route path="employees/payslip/:id" element={<Payslip />} />
-          <Route path="employees/payslip-history/:id" element={<EmployeePayslipHistory />} />
+          <Route
+            path="employees/payslip-history/:id"
+            element={<EmployeePayslipHistory />}
+          />
           <Route path="employees/allowance/:id" element={<Allowance />} />
           <Route path="attendance" element={<Attendance />} />
-          <Route path="attendance-computation" element={<AttendanceForComputation />} />
+          <Route
+            path="attendance-computation"
+            element={<AttendanceForComputation />}
+          />
           <Route path="attendance/history" element={<History />} />
           <Route path="attendance-conversion" element={<Conversion />} />
           <Route path="invoice-list" element={<InvoiceList />} />
           <Route path="client-list" element={<ClientList />} />
+          <Route path="client/add-client" element={<AddClient />} />
           <Route path="projects" element={<Projects />} />
           <Route path="add-project" element={<AddProject />} />
           <Route path="edit-project/:id" element={<EditProject />} />
           <Route path="add-rates" element={<AddRatesAndDeductions />} />
           <Route path="rates/edit/:id" element={<EditRatesAndDeductions />} />
-          <Route path="payslip-history/send-payslip-trial" element={<PayslipSend />} />
-          <Route path="holidays" element={< Holidays/>} />
+          <Route
+            path="payslip-history/send-payslip-trial"
+            element={<PayslipSend />}
+          />
+          <Route path="holidays" element={<Holidays />} />
         </Route>
 
         {/* Employee Dashboard */}
@@ -146,6 +175,5 @@ function AppContent() {
     </>
   );
 }
-
 
 export default App;

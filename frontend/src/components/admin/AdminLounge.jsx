@@ -3,10 +3,7 @@ import Breadcrumb from "../dashboard/dashboard/Breadcrumb";
 import Tab from "./Tab";
 import Requests from "./Requests";
 import AddAdmin from "./AddAdmin"; // ✅ Import AddAdmin
-import Job from "./Job";
-import ConnectMessages from "./ConnectMessages";
 import Logins from "./Logins";
-import Contributions from "./Contributions";
 
 const AdminLounge = () => {
   return (
@@ -14,9 +11,13 @@ const AdminLounge = () => {
       <div className="flex flex-col h-full">
         <Breadcrumb
           items={[
-            { label: "Dashboard", href: "" },
-            { label: "Payroll Overview", href: "/admin-dashboard" },
-            { label: "Admin Settings", href: "" },
+            { label: "Dashboard" },
+            { label: "Overview", href: "/admin-dashboard/overview" },
+            { label: "Menu", href: "/admin-dashboard/menu" },
+            {
+              label: "Admin Settings",
+              href: "/admin-dashboard/admin-settings",
+            },
           ]}
         />
 
@@ -24,9 +25,6 @@ const AdminLounge = () => {
           tabs={[
             { label: "Requests", content: <Requests /> },
             { label: "User Management", content: <AddAdmin /> },
-            { label: "Contributions", content: <Contributions /> },
-            { label: "Jobs", content: <Job /> },
-            { label: "Messages", content: <ConnectMessages /> },
             { label: "Activity Log", content: <Logins /> },
           ]}
         />

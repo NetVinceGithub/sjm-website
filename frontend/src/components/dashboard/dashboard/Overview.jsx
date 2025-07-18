@@ -1,32 +1,28 @@
-import React, { useEffect, useState } from "react";
-import DataTable from "react-data-table-component";
-import { notifyPayrollRequests } from "../../../utils/toastHelpers";
-import { notifyChangeRequests } from "../../../utils/toastHelper2";
+import React, { useEffect, useState, useMemo } from "react";
 import { toast } from "react-toastify";
 import { isWithinInterval, isSameDay, isAfter } from "date-fns";
 import { Plus, Check } from "lucide-react";
 import {
   FaUsers,
-  FaCashRegister,
-  FaHandHoldingUsd,
-  FaChartPie,
+  FaMoneyBillTrendUp,
+  FaSackDollar,
+  FaCodiepie,
   FaFilter,
   FaPlus,
-} from "react-icons/fa";
+} from "react-icons/fa6";
 import { FaArrowRotateRight, FaXmark } from "react-icons/fa6";
 import axios from "axios";
-import { Link } from "react-router-dom";
 import SummaryCard from "./SummaryCard";
 import Breadcrumb from "./Breadcrumb";
-import CustomCalendar from "./CustomCalendar";
 import { FaSearch, FaSyncAlt } from "react-icons/fa";
 import PayrollLineChart from "./PayrollLineChart";
-import { LineChart } from "recharts";
 import CalendarOverview from "./CalendarOverview";
 import { format } from "date-fns";
+import defaultProfile from "../../../assets/default-profile.png";
 
 const Overview = () => {
   const [payslips, setPayslips] = useState([]);
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [filteredPayslips, setFilteredPayslips] = useState([]);
   const [cutoffDate, setCutoffDate] = useState("");
   const [employees, setEmployees] = useState([]);
@@ -35,10 +31,7 @@ const Overview = () => {
   const [showTitleInput, setShowTitleInput] = useState(false);
   const [editingIndex, setEditingIndex] = useState(-1);
   const [holidaySummary, setHolidaySummary] = useState([]);
-  const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [changesRequests, setChangesRequests] = useState([]);
-  const [loadingChanges, setLoadingChanges] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -46,7 +39,7 @@ const Overview = () => {
   const [year, setYear] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Helper function to determine payroll status
   const getPayrollStatus = (cutoff, currentDate) => {
@@ -80,21 +73,23 @@ const Overview = () => {
   };
 
   // Utility to generate payroll cutoffs
-  const getPayrollCutoffs = () => {
+  const getPayrollCutoffs = (filterMonth, filterYear) => {
     const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
+    const targetYear = filterYear ? parseInt(filterYear) : now.getFullYear();
+    const targetMonth = filterMonth
+      ? parseInt(filterMonth) - 1
+      : now.getMonth();
 
     const firstCutoff = {
-      start: new Date(year, month, 1),
-      end: new Date(year, month, 15),
-      release: new Date(year, month, 20),
+      start: new Date(targetYear, targetMonth, 1),
+      end: new Date(targetYear, targetMonth, 15),
+      release: new Date(targetYear, targetMonth, 20),
     };
 
     const secondCutoff = {
-      start: new Date(year, month, 16),
-      end: new Date(year, month + 1, 0),
-      release: new Date(year, month + 1, 5),
+      start: new Date(targetYear, targetMonth, 16),
+      end: new Date(targetYear, targetMonth + 1, 0),
+      release: new Date(targetYear, targetMonth + 1, 5),
     };
 
     return [firstCutoff, secondCutoff];
@@ -138,26 +133,9 @@ const Overview = () => {
       return matchesMonth && matchesYear;
     });
   };
-
-  const filterEmployeesByPayslips = (allEmployees, filteredPayslips) => {
-    if (!filteredPayslips.length) return [];
-
-    // Match by name since your payslip data has "name" field
-    const payslipEmployeeNames = filteredPayslips.map((p) =>
-      p.name?.toLowerCase().trim()
-    );
-    return allEmployees.filter((emp) =>
-      payslipEmployeeNames.includes(emp.name?.toLowerCase().trim())
-    );
-  };
-
   const handleConfirm = () => {
     const filtered = applyFilters(payslips, month, year);
     setFilteredPayslips(filtered);
-
-    // Filter employees based on filtered payslips
-    const filteredEmps = filterEmployeesByPayslips(employees, filtered);
-    setFilteredEmployees(filteredEmps);
 
     setShowFilterModal(false);
 
@@ -174,7 +152,7 @@ const Overview = () => {
       toast.success(
         `Filters applied: ${filterText.join(", ")}. Found ${
           filtered.length
-        } payslips, ${filteredEmps.length} employees.`,
+        } payslips.`,
         {
           position: "top-right",
           autoClose: 3000,
@@ -189,7 +167,6 @@ const Overview = () => {
     setMonth("");
     setYear("");
     setFilteredPayslips(payslips);
-    setFilteredEmployees(employees);
     setShowFilterModal(false);
     toast.warning("Filters cleared", {
       position: "top-right",
@@ -197,57 +174,6 @@ const Overview = () => {
       closeButton: false,
       closeOnClick: true,
     });
-  };
-
-  const fetchRequests = async () => {
-    try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/payslip`
-      );
-      console.log(response.data);
-      setRequests(response.data);
-      notifyPayrollRequests(response.data);
-    } catch (error) {
-      console.error("Error fetching payroll requests:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchChangeRequests = async () => {
-    try {
-      setLoadingChanges(true);
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/employee/payroll-change-requests`
-      );
-      console.log("Change requests response:", response.data);
-
-      if (response.data.success) {
-        const filteredRequests = (response.data.data || []).filter(
-          (req) => !["approved", "rejected"].includes(req.status.toLowerCase())
-        );
-        setChangesRequests(filteredRequests);
-        notifyChangeRequests(filteredRequests);
-      } else {
-        console.error("Failed to fetch change requests:", response.data);
-        setChangesRequests([]);
-      }
-    } catch (error) {
-      console.error("Error fetching change requests:", error);
-      setChangesRequests([]);
-    } finally {
-      setLoadingChanges(false);
-    }
-  };
-
-  // Additional helper if date is in the ID format
-  const extractDateFromId = (id) => {
-    const match = id.match(/(\d{4})-(\d{2})-(\d{4})/);
-    if (match) {
-      const [, year, month] = match;
-      return new Date(year, month - 1, 1);
-    }
-    return null;
   };
 
   // All useEffect hooks at the component level
@@ -274,8 +200,6 @@ const Overview = () => {
       }
     };
 
-    fetchChangeRequests();
-    fetchRequests();
     fetchPayslips();
   }, []);
 
@@ -283,12 +207,8 @@ const Overview = () => {
     if (month || year) {
       const filtered = applyFilters(payslips, month, year);
       setFilteredPayslips(filtered);
-
-      const filteredEmps = filterEmployeesByPayslips(employees, filtered);
-      setFilteredEmployees(filteredEmps);
     } else {
       setFilteredPayslips(payslips);
-      setFilteredEmployees(employees);
     }
   }, [month, year, payslips, employees]);
 
@@ -329,22 +249,19 @@ const Overview = () => {
   }, []);
 
   useEffect(() => {
-    if (isAuthorized && Array.isArray(changesRequests)) {
-      notifyChangeRequests(changesRequests);
-    }
-  }, [isAuthorized, changesRequests]);
-
-  useEffect(() => {
     const fetchEmployees = async () => {
       try {
         const response = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/employee/status`
         );
         console.log(response.data);
-        setEmployees(Array.isArray(response.data) ? response.data : []);
+        const employeeData = Array.isArray(response.data) ? response.data : [];
+        setEmployees(employeeData);
+        setFilteredEmployees(employeeData); // Add this line
       } catch (error) {
         console.log("Error fetching active employees", error);
         setEmployees([]);
+        setFilteredEmployees([]); // Add this line
       }
     };
     fetchEmployees();
@@ -383,7 +300,7 @@ const Overview = () => {
   const displayPayslips = month || year ? filteredPayslips : payslips;
   const safePayslips = Array.isArray(displayPayslips) ? displayPayslips : [];
 
-  const displayEmployees = month || year ? filteredEmployees : employees;
+  const displayEmployees = employees;
   const safeEmployees = Array.isArray(displayEmployees) ? displayEmployees : [];
 
   const handleCreatePayroll = async () => {
@@ -601,14 +518,33 @@ const Overview = () => {
     },
   ];
 
+  const searchFilteredEmployees = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return employees; // Use the state variable instead of safeEmployees
+    }
+
+    return employees.filter(
+      // Use the state variable instead of safeEmployees
+      (employee) =>
+        employee.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        employee.positiontitle
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        employee.status?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        employee.employmentstatus
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase())
+    );
+  }, [employees, searchTerm]); // Update dependency
+
   return (
     <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <div>
         <div className="flex justify-between">
           <Breadcrumb
             items={[
-              { label: "Dashboard", href: "" },
-              { label: "Overview", href: "" },
+              { label: "Dashboard" },
+              { label: "Overview", href: "/admin-dashboard/overview" },
             ]}
           />
           <div className="flex flex-row gap-2">
@@ -728,203 +664,209 @@ const Overview = () => {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mt-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 mt-3">
           <SummaryCard
-            icon={<FaCashRegister />}
+            icon={<FaMoneyBillTrendUp />}
             title="Total Payroll"
             number={`₱${safePayslips
               .reduce((acc, p) => acc + parseFloat(p.netPay || 0), 0)
               .toLocaleString()}`}
-            color="bg-blue-400"
+            color="bg-[#2A9D8F]"
           />
           <SummaryCard
-            icon={<FaHandHoldingUsd />}
+            icon={<FaSackDollar />}
             title="Gross Salary"
             number={`₱${safePayslips
               .reduce((acc, p) => acc + parseFloat(p.gross_pay || 0), 0)
               .toLocaleString()}`}
-            color="bg-green-400"
+            color="bg-[#654597]"
           />
           <SummaryCard
-            icon={<FaChartPie />}
+            icon={<FaCodiepie />}
             title="Total Employee Benefits"
             number={`₱${safePayslips
               .reduce((acc, p) => acc + parseFloat(p.allowance || 0), 0)
               .toLocaleString()}`}
-            color="bg-pink-400"
+            color="bg-[#84C318]"
           />
           <SummaryCard
             icon={<FaUsers />}
             title="Total Headcount"
             number={safeEmployees.length} // Changed from safePayslips.length
-            color="bg-yellow-400"
+            color="bg-[#E76F51]"
           />
         </div>
 
         {/* Main Layout Grid */}
-        <div className="grid grid-cols-1 laptop:grid-cols-12 gap-3 mt-3 flex-1 ">
-          {/* Left - Chart + Notes */}
-          <div className="laptop:col-span-5 flex flex-col gap-3">
-            <PayrollLineChart
-              payslips={safePayslips} // This ensures the chart uses filtered data
-              className="border border-neutralDGray"
-            />
+        <div className="min-h-screen bg-gray-50 w-full pt-2">
+          <div className="grid grid-cols-4 grid-rows-7 gap-2 h-screen w-full mx-auto">
+            {/* Div1: Chart - spans 2 columns, 3 rows */}
+            <div className="col-span-2 row-span-3 bg-white rounded-lg shadow-md border border-neutralDGray">
+              <PayrollLineChart
+                payslips={safePayslips}
+                className="w-full h-full"
+              />
+            </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
+            {/* Div2: Calendar - spans 1 column, 4 rows, starts at row 4 */}
+            <div className="row-span-4 col-start-1 row-start-4 bg-white rounded-lg shadow-md border border-neutralDGray">
               <CalendarOverview
                 onDateChange={setCutoffDate}
-                className="flex-1 h-60"
+                className="w-full h-full"
               />
+            </div>
 
-              <div className="relative bg-white border w-full border-neutralDGray shadow-sm rounded p-2 lg:p-3 min-h-[260px]">
-                <h6 className="text-neutralDGray text-sm mb-1">Notes:</h6>
+            {/* Div3: Notes - spans 1 column, 4 rows, starts at row 4 */}
+            <div className="row-span-4 col-start-2 row-start-4 relative bg-white border border-neutralDGray shadow-md rounded-lg p-3">
+              <h6 className="text-neutralDGray text-sm mb-3">Notes:</h6>
 
-                <div className="overflow-y-auto pr-2 pb-24 max-h-72 custom-scroll">
-                  <ul className="space-y-2 text-[12px] -ml-5 text-gray-700">
-                    {notes.map((note, index) => (
-                      <li
-                        key={index}
-                        onClick={() => startEditing(index)}
-                        className="cursor-pointer hover:bg-gray-50 p-1 rounded"
-                      >
-                        <strong className="text-neutralDGray">
-                          {note.title}
-                        </strong>{" "}
-                        - {note.content}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+              <div className="overflow-y-auto pr-2 pb-24 max-h-72 custom-scroll">
+                <ul className="space-y-2 text-[12px] -ml-5 text-gray-700">
+                  {notes.map((note, index) => (
+                    <li
+                      key={index}
+                      onClick={() => startEditing(index)}
+                      className="cursor-pointer hover:bg-gray-50 p-1 rounded"
+                    >
+                      <strong className="text-neutralDGray">
+                        {note.title}
+                      </strong>{" "}
+                      - {note.content}
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-                <div className="absolute bottom-3 left-3 right-3 bg-white">
-                  {showTitleInput && (
-                    <div className="mb-1">
-                      <input
-                        type="text"
-                        value={newTitle}
-                        onChange={(e) => setNewTitle(e.target.value)}
-                        placeholder="Note title"
-                        className="w-full h-8 border border-gray-300 px-2 rounded mb-1 text-xs"
-                      />
-                    </div>
-                  )}
-                  <div className="flex flex-row space-y-2 sm:space-y-0 gap-1 mb-1">
+              <div className="absolute bottom-3 left-3 right-3 bg-white">
+                {showTitleInput && (
+                  <div className="mb-1">
                     <input
                       type="text"
-                      value={newNote}
-                      onChange={(e) => setNewNote(e.target.value)}
-                      placeholder={
-                        editingIndex >= 0 ? "Edit note..." : "Add a new note..."
-                      }
-                      className="flex-1 border w-16 border-gray-300 px-2 h-8 rounded text-xs"
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      placeholder="Note title"
+                      className="w-full h-8 border border-gray-300 px-2 rounded mb-1 text-xs"
                     />
-                    {editingIndex >= 0 ? (
-                      <>
-                        <button
-                          onClick={saveEdit}
-                          title="Update"
-                          className="bg-brandPrimary flex justify-center items-center h-8 w-8 p-2 text-white rounded hover:bg-neutralDGray text-[12px]"
-                        >
-                          <FaArrowRotateRight />
-                        </button>
-                        <button
-                          onClick={cancelEdit}
-                          title="Cancel"
-                          className="bg-gray-300 flex justify-center items-center h-8 p-2 w-8 text-gray-700 rounded hover:bg-gray-400 text-[12px]"
-                        >
-                          <FaXmark />
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={handleAddNote}
-                        className="bg-brandPrimary h-8 w-8 p-1.5 text-white rounded hover:bg-neutralDGray text-[12px] flex items-center justify-center"
-                      >
-                        {showTitleInput ? (
-                          <Check className="w-4 h-4" />
-                        ) : (
-                          <Plus className="w-4 h-4" />
-                        )}
-                      </button>
-                    )}
                   </div>
-                  <p className="italic text-[10px] text-neutralGray -mb-1 text-center">
-                    *Newly added notes will automatically disappear after 7
-                    days.*
-                  </p>
+                )}
+                <div className="flex flex-row space-y-2 sm:space-y-0 gap-1 mb-1">
+                  <input
+                    type="text"
+                    value={newNote}
+                    onChange={(e) => setNewNote(e.target.value)}
+                    placeholder={
+                      editingIndex >= 0 ? "Edit note..." : "Add a new note..."
+                    }
+                    className="flex-1 border w-16 border-gray-300 px-2 h-8 rounded text-xs"
+                  />
+                  {editingIndex >= 0 ? (
+                    <>
+                      <button
+                        onClick={saveEdit}
+                        title="Update"
+                        className="bg-brandPrimary flex justify-center items-center h-8 w-8 p-2 text-white rounded hover:bg-neutralDGray text-[12px]"
+                      >
+                        <FaArrowRotateRight />
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        title="Cancel"
+                        className="bg-gray-300 flex justify-center items-center h-8 p-2 w-8 text-gray-700 rounded hover:bg-gray-400 text-[12px]"
+                      >
+                        <FaXmark />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleAddNote}
+                      className="bg-brandPrimary h-8 w-8 p-1.5 text-white rounded hover:bg-neutralDGray text-[12px] flex items-center justify-center"
+                    >
+                      {showTitleInput ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <Plus className="w-4 h-4" />
+                      )}
+                    </button>
+                  )}
                 </div>
+                <p className="italic text-[10px] text-neutralGray -mb-1 text-center">
+                  *Newly added notes will automatically disappear after 7 days.*
+                </p>
               </div>
             </div>
-          </div>
 
-          {/* Center - Employee Status */}
-          <div className="laptop:col-span-3 h-[100vh] overflow-auto">
-            <div className="bg-white  relative border border-neutralDGray rounded shadow-sm p-2 lg:p-3 h-full flex flex-col">
+            {/* Div4: Employee Status - spans 1 column, 7 rows, starts at column 3 */}
+            <div className="row-span-7 col-start-3 row-start-1 bg-white relative border border-neutralDGray rounded-lg shadow-md p-3 flex flex-col">
               <div className="flex-none">
                 <div className="flex justify-left items-center gap-6 mb-2">
-                  <div className="flex justify-left items-center gap-6 mb-2">
-                    <h6 className="text-neutralDGray text-sm">
-                      Employee Status
-                    </h6>
-                    {(month || year) && (
-                      <span className="text-xs text-gray-500 bg-blue-100 px-2 py-1 rounded">
-                        Filtered ({safeEmployees.length})
-                      </span>
-                    )}
-                  </div>
+                  <h6 className="text-neutralDGray text-sm">Employee Status</h6>
                 </div>
                 <hr className="-mt-1 mb-2" />
               </div>
+
               <div className="flex-1 overflow-auto">
-                {safeEmployees.map((employee, index) => (
-                  <div key={index} className="border-b">
-                    <p className="text-sm mt-0.5 text-neutralDGray">
-                      {toProperCase(employee.name)}
-                    </p>
-                    <p className="text-xs -mt-5 italic text-gray-500">
-                      {toProperCase(employee.positiontitle)}
-                    </p>
-                    <p
-                      className={`text-xs font-medium -mt-3 mb-2 px-2 rounded-full w-fit
-                      ${
-                        employee.employmentstatus === "RESIGNED"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : (employee.status || "").toLowerCase() === "active"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {employee.employmentstatus === "RESIGNED"
-                        ? `${employee.employmentstatus.charAt(
-                            0
-                          )}${employee.employmentstatus.slice(1).toLowerCase()}`
-                        : employee.status || "Unknown"}
-                    </p>
+                {searchFilteredEmployees.length > 0 ? (
+                  searchFilteredEmployees.map((employee, index) => (
+                    <div key={index} className="border-b">
+                      <p className="text-sm mt-0.5 text-neutralDGray">
+                        {toProperCase(employee.name)}
+                      </p>
+                      <p className="text-xs -mt-5 italic text-gray-500">
+                        {toProperCase(employee.positiontitle)}
+                      </p>
+                      <p
+                        className={`text-xs font-medium -mt-3 mb-2 px-2 rounded-full w-fit
+                    ${
+                      employee.employmentstatus === "RESIGNED"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : (employee.status || "").toLowerCase() === "active"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                      >
+                        {employee.employmentstatus === "RESIGNED"
+                          ? `${employee.employmentstatus.charAt(
+                              0
+                            )}${employee.employmentstatus
+                              .slice(1)
+                              .toLowerCase()}`
+                          : employee.status || "Unknown"}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p className="text-sm">No employees found</p>
+                    <p className="text-xs">Try adjusting your search term</p>
                   </div>
-                ))}
+                )}
               </div>
+
               <div className="flex-none mt-3">
                 <div className="relative">
                   <input
                     type="text"
                     placeholder="Search Employee"
-                    className="px-3 w-full py-1 pr-8 text-xs border rounded"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="px-3 w-full py-1 pr-8 h-8 flex items-center text-xs border rounded"
                   />
                   <FaSearch className="absolute right-2 top-1/2 transform -translate-y-1/2 text-neutralDGray" />
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Right - Payroll Status, Top Earners, Holidays */}
-          <div className="laptop:col-span-4 flex flex-col gap-3 overflow-auto">
-            <div className="bg-white rounded shadow-sm p-2 lg:p-3 border border-neutralDGray">
+            {/* Div5: Cutoff Status - spans 1 column, 2 rows, starts at column 4 */}
+            <div className="row-span-2 col-start-4 row-start-1 bg-white rounded-lg shadow-md p-2 border border-neutralDGray">
               <h6 className="text-sm text-neutralDGray mb-3">
                 Payroll Cutoff Status
               </h6>
               <ul className="text-xs">
                 {processedCutoffs.map((cutoff, idx) => (
-                  <li key={idx} className="flex justify-between items-center">
+                  <li
+                    key={idx}
+                    className="flex justify-between mr-8 items-center"
+                  >
                     <div>
                       <p className="font-medium text-gray-700">
                         {format(cutoff.start, "MMMM d")}–
@@ -944,9 +886,10 @@ const Overview = () => {
               </ul>
             </div>
 
-            <div className="bg-white rounded shadow-sm p-2 lg:p-3 border border-neutralDGray">
+            {/* Div6: Top Earners - spans 1 column, 2 rows, starts at column 4, row 3 */}
+            <div className="row-span-2 col-start-4 row-start-3 bg-white rounded-lg shadow-md p-2 border border-neutralDGray">
               <h6 className="text-sm text-neutralDGray mb-2">Top 3 Earners</h6>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-2">
                 {safePayslips
                   .sort(
                     (a, b) =>
@@ -956,16 +899,27 @@ const Overview = () => {
                   .map((payslip, i) => (
                     <div
                       key={i}
-                      className="flex flex-col items-center border justify-center bg-gradient-to-b from-[#9D426E] via-[#80B646] to-[#4191D6] rounded-lg p-[0.7rem]"
+                      className="flex h-16 items-center border justify-between bg-gradient-to-r from-[#9D426E] via-[#80B646] to-[#4191D6] rounded-lg p-2"
                     >
-                      <div className="w-16 h-14 lg:w-16 lg:h-16 rounded-full mb-2 border-4 border-white bg-gray-200"></div>
-                      <p className="font-semibold text-white text-sm text-center">
-                        {payslip.name || "N/A"}
-                      </p>
-                      <p className="font-medium text-white text-xs">
-                        ₱{parseFloat(payslip.netPay || 0).toLocaleString()}
-                      </p>
-                      <span className="text-xl text-white mt-1">
+                      <div className="flex items-center gap-2">
+                        <img
+                          src={`${import.meta.env.VITE_API_URL}/uploads/${
+                            payslip.profileImage
+                          }`}
+                          alt="Profile"
+                          className="w-8 h-8 rounded-full border-2 border-white object-cover bg-gray-200"
+                          onError={(e) => (e.target.src = defaultProfile)}
+                        />
+                        <div>
+                          <p className="font-semibold mt-3 text-white flex items-center text-sm">
+                            {payslip.name || "N/A"}
+                          </p>
+                          <p className="font-medium -mt-3 text-white text-xs">
+                            ₱{parseFloat(payslip.netPay || 0).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-2xl text-white drop-shadow-[0_0_8px_white]">
                         {["🏅", "🥈", "🥉"][i]}
                       </span>
                     </div>
@@ -973,7 +927,8 @@ const Overview = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded shadow-sm p-2 lg:p-3 border border-neutralDGray">
+            {/* Div7: Holiday - spans 1 column, 2 rows, starts at column 4, row 5 */}
+            <div className="row-span-2 col-start-4 row-start-5 bg-white rounded-lg shadow-md p-2 border border-neutralDGray">
               <h6 className="text-sm text-neutralDGray mb-3">
                 Holiday Summary
               </h6>
@@ -990,23 +945,23 @@ const Overview = () => {
                     </div>
                     <span
                       className={`
-                        text-xs px-3 py-1 rounded-full
-                        ${
-                          holiday.type === "Regular"
-                            ? "bg-red-100 text-red-600"
-                            : ""
-                        }
-                        ${
-                          holiday.type === "Special Non-Working"
-                            ? "bg-orange-100 text-orange-600"
-                            : ""
-                        }
-                        ${
-                          holiday.type === "Special"
-                            ? "bg-green-100 text-green-600"
-                            : ""
-                        }
-                      `}
+                    text-xs px-2 py-1 mr-8 rounded-full
+                    ${
+                      holiday.type === "Regular"
+                        ? "bg-red-100 text-red-600"
+                        : ""
+                    }
+                    ${
+                      holiday.type === "Special Non-Working"
+                        ? "bg-orange-100 text-orange-600"
+                        : ""
+                    }
+                    ${
+                      holiday.type === "Special"
+                        ? "bg-green-100 text-green-600"
+                        : ""
+                    }
+                  `}
                     >
                       {holiday.type}
                     </span>

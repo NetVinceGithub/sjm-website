@@ -48,12 +48,16 @@ const AddNew = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/employee/add`, formData, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/employee/add`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (response.data.success) {
         setSubmittedEmployees([...submittedEmployees, formData]); // Add new entry to table
@@ -107,13 +111,14 @@ const AddNew = () => {
     },
     {
       name: "Project",
-      selector: (row) => projects.find((p) => p._id === row.project)?.projectName || "N/A",
+      selector: (row) =>
+        projects.find((p) => p._id === row.project)?.projectName || "N/A",
       sortable: true,
     },
   ];
 
   return (
-    <div className="fixed p-6 pt-16">
+    <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <Breadcrumb
         items={[
           { label: "Employee", href: "" },
@@ -130,7 +135,9 @@ const AddNew = () => {
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 gap-4 -space-y-1">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Name</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Name
+                  </label>
                   <input
                     type="text"
                     name="name"
@@ -143,7 +150,9 @@ const AddNew = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Address</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Address
+                  </label>
                   <input
                     type="text"
                     name="address"
@@ -157,7 +166,9 @@ const AddNew = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Email
+                    </label>
                     <input
                       type="email"
                       name="email"
@@ -170,7 +181,9 @@ const AddNew = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Phone Number
+                    </label>
                     <input
                       type="text"
                       name="mobileNo"
@@ -185,7 +198,9 @@ const AddNew = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Designation</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Designation
+                    </label>
                     <input
                       type="text"
                       name="designation"
@@ -198,7 +213,9 @@ const AddNew = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Project</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Project
+                    </label>
                     <select
                       name="project"
                       value={formData.project}
@@ -207,18 +224,15 @@ const AddNew = () => {
                       required
                     >
                       <option value="">Select Project</option>
-                      {projects.map((proj) => (
-                        <option key={proj._id} value={proj._id}>
-                          {proj.projectName}
-                        </option>
-                      ))}
                     </select>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Gender</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Gender
+                    </label>
                     <select
                       name="gender"
                       value={formData.gender}
@@ -234,7 +248,9 @@ const AddNew = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Civil Status</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Civil Status
+                    </label>
                     <select
                       name="maritalStatus"
                       value={formData.maritalStatus}
@@ -253,7 +269,9 @@ const AddNew = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Date Hired</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Date Hired
+                  </label>
                   <input
                     type="date"
                     name="dateHired"
@@ -263,7 +281,6 @@ const AddNew = () => {
                     required
                   />
                 </div>
-
               </div>
 
               <button
@@ -273,47 +290,6 @@ const AddNew = () => {
                 {loading ? "Saving..." : "Add Employee"}
               </button>
             </form>
-          </div>
-        </div>
-
-        <div className="w-[50%]">
-          <div className="bg-white w-[606px] p-4 rounded-md shadow-md">
-            <h2 className="text-[1.2rem] text-neutralDGray font-bold mb-4">New Employee List</h2>
-              <div className="flex item justify-between">
-                <div className="inline-flex border border-neutralDGray rounded h-7 mb-4">
-                  <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center">
-                    <FaPrint title="Print" className="text-neutralDGray" />
-                  </button>
-                  <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center">
-                    <FaRegFileExcel title="Export to Excel" className="text-neutralDGray" />
-                  </button>
-                  <button className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center">
-                    <FaRegFilePdf title="Export to PDF" className="text-neutralDGray" />
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex rounded items-center border border-gray-300 px-2">
-                    <input
-                      type="text"
-                      placeholder="Search Employee"
-                      onChange={handleSearch}
-                      value={searchTerm}
-                      className="px-2 py-1 border-none outline-none w-full"
-                    />
-                    <FaSearch className="ml-[-20px] text-neutralDGray" />
-                  </div>
-                </div>
-              </div>
-
-            <DataTable
-              columns={columns}
-              data={filteredEmployees} 
-              pagination
-              highlightOnHover
-              striped
-              responsive
-            />
           </div>
         </div>
       </div>
