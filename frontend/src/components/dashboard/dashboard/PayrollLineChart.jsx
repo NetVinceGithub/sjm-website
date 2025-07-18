@@ -70,7 +70,7 @@ export default function PayrollLineChart({ payslips = [] }) {
       <h2 className=" -mt-1 text-sm text-neutralDGray mb-3">
         Payroll Overview
       </h2>
-      <ResponsiveContainer width="100%" height={313}>
+      <ResponsiveContainer width="100%" height={280}>
         <BarChart data={chartData}>
           <XAxis
             dataKey="date"

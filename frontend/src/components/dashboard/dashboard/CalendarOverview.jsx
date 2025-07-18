@@ -200,7 +200,7 @@ export default function CustomCalendar({ onDateChange }) {
         </div>
 
         {/* Day Names */}
-        <div className="grid grid-cols-7 gap-1 -ml-1.5 mb-2">
+        <div className="grid grid-cols-7 gap-0.5 -ml-2 -mt-4">
           {dayNames.map((dayName) => (
             <div
               key={dayName}
@@ -212,7 +212,7 @@ export default function CustomCalendar({ onDateChange }) {
         </div>
 
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-1">{days}</div>
+        <div className="grid grid-cols-7 gap-0.5 -mb-2">{days}</div>
       </div>
     );
   };

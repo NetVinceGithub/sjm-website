@@ -23,6 +23,7 @@ import ActivateEmployeeModal from "../modals/ActivateEmployeeModal";
 import BulkEmployeeMessageModal from "../modals/BulkEmployeeMessageModal";
 import { toast } from "react-toastify";
 import { useAuth } from "../../../context/authContext";
+import { ThreeDots } from "react-loader-spinner";
 
 const List = () => {
   const { user } = useAuth();
@@ -871,11 +872,11 @@ const List = () => {
     <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <Breadcrumb
         items={[
-          { label: "Employee", href: "" },
+          { label: "Employee" },
           { label: "Masterlist", href: "/admin-dashboard/employees" },
         ]}
       />
-      <div className="bg-white rounded-lg mb-4 w-[calc(100vw-310px)]  h-fit px-3 shadow-sm flex items-center justify-between">
+      <div className="bg-white rounded-lg -mt-2 mb-2 w-[calc(100vw-310px)]  h-fit px-3 shadow-sm flex items-center justify-between">
         {/* Button Group - Centered Vertically */}
         <div className="inline-flex border border-neutralDGray rounded h-8">
           <button
@@ -906,9 +907,9 @@ const List = () => {
               type="text"
               placeholder="Search Employee"
               onChange={handleFilter}
-              className="px-2 rounded h-8 py-0.5 border"
+              className="px-2 text-xs rounded h-8 py-0.5 border"
             />
-            <FaSearch className="ml-[-20px] text-neutralDGray" />
+            <FaSearch className="ml-[-20px] text-neutralDGray/60" />
           </div>
           <div
             className="mb-3 px-2 w-fit mt-3 h-8 border flex justify-center items-center text-xs text-center text-neutralDGray/60 rounded hover:bg-gray-200 transition-all cursor-pointer"
@@ -939,9 +940,9 @@ const List = () => {
           )}
         </div>
       </div>
-      <div className="-mt-2 bg-white w-[calc(100vw-310px)] p-3 py-3 rounded-lg shadow">
+      <div className=" bg-white w-[calc(100vw-310px)] p-3 rounded-lg shadow">
         {/* Containing the table list */}
-        <div className="mt-3 w-full overflow-x-auto ">
+        <div className="w-full overflow-x-auto ">
           <div className="w-full flex">
             <div className="w-full">
               <div className="border rounded-md">
@@ -986,9 +987,17 @@ const List = () => {
                   progressPending={loading}
                   conditionalRowStyles={conditionalRowStyles}
                   progressComponent={
-                    <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
-                      <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
-                      Loading data...
+                    <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
+                      <ThreeDots
+                        visible={true}
+                        height="60"
+                        width="60"
+                        color="#4fa94d"
+                        radius="9"
+                        ariaLabel="three-dots-loading"
+                        wrapperStyle={{}}
+                        wrapperClass=""
+                      />
                     </div>
                   }
                   pagination
