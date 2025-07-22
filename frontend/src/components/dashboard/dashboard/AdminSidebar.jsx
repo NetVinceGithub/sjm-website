@@ -152,8 +152,10 @@ const AdminSidebar = () => {
                     to="/admin-dashboard/overview"
                     end
                     className={({ isActive }) =>
-                      `flex -mt-1 items-center text-white no-underline space-x-3 py-2 px-4 rounded-md ${
-                        isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                      `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                        isActive
+                          ? "bg-[#5f2e3d] font-bold border-l-4"
+                          : "hover:bg-[#924F64]"
                       }`
                     }
                   >
@@ -167,8 +169,10 @@ const AdminSidebar = () => {
                   <NavLink
                     to="/admin-dashboard/menu"
                     className={({ isActive }) =>
-                      `flex items-center space-x-3 text-white no-underline py-2 px-4 rounded-md ${
-                        isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                      `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                        isActive
+                          ? "bg-[#5f2e3d] font-bold border-l-4"
+                          : "hover:bg-[#924F64]"
                       }`
                     }
                   >
@@ -181,8 +185,10 @@ const AdminSidebar = () => {
                   <NavLink
                     to="/admin-dashboard/admin-settings"
                     className={({ isActive }) =>
-                      `flex items-center space-x-3 text-white no-underline py-2 px-4 rounded-md ${
-                        isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                      `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                        isActive
+                          ? "bg-[#5f2e3d] font-bold border-l-4"
+                          : "hover:bg-[#924F64]"
                       }`
                     }
                   >
@@ -220,8 +226,10 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/employees"
                       className={({ isActive }) =>
-                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${
-                          isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                        `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                          isActive
+                            ? "bg-[#5f2e3d] font-bold border-l-4"
+                            : "hover:bg-[#924F64]"
                         }`
                       }
                       end
@@ -244,8 +252,10 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/employees/add-employee"
                       className={({ isActive }) =>
-                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${
-                          isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                        `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                          isActive
+                            ? "bg-[#5f2e3d] font-bold border-l-4"
+                            : "hover:bg-[#924F64]"
                         }`
                       }
                       end
@@ -292,8 +302,10 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/attendance"
                       className={({ isActive }) =>
-                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${
-                          isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                        `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                          isActive
+                            ? "bg-[#5f2e3d] font-bold border-l-4"
+                            : "hover:bg-[#924F64]"
                         }`
                       }
                       end
@@ -316,8 +328,10 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/attendance/history"
                       className={({ isActive }) =>
-                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 px-4 rounded-md transition ${
-                          isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                        `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                          isActive
+                            ? "bg-[#5f2e3d] font-bold border-l-4"
+                            : "hover:bg-[#924F64]"
                         }`
                       }
                       end
@@ -340,8 +354,10 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/holidays"
                       className={({ isActive }) =>
-                        `flex -mt-1 items-center space-x-4 text-white no-underline py-2.5 mb-3 px-4 rounded-md transition ${
-                          isActive ? "bg-[#5f2e3d]" : "hover:bg-[#924F64]"
+                        `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                          isActive
+                            ? "bg-[#5f2e3d] font-bold border-l-4"
+                            : "hover:bg-[#924F64]"
                         }`
                       }
                       end
@@ -465,6 +481,7 @@ const AdminSidebar = () => {
             )}
           </div>
 
+          {/* Clients */}
           <div className="mb-1 -mt-2">
             <button
               onClick={() => toggleDropdown("client")}

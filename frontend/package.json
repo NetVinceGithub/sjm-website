@@ -12,8 +12,12 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@glideapps/glide-data-grid": "^6.0.3",
     "@imgly/background-removal": "^1.6.0",
     "@mui/material": "^7.1.1",
+    "@tanstack/react-table": "^8.21.3",
+    "ag-grid-community": "^34.0.2",
+    "ag-grid-react": "^34.0.2",
     "axios": "^1.7.9",
     "bootstrap": "^5.3.3",
     "date-fns": "^4.1.0",
@@ -42,6 +46,7 @@
     "react-modal": "^3.16.3",
     "react-router-dom": "^7.6.2",
     "react-toastify": "^11.0.5",
+    "react-tooltip": "^5.29.1",
     "styled-components": "^6.1.13"
   },
   "devDependencies": {

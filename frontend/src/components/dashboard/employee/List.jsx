@@ -9,6 +9,7 @@ import defaultProfile from "../../../../src/assets/default-profile.png"; // Adju
 import { FaSearch, FaSyncAlt, FaIdCard, FaPaperclip } from "react-icons/fa";
 import EmployeeIDCard from "../EmployeeIDCard";
 import Breadcrumb from "../dashboard/Breadcrumb";
+import DropdownStatusButton from "./DropdownStatusButton";
 import {
   FaPrint,
   FaRegFileExcel,
@@ -18,12 +19,14 @@ import {
 } from "react-icons/fa6";
 import { FaEnvelope, FaMinusSquare, FaTimes } from "react-icons/fa";
 import BlockEmployeeModal from "../modals/BlockEmployeeModal";
+import InactiveEmployee from "../modals/InactiveEmployee";
 import UnBlockEmployeeModal from "../modals/UnblockEmployeeModal";
 import ActivateEmployeeModal from "../modals/ActivateEmployeeModal";
 import BulkEmployeeMessageModal from "../modals/BulkEmployeeMessageModal";
 import { toast } from "react-toastify";
 import { useAuth } from "../../../context/authContext";
 import { ThreeDots } from "react-loader-spinner";
+import FilterList from "../modals/FilterList";
 
 const List = () => {
   const { user } = useAuth();
@@ -38,6 +41,7 @@ const List = () => {
   const [employeeToToggle, setEmployeeToToggle] = useState(null);
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
   const [isUnBlockModalOpen, setIsUnBlockModalOpen] = useState(false);
+  const [isInactiveModalOpen, setIsInactiveModalOpen] = useState(false);
   const [employeeToBlock, setEmployeeToBlock] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [isActivateEmployeeOpen, setIsActivateEmployeeOpen] = useState(false);
@@ -49,6 +53,7 @@ const List = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [showBulkMessage, setShowBulkMessage] = useState(false);
+  const [showFilterList, setshowFilterList] = useState(false);
   const [expandedRows, setExpandedRows] = useState({});
 
   useEffect(() => {
@@ -61,6 +66,14 @@ const List = () => {
 
   const handleCloseBulk = () => {
     setShowBulkMessage(false); // ✅ This is correct
+  };
+
+  const openFilterList = () => {
+    setshowFilterList(true);
+  };
+
+  const handleCloseFilterList = () => {
+    setshowFilterList(false); // ✅ This is correct
   };
 
   const fetchEmployees = async () => {
@@ -218,6 +231,7 @@ const List = () => {
     closeEmailModal();
   };
 
+  // Update the confirmBlockEmployee function to handle both Block and Inactive
   const confirmBlockEmployee = async () => {
     if (employeeToBlock) {
       try {
@@ -240,11 +254,50 @@ const List = () => {
           )
         );
 
+        setIsInactiveModalOpen(false);
+        setEmployeeToBlock(null);
+
+        // Add success notification
+        toast.success("Employee status updated to Inactive!");
+      } catch (error) {
+        console.error("Error updating employee status:", error);
+        toast.error("Failed to update employee status. Please try again.");
+      }
+    }
+  };
+
+  // Separate function specifically for blocking (setting status to "Block")
+  const confirmBlockEmployeeToBlocked = async () => {
+    if (employeeToBlock) {
+      try {
+        // Use the correct API endpoint for blocking
+        await axios.put(
+          `${import.meta.env.VITE_API_URL}/api/employee/block/${
+            employeeToBlock.id
+          }`
+        );
+
+        // Update employee status in state to "Block"
+        setEmployees((prevEmployees) =>
+          prevEmployees.map((emp) =>
+            emp.id === employeeToBlock.id ? { ...emp, status: "Block" } : emp
+          )
+        );
+
+        setFilteredEmployees((prevFiltered) =>
+          prevFiltered.map((emp) =>
+            emp.id === employeeToBlock.id ? { ...emp, status: "Block" } : emp
+          )
+        );
+
         setIsBlockModalOpen(false);
         setEmployeeToBlock(null);
+
+        // Add success notification
+        toast.success("Employee successfully blocked!");
       } catch (error) {
         console.error("Error blocking employee:", error);
-        alert("⚠ Failed to block employee. Please try again.");
+        toast.error("Failed to block employee. Please try again.");
       }
     }
   };
@@ -252,26 +305,66 @@ const List = () => {
   const confirmUnblockEmployee = async () => {
     if (employeeToBlock) {
       try {
-        await axios.put(
-          `${import.meta.env.VITE_API_URL}/api/employee/toggle-status/${
+        // Use appropriate API endpoint based on current status
+        const currentStatus = employeeToBlock.status;
+        let apiEndpoint;
+        let newStatus;
+
+        if (currentStatus === "Block") {
+          // Unblocking from Block status
+          apiEndpoint = `${import.meta.env.VITE_API_URL}/api/employee/unblock/${
             employeeToBlock.id
-          }`
+          }`;
+          newStatus = "Active";
+        } else if (currentStatus === "Inactive") {
+          // Activating from Inactive status
+          apiEndpoint = `${
+            import.meta.env.VITE_API_URL
+          }/api/employee/activate/${employeeToBlock.id}`;
+          newStatus = "Active";
+        } else {
+          // Fallback to toggle-status
+          apiEndpoint = `${
+            import.meta.env.VITE_API_URL
+          }/api/employee/toggle-status/${employeeToBlock.id}`;
+          newStatus = "Active";
+        }
+
+        await axios.put(apiEndpoint);
+
+        // Update employee status in state
+        setEmployees((prevEmployees) =>
+          prevEmployees.map((emp) =>
+            emp.id === employeeToBlock.id ? { ...emp, status: newStatus } : emp
+          )
         );
 
-        await fetchEmployees(); // Force refresh from the backend
+        setFilteredEmployees((prevFiltered) =>
+          prevFiltered.map((emp) =>
+            emp.id === employeeToBlock.id ? { ...emp, status: newStatus } : emp
+          )
+        );
 
         setIsUnBlockModalOpen(false);
         setEmployeeToBlock(null);
+
+        // Add success notification
+        toast.success(
+          `Employee successfully ${
+            currentStatus === "Block" ? "unblocked" : "activated"
+          }!`
+        );
       } catch (error) {
-        console.error("Error unblocking employee:", error);
-        alert("⚠ Failed to unblock employee. Please try again.");
+        console.error("Error updating employee status:", error);
+        toast.error("Failed to update employee status. Please try again.");
       }
     }
   };
 
   const handleResignationConfirm = () => {
+    // After confirming activation of resigned employee, proceed with unblock
     setIsActivateEmployeeOpen(false);
-    setIsUnBlockModalOpen(true); // Proceed with unblock modal
+    setIsUnBlockModalOpen(true);
   };
 
   const handleResignationCancel = () => {
@@ -279,24 +372,58 @@ const List = () => {
     setEmployeeToBlock(null);
   };
 
-  const handleToggleStatus = async (id, currentStatus, employmentStatus) => {
+  const handleToggleStatus = async (
+    id,
+    currentStatus,
+    employmentStatus,
+    newStatus
+  ) => {
     const employee = employees.find((emp) => emp.id === id);
-
     if (!employee) return;
 
-    // Check if employee is resigned and trying to activate
+    console.log("Toggle Status Debug:", {
+      id,
+      currentStatus,
+      employmentStatus,
+      newStatus,
+    });
+
+    // If dropdown selection, use newStatus
+    if (newStatus) {
+      if (newStatus === "Block") {
+        setEmployeeToBlock(employee);
+        setIsBlockModalOpen(true);
+      } else if (newStatus === "Inactive") {
+        setEmployeeToBlock(employee);
+        setIsInactiveModalOpen(true);
+      } else if (newStatus === "Active") {
+        setEmployeeToBlock(employee);
+        setIsUnBlockModalOpen(true); // This will handle activation
+      }
+      return;
+    }
+
+    // Handle main button clicks (not dropdown)
     if (employmentStatus === "RESIGNED" && currentStatus === "Inactive") {
+      // Special case for resigned employees
       setEmployeeToBlock(employee);
       setIsActivateEmployeeOpen(true);
       return;
     }
 
-    if (currentStatus === "Inactive") {
+    // Regular status changes
+    if (currentStatus === "Block") {
+      // Block -> Active (Unblock)
       setEmployeeToBlock(employee);
       setIsUnBlockModalOpen(true);
-    } else {
+    } else if (currentStatus === "Inactive") {
+      // Inactive -> Active (Activate)
       setEmployeeToBlock(employee);
-      setIsBlockModalOpen(true);
+      setIsUnBlockModalOpen(true);
+    } else if (currentStatus === "Active") {
+      // Active -> Inactive (default action)
+      setEmployeeToBlock(employee);
+      setIsInactiveModalOpen(true);
     }
   };
 
@@ -517,8 +644,13 @@ const List = () => {
       width: "140px",
     },
     {
-      name: "Employment Status",
+      name: "Employment Classification",
       selector: (row) => row.employmentstatus,
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Employment Status",
       sortable: true,
       width: "180px",
     },
@@ -588,7 +720,13 @@ const List = () => {
       width: "200px",
     },
     {
-      name: "Emergency Contact",
+      name: "Government ID Number",
+
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Emergency Contact Name",
       selector: (row) => row.emergencyContact,
       sortable: true,
       width: "230px",
@@ -606,10 +744,60 @@ const List = () => {
       width: "400px",
     },
     {
+      name: "Medical",
+      selector: (row) => row.medical || "N/A",
+      sortable: true,
+      width: "120px",
+      cell: (row) => {
+        const medStr = row.medical;
+        const expiringMed = isMedicalExpiringSoon(medStr);
+        return (
+          <div
+            style={{
+              backgroundColor: expiringMed ? "#B2FBA5" : "transparent",
+              padding: "4px",
+              borderRadius: "4px",
+              color: expiringMed ? "#333" : "inherit",
+              fontWeight: expiringMed ? "bold" : "normal",
+            }}
+          >
+            {medStr || "N/A"}
+            {""}
+            {expiringMed && <span style={{ color: "red" }}>⚕️</span>}
+          </div>
+        );
+      },
+    },
+    {
       name: "Health Card",
       selector: (row) => row.healthcard,
       sortable: true,
       width: "150px",
+    },
+    {
+      name: "GMP",
+      selector: (row) => row.gmp || "N/A",
+      sortable: true,
+      width: "150px",
+      cell: (row) => {
+        const dateStr = row.gmp;
+        const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
+
+        return (
+          <div
+            style={{
+              backgroundColor: expiring ? "#ff5e58" : "transparent",
+              padding: "4px",
+              borderRadius: "4px",
+              color: expiring ? "#333" : "inherit",
+              fontWeight: expiring ? "bold" : "normal",
+            }}
+          >
+            {dateStr || "N/A"}{" "}
+            {expiring && <span style={{ color: "#b36b00" }}>⚠️</span>}
+          </div>
+        );
+      },
     },
     {
       name: "PRP",
@@ -618,6 +806,31 @@ const List = () => {
       width: "150px",
       cell: (row) => {
         const dateStr = row.prp;
+        const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
+
+        return (
+          <div
+            style={{
+              backgroundColor: expiring ? "#ff5e58" : "transparent",
+              padding: "4px",
+              borderRadius: "4px",
+              color: expiring ? "#333" : "inherit",
+              fontWeight: expiring ? "bold" : "normal",
+            }}
+          >
+            {dateStr || "N/A"}{" "}
+            {expiring && <span style={{ color: "#b36b00" }}>⚠️</span>}
+          </div>
+        );
+      },
+    },
+    {
+      name: "Housekeeping",
+      selector: (row) => row.housekeeping || "N/A",
+      sortable: true,
+      width: "150px",
+      cell: (row) => {
+        const dateStr = row.housekeeping;
         const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
 
         return (
@@ -662,34 +875,57 @@ const List = () => {
       },
     },
     {
-      name: "Medical",
-      selector: (row) => row.medical || "N/A",
+      name: "CRR",
+      selector: (row) => row.crr || "N/A",
       sortable: true,
-      width: "120px",
+      width: "150px",
       cell: (row) => {
-        const medStr = row.medical;
-        const expiringMed = isMedicalExpiringSoon(medStr);
+        const dateStr = row.crr;
+        const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
+
         return (
           <div
             style={{
-              backgroundColor: expiringMed ? "#B2FBA5" : "transparent",
+              backgroundColor: expiring ? "#ff5e58" : "transparent",
               padding: "4px",
               borderRadius: "4px",
-              color: expiringMed ? "#333" : "inherit",
-              fontWeight: expiringMed ? "bold" : "normal",
+              color: expiring ? "#333" : "inherit",
+              fontWeight: expiring ? "bold" : "normal",
             }}
           >
-            {medStr || "N/A"}
-            {""}
-            {expiringMed && <span style={{ color: "red" }}>⚕️</span>}
+            {dateStr || "N/A"}{" "}
+            {expiring && <span style={{ color: "#b36b00" }}>⚠️</span>}
           </div>
         );
       },
     },
     {
+      name: "SSS",
+      selector: (row) => row.sss,
+      sortable: true,
+      width: "150px",
+    },
+    {
+      name: "PhilHealth",
+      selector: (row) => row.philhealth,
+      sortable: true,
+      width: "150px",
+    },
+    {
+      name: "Pag-IBIG",
+      selector: (row) => row.pagibig,
+      sortable: true,
+      width: "150px",
+    },
+    {
+      name: "TIN Number",
+      selector: (row) => row.tin,
+      sortable: true,
+      width: "150px",
+    },
+    {
       name: "Options",
       cell: (row) => {
-        // Determine if employee is resigned and should be inactive
         const isResigned = row.employmentstatus === "RESIGNED";
         const effectiveStatus = isResigned ? "Inactive" : row.status;
 
@@ -697,42 +933,36 @@ const List = () => {
           <div className="flex justify-center items-center sticky-actions">
             <button
               onClick={() => openModal(row.employeeId || row.id)}
-              className="w-14 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center"
+              className="w-10 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center"
             >
-              <FaIdCard
-                title="View ID"
-                className=" text-neutralDGray w-5 h-5"
-              />
+              <FaIdCard title="View ID" className="text-neutralDGray w-4 h-4" />
             </button>
             <button
-              onClick={() => openEmailModal(row.employeeId || row.id)} // ← Pass the ID
-              className="w-14 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center"
+              onClick={() => openEmailModal(row.employeeId || row.id)}
+              className="w-10 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center"
             >
               <FaEnvelope
                 title="Message"
-                className="text-neutralDGray w-5 h-5"
+                className="text-neutralDGray w-4 h-4"
               />
             </button>
-            <button
-              className={`w-14 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${
-                effectiveStatus === "Active"
-                  ? "bg-green-500 text-white"
-                  : "bg-red-500 text-white"
-              }`}
-              onClick={() =>
-                handleToggleStatus(
-                  row.id,
-                  effectiveStatus,
-                  row.employmentstatus
-                )
-              }
-            >
-              <FaMinusSquare title="Toggle Status" className="w-5 h-5" />
-            </button>
+            <DropdownStatusButton
+              row={row}
+              effectiveStatus={effectiveStatus}
+              handleToggleStatus={(id, status, empStatus, newStatus) => {
+                console.log("DropdownButton clicked:", {
+                  id,
+                  status,
+                  empStatus,
+                  newStatus,
+                });
+                handleToggleStatus(id, status, empStatus, newStatus);
+              }}
+            />
           </div>
         );
       },
-      width: "200px",
+      width: "150px",
       right: true,
       center: true,
     },
@@ -876,8 +1106,7 @@ const List = () => {
           { label: "Masterlist", href: "/admin-dashboard/employees" },
         ]}
       />
-      <div className="bg-white rounded-lg -mt-2 mb-2 w-[calc(100vw-310px)]  h-fit px-3 shadow-sm flex items-center justify-between">
-        {/* Button Group - Centered Vertically */}
+      <div className="bg-white p-2 -mt-3 rounded-lg shadow w-[calc(100vw-310px)] flex justify-between">
         <div className="inline-flex border border-neutralDGray rounded h-8">
           <button
             onClick={bulkMessage}
@@ -900,47 +1129,29 @@ const List = () => {
           </button>
         </div>
 
-        {/* Search & Sync Section - Aligned with Buttons */}
-        <div className="flex items-center gap-3">
-          <div className="flex rounded items-center">
+        <div className="flex flex-row gap-2 w-1/2 justify-end">
+          <div className="flex w-full">
             <input
               type="text"
               placeholder="Search Employee"
               onChange={handleFilter}
-              className="px-2 text-xs rounded h-8 py-0.5 border"
+              className="px-2 text-xs rounded w-full h-8 py-0.5 border"
             />
-            <FaSearch className="ml-[-20px] text-neutralDGray/60" />
+            <FaSearch className="-ml-6 mt-1.5 text-neutralDGray/60" />
           </div>
           <div
-            className="mb-3 px-2 w-fit mt-3 h-8 border flex justify-center items-center text-xs text-center text-neutralDGray/60 rounded hover:bg-gray-200 transition-all cursor-pointer"
-            onClick={() => setShowFilterModal(true)}
+            onClick={openFilterList}
+            className="px-2 text-xs text-neutralDGray rounded w-1/4 items-center hover:bg-neutralSilver flex justify-between h-8 py-0.5 border"
           >
-            <FaFilter className="mr-2" /> Filter Options
+            Filter Options{" "}
+            <span>
+              <FaFilter className="mr-2" />
+            </span>
           </div>
-
-          {modalOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
-                <h3 className="text-base mb-2 text-green-500">
-                  Sync Successful!
-                </h3>
-                <p className="text-justify text-sm">
-                  Employees have been successfully synchronized.
-                </p>
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => setModalOpen(false)}
-                    className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
-      <div className=" bg-white w-[calc(100vw-310px)] p-3 rounded-lg shadow">
+
+      <div className=" bg-white w-[calc(100vw-310px)] p-2 mt-2 rounded-lg shadow">
         {/* Containing the table list */}
         <div className="w-full overflow-x-auto ">
           <div className="w-full flex">
@@ -983,6 +1194,10 @@ const List = () => {
                 <DataTable
                   customStyles={customStyles}
                   columns={columns}
+                  dense
+                  fixedHeader={true}
+                  fixedHeaderScrollHeight="calc(100vh - 300px)"
+                  highlightOnHover={true}
                   data={filteredEmployees}
                   progressPending={loading}
                   conditionalRowStyles={conditionalRowStyles}
@@ -1207,20 +1422,23 @@ const List = () => {
         refreshEmployees={fetchEmployees} // Pass the function as a prop
       />
 
+      {/* Block Employee Modal - for Active/Inactive to Block transitions */}
       <BlockEmployeeModal
         isOpen={isBlockModalOpen}
         onClose={() => setIsBlockModalOpen(false)}
-        onConfirm={confirmBlockEmployee}
+        onConfirm={confirmBlockEmployeeToBlocked} // Use specific blocking function
         employee={employeeToBlock}
       />
 
+      {/* Activate Employee Modal - for resigned employees */}
       <ActivateEmployeeModal
         isOpen={isActivateEmployeeOpen}
         onClose={handleResignationCancel}
         onConfirm={handleResignationConfirm}
-        employee={employeeToBlock} // Corrected prop name
+        employee={employeeToBlock}
       />
 
+      {/* Unblock Employee Modal - for Block/Inactive to Active transitions */}
       <UnBlockEmployeeModal
         isOpen={isUnBlockModalOpen}
         onClose={() => setIsUnBlockModalOpen(false)}
@@ -1228,10 +1446,33 @@ const List = () => {
         employee={employeeToBlock}
       />
 
+      {/* Inactive Employee Modal - for Active to Inactive transitions */}
+      <InactiveEmployee
+        isOpen={isInactiveModalOpen}
+        onClose={() => setIsInactiveModalOpen(false)}
+        onConfirm={confirmBlockEmployee} // This will set status to "Inactive"
+        employee={employeeToBlock}
+      />
+
       <BulkEmployeeMessageModal
         show={showBulkMessage} // ✅ Correct prop name
         handleCloseBulk={handleCloseBulk} // ✅ Correct prop name
       />
+
+      {showFilterList && (
+        <FilterList
+          show={showFilterList}
+          handleCloseFilterList={handleCloseFilterList}
+        />
+      )}
+
+      {/* <FilterList
+        show={openFilterList}
+        handleCloseFilterList={() => setShowFilter(false)} // or some close function
+        // data={data}
+        onFilterChange={handleFilter}
+        // initialFilters={initialFilters}
+      /> */}
     </div>
   );
 };

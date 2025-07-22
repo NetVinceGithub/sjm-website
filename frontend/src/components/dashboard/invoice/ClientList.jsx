@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from "react";
 import Breadcrumb from "../dashboard/Breadcrumb";
-import { FaPeopleGroup, FaRegWindowMaximize } from "react-icons/fa6";
+import {
+  FaPeopleGroup,
+  FaRegWindowMaximize,
+  FaPersonShelter,
+} from "react-icons/fa6";
 import { FaSearch, FaSyncAlt } from "react-icons/fa";
 import { MapPin, Phone, Mail, Calendar } from "lucide-react";
 import ClientProfileModal from "../modals/clientProfile";
 import axios from "axios";
+import { Tooltip } from "react-tooltip";
+import "react-tooltip/dist/react-tooltip.css";
 
 const ClientList = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -47,10 +53,11 @@ const ClientList = () => {
           email: client.emailAddress || "No email provided",
           tin: client.tinNumber || "No TIN provided",
           joinDate: client.joinedDate || "No date provided",
-          status: client.status || "Active",
+          status: "Inactive",
           avatar: client.name
             ? client.name.substring(0, 2).toUpperCase()
             : "CL",
+          remarks: client.remarks || "No remarks available for this client.", // Add remarks field
         }));
 
         // After employees are fetched, count employees per client project
@@ -178,41 +185,36 @@ const ClientList = () => {
     setSelectedClient(null);
   };
 
+  const handleReactivate = (client) => {
+    // Add your reactivate logic here
+    console.log("Reactivating client:", client.name);
+  };
+
   return (
     <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <Breadcrumb
         items={[
-          { label: "Clients", href: "" },
-          { label: "Masterlist", href: "/admin-dashboard/employees" },
+          { label: "Clients" },
+          { label: "Masterlist", href: "/admin-dashboard/client-list" },
         ]}
       />
 
       <div className="bg-white h-[calc(100vh-120px)] w-full -mt-2 py-3 p-2 rounded-lg shadow">
         <div className="flex items-center justify-end mb-4">
           {/* Search & Sync Section - Aligned with Buttons */}
-          <div className="flex items-center gap-3">
-            <div className="flex rounded items-center relative">
-              <input
-                type="text"
-                placeholder="Search Clients"
-                value={searchTerm}
-                onChange={handleSearch}
-                className="px-2 pr-8 rounded text-sm py-1 border"
-              />
-              <FaSearch className="absolute right-2 text-neutralDGray" />
-            </div>
-            <button
-              onClick={syncClients}
-              disabled={syncing}
-              className="px-3 py-0.5 h-8 border text-sm w-fit text-neutralDGray hover:bg-brandPrimary hover:text-white rounded flex items-center space-x-2 disabled:opacity-50"
-            >
-              <FaSyncAlt
-                className={`w-4 h-4 mr-2 ${syncing ? "animate-spin" : ""}`}
-              />
-              {syncing ? "Syncing..." : "Sync Clients"}
-            </button>
+          <div className="flex rounded w-1/2 justify-end  items-center relative">
+            <input
+              type="text"
+              placeholder="Search Clients"
+              value={searchTerm}
+              onChange={handleSearch}
+              className="px-2 pr-8 rounded w-1/2 right-0 text-sm py-1 border"
+            />
+            <FaSearch className="absolute right-2 text-neutralDGray" />
           </div>
         </div>
+
+        {/* Tooltip component - placed after the container for proper rendering */}
 
         {loading ? (
           <div className="flex justify-center items-center -mt-3 h-[calc(100%-60px)]">
@@ -222,7 +224,7 @@ const ClientList = () => {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-4 p-3 gap-3 overflow-y-auto h-[calc(100%-60px)]">
+          <div className="grid grid-cols-4 p-3 gap-2 overflow-y-auto h-[calc(100%-60px)]">
             {filteredClients.length === 0 ? (
               <div className="col-span-4 text-center py-8">
                 <p className="text-gray-500 italic text-xs">No clients found</p>
@@ -231,26 +233,31 @@ const ClientList = () => {
               filteredClients.map((client) => (
                 <div
                   key={client.id}
-                  className="border border-neutralDGray -mt-3 h-fit rounded-lg shadow-md p-2.5 hover:shadow-lg transition-shadow duration-300"
+                  data-tooltip-id="client-tooltip"
+                  data-tooltip-content={`Remarks: ${
+                    client.remarks || "No remarks available for this client."
+                  }`}
+                  className="border border-neutralDGray -mt-4 h-fit rounded-lg shadow-md p-2.5 hover:shadow-lg transition-shadow duration-300 cursor-pointer"
                 >
                   {/* Header Row: Avatar, Name/Title, Status */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
+                      <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium text-base flex-shrink-0">
                         {client.avatar}
                       </div>
                       <div>
-                        <h3 className="text-base font-semibold text-gray-800 leading-tight">
+                        <h3 className="text-sm font-medium text-gray-800 leading-tight">
                           {client.name}
                         </h3>
-                        <p className="text-sm text-gray-600 flex items-center text-nowrap">
+                        <p className="text-xs text-gray-600 flex items-center text-nowrap">
                           <FaPeopleGroup className="w-4 h-4 mr-1" />
-                          {client.deployed} Employee Deployed
+                          {client.deployed} Employee
+                          {client.deployed !== 1 ? "s" : ""} Deployed
                         </p>
                       </div>
                     </div>
                     <span
-                      className={`px-1 py-1 rounded-full text-[10px] font-medium flex-shrink-0 ${
+                      className={`rounded-full text-[10px] p-2 font-medium flex-shrink-0 ${
                         client.status === "Active"
                           ? "bg-green-100 text-green-800"
                           : "bg-red-100 text-red-800"
@@ -261,49 +268,75 @@ const ClientList = () => {
                   </div>
 
                   <hr className="-mt-6" />
+
                   {/* Contact Info */}
-                  <div className="space-y-1 mb-3">
+                  <div className="space-y-1 mb-3 -mt-3 p-2 rounded-xl border">
                     <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
-                      <span className="truncate">{client.location}</span>
+                      <MapPin className="w-3 h-3 mr-2 flex-shrink-0" />
+                      <span className="truncate text-xs">
+                        {client.location}
+                      </span>
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
-                      <Phone className="w-4 h-4 mr-2 flex-shrink-0" />
-                      <span className="truncate">{client.phone}</span>
+                      <Phone className="w-3 h-3 mr-2 flex-shrink-0" />
+                      <span className="truncate text-xs">{client.phone}</span>
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
-                      <Mail className="w-4 h-4 mr-2 flex-shrink-0" />
-                      <span className="truncate">{client.email}</span>
+                      <FaPersonShelter className="w-3 h-3 mr-2 flex-shrink-0" />
+                      <span className="truncate text-xs">Karla Chavez</span>
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
-                      <FaRegWindowMaximize className="w-4 h-4 mr-2 flex-shrink-0" />
-                      <span className="truncate">{client.tin}</span>
+                      <Mail className="w-3 h-3 mr-2 flex-shrink-0" />
+                      <span className="truncate text-xs">{client.email}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <FaRegWindowMaximize className="w-3 h-3 mr-2 flex-shrink-0" />
+                      <span className="truncate text-xs">{client.tin}</span>
                     </div>
                   </div>
 
                   {/* Join Date */}
-                  <div className="flex items-center text-sm text-gray-500 mb-3">
-                    <Calendar className="w-4 h-4 mr-2" />
+                  <div className="flex items-center text-xs text-gray-500 mb-3">
+                    <Calendar className="w-3 h-3 mr-2" />
                     <span>
                       Joined{" "}
                       {client.joinDate &&
+                        client.joinDate !== "No date provided" &&
                         new Date(client.joinDate).toLocaleDateString("en-US", {
                           year: "numeric",
                           month: "long",
                           day: "numeric",
                         })}
+                      {(client.joinDate === "No date provided" ||
+                        !client.joinDate) &&
+                        "N/A"}
                     </span>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex space-x-2">
+                  {client.status === "Inactive" ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleViewProfile(client)}
+                        className="w-1/2 h-8 flex text-xs justify-center items-center text-center text-neutralDGray border py-2 px-3 rounded-md font-medium hover:bg-green-400 hover:text-white transition-colors"
+                      >
+                        View Profile
+                      </button>
+                      <button
+                        onClick={() => handleReactivate(client)}
+                        className="w-1/2 h-8 flex text-xs justify-center items-center text-center text-neutralDGray border py-2 px-3 rounded-md font-medium hover:bg-red-400 hover:text-white transition-colors"
+                      >
+                        Renew Contract
+                      </button>
+                    </div>
+                  ) : (
                     <button
                       onClick={() => handleViewProfile(client)}
-                      className="flex-1 h-8 flex text-xs justify-center items-center text-center text-neutralDGray border py-2 px-3 rounded-md font-medium hover:bg-green-400 hover:text-white transition-colors"
+                      className="w-full h-8 flex text-xs justify-center items-center text-center text-neutralDGray border py-2 px-3 rounded-md font-medium hover:bg-green-400 hover:text-white transition-colors"
                     >
                       View Profile
                     </button>
-                  </div>
+                  )}
                 </div>
               ))
             )}
@@ -318,6 +351,46 @@ const ClientList = () => {
           employees={employees} // pass the employees array here
         />
       </div>
+
+      {/* Tooltip component - placed at the end for proper z-index */}
+      <Tooltip
+        anchorSelect="[data-tooltip-id='client-tooltip']"
+        place="top"
+        content=""
+        render={({ activeAnchor }) => {
+          if (activeAnchor) {
+            const tooltipContent = activeAnchor.getAttribute(
+              "data-tooltip-content"
+            );
+            return (
+              <div
+                style={{
+                  padding: "2px 2px",
+                  textAlign: "center",
+                  lineHeight: "1.4",
+                }}
+              >
+                {tooltipContent || "No remarks available"}
+              </div>
+            );
+          }
+          return null;
+        }}
+        style={{
+          backgroundColor: "rgba(71, 81, 95, 0.8)", // Semi-transparent dark background
+          color: "#ffffff",
+          borderRadius: "6px",
+          fontSize: "12px",
+          maxWidth: "250px", // Reduced width to fit better on card
+          zIndex: 9999,
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.25)",
+          backdropFilter: "blur(4px)", // Add blur effect for overlay feel
+        }}
+        offset={-5} // Negative offset to position over the card
+        delayShow={200}
+        delayHide={100}
+        noArrow={true} // Keep arrow for better visual connection
+      />
     </div>
   );
 };

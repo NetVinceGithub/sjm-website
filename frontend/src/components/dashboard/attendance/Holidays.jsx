@@ -7,6 +7,8 @@ import "./CalendarStyles.css"; // Add custom styling here
 import Breadcrumb from "../dashboard/Breadcrumb";
 import DataTable from "react-data-table-component";
 import { FaAngleRight, FaAngleLeft } from "react-icons/fa6";
+import { label } from "framer-motion/client";
+import { href } from "react-router-dom";
 
 // Setup the localizer for React Big Calendar
 const localizer = momentLocalizer(moment);
@@ -246,13 +248,10 @@ const Holidays = () => {
       <div className="h-full flex flex-col overflow-hidden">
         <Breadcrumb
           items={[
-            { label: "Attendance", href: "/admin-dashboard/attendance" },
-            { label: "Add Attendance", href: "/admin-dashboard/employees" },
-            {
-              label: "Attendance Computation",
-              href: "/admin-dashboard/attendance-computation",
-            },
-            { label: "Holidays", href: "" },
+            { label: "Attendance" },
+            { label: "Add Attendance", href: "/admin-dashboard/attendance" },
+            { label: "History", href: "/admin-dashboard/attendance/history" },
+            { label: "Holidays", href: "/admin-dashboard/holidays" },
           ]}
         />
 

@@ -9,11 +9,13 @@ import { useNavigate } from "react-router-dom";
 import { BsFilter } from "react-icons/bs";
 import Tooltip from "@mui/material/Tooltip";
 import { toast } from "react-toastify";
+import ScheduleSelectionModal from "./ScheduleSelectionModal";
 import FilterComponent from "../modals/FilterComponent";
 
 const Attendance = () => {
   // State variables
   const [attendanceData, setAttendanceData] = useState([]);
+  const [showWarningModal, setShowWarningModal] = useState(false);
   const [summaryData, setSummaryData] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -22,44 +24,11 @@ const Attendance = () => {
   const [filterComponentModal, setFilterComponentModal] = useState(false);
 
   // Optimized schedule options - removed custom schedule
-  const defaultScheduleOptions = [
-    {
-      id: 1,
-      value: "8-17",
-      label: "Day Shift",
-      start: 8,
-      end: 17,
-      isDefault: true,
-    },
-    {
-      id: 2,
-      value: "17-21",
-      label: "Evening Shift",
-      start: 17,
-      end: 21,
-      isDefault: true,
-    },
-    {
-      id: 3,
-      value: "21-6",
-      label: "Night Shift",
-      start: 21,
-      end: 6,
-      isDefault: true,
-    },
-  ];
 
-  const [scheduleOptions, setScheduleOptions] = useState(
-    defaultScheduleOptions
-  );
   const [selectedSchedules, setSelectedSchedules] = useState([]);
-  const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [newSchedule, setNewSchedule] = useState({
-    label: "",
-    start: "",
-    end: "",
-  });
+  const [allSchedules, setAllSchedules] = useState([]);
+  const [activeSchedules, setActiveSchedules] = useState([]);
 
   // Helper function to calculate work duration in hours
   const calculateWorkHours = (onDutyTime, offDutyTime) => {
@@ -676,133 +645,44 @@ const Attendance = () => {
     );
   };
 
-  const ScheduleSelectionModal = () => (
+  const WarningModal = () => (
     <Modal
-      show={showScheduleModal}
-      onHide={() => setShowScheduleModal(false)}
+      show={showWarningModal}
+      onHide={() => setShowWarningModal(false)}
       backdrop="static"
       keyboard={false}
       centered
-      size="lg"
+      size="md"
     >
-      <Modal.Header className="py-3 px-4">
-        <Modal.Title as="h6" className="text-base text-neutralDGray">
-          Manage Work Schedules
+      <Modal.Header className="py-3 px-4 border-b">
+        <Modal.Title
+          as="h6"
+          className="text-base text-orange-600 flex items-center gap-2"
+        >
+          Oops!
         </Modal.Title>
       </Modal.Header>
-      <Modal.Body className="p-4">
-        {/* Add New Schedule Section */}
-        <div className="mb-3 p-2 border rounded-lg bg-gray-50">
-          <h6 className="text-sm text-neutralDGray mb-3">Add New Schedule</h6>
-          <div className="flex flex-row gap-3 -mt-2">
-            <input
-              type="text"
-              placeholder="Schedule Name"
-              value={newSchedule.label}
-              onChange={(e) =>
-                setNewSchedule({ ...newSchedule, label: e.target.value })
-              }
-              className="p-1 h-10 flex-1 border rounded text-xs"
-            />
-            <input
-              type="number"
-              placeholder="Start Hour (0-23)"
-              min="0"
-              max="23"
-              value={newSchedule.start}
-              onChange={(e) =>
-                setNewSchedule({ ...newSchedule, start: e.target.value })
-              }
-              className="p-1 h-10 border flex-1 rounded text-xs"
-            />
-            <input
-              type="number"
-              placeholder="End Hour (0-23)"
-              min="0"
-              max="23"
-              value={newSchedule.end}
-              onChange={(e) =>
-                setNewSchedule({ ...newSchedule, end: e.target.value })
-              }
-              className="p-1 h-10 border flex-1 rounded text-xs"
-            />
-            <button
-              onClick={addNewSchedule}
-              className="px-3 py-2 w-fit h-10 border text-neutralDGray rounded text-xs hover:bg-green-400 hover:text-white flex items-center justify-center gap-1"
-            >
-              Add
-            </button>
-          </div>
-        </div>
-
-        {/* Schedule Selection Section */}
-        <div>
-          <h6
-            className="text-xs
-           font-medium text-neutralDGray mb-2"
-          >
-            Select Active Schedules ({selectedSchedules.length} selected)
-          </h6>
-          <div className="space-y-2 max-h-60 overflow-y-auto">
-            {scheduleOptions.map((schedule) => (
-              <div
-                key={schedule.id}
-                className={`h-14 px-3 border rounded-lg cursor-pointer transition-all flex items-center justify-between ${
-                  selectedSchedules.some((s) => s.id === schedule.id)
-                    ? "border-green-400 bg-green-50"
-                    : "border-gray-300 hover:border-green-300"
-                }`}
-                onClick={() => toggleScheduleSelection(schedule)}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                      selectedSchedules.some((s) => s.id === schedule.id)
-                        ? "border-green-400 bg-green-400"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    {selectedSchedules.some((s) => s.id === schedule.id) && (
-                      <div className="w-2 h-2 bg-white rounded"></div>
-                    )}
-                  </div>
-                  <div>
-                    <h6 className="font-medium mt-3 text-neutralDGray">
-                      {schedule.label}
-                    </h6>
-                    <p className="text-xs -mt-2 text-gray-600">
-                      {schedule.start}:00 -{" "}
-                      {schedule.end === 6 && schedule.start === 21
-                        ? "06:00 (next day)"
-                        : `${schedule.end}:00`}
-                    </p>
-                  </div>
-                </div>
-                {!schedule.isDefault && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeSchedule(schedule.id);
-                    }}
-                    className="text-red-500 hover:text-red-700 p-1"
-                  ></button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+      <Modal.Body className="p-3">
+        <p className="text-sm text-neutralDGray text-center flex items-center justify-center">
+          Include attendance filter or select schedule first before uploading
+          attendance file.
+        </p>
       </Modal.Body>
-      <Modal.Footer className="p-4">
+      <Modal.Footer className="p-3">
         <button
-          onClick={handleScheduleConfirm}
-          disabled={selectedSchedules.length === 0}
-          className={`px-6 py-2 rounded-md text-xs transition-all ${
-            selectedSchedules.length > 0
-              ? "bg-green-400 text-white hover:bg-green-500"
-              : "bg-gray-300 text-gray-500 cursor-not-allowed"
-          }`}
+          onClick={() => {
+            setShowWarningModal(false);
+            setShowScheduleModal(true);
+          }}
+          className="px-4 py-2 h-10 border text-neutralDGray hover:bg-green-400 hover:text-white rounded text-xs transition-all"
         >
-          Confirm Schedule
+          Select Schedules
+        </button>
+        <button
+          onClick={() => setShowWarningModal(false)}
+          className="px-4 py-2 h-10 border text-neutralDGray hover:bg-red-400 hover:text-white rounded text-xs transition-all"
+        >
+          Cancel
         </button>
       </Modal.Footer>
     </Modal>
@@ -881,14 +761,6 @@ const Attendance = () => {
 
   // FIXED: handleFileUpload function with proper schedule validation
   const handleFileUpload = (event) => {
-    // Check if schedule is selected first
-    if (selectedSchedules.length === 0) {
-      toast.error("Please select work schedules before uploading the file");
-      setShowScheduleModal(true);
-      event.target.value = "";
-      return;
-    }
-
     const file = event.target.files[0];
     if (file) {
       setSelectedFile(file.name);
@@ -1285,6 +1157,15 @@ const Attendance = () => {
     }
   };
 
+  const handleUploadClick = () => {
+    if (selectedSchedules.length === 0) {
+      setShowWarningModal(true);
+      return;
+    }
+    // Trigger file input click
+    document.querySelector('input[type="file"]').click();
+  };
+
   // FIXED: fetchAttendanceData function
   const fetchAttendanceData = async () => {
     try {
@@ -1373,8 +1254,8 @@ const Attendance = () => {
       <div className="">
         <Breadcrumb
           items={[
-            { label: "Attendance", href: "" },
-            { label: "Add Attendance", href: "/admin-dashboard/employees" },
+            { label: "Attendance" },
+            { label: "Add Attendance", href: "/admin-dashboard/attendance" },
           ]}
         />
         <div>
@@ -1446,15 +1327,18 @@ const Attendance = () => {
           </div>
           <div className="flex items-center justify-between border border-neutralDGray rounded-md p-2 bg-slate-50">
             <div className="flex items-center gap-3">
-              <label className="px-4 text-xs py-2 border hover:bg-green-400 hover:text-white text-neutralDGray rounded-md cursor-pointer">
+              <button
+                onClick={handleUploadClick}
+                className="px-4 text-xs py-2 h-8 border hover:bg-green-400 hover:text-white text-neutralDGray rounded-md cursor-pointer"
+              >
                 Upload File
-                <input
-                  type="file"
-                  accept=".xlsx, .xls"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </label>
+              </button>
+              <input
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
             </div>
             <span className="text-xs text-neutralDGray">
               {selectedFile || "No file selected"}
@@ -1472,7 +1356,23 @@ const Attendance = () => {
             </button>
           </div>
         </div>
-        <ScheduleSelectionModal />
+        <ScheduleSelectionModal
+          show={showScheduleModal}
+          onClose={() => setShowScheduleModal(false)}
+          schedules={allSchedules}
+          defaultSelected={activeSchedules}
+          onAddSchedule={(schedule) =>
+            setAllSchedules((prev) => [...prev, schedule])
+          }
+          onRemoveSchedule={(id) =>
+            setAllSchedules((prev) => prev.filter((s) => s.id !== id))
+          }
+          onConfirm={(selected) => {
+            setActiveSchedules(selected);
+            setShowScheduleModal(false);
+          }}
+        />
+        <WarningModal />
 
         <div className="grid mt-3 grid-cols-2 gap-3">
           {/* Attendance Table */}

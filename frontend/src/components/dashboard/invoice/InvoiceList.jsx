@@ -75,7 +75,7 @@ const InvoiceList = () => {
 
           // Extract last 4 digits, convert to number, add 1, and format back with full prefix
           const getNextControlNumber = (currentNumber) => {
-            if (!currentNumber) return "SJM 2025-06-0001"; // Default if no existing numbers
+            if (!currentNumber) return "MBS-2025-06-0001"; // Default if no existing numbers
 
             const lastFourDigits = currentNumber.slice(-4);
             const nextNumber = parseInt(lastFourDigits, 10) + 1;
@@ -465,45 +465,42 @@ const InvoiceList = () => {
             <div className=" w-[47rem] h-[40rem]">
               <div className="flex mr-5 gap-2 mt-3 p-2 justify-between items-center">
                 <div>
-                  <div className="flex flex-row gap-2 justify-center items center">
-                    <img src={Logo} className="w-20 h-20" />
-                    <div>
-                      <p className="font-semibold text-[#9D426E] text-[10px]">
+                  <div className="flex flex-row items-center justify-center gap-4">
+                    <img src={Logo} alt="Company Logo" className="w-20 h-20" />
+                    <div className="text-xs space-y-0.5">
+                      <p
+                        style={{ fontFamily: '"AR Julian", sans-serif' }}
+                        className="font-semibold text-sm text-[#9D426E]"
+                      >
                         ST. JOHN MAJORE SERVICES COMPANY, INC.
                       </p>
-                      <p className="italic text-[9px] -mt-3">
+                      <p className="italic">
                         Registered DOLE D.O. RO4A-BPO-DO174-0225-005-N
                       </p>
-                      <p className="text-[9px] -mt-3">
+                      <p>
+                        Patron Central Plaza No. 8, De Villa St., San Juan,
+                        <br />
                         Batangas, 4226, PHILIPPINES
                       </p>
-                      <p className="text-[9px] -mt-3">
-                        Cel No.: 0917-185-1909 • Tel. No.:(043) 575-5675
-                      </p>
-                      <p className="text-[9px] -mt-3">www.stjohnmajore.com</p>
+                      <p>Cel No.: 0917-185-1909 • Tel. No.:(043) 575-5675</p>
+                      <p>www.stjohnmajore.com</p>
                     </div>
                   </div>
                 </div>
                 <div className="border-black border rounded-lg flex flex-col divide-y divide-black">
                   <div className="p-2">
-                    <p className="text-[9px] mb-0">
+                    <p className="text-xs mb-0 text-center">
                       VAT REGISTERED TIN: 010-837-591-000
                     </p>
                   </div>
                   <div className="p-2">
-                    <p className="flex justify-center text-center items-center mt-2 font-semibold">
+                    <p className="flex text-lg font-[Arial] justify-center text-center items-center mt-2 font-semibold">
                       BILLING SUMMARY
                     </p>
                     <div>
-                      {/* {nextBillingSummary !== null ? (
-                        <p className="text-lg font-semibold text-red-500 text-center">
-                          {String(nextBillingSummary).padStart(5, "0")}
-                        </p>
-                      ) : (
-                        <p className="text-lg font-semibold text-gray-400 text-center">
-                          Loading...
-                        </p>
-                      )} */}
+                      <p className="text-xs -mt-2 font-[Arial] tracking-tight leading-none">
+                        FOR THE CUTOFF PERIOD JUNE 16-31, 2025
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -534,7 +531,7 @@ const InvoiceList = () => {
                   </tr>
                   <tr>
                     <td></td>
-                    <td className="border-r border-l border-black p-2 text-center align-middle w-20 font-semibold text-xs">
+                    <td className="border-r border-l border-black p-2 text-right align-middle w-20 font-semibold text-xs">
                       Date:
                     </td>
                     <td

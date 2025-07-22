@@ -4,6 +4,27 @@ import DataTable from "react-data-table-component";
 import Breadcrumb from "../dashboard/Breadcrumb";
 import { FaPrint, FaRegFileExcel, FaRegFilePdf } from "react-icons/fa6";
 import { FaSearch } from "react-icons/fa";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
+const exportToExcel = () => {
+  const worksheet = XLSX.utils.json_to_sheet(filteredData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance History");
+
+  // Create buffer
+  const excelBuffer = XLSX.write(workbook, {
+    bookType: "xlsx",
+    type: "array",
+  });
+
+  // Create Blob and download
+  const fileData = new Blob([excelBuffer], {
+    type: "application/octet-stream",
+  });
+
+  saveAs(fileData, "attendance-history.xlsx");
+};
 
 // Define DataTable columns
 const columns = [
@@ -72,73 +93,60 @@ const History = () => {
       <div className="">
         <Breadcrumb
           items={[
-            { label: "Attendance", href: "/admin-dashboard/attendance" },
-            { label: "Add Attendance", href: "/admin-dashboard/employees" },
-            {
-              label: "Attendance Computation",
-              href: "/admin-dashboard/attendance-computation",
-            },
-            { label: "History", href: "" },
+            { label: "Attendance" },
+            { label: "Add Attendance", href: "/admin-dashboard/attendance" },
+            { label: "History", href: "/admin-dashboard/attendance/history" },
           ]}
         />
-        <div className="-mt-2 bg-white p-3 py-3 rounded-lg shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="inline-flex border border-neutralDGray rounded h-8">
-              <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center">
-                <FaPrint title="Print" className="text-neutralDGray" />
-              </button>
-              <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center">
-                <FaRegFileExcel
-                  title="Export to Excel"
-                  className=" text-neutralDGray"
-                />
-              </button>
-              <button className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center">
-                <FaRegFilePdf
-                  title="Export to PDF"
-                  className=" text-neutralDGray"
-                />
-              </button>
-            </div>
+        <div className="bg-white p-2 -mt-3 rounded-lg shadow flex justify-between">
+          <div className="inline-flex border border-neutralDGray rounded h-8">
+            <button
+              onClick={exportToExcel} // Export as Excel
+              className="px-3 w-20 h-full hover:bg-neutralSilver border-l-0 transition-all duration-300 rounded-r flex items-center justify-center"
+            >
+              <FaRegFileExcel
+                title="Export to PDF"
+                className=" text-neutralDGray"
+              />
+            </button>
+          </div>
 
-            {/* Search */}
-            <div className="flex items-center gap-3">
-              <div className="flex rounded h-10 items-center border px-2 py-1">
-                <input
-                  type="text"
-                  placeholder="Search ECode"
-                  className="px-2  h-8 text-sm py-1 border border-white"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <FaSearch className="ml-2 h-10 text-neutralDGray" />
+          <div className="flex flex-row gap-2 w-1/2 justify-end">
+            <div className="flex w-full">
+              <input
+                type="text"
+                placeholder="Search Employee"
+                value={searchQuery}
+                className="px-2 text-xs rounded w-full h-8 py-0.5 border"
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <FaSearch className="-ml-6 mt-1.5 text-neutralDGray/60" />
+            </div>
+          </div>
+        </div>
+
+        <div className="border mt-2 rounded shadow">
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            progressPending={loading}
+            progressComponent={
+              <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
+                <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
+                Loading data...
               </div>
-            </div>
-          </div>
-
-          <div className="border -mt-4 rounded">
-            <DataTable
-              columns={columns}
-              data={filteredData}
-              progressPending={loading}
-              progressComponent={
-                <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
-                  <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
-                  Loading data...
-                </div>
-              }
-              noDataComponent={
-                <div className="text-gray-500 text-sm italic py-4 text-center">
-                  *** No matching records found ***
-                </div>
-              }
-              pagination
-              paginationPerPage={15}
-              highlightOnHover
-              striped
-              dense
-            />
-          </div>
+            }
+            noDataComponent={
+              <div className="text-gray-500 text-sm italic py-4 text-center">
+                *** No matching records found ***
+              </div>
+            }
+            pagination
+            paginationPerPage={15}
+            highlightOnHover
+            striped
+            dense
+          />
         </div>
       </div>
     </div>
