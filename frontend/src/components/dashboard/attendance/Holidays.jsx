@@ -255,9 +255,9 @@ const Holidays = () => {
           ]}
         />
 
-        <div className="-mt-2 flex flex-row gap-3 flex-1 overflow-hidden">
-          {/* Calendar Section - 65% width */}
-          <div className="bg-white h-[96] rounded-lg p-3 w-[65%] flex flex-col overflow-hidden">
+        <div className="parent grid grid-cols-4 grid-rows-7 gap-2 -mt-3 h-full">
+          {/* Calendar Section - div1 */}
+          <div className="div1 col-span-3 row-span-4 bg-white rounded-lg p-3 flex flex-col overflow-hidden shadow border">
             <div className="flex justify-between">
               <h2 className="text-sm mb-4 text-neutralDGrey">
                 Holiday Calendar
@@ -278,7 +278,6 @@ const Holidays = () => {
                 </div>
               </div>
             </div>
-
             {/* React Big Calendar */}
             <div className="flex-1 -mt-4 overflow-hidden">
               <Calendar
@@ -297,31 +296,33 @@ const Holidays = () => {
                 showMultiDayTimes
                 step={60}
                 showAllEvents
+                className="compact-calendar"
+                style={{ height: "100%" }}
                 components={{
                   toolbar: ({ label, onNavigate, onView, view, views }) => (
-                    <div className="rbc-toolbar flex items-center justify-between mb-2 p-2 ">
+                    <div className="rbc-toolbar flex items-center justify-between mb-1 p-1">
                       <div className="flex items-center">
                         <button
                           onClick={() => onNavigate("PREV")}
-                          className="px-3 py-1 h-8 w-fit bg-white border hover:bg-gray-100 text-xs"
+                          className="px-2 py-1 h-7 w-fit bg-white border hover:bg-gray-100 text-xs"
                         >
                           <FaAngleLeft />
                         </button>
                         <button
                           onClick={() => onNavigate("TODAY")}
-                          className="px-3 py-1  h-8 w-fit bg-blue-500 text-neutralDGray  hover:bg-blue-600 text-xs"
+                          className="px-2 py-1 h-7 w-fit bg-blue-500 text-neutralDGray hover:bg-blue-600 text-xs"
                         >
                           Today
                         </button>
                         <button
                           onClick={() => onNavigate("NEXT")}
-                          className="px-3 py-1  h-8 w-fit bg-white border  hover:bg-gray-100 text-xs"
+                          className="px-2 py-1 h-7 w-fit bg-white border hover:bg-gray-100 text-xs"
                         >
                           <FaAngleRight />
                         </button>
                       </div>
 
-                      <div className="rbc-toolbar-label text-base ">
+                      <div className="rbc-toolbar-label text-sm font-medium">
                         {label}
                       </div>
 
@@ -335,7 +336,7 @@ const Holidays = () => {
                             <button
                               key={viewName}
                               onClick={() => onView(viewName)}
-                              className={`px-2 py-1 h-8 w-fit text-xs capitalize transition-colors ${
+                              className={`px-2 py-1 h-7 w-fit text-xs capitalize transition-colors ${
                                 view === viewName
                                   ? "bg-blue-500 text-neutralDGray"
                                   : "bg-white border hover:bg-gray-100"
@@ -347,15 +348,25 @@ const Holidays = () => {
                       </div>
                     </div>
                   ),
+                  month: {
+                    header: ({ label }) => (
+                      <div className="text-xs font-medium p-1 text-center">
+                        {label}
+                      </div>
+                    ),
+                    dateHeader: ({ label, date }) => (
+                      <div className="text-xs p-1">{label}</div>
+                    ),
+                  },
                 }}
               />
             </div>
           </div>
 
-          {/* Add Holiday Section - 35% width */}
-          <div className="bg-white h-[96] p-3 w-[35%] rounded-lg flex flex-col overflow-y-auto">
+          {/* Add Holiday Section - div2 */}
+          <div className="div2 row-span-4 col-start-4 bg-white p-3 rounded-lg flex flex-col overflow-y-auto border shadow">
             <h3 className="text-sm mb-4 text-neutralDGray">Add Holiday</h3>
-            <div className="flex flex-col gap-3 -mt-2">
+            <div className="flex flex-col gap-3 -space-y-3 -mt-4">
               <label htmlFor="name" className="text-xs text-neutralDGray">
                 Holiday Name
               </label>
@@ -364,7 +375,7 @@ const Holidays = () => {
                 placeholder="e.g. Independence Day"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="p-2 text-xs -mt-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full p-2 border text-xs border-gray-300 rounded-md"
               />
               <label htmlFor="date" className="text-xs -mt-1 text-neutralDGray">
                 Holiday Date
@@ -401,11 +412,11 @@ const Holidays = () => {
               </button>
 
               {/* Holiday Rates Display */}
-              <div className="mt-1 p-2 bg-gray-50 rounded-lg">
+              <div className="mt-0.5 p-2 bg-gray-50 rounded-lg">
                 <div className="text-sm italic font-medium text-neutralDGray mb-2">
                   Current Rates:
                 </div>
-                <div className="text-sm text-neutralDGray space-y-1">
+                <div className="text-sm text-neutralDGray -space-y-1 -mt-2">
                   <div>
                     Regular: <strong>{holidayRates.regular}x</strong>
                   </div>
@@ -427,21 +438,22 @@ const Holidays = () => {
               </button>
             </div>
           </div>
-        </div>
 
-        <div className="bg-white p-3 h-[10rem] mt-3 rounded-lg overflow-auto">
-          <h3 className="text-sm text-neutralDGray">Holiday List</h3>
-          <div className="text-xs">
-            <DataTable
-              columns={columns}
-              data={holidays}
-              noDataComponent="No holidays available."
-              pagination
-              paginationRowsPerPageOptions={[10, 15, 20, 30]}
-              dense
-              highlightOnHover
-              striped
-            />
+          {/* Holiday List Section - div3 */}
+          <div className="div3 col-span-4 row-span-3 row-start-5 bg-white p-3 rounded-lg overflow-auto border shadow">
+            <h3 className="text-sm text-neutralDGray">Holiday List</h3>
+            <div className="text-xs">
+              <DataTable
+                columns={columns}
+                data={holidays}
+                noDataComponent="No holidays available."
+                pagination
+                paginationRowsPerPageOptions={[10, 15, 20, 30]}
+                dense
+                highlightOnHover
+                striped
+              />
+            </div>
           </div>
         </div>
 

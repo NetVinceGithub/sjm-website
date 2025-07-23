@@ -521,12 +521,12 @@ const Job = () => {
       )}
 
       <div className="flex justify-between items-center -mt-3 mb-8">
-        <h2 className="text-neutralDGray text-lg font-semibold">
+        <h2 className="text-neutralDGray text-base font-medium">
           Available Jobs
         </h2>
         <button
           onClick={openAddModal}
-          className="border text-neutralDGray w-32 text-center text-sm h-10 rounded hover:text-white  hover:bg-green-400 transition-all duration-300"
+          className="border text-neutralDGray w-32 text-center text-xs h-8 rounded hover:text-white  hover:bg-green-400 transition-all duration-300"
         >
           Add Job
         </button>

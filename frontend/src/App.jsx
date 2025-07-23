@@ -137,7 +137,7 @@ function AppContent() {
             element={<EmployeePayrollData />}
           />
           <Route path="payslip-history" element={<PayslipHistory />} />
-          <Route path="payroll-summary" element={<PayrollSummary />} />
+          <Route path="payroll-generator" element={<PayrollSummary />} />
           <Route path="employees/payslip/:id" element={<Payslip />} />
           <Route
             path="employees/payslip-history/:id"

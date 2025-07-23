@@ -1,5 +1,6 @@
 import axios from "axios";
 import { div } from "framer-motion/client";
+import * as XLSX from "xlsx";
 import React, { useEffect, useState } from "react";
 import DataTable from "react-data-table-component";
 import { useNavigate, useParams } from "react-router-dom";
@@ -13,6 +14,7 @@ import {
 } from "react-icons/fa6";
 import { Modal, Button } from "react-bootstrap";
 import PayslipHistoryModal from "../payroll/PayslipHistoryModal";
+import { ThreeDots } from "react-loader-spinner";
 
 const PayslipHistory = () => {
   const [payslips, setPayslips] = useState([]);
@@ -27,6 +29,64 @@ const PayslipHistory = () => {
     console.log("Opening modal for employee:", employeeId); // Debugging
     setSelectedEmployee(employeeId);
     setModalOpen(true);
+  };
+
+  const exportToExcel = () => {
+    try {
+      // Prepare data for export
+      const exportData = filteredPayslips.map((payslip, index) => ({
+        "No.": index + 1,
+        "Employee Code": payslip.employeeId || "N/A",
+        "Employee Name": payslip.name || "N/A",
+        Position: payslip.position || "N/A",
+        Project: payslip.project || "N/A",
+        "Cut-off Date": payslip.cutoffDate || "N/A",
+        "Basic Pay": payslip.basicPay ?? 0,
+        "Overtime Pay": payslip.overtimePay ?? 0,
+        "Holiday Pay": payslip.holidayPay ?? 0,
+        Allowance: payslip.allowance ?? 0,
+        "Total Deductions": payslip.totalDeductions ?? 0,
+        "Net Pay": payslip.netPay ?? 0,
+      }));
+
+      // Create a new workbook
+      const workbook = XLSX.utils.book_new();
+
+      // Convert data to worksheet
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+      // Set column widths
+      const columnWidths = [
+        { wch: 5 }, // No.
+        { wch: 15 }, // Employee Code
+        { wch: 25 }, // Employee Name
+        { wch: 20 }, // Position
+        { wch: 20 }, // Project
+        { wch: 15 }, // Cut-off Date
+        { wch: 12 }, // Basic Pay
+        { wch: 12 }, // Overtime Pay
+        { wch: 12 }, // Holiday Pay
+        { wch: 12 }, // Allowance
+        { wch: 15 }, // Total Deductions
+        { wch: 12 }, // Net Pay
+      ];
+      worksheet["!cols"] = columnWidths;
+
+      // Add the worksheet to the workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Payslip History");
+
+      // Generate filename with current date
+      const currentDate = new Date().toISOString().split("T")[0];
+      const filename = `Payslip_History_${currentDate}.xlsx`;
+
+      // Save the file
+      XLSX.writeFile(workbook, filename);
+
+      console.log("Excel file exported successfully");
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      alert("Failed to export data to Excel. Please try again.");
+    }
   };
 
   useEffect(() => {
@@ -195,54 +255,62 @@ const PayslipHistory = () => {
             { label: "Payroll History", href: "/admin-dashboard/employees" },
           ]}
         />
-        <div className="-mt-2 bg-white w-[calc(100vw-310px)] h-[calc(100vh-80px)] p-3 py-3 rounded-lg shadow">
+        <div className="bg-white p-2 -mt-3 rounded-lg shadow w-[calc(100vw-310px)] flex justify-between">
+          <div className="inline-flex border border-neutralDGray rounded h-8">
+            <button
+              onClick={exportToExcel} // Export as Excel
+              className="px-3 w-20 h-full hover:bg-neutralSilver border-l-0 transition-all duration-300 rounded-r flex items-center justify-center"
+            >
+              <FaRegFileExcel
+                title="Export to PDF"
+                className=" text-neutralDGray"
+              />
+            </button>
+          </div>
+
+          <div className="flex flex-row gap-2 w-1/2 justify-end">
+            <div className="flex w-full">
+              <input
+                type="text"
+                placeholder="Search Employee Name or ID"
+                onChange={handleSearch}
+                className="px-2 text-xs rounded w-full h-8 py-0.5 border"
+              />
+              <FaSearch className="-ml-6 mt-1.5 text-neutralDGray/60" />
+            </div>
+          </div>
+        </div>
+        <div className="mt-2 bg-white w-[calc(100vw-310px)] h-[calc(100vh-80px)] p-2 rounded-lg shadow">
           {loading ? (
             <div>Loading...</div>
           ) : (
             <div>
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="inline-flex border border-neutralDGray rounded h-8">
-                    <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center">
-                      <FaPrint
-                        title="Print"
-                        className="text-neutralDGray] transition-all duration-300"
-                      />
-                    </button>
-
-                    <button className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center">
-                      <FaRegFileExcel
-                        title="Export to Excel"
-                        className=" text-neutralDGray"
-                      />
-                    </button>
-                    <button className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center">
-                      <FaRegFilePdf
-                        title="Export to PDF"
-                        className=" text-neutralDGray"
-                      />
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex rounded items-center">
-                      <input
-                        type="text"
-                        placeholder="Search by Name or Employee ID"
-                        className="px-2 w-[268px] text-sm rounded py-1 border"
-                        onChange={handleSearch}
-                      />
-                      <FaSearch className="ml-[-20px] text-neutralDGray" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <hr />
-              <div className="mt-3 border border-neutralDGray rounded overflow-auto">
+              <div className=" border border-neutralDGray rounded overflow-auto">
                 <div className="w-full overflow-x-auto">
                   <DataTable
                     columns={columns}
                     data={filteredPayslips}
                     pagination
+                    progressPending={loading}
+                    progressComponent={
+                      <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
+                        <ThreeDots
+                          visible={true}
+                          height="60"
+                          width="60"
+                          color="#4fa94d"
+                          radius="9"
+                          ariaLabel="three-dots-loading"
+                          wrapperStyle={{}}
+                          wrapperClass=""
+                        />
+                      </div>
+                    }
+                    noDataComponent={
+                      <div className="text-gray-500 text-sm italic py-4 text-center">
+                        *** No data found ***
+                      </div>
+                    }
                   />
                 </div>
               </div>

@@ -1195,8 +1195,8 @@ const List = () => {
                   customStyles={customStyles}
                   columns={columns}
                   dense
-                  fixedHeader={true}
-                  fixedHeaderScrollHeight="calc(100vh - 300px)"
+                  fixedHeader
+                  paginationPerPage={20}
                   highlightOnHover={true}
                   data={filteredEmployees}
                   progressPending={loading}
@@ -1215,6 +1215,12 @@ const List = () => {
                       />
                     </div>
                   }
+                  noDataComponent={
+                    <div className="text-gray-500 text-sm italic py-4 text-center">
+                      *** No data found ***
+                    </div>
+                  }
+                  fixedHeaderScrollHeight="500px"
                   pagination
                   expandableRows={true}
                   expandableRowExpanded={(row) => expandedRows[row.id] === true}

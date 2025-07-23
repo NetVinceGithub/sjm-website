@@ -301,76 +301,70 @@ const Contributions = () => {
   };
 
   return (
-    <div className="p-6 h-[calc(100vh-150px)]">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 -mt-3">
-        {/* PIE CHART */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-lg border p-2">
-            <h3 className="text-sm text-neutralDGray mb-4">
-              Contribution Breakdown
-            </h3>
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie
-                  activeIndex={activeIndex}
-                  activeShape={renderActiveShape}
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  onMouseEnter={onPieEnter}
-                  cursor="pointer"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ fontSize: "12px" }}
-                  formatter={(value) => `₱${value.toLocaleString()}`}
-                />
-                <Legend
-                  wrapperStyle={{ fontSize: "12px", marginTop: "10px" }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* BAR CHART */}
-          <div className="bg-white rounded-lg border p-2">
-            <h3 className="text-sm text-neutralDGray mb-4">
-              Employee and Employer Contribution Distribution
-            </h3>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart
-                data={barChartData}
-                margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+    <div className="p-2 h-[calc(100vh-150px)]">
+      <div className="grid grid-cols-6 grid-rows-6 gap-2 min-h-[600px] w-full -mt-3">
+        {/* PIE CHART - div1 */}
+        <div className="col-span-3 row-span-3 bg-white rounded-lg border p-2">
+          <h3 className="text-sm text-neutralDGray mb-4">
+            Contribution Breakdown
+          </h3>
+          <ResponsiveContainer width="100%" height={260}>
+            <PieChart>
+              <Pie
+                activeIndex={activeIndex}
+                activeShape={renderActiveShape}
+                data={pieData}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+                onMouseEnter={onPieEnter}
+                cursor="pointer"
               >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" tick={{ fontSize: "12px" }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip
-                  contentStyle={{ fontSize: "12px" }}
-                  formatter={(value) => `₱${value.toLocaleString()}`}
-                />
-                <Legend
-                  wrapperStyle={{ fontSize: "12px", marginTop: "10px" }}
-                />
-                <Bar dataKey="Employee" fill={BAR_COLORS[0]} />
-                <Bar dataKey="Employer" fill={BAR_COLORS[1]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+                {pieData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{ fontSize: "12px" }}
+                formatter={(value) => `₱${value.toLocaleString()}`}
+              />
+              <Legend wrapperStyle={{ fontSize: "12px", marginTop: "10px" }} />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
 
-        {/* DATA TABLE */}
-        <div className="lg:col-span-2 bg-white rounded-lg border p-2">
+        {/* BAR CHART - div2 */}
+        <div className="col-span-3 row-span-3 col-start-1 row-start-4 bg-white rounded-lg border p-2">
+          <h3 className="text-sm text-neutralDGray mb-4">
+            Employee and Employer Contribution Distribution
+          </h3>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart
+              data={barChartData}
+              margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" tick={{ fontSize: "12px" }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip
+                contentStyle={{ fontSize: "12px" }}
+                formatter={(value) => `₱${value.toLocaleString()}`}
+              />
+              <Legend wrapperStyle={{ fontSize: "12px", marginTop: "10px" }} />
+              <Bar dataKey="Employee" fill={BAR_COLORS[0]} />
+              <Bar dataKey="Employer" fill={BAR_COLORS[1]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* DATA TABLE - div3 */}
+        <div className="col-span-3 row-span-6 col-start-4 row-start-1 bg-white rounded-lg border p-2">
           <h3 className="text-sm text-neutralDGray mb-4">
             Employee Contributions Details
           </h3>
@@ -387,6 +381,9 @@ const Contributions = () => {
             }
             pagination
             highlightOnHover
+            fixedHeader
+            fixedHeaderScrollHeight="530px"
+            paginationPerPage={20}
             dense
             striped
             noDataComponent={

@@ -29,6 +29,7 @@ import {
   FaBuildingLock,
   FaUserPlus,
   FaHeadset,
+  FaLock,
   FaTableList,
 } from "react-icons/fa6";
 import Logo from "/public/logo-rembg.png";
@@ -152,14 +153,13 @@ const AdminSidebar = () => {
                     to="/admin-dashboard/overview"
                     end
                     className={({ isActive }) =>
-                      `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                      `flex text-sm items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                         isActive
-                          ? "bg-[#5f2e3d] font-bold border-l-4"
+                          ? "font-bold  translate-x-7 transition-all duration-300"
                           : "hover:bg-[#924F64]"
                       }`
                     }
                   >
-                    <FaBookOpen />
                     <span>Overview</span>
                   </NavLink>
                 )}
@@ -169,32 +169,37 @@ const AdminSidebar = () => {
                   <NavLink
                     to="/admin-dashboard/menu"
                     className={({ isActive }) =>
-                      `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                      `flex text-sm items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                         isActive
-                          ? "bg-[#5f2e3d] font-bold border-l-4"
+                          ? "font-bold  translate-x-7 transition-all duration-300"
                           : "hover:bg-[#924F64]"
                       }`
                     }
                   >
-                    <FaTableList />
                     <span>Menu</span>
                   </NavLink>
                 )}
 
-                {isApprover && (
+                {isApprover ? (
                   <NavLink
                     to="/admin-dashboard/admin-settings"
                     className={({ isActive }) =>
-                      `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                      `flex text-sm items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                         isActive
-                          ? "bg-[#5f2e3d] font-bold border-l-4"
+                          ? "font-bold  translate-x-7 transition-all duration-300"
                           : "hover:bg-[#924F64]"
                       }`
                     }
                   >
-                    <FaCogs />
                     <span>Admin Settings</span>
                   </NavLink>
+                ) : (
+                  <button
+                    onClick={handleRestrictedAccess}
+                    className="text-sm flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                  >
+                    <span>Admin Settings</span>
+                  </button>
                 )}
               </div>
             )}
@@ -226,24 +231,22 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/employees"
                       className={({ isActive }) =>
-                        `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                        `flex text-sm items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                           isActive
-                            ? "bg-[#5f2e3d] font-bold border-l-4"
+                            ? "font-bold  translate-x-7 transition-all duration-300"
                             : "hover:bg-[#924F64]"
                         }`
                       }
                       end
                     >
-                      <FaUsers />
                       <span>Masterlist</span>
                     </NavLink>
                   </>
                 ) : (
                   <button
                     onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                    className="text-sm flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
                   >
-                    <FaUsers />
                     <span>Masterlist</span>
                   </button>
                 )}
@@ -252,24 +255,22 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/employees/add-employee"
                       className={({ isActive }) =>
-                        `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                        `flex text-sm items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                           isActive
-                            ? "bg-[#5f2e3d] font-bold border-l-4"
+                            ? "font-bold  translate-x-7 transition-all duration-300"
                             : "hover:bg-[#924F64]"
                         }`
                       }
                       end
                     >
-                      <FaUserPlus />
                       <span>Add Employee</span>
                     </NavLink>
                   </>
                 ) : (
                   <button
                     onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                    className="text-sm flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
                   >
-                    <FaUserPlus />
                     <span>Add Employee</span>
                   </button>
                 )}
@@ -302,24 +303,22 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/attendance"
                       className={({ isActive }) =>
-                        `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                        `flex text-sm items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                           isActive
-                            ? "bg-[#5f2e3d] font-bold border-l-4"
+                            ? "font-bold  translate-x-7 transition-all duration-300"
                             : "hover:bg-[#924F64]"
                         }`
                       }
                       end
                     >
-                      <FaCalendarPlus />
                       <span>Add Attendance</span>
                     </NavLink>
                   </>
                 ) : (
                   <button
                     onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                    className="text-sm flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
                   >
-                    <FaCalendarPlus />
                     <span>Add Attendance</span>
                   </button>
                 )}
@@ -328,24 +327,22 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/attendance/history"
                       className={({ isActive }) =>
-                        `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                        `flex text-sm items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                           isActive
-                            ? "bg-[#5f2e3d] font-bold border-l-4"
+                            ? "font-bold  translate-x-7 transition-all duration-300"
                             : "hover:bg-[#924F64]"
                         }`
                       }
                       end
                     >
-                      <FaRegCalendarAlt />
                       <span>History</span>
                     </NavLink>
                   </>
                 ) : (
                   <button
                     onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                    className="text-sm flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
                   >
-                    <FaRegCalendarAlt />
                     <span>History</span>
                   </button>
                 )}
@@ -354,24 +351,22 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/holidays"
                       className={({ isActive }) =>
-                        `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                        `flex text-sm items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                           isActive
-                            ? "bg-[#5f2e3d] font-bold border-l-4"
+                            ? "font-bold  translate-x-7 transition-all duration-300"
                             : "hover:bg-[#924F64]"
                         }`
                       }
                       end
                     >
-                      <FaCalendarXmark />
                       <span>Holidays</span>
                     </NavLink>
                   </>
                 ) : (
                   <button
                     onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                    className="text-sm flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
                   >
-                    <FaCalendarXmark />
                     <span>Holidays</span>
                   </button>
                 )}
@@ -404,51 +399,47 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/employees/payroll-informations/list"
                       className={({ isActive }) =>
-                        `flex -mt-1 items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                        `flex text-sm items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                           isActive
-                            ? "bg-[#5f2e3d] font-bold border-l-4"
+                            ? "font-bold  translate-x-7 transition-all duration-300"
                             : "hover:bg-[#924F64]"
                         }`
                       }
                       end
                     >
-                      <FaPoll />
-                      <span>P. Information</span>
+                      <span>Payroll Information</span>
                     </NavLink>
                   </>
                 ) : (
                   <button
                     onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                    className="text-sm flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
                   >
-                    <FaPoll />
-                    <span>P. Information</span>
+                    <span>Payroll Information</span>
                   </button>
                 )}
                 {isHr || isApprover ? (
                   <>
                     <NavLink
-                      to="/admin-dashboard/payroll-summary"
+                      to="/admin-dashboard/payroll-generator"
                       className={({ isActive }) =>
-                        `flex -mt-1 items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                        `flex text-sm items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                           isActive
-                            ? "bg-[#5f2e3d] font-bold border-l-4"
+                            ? "font-bold  translate-x-7 transition-all duration-300"
                             : "hover:bg-[#924F64]"
                         }`
                       }
                       end
                     >
-                      <FaPrint />
-                      <span>P. Generator</span>
+                      <span>Payroll Generator</span>
                     </NavLink>
                   </>
                 ) : (
                   <button
                     onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                    className="text-sm flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
                   >
-                    <FaPrint />
-                    <span>P. Generator</span>
+                    <span>Payroll Generator</span>
                   </button>
                 )}
                 {isApprover || isHr ? (
@@ -456,25 +447,23 @@ const AdminSidebar = () => {
                     <NavLink
                       to="/admin-dashboard/payslip-history"
                       className={({ isActive }) =>
-                        `flex -mt-1 items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                        `flex text-sm items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                           isActive
-                            ? "bg-[#5f2e3d] font-bold border-l-4"
+                            ? "font-bold  translate-x-7 transition-all duration-300"
                             : "hover:bg-[#924F64]"
                         }`
                       }
                       end
                     >
-                      <FaFolderOpen />
-                      <span>P. History</span>
+                      <span>Payroll History</span>
                     </NavLink>
                   </>
                 ) : (
                   <button
                     onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                    className="text-sm flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
                   >
-                    <FaFolderOpen />
-                    <span>P. History</span>
+                    <span>Payroll History</span>
                   </button>
                 )}
               </div>
@@ -505,24 +494,22 @@ const AdminSidebar = () => {
                   <NavLink
                     to="/admin-dashboard/client-list"
                     className={({ isActive }) =>
-                      `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                      `flex text-sm items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                         isActive
-                          ? "bg-[#5f2e3d] font-bold border-l-4"
+                          ? "font-bold  translate-x-7 transition-all duration-300"
                           : "hover:bg-[#924F64]"
                       }`
                     }
                     end
                   >
-                    <FaBuildingLock />
                     <span>Masterlist</span>
                   </NavLink>
                 ) : (
                   <button
                     onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                    className="text-sm flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
                   >
-                    <FaScroll />
-                    <span>Invoice</span>
+                    <span>Masterlist</span>
                   </button>
                 )}
 
@@ -530,23 +517,21 @@ const AdminSidebar = () => {
                   <NavLink
                     to="client/add-client"
                     className={({ isActive }) =>
-                      `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                      `flex text-sm items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                         isActive
-                          ? "bg-[#5f2e3d] font-bold border-l-4"
+                          ? "font-bold  translate-x-7 transition-all duration-300"
                           : "hover:bg-[#924F64]"
                       }`
                     }
                     end
                   >
-                    <FaHeadset />
                     <span>Add Client</span>
                   </NavLink>
                 ) : (
                   <button
                     onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                    className="flex text-sm items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
                   >
-                    <FaHeadset />
                     <span>Add Client</span>
                   </button>
                 )}
@@ -555,23 +540,21 @@ const AdminSidebar = () => {
                   <NavLink
                     to="/admin-dashboard/invoice-list"
                     className={({ isActive }) =>
-                      `flex items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                      `flex text-sm items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
                         isActive
-                          ? "bg-[#5f2e3d] font-bold border-l-4"
+                          ? "font-bold  translate-x-7 transition-all duration-300"
                           : "hover:bg-[#924F64]"
                       }`
                     }
                     end
                   >
-                    <FaScroll />
                     <span>Invoice</span>
                   </NavLink>
                 ) : (
                   <button
                     onClick={handleRestrictedAccess}
-                    className="flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                    className="flex text-sm items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
                   >
-                    <FaScroll />
                     <span>Invoice</span>
                   </button>
                 )}
