@@ -96,7 +96,7 @@ const Login = () => {
       }}
     >
       <div className="backdrop-blur-md bg-white/20 border border-white/20  rounded-lg shadow-black shadow-2xl p-6 w-full sm:w-[80%] md:w-[60%] lg:w-[40%] xl:w-[30%] max-w-md">
-        <h2 className="font-inter text-[28px] text-center font-bold text-neutralDGray">
+        <h2 className="font-inter text-[28px] text-center font-medium text-neutralDGray">
           Payroll Management Portal
         </h2>
         <hr className="my-3 mb-4 border-t-1 border-black" />
