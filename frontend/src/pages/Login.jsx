@@ -113,7 +113,7 @@ const Login = () => {
               type="email"
               name="email"
               id="email"
-              className="block py-2.5 px-2 w-full text-sm text-gray-900 bg-transparent border-r-0 border-l-0 border-t-0 border-b-1 border-neutralDGray appearance-none focus:outline-none focus:ring-0 focus:border-brandPrimary     "
+              className="peer block py-2.5 px-2 w-full text-sm text-gray-900 bg-transparent border-r-0 border-l-0 border-t-0 border-b-1 border-neutralDGray appearance-none focus:outline-none focus:ring-0 focus:border-brandPrimary     "
               placeholder=" "
               value={email}
               onChange={(e) => setEmail(e.target.value)}
