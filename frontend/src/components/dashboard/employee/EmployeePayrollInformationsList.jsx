@@ -513,7 +513,7 @@ const EmployeePayrollInformationsList = () => {
           {/* Table Container */}
           <div>
             <div className="w-full">
-              <div className="max-h-[35rem] overflow-y-auto text-neutralDGray border rounded-md">
+              <div className="h-full overflow-y-auto text-neutralDGray border rounded-md">
                 <div>
                   <DataTable
                     customStyles={customStyles}
@@ -543,7 +543,7 @@ const EmployeePayrollInformationsList = () => {
                     pointerOnHover
                     dense
                     fixedHeader
-                    fixedHeaderScrollHeight="500px"
+                    fixedHeaderScrollHeight="530px"
                   />
                 </div>
               </div>

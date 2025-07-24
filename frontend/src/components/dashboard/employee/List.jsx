@@ -55,6 +55,8 @@ const List = () => {
   const [showBulkMessage, setShowBulkMessage] = useState(false);
   const [showFilterList, setshowFilterList] = useState(false);
   const [expandedRows, setExpandedRows] = useState({});
+  const [activeFilters, setActiveFilters] = useState({});
+  const [originalEmployees, setOriginalEmployees] = useState([]);
 
   useEffect(() => {
     fetchEmployees();
@@ -66,6 +68,34 @@ const List = () => {
 
   const handleCloseBulk = () => {
     setShowBulkMessage(false); // ✅ This is correct
+  };
+
+  // Add this function to classify employees based on separation date
+  const classifyEmploymentStatus = (employees) => {
+    return employees.map((employee) => {
+      // Check if employee has a date of separation and it's not null/empty
+      if (
+        employee.dateofseparation &&
+        employee.dateofseparation.trim() !== "" &&
+        employee.dateofseparation !== "N/A"
+      ) {
+        // Parse the separation date
+        const separationDate = new Date(employee.dateofseparation);
+        const currentDate = new Date();
+
+        // If separation date is valid and is today or in the past
+        if (!isNaN(separationDate.getTime()) && separationDate <= currentDate) {
+          return {
+            ...employee,
+            employmentstatus: "RESIGNED",
+            status: "Inactive", // Also set status to Inactive for resigned employees
+          };
+        }
+      }
+
+      // Return employee unchanged if no valid separation date
+      return employee;
+    });
   };
 
   const openFilterList = () => {
@@ -83,17 +113,128 @@ const List = () => {
         `${import.meta.env.VITE_API_URL}/api/employee`
       );
       if (response.data.success) {
-        setEmployees(response.data.employees);
-        notifyBirthdays(response.data.employees);
-        notifyTrainingExpiring(response.data.employees);
-        notifyMedicalExpiring(response.data.employees);
-        setFilteredEmployees(response.data.employees);
+        // Apply employment status classification
+        const classifiedEmployees = classifyEmploymentStatus(
+          response.data.employees
+        );
+
+        setEmployees(classifiedEmployees);
+        setOriginalEmployees(classifiedEmployees); // Store classified data
+        notifyBirthdays(classifiedEmployees);
+        notifyTrainingExpiring(classifiedEmployees);
+        notifyMedicalExpiring(classifiedEmployees);
+        setFilteredEmployees(classifiedEmployees);
       }
     } catch (error) {
       console.error("Error fetching employees:", error);
     } finally {
       setLoading(false);
     }
+  };
+  const handleFilterChange = (filters) => {
+    setActiveFilters(filters);
+    applyFilters(filters);
+  };
+
+  const applyFilters = (filters) => {
+    let filtered = [...originalEmployees];
+
+    // Apply search filter if exists
+    const searchInput = document.querySelector(
+      'input[placeholder="Search Employee"]'
+    );
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
+
+    if (searchTerm) {
+      filtered = filtered.filter((emp) =>
+        emp.name.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Apply department filter
+    if (filters.department && filters.department.length > 0) {
+      filtered = filtered.filter((emp) =>
+        filters.department.includes(emp.department)
+      );
+    }
+
+    // Apply status filter
+    if (filters.status && filters.status.length > 0) {
+      filtered = filtered.filter((emp) => {
+        const effectiveStatus =
+          emp.employmentstatus === "RESIGNED" ? "Inactive" : emp.status;
+        return filters.status.includes(effectiveStatus);
+      });
+    }
+
+    // Apply employment status filter
+    if (filters.employmentStatus && filters.employmentStatus.length > 0) {
+      filtered = filtered.filter((emp) =>
+        filters.employmentStatus.includes(emp.employmentstatus)
+      );
+    }
+
+    // Apply position filter
+    if (filters.position && filters.position.length > 0) {
+      filtered = filtered.filter((emp) =>
+        filters.position.includes(emp.positiontitle)
+      );
+    }
+
+    // Apply project filter
+    if (filters.project && filters.project.length > 0) {
+      filtered = filtered.filter((emp) =>
+        filters.project.includes(emp.project || "N/A")
+      );
+    }
+
+    // Apply employment rank filter
+    if (filters.employmentRank && filters.employmentRank.length > 0) {
+      filtered = filtered.filter((emp) =>
+        filters.employmentRank.includes(emp.employmentrank)
+      );
+    }
+
+    if (filters.civilStatus && filters.civilStatus.length > 0) {
+      filtered = filtered.filter((emp) =>
+        filters.civilStatus.includes(emp.civilstatus)
+      );
+    }
+
+    if (filters.sex && filters.sex.length > 0) {
+      filtered = filtered.filter((emp) => filters.sex.includes(emp.gender));
+    }
+
+    // Apply date range filter (date of hire)
+    if (filters.dateRange && filters.dateRange.start && filters.dateRange.end) {
+      const startDate = new Date(filters.dateRange.start);
+      const endDate = new Date(filters.dateRange.end);
+
+      filtered = filtered.filter((emp) => {
+        if (!emp.dateofhire) return false;
+        const hireDate = new Date(emp.dateofhire);
+        return hireDate >= startDate && hireDate <= endDate;
+      });
+    }
+
+    // Apply age range filter
+    if (filters.ageRange && (filters.ageRange.min || filters.ageRange.max)) {
+      filtered = filtered.filter((emp) => {
+        const age = parseInt(emp.age);
+        if (isNaN(age)) return false;
+
+        const minAge = filters.ageRange.min
+          ? parseInt(filters.ageRange.min)
+          : 0;
+        const maxAge = filters.ageRange.max
+          ? parseInt(filters.ageRange.max)
+          : 999;
+
+        return age >= minAge && age <= maxAge;
+      });
+    }
+
+    setFilteredEmployees(filtered);
   };
 
   const syncEmployees = async () => {
@@ -111,10 +252,62 @@ const List = () => {
 
   const handleFilter = (e) => {
     const searchTerm = e.target.value.toLowerCase();
-    const records = employees.filter((emp) =>
-      emp.name.toLowerCase().includes(searchTerm)
+
+    // Start with original data
+    let filtered = [...originalEmployees];
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter((emp) =>
+        emp.name.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Reapply existing filters
+    if (Object.keys(activeFilters).length > 0) {
+      // Apply department filter
+      if (activeFilters.department && activeFilters.department.length > 0) {
+        filtered = filtered.filter((emp) =>
+          activeFilters.department.includes(emp.department)
+        );
+      }
+
+      // Apply status filter
+      if (activeFilters.status && activeFilters.status.length > 0) {
+        filtered = filtered.filter((emp) => {
+          const effectiveStatus =
+            emp.employmentstatus === "RESIGNED" ? "Inactive" : emp.status;
+          return activeFilters.status.includes(effectiveStatus);
+        });
+      }
+
+      // Apply employment status filter
+      if (
+        activeFilters.employmentStatus &&
+        activeFilters.employmentStatus.length > 0
+      ) {
+        filtered = filtered.filter((emp) =>
+          activeFilters.employmentStatus.includes(emp.employmentstatus)
+        );
+      }
+
+      // Apply other filters as needed...
+    }
+
+    setFilteredEmployees(filtered);
+  };
+
+  const clearAllFilters = () => {
+    setActiveFilters({});
+    setFilteredEmployees(originalEmployees);
+
+    // Clear search input
+    const searchInput = document.querySelector(
+      'input[placeholder="Search Employee"]'
     );
-    setFilteredEmployees(records);
+    if (searchInput) {
+      searchInput.value = "";
+    }
   };
 
   const openModal = (employeeId) => {
@@ -290,6 +483,7 @@ const List = () => {
           )
         );
 
+        // Close modal and clear state
         setIsBlockModalOpen(false);
         setEmployeeToBlock(null);
 
@@ -372,6 +566,7 @@ const List = () => {
     setEmployeeToBlock(null);
   };
 
+  // Fixed handleToggleStatus function
   const handleToggleStatus = async (
     id,
     currentStatus,
@@ -393,17 +588,19 @@ const List = () => {
       if (newStatus === "Block") {
         setEmployeeToBlock(employee);
         setIsBlockModalOpen(true);
+        return; // Make sure to return here
       } else if (newStatus === "Inactive") {
         setEmployeeToBlock(employee);
         setIsInactiveModalOpen(true);
+        return; // Make sure to return here
       } else if (newStatus === "Active") {
         setEmployeeToBlock(employee);
-        setIsUnBlockModalOpen(true); // This will handle activation
+        setIsUnBlockModalOpen(true);
+        return; // Make sure to return here
       }
-      return;
     }
 
-    // Handle main button clicks (not dropdown)
+    // Handle main button clicks (not dropdown) - only when newStatus is null/undefined
     if (employmentStatus === "RESIGNED" && currentStatus === "Inactive") {
       // Special case for resigned employees
       setEmployeeToBlock(employee);
@@ -411,7 +608,7 @@ const List = () => {
       return;
     }
 
-    // Regular status changes
+    // Regular status changes for main button clicks
     if (currentStatus === "Block") {
       // Block -> Active (Unblock)
       setEmployeeToBlock(employee);
@@ -419,7 +616,7 @@ const List = () => {
     } else if (currentStatus === "Inactive") {
       // Inactive -> Active (Activate)
       setEmployeeToBlock(employee);
-      setIsUnBlockModalOpen(true);
+      setIsActivateEmployeeOpen(true);
     } else if (currentStatus === "Active") {
       // Active -> Inactive (default action)
       setEmployeeToBlock(employee);
@@ -611,7 +808,7 @@ const List = () => {
       name: "Department",
       selector: (row) => row.department,
       sortable: true,
-      width: "120px",
+      width: "200px",
     },
     {
       name: "Area/Section",
@@ -629,13 +826,13 @@ const List = () => {
       name: "Date of Hire",
       selector: (row) => row.dateofhire,
       sortable: true,
-      width: "120px",
+      width: "180px",
     },
     {
       name: "Date of Separation",
       selector: (row) => row.dateofseparation || "N/A",
       sortable: true,
-      width: "150px",
+      width: "180px",
     },
     {
       name: "Tenurity to Client",
@@ -670,7 +867,7 @@ const List = () => {
       name: "Birthdate",
       selector: (row) => row.birthdate,
       sortable: true,
-      width: "120px",
+      width: "180px",
       cell: (row) => {
         const approaching = isBirthdayApproaching(row.birthdate);
         return (
@@ -747,7 +944,7 @@ const List = () => {
       name: "Medical",
       selector: (row) => row.medical || "N/A",
       sortable: true,
-      width: "120px",
+      width: "180px",
       cell: (row) => {
         const medStr = row.medical;
         const expiringMed = isMedicalExpiringSoon(medStr);
@@ -772,13 +969,13 @@ const List = () => {
       name: "Health Card",
       selector: (row) => row.healthcard,
       sortable: true,
-      width: "150px",
+      width: "180px",
     },
     {
       name: "GMP",
       selector: (row) => row.gmp || "N/A",
       sortable: true,
-      width: "150px",
+      width: "180px",
       cell: (row) => {
         const dateStr = row.gmp;
         const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
@@ -803,7 +1000,7 @@ const List = () => {
       name: "PRP",
       selector: (row) => row.prp || "N/A",
       sortable: true,
-      width: "150px",
+      width: "180px",
       cell: (row) => {
         const dateStr = row.prp;
         const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
@@ -828,7 +1025,7 @@ const List = () => {
       name: "Housekeeping",
       selector: (row) => row.housekeeping || "N/A",
       sortable: true,
-      width: "150px",
+      width: "180px",
       cell: (row) => {
         const dateStr = row.housekeeping;
         const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
@@ -853,7 +1050,7 @@ const List = () => {
       name: "Safety",
       selector: (row) => row.safety || "N/A",
       sortable: true,
-      width: "150px",
+      width: "180px",
       cell: (row) => {
         const dateStr = row.safety;
         const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
@@ -878,7 +1075,7 @@ const List = () => {
       name: "CRR",
       selector: (row) => row.crr || "N/A",
       sortable: true,
-      width: "150px",
+      width: "180px",
       cell: (row) => {
         const dateStr = row.crr;
         const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
@@ -1220,7 +1417,7 @@ const List = () => {
                       *** No data found ***
                     </div>
                   }
-                  fixedHeaderScrollHeight="500px"
+                  fixedHeaderScrollHeight="530px"
                   pagination
                   expandableRows={true}
                   expandableRowExpanded={(row) => expandedRows[row.id] === true}
@@ -1439,7 +1636,7 @@ const List = () => {
       {/* Activate Employee Modal - for resigned employees */}
       <ActivateEmployeeModal
         isOpen={isActivateEmployeeOpen}
-        onClose={handleResignationCancel}
+        onClose={() => setIsActivateEmployeeOpen(false)}
         onConfirm={handleResignationConfirm}
         employee={employeeToBlock}
       />
@@ -1469,16 +1666,12 @@ const List = () => {
         <FilterList
           show={showFilterList}
           handleCloseFilterList={handleCloseFilterList}
+          employees={originalEmployees} // Pass original data for generating filter options
+          onFilterChange={handleFilterChange} // Pass the filter change handler
+          onClearFilters={clearAllFilters} // Pass clear filters function
+          activeFilters={activeFilters} // Pass current active filters
         />
       )}
-
-      {/* <FilterList
-        show={openFilterList}
-        handleCloseFilterList={() => setShowFilter(false)} // or some close function
-        // data={data}
-        onFilterChange={handleFilter}
-        // initialFilters={initialFilters}
-      /> */}
     </div>
   );
 };

@@ -27,21 +27,52 @@ const DropdownStatusButton = ({ row, effectiveStatus, handleToggleStatus }) => {
     if (isDropdownOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       setDropdownPosition({
-        top: rect.top - 8, // Small offset above the button
-        left: rect.right - 150, // Align to right edge of button (128px = w-32)
+        top: rect.top - 8,
+        left: rect.right - 150,
       });
     }
   }, [isDropdownOpen]);
 
   const handleOptionSelect = (option) => {
-    // Pass all required parameters: id, currentStatus, employmentStatus, newStatus
-    handleToggleStatus(row.id, effectiveStatus, row.employmentstatus, option);
+    // Enhanced debugging
+    console.log("🔍 DropdownStatusButton Debug:", {
+      selectedOption: option,
+      rowId: row.id,
+      rowEmployeeId: row.employeeId,
+      effectiveStatus,
+      employmentStatus: row.employmentstatus,
+      fullRowKeys: Object.keys(row),
+    });
+
+    // Use consistent ID logic - try both fields
+    const employeeId = row.employeeId || row.id;
+
+    if (!employeeId) {
+      console.error("❌ No valid employee ID found in row:", row);
+      return;
+    }
+
+    // Pass all required parameters
+    handleToggleStatus(
+      employeeId,
+      effectiveStatus,
+      row.employmentstatus,
+      option
+    );
     setIsDropdownOpen(false);
   };
 
   const handleMainButtonClick = () => {
+    const employeeId = row.employeeId || row.id;
+    console.log("🔘 Main button clicked for employee:", employeeId);
+
+    if (!employeeId) {
+      console.error("❌ No valid employee ID found for main button");
+      return;
+    }
+
     // For main button click, don't pass newStatus (4th parameter)
-    handleToggleStatus(row.id, effectiveStatus, row.employmentstatus);
+    handleToggleStatus(employeeId, effectiveStatus, row.employmentstatus);
   };
 
   // Determine what options to show based on current status

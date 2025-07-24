@@ -1,26 +1,86 @@
 import React, { useState, useEffect } from "react";
 
 const FilterList = ({
-  data = [],
+  employees = [],
   show,
   onFilterChange,
   handleCloseFilterList,
-  initialFilters = {},
+  onClearFilters,
+  activeFilters = {},
 }) => {
   const [filters, setFilters] = useState({
-    project: "",
-    department: "",
-    employmentStatus: "",
-    employmentRank: "",
-    civilStatus: "",
-    sex: "",
-    ...initialFilters,
+    project: [],
+    department: [],
+    employmentStatus: [],
+    employmentRank: [],
+    civilStatus: [],
+    sex: [],
+    status: [],
+    position: [],
+    ...activeFilters,
   });
 
-  // Extract unique values from data for dropdown options
+  useEffect(() => {
+    setFilters({
+      project: [],
+      department: [],
+      employmentStatus: [],
+      employmentRank: [],
+      civilStatus: [],
+      sex: [],
+      status: [],
+      position: [],
+      ...activeFilters,
+    });
+  }, [activeFilters]);
+
+  // Fixed getUniqueValues function based on your DataTable columns
   const getUniqueValues = (field) => {
-    if (!data || data.length === 0) return [];
-    const values = data.map((item) => item[field]).filter(Boolean);
+    if (!employees || employees.length === 0) return [];
+
+    let values = [];
+
+    switch (field) {
+      case "project":
+        values = employees.map((item) => item.project || "N/A").filter(Boolean);
+        break;
+      case "department":
+        values = employees.map((item) => item.department).filter(Boolean);
+        break;
+      case "employmentStatus":
+        // This maps to "employmentstatus" in your data
+        values = employees.map((item) => item.employmentstatus).filter(Boolean);
+        break;
+      case "employmentRank":
+        // This maps to "employmentrank" in your data
+        values = employees.map((item) => item.employmentrank).filter(Boolean);
+        break;
+      case "civilStatus":
+        // This maps to "civilstatus" in your data
+        values = employees.map((item) => item.civilstatus).filter(Boolean);
+        break;
+      case "sex":
+        // This maps to "gender" in your data (as shown in your DataTable columns)
+        values = employees.map((item) => item.gender).filter(Boolean);
+        break;
+      case "status":
+        // Handle effective status (considering resigned employees)
+        values = employees
+          .map((item) => {
+            return item.employmentstatus === "RESIGNED"
+              ? "Inactive"
+              : item.status;
+          })
+          .filter(Boolean);
+        break;
+      case "position":
+        // This maps to "positiontitle" in your data
+        values = employees.map((item) => item.positiontitle).filter(Boolean);
+        break;
+      default:
+        values = employees.map((item) => item[field]).filter(Boolean);
+    }
+
     return [...new Set(values)].sort();
   };
 
@@ -31,24 +91,45 @@ const FilterList = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    const processedFilters = {};
+
+    Object.keys(filters).forEach((key) => {
+      if (filters[key] && filters[key].length > 0) {
+        processedFilters[key] = filters[key];
+      }
+    });
+
     if (onFilterChange) {
-      onFilterChange(filters);
+      onFilterChange(processedFilters);
     }
+
+    handleCloseFilterList();
   };
 
   const handleReset = () => {
     const resetFilters = {
-      project: "",
-      department: "",
-      employmentStatus: "",
-      employmentRank: "",
-      civilStatus: "",
-      sex: "",
+      project: [],
+      department: [],
+      employmentStatus: [],
+      employmentRank: [],
+      civilStatus: [],
+      sex: [],
+      status: [],
+      position: [],
     };
     setFilters(resetFilters);
-    if (onFilterChange) {
-      onFilterChange(resetFilters);
+
+    if (onClearFilters) {
+      onClearFilters();
     }
+
+    handleCloseFilterList();
+  };
+
+  const handleSelectChange = (field, value) => {
+    const newFilters = { ...filters, [field]: value === "" ? [] : [value] };
+    setFilters(newFilters);
   };
 
   return (
@@ -72,13 +153,13 @@ const FilterList = ({
                 Project
               </label>
               <select
-                value={filters.project}
-                onChange={(e) => handleFilterChange("project", e.target.value)}
-                className="w-full p-2 border text-xs border-gray-300 rounded-md"
+                value={filters.project?.[0] || ""}
+                onChange={(e) => handleSelectChange("project", e.target.value)}
+                className="w-full p-2 border text-xs border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Projects</option>
                 {getUniqueValues("project").map((project) => (
-                  <option key={project} value={project}>
+                  <option key={project} value={project} title={project}>
                     {project}
                   </option>
                 ))}
@@ -90,16 +171,40 @@ const FilterList = ({
                 Department
               </label>
               <select
-                value={filters.department}
+                value={filters.department?.[0] || ""}
                 onChange={(e) =>
-                  handleFilterChange("department", e.target.value)
+                  handleSelectChange("department", e.target.value)
                 }
-                className="w-full p-2 border text-xs border-gray-300 rounded-md"
+                className="w-full p-2 border text-xs border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Departments</option>
                 {getUniqueValues("department").map((department) => (
-                  <option key={department} value={department}>
+                  <option
+                    key={department}
+                    value={department}
+                    title={department}
+                  >
                     {department}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Employment Classification
+              </label>
+              <select
+                value={filters.employmentStatus?.[0] || ""}
+                onChange={(e) =>
+                  handleSelectChange("employmentStatus", e.target.value)
+                }
+                className="w-full p-2 border text-xs border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Employment Classifications</option>
+                {getUniqueValues("employmentStatus").map((status) => (
+                  <option key={status} value={status} title={status}>
+                    {status}
                   </option>
                 ))}
               </select>
@@ -110,16 +215,32 @@ const FilterList = ({
                 Employment Status
               </label>
               <select
-                value={filters.employmentStatus}
-                onChange={(e) =>
-                  handleFilterChange("employmentStatus", e.target.value)
-                }
-                className="w-full p-2 border text-xs border-gray-300 rounded-md"
+                value={filters.status?.[0] || ""}
+                onChange={(e) => handleSelectChange("status", e.target.value)}
+                className="w-full p-2 border text-xs border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">All Employment Status</option>
-                {getUniqueValues("employmentStatus").map((status) => (
-                  <option key={status} value={status}>
+                <option value="">All Status</option>
+                {getUniqueValues("status").map((status) => (
+                  <option key={status} value={status} title={status}>
                     {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Position
+              </label>
+              <select
+                value={filters.position?.[0] || ""}
+                onChange={(e) => handleSelectChange("position", e.target.value)}
+                className="w-full p-2 border text-xs border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Positions</option>
+                {getUniqueValues("position").map((position) => (
+                  <option key={position} value={position} title={position}>
+                    {position}
                   </option>
                 ))}
               </select>
@@ -130,15 +251,15 @@ const FilterList = ({
                 Employment Rank
               </label>
               <select
-                value={filters.employmentRank}
+                value={filters.employmentRank?.[0] || ""}
                 onChange={(e) =>
-                  handleFilterChange("employmentRank", e.target.value)
+                  handleSelectChange("employmentRank", e.target.value)
                 }
-                className="w-full p-2 border text-xs border-gray-300 rounded-md"
+                className="w-full p-2 border text-xs border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">All Employment Rank</option>
+                <option value="">All Employment Ranks</option>
                 {getUniqueValues("employmentRank").map((rank) => (
-                  <option key={rank} value={rank}>
+                  <option key={rank} value={rank} title={rank}>
                     {rank}
                   </option>
                 ))}
@@ -150,15 +271,15 @@ const FilterList = ({
                 Civil Status
               </label>
               <select
-                value={filters.civilStatus}
+                value={filters.civilStatus?.[0] || ""}
                 onChange={(e) =>
-                  handleFilterChange("civilStatus", e.target.value)
+                  handleSelectChange("civilStatus", e.target.value)
                 }
-                className="w-full p-2 border text-xs border-gray-300 rounded-md"
+                className="w-full p-2 border text-xs border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Civil Status</option>
                 {getUniqueValues("civilStatus").map((status) => (
-                  <option key={status} value={status}>
+                  <option key={status} value={status} title={status}>
                     {status}
                   </option>
                 ))}
@@ -170,13 +291,13 @@ const FilterList = ({
                 Sex
               </label>
               <select
-                value={filters.sex}
-                onChange={(e) => handleFilterChange("sex", e.target.value)}
-                className="w-full p-2 border text-xs border-gray-300 rounded-md"
+                value={filters.sex?.[0] || ""}
+                onChange={(e) => handleSelectChange("sex", e.target.value)}
+                className="w-full p-2 border text-xs border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Sex</option>
                 {getUniqueValues("sex").map((sex) => (
-                  <option key={sex} value={sex}>
+                  <option key={sex} value={sex} title={sex}>
                     {sex}
                   </option>
                 ))}
@@ -194,7 +315,7 @@ const FilterList = ({
             <button
               type="button"
               onClick={handleReset}
-              className="w-full h-8 px-4 py-2 ustify-center items-center text-xs text-neutralDGray border rounded-md hover:bg-red-400 hover:text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-8 px-4 py-2 flex justify-center items-center text-xs text-neutralDGray border rounded-md hover:bg-red-400 hover:text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               Reset
             </button>

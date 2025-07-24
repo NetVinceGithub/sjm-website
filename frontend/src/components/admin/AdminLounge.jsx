@@ -21,13 +21,15 @@ const AdminLounge = () => {
           ]}
         />
 
-        <Tab
-          tabs={[
-            { label: "Requests", content: <Requests /> },
-            { label: "User Management", content: <AddAdmin /> },
-            { label: "Activity Log", content: <Logins /> },
-          ]}
-        />
+        <div className="w-full -mt-3 text-sm">
+          <Tab
+            tabs={[
+              { label: "Requests", content: <Requests /> },
+              { label: "User Management", content: <AddAdmin /> },
+              { label: "Activity Log", content: <Logins /> },
+            ]}
+          />
+        </div>
       </div>
     </div>
   );

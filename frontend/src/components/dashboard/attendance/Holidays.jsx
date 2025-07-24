@@ -452,6 +452,8 @@ const Holidays = () => {
                 dense
                 highlightOnHover
                 striped
+                fixedHeader
+                fixedHeaderScrollHeight="250px"
               />
             </div>
           </div>

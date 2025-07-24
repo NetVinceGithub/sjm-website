@@ -1352,8 +1352,10 @@ const Attendance = () => {
                 highlightOnHover
                 pagination
                 dense
-                paginationPerPage={10}
-                paginationRowsPerPageOptions={[10, 25, 50]}
+                paginationPerPage={15}
+                fixedHeader
+                fixedHeaderScrollHeight="500px"
+                paginationRowsPerPageOptions={[15, 25, 50]}
               />
             ) : (
               <p className="text-center text-xs italic text-gray-500">

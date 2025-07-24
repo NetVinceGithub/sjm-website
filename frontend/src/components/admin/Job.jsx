@@ -16,6 +16,7 @@ import {
 } from "react-icons/fa6";
 import { Button } from "flowbite-react";
 import { FaArrowUp } from "react-icons/fa";
+import { FaSearch } from "react-icons/fa";
 import axios from "axios"; // Make sure to install axios
 
 const API_URL = `${import.meta.env.VITE_API_URL}/api/jobs`; // Replace with your actual API endpoint
@@ -188,7 +189,7 @@ const JobFormModal = ({
     >
       <div className="bg-white mt-10 p-3 rounded-lg shadow-lg w-[700px] max-h-[80vh] overflow-y-auto relative text-left custom-scrollbar">
         <div className="flex items-center w-full">
-          <h2 className="text-base text-neutralDGray -mt-2 flex-grow">
+          <h2 className="text-sm text-neutralDGray -mt-2 flex-grow">
             {isEditing ? "Edit Job" : "Add New Job"}
           </h2>
           <button
@@ -201,52 +202,52 @@ const JobFormModal = ({
         </div>
         <hr className="-mt-4" />
 
-        <form onSubmit={handleSubmit} className="mt-4 text-sm">
+        <form onSubmit={handleSubmit} className="mt-4">
           <div className="mb-3">
-            <label className="block mb-1 -mt-3 text-neutralDGray">
-              Job Title
+            <label className="block mb-1 text-xs -mt-3 text-neutralDGray">
+              Job Title<span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               name="title"
               value={jobData.title}
               onChange={handleChange}
-              className="w-full text-xs p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
+              className="w-full p-2 border text-xs border-gray-300 rounded-md"
               required
             />
           </div>
 
           <div className="mb-3">
-            <label className="block mb-1 -mt-1 text-neutralDGray">
-              Description
+            <label className="block mb-1 text-xs -mt-2 text-neutralDGray">
+              Description<span className="text-red-500">*</span>
             </label>
             <textarea
               name="description"
               value={jobData.description}
               onChange={handleChange}
-              className="w-full text-xs p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent resize-vertical"
+              className="w-full p-2 border text-xs border-gray-300 rounded-md"
               rows="3"
               required
             />
           </div>
 
           <div className="mb-3">
-            <label className="block mb-1 -mt-2 text-neutralDGray">
-              Location
+            <label className="block mb-1 text-xs -mt-3 text-neutralDGray">
+              Location<span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               name="location"
               value={jobData.location}
               onChange={handleChange}
-              className="w-full text-xs p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
+              className="w-full p-2 border text-xs border-gray-300 rounded-md"
               required
             />
           </div>
 
           <div className="mb-3">
-            <label className="block mb-1 -mt-1 text-neutralDGray">
-              Requirements
+            <label className="block mb-1 text-xs -mt-2 text-neutralDGray">
+              Requirements<span className="text-red-500">*</span>
             </label>
             {jobData.requirements.map((req, index) => (
               <div key={index} className="flex mb-2 items-center">
@@ -254,7 +255,7 @@ const JobFormModal = ({
                   type="text"
                   value={req}
                   onChange={(e) => handleListChange(e, index, "requirements")}
-                  className="flex-1 h-9 text-xs p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
+                  className="w-full p-2 border text-xs border-gray-300 rounded-md"
                   placeholder={`Enter requirement ${index + 1}`}
                 />
                 <button
@@ -278,8 +279,8 @@ const JobFormModal = ({
           </div>
 
           <div className="mb-3">
-            <label className="block mb-1 font-medium text-neutralDGray">
-              Responsibilities
+            <label className="block mb-1 text-xs -mt-2 text-neutralDGray">
+              Responsibilities<span className="text-red-500">*</span>
             </label>
             {jobData.responsibilities.map((resp, index) => (
               <div key={index} className="flex mb-2 items-center">
@@ -289,7 +290,7 @@ const JobFormModal = ({
                   onChange={(e) =>
                     handleListChange(e, index, "responsibilities")
                   }
-                  className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
+                  className="w-full p-2 border text-xs border-gray-300 rounded-md"
                   placeholder={`Responsibility ${index + 1}`}
                 />
                 <button
@@ -313,15 +314,15 @@ const JobFormModal = ({
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 -mt-1 text-neutralDGray">
-              Application Link
+            <label className="block mb-1 text-xs -mt-2 text-neutralDGray">
+              Application Link<span className="text-red-500">*</span>
             </label>
             <input
               type="url"
               name="link"
               value={jobData.link}
               onChange={handleChange}
-              className="w-full p-2 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-brandPrimary focus:border-transparent"
+              className="w-full p-2 border text-xs border-gray-300 rounded-md"
               required
               placeholder="https://example.com/apply"
             />
@@ -329,7 +330,7 @@ const JobFormModal = ({
 
           <button
             type="submit"
-            className="hover:bg-green-400 h-9 text-sm shadow-md flex justify-center items-center text-center text-neutralDGray border rounded hover:text-white transition-all duration-300 w-full"
+            className="w-full h-10 bg-[#974364] hover:bg-[#5f263d] disabled:bg-blue-400 text-white text-sm py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2"
             disabled={isLoading}
           >
             {isLoading
@@ -353,14 +354,39 @@ const Job = () => {
   const [selectedJob, setSelectedJob] = useState(null);
   const [editingJob, setEditingJob] = useState(null);
   const [jobs, setJobs] = useState([]);
+  const [filteredJobs, setFilteredJobs] = useState([]); // New state for filtered jobs
+  const [searchTerm, setSearchTerm] = useState(""); // New state for search term
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [selectedJobId, setSelectedJobId] = useState(null); // Moved this to the correct component
+  const [selectedJobId, setSelectedJobId] = useState(null);
 
   // Fetch all jobs from the API when the component mounts
   useEffect(() => {
     fetchJobs();
   }, []);
+
+  // Filter jobs whenever jobs or searchTerm changes
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredJobs(jobs);
+    } else {
+      const filtered = jobs.filter((job) => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          job.title.toLowerCase().includes(searchLower) ||
+          job.description.toLowerCase().includes(searchLower) ||
+          job.location.toLowerCase().includes(searchLower) ||
+          job.requirements.some((req) =>
+            req.toLowerCase().includes(searchLower)
+          ) ||
+          job.responsibilities.some((resp) =>
+            resp.toLowerCase().includes(searchLower)
+          )
+        );
+      });
+      setFilteredJobs(filtered);
+    }
+  }, [jobs, searchTerm]);
 
   const fetchJobs = async () => {
     setIsLoading(true);
@@ -389,6 +415,16 @@ const Job = () => {
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Search handler function
+  const handleFilter = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  // Clear search function
+  const clearSearch = () => {
+    setSearchTerm("");
   };
 
   const addNewJob = async (jobData) => {
@@ -496,22 +532,22 @@ const Job = () => {
     <div className="p-2 h-[calc(100vh-180px)] rounded-lg">
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
+          <div className="bg-red-50 p-3 rounded-lg border-t-4 border-red-500 shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
             <h3 className="text-base mb-2 text-red-500">Confirm Deletion</h3>
-            <p className="text-sm text-justify">
+            <p className="text-sm text-center">
               Are you sure you want to delete this job?
             </p>
 
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 w-24 text-xs h-8 border text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+                className="flex-1 px-4 py-2 text-xs h-8 border text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
-                className="px-4 py-2 w-24 text-xs h-8 border text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+                className="px-4 py-2 flex-1 text-xs h-8 border text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
               >
                 Confirm
               </button>
@@ -520,17 +556,42 @@ const Job = () => {
         </div>
       )}
 
-      <div className="flex justify-between items-center -mt-3 mb-8">
-        <h2 className="text-neutralDGray text-base font-medium">
-          Available Jobs
-        </h2>
-        <button
-          onClick={openAddModal}
-          className="border text-neutralDGray w-32 text-center text-xs h-8 rounded hover:text-white  hover:bg-green-400 transition-all duration-300"
-        >
-          Add Job
-        </button>
+      <div className="flex justify-between items-center -mt-5 mb-3">
+        <h2 className="text-neutralDGray text-base font-medium"></h2>
+        <div className="flex w-1/2 flex-row gap-2">
+          <div className="flex justify-end items-center w-full gap-3">
+            <div className="flex rounded w-full items-center relative">
+              <input
+                type="text"
+                placeholder="Search jobs by title, description, location..."
+                value={searchTerm}
+                onChange={handleFilter}
+                className="px-2 pr-8 h-8 text-xs bg-neutralSilver w-full rounded py-0.5 border"
+              />
+              <FaSearch className="absolute right-2 text-neutralDGray" />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button
+              onClick={openAddModal}
+              className="border text-neutralDGray w-32 text-center text-xs h-8 rounded hover:text-white hover:bg-green-400 transition-all duration-300"
+            >
+              Add Job
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* Search Results Info */}
+      {searchTerm && (
+        <div className="mb-2 -mt-2 text-sm text-neutralDGray">
+          {filteredJobs.length === 0
+            ? `No jobs found for "${searchTerm}"`
+            : `Found ${filteredJobs.length} job${
+                filteredJobs.length !== 1 ? "s" : ""
+              } for "${searchTerm}"`}
+        </div>
+      )}
 
       {isLoading && !showFormModal && (
         <div className="text-center py-10">
@@ -553,9 +614,9 @@ const Job = () => {
         </div>
       )}
 
-      {!isLoading && !error && jobs.length === 0 && (
+      {!isLoading && !error && filteredJobs.length === 0 && !searchTerm && (
         <div className="text-center py-10">
-          <p className="text-base -mt-10 text-neutralDGray">
+          <p className="text-sm -mt-10 text-neutralDGray">
             No jobs available yet.
           </p>
           <p className="-mt-3 text-[12px] italic text-neutralDGray">
@@ -564,11 +625,11 @@ const Job = () => {
         </div>
       )}
 
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {jobs.map((job) => (
+      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {filteredJobs.map((job) => (
           <div
             key={job.id}
-            className="relative flex flex-col justify-between gap-4 h-full min-h-[300px] p-4 border border-gray-200 rounded-2xl shadow-sm bg-neutralSilver hover:shadow-md transition-transform hover:-translate-y-2"
+            className="relative flex flex-col justify-between gap-4 h-full min-h-[200px] p-2 rounded-2xl shadow-sm bg-white border-t-4 border-[#974364] hover:shadow-md transition-transform hover:-translate-y-2"
           >
             {/* Top Controls */}
             <div className="flex justify-between items-center">
@@ -592,10 +653,34 @@ const Job = () => {
             {/* Content */}
             <div className="text-center flex-grow">
               <h4 className="text-lg font-semibold text-neutralDGray mb-1">
-                {job.title}
+                {/* Highlight search term in title */}
+                {searchTerm ? (
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: job.title.replace(
+                        new RegExp(`(${searchTerm})`, "gi"),
+                        '<mark class="bg-yellow-200">$1</mark>'
+                      ),
+                    }}
+                  />
+                ) : (
+                  job.title
+                )}
               </h4>
               <p className="text-sm text-neutralGray line-clamp-4">
-                {job.description}
+                {/* Highlight search term in description */}
+                {searchTerm ? (
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: job.description.replace(
+                        new RegExp(`(${searchTerm})`, "gi"),
+                        '<mark class="bg-yellow-200">$1</mark>'
+                      ),
+                    }}
+                  />
+                ) : (
+                  job.description
+                )}
               </p>
             </div>
           </div>

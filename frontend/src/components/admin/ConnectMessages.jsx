@@ -60,10 +60,30 @@ const ConnectMessages = () => {
 
   const handleFilter = (e) => {
     const searchTerm = e.target.value.toLowerCase();
-    const records = messages.filter((mes) =>
-      mes.firstname.toLowerCase().includes(searchTerm)
-    );
-    setFilteredMessages(records);
+
+    if (searchTerm === "") {
+      // If search is empty, show all messages
+      setFilteredMessages(messages);
+    } else {
+      // Filter across multiple fields
+      const records = messages.filter((mes) => {
+        const searchableFields = [
+          mes.firstname?.toLowerCase() || "",
+          mes.surname?.toLowerCase() || "",
+          mes.type?.toLowerCase() || "",
+          mes.services?.toLowerCase() || "",
+          mes.email?.toLowerCase() || "",
+          mes.phone?.toLowerCase() || "",
+          mes.message?.toLowerCase() || "",
+          // You can also search by formatted date if needed
+          mes.createdAt?.toLowerCase() || "",
+        ];
+
+        // Check if any field contains the search term
+        return searchableFields.some((field) => field.includes(searchTerm));
+      });
+      setFilteredMessages(records);
+    }
   };
 
   const handleOpenModal = (message) => {
@@ -105,24 +125,21 @@ const ConnectMessages = () => {
     <div>
       <div className="flex justify-between items-center mt-2 mb-2">
         <div className="text-left">
-          <h3 className="text-base -mt-2 font-medium text-neutralDGray">
-            Website Inquiry Messages
-          </h3>
+          <h3 className="text-base -mt-2 font-medium text-neutralDGray"></h3>
         </div>
         <div className="flex justify-end items-center w-1/2 -mt-5 gap-3">
           <div className="flex rounded w-full items-center">
             <input
               type="text"
-              placeholder="Search"
+              placeholder="Search messages by Name, Type, Services, Date..."
               onChange={handleFilter}
-              className="px-2 bg-neutralSilver w-full rounded py-0.5 border"
+              className="px-2 text-xs h-8 bg-neutralSilver w-full rounded py-0.5 border"
             />
             <FaSearch className="ml-[-20px] text-neutralDGray" />
           </div>
         </div>
       </div>
-      <hr className="mt-2" />
-      <div className="mt-2 overflow-auto rounded-md border">
+      <div className="-mt-1 overflow-auto rounded-md border">
         <DataTable
           columns={[
             {
@@ -158,7 +175,7 @@ const ConnectMessages = () => {
               ),
             },
           ]}
-          data={messages}
+          data={filteredMessages} // Changed from messages to filteredMessages
           progressPending={loading}
           progressComponent={
             <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
@@ -184,6 +201,7 @@ const ConnectMessages = () => {
           responsive
           highlightOnHover
           striped
+          dense
         />
       </div>
       <Modal show={show} onHide={handleClose} centered size="lg" scrollable>

@@ -278,6 +278,11 @@ const PayslipHistory = () => {
               />
               <FaSearch className="-ml-6 mt-1.5 text-neutralDGray/60" />
             </div>
+            <div className="w-1/4">
+              <select className="w-full p-2 border text-neutralDGray text-xs border-gray-300 rounded-md">
+                <option value="">Select Project</option>
+              </select>
+            </div>
           </div>
         </div>
         <div className="mt-2 bg-white w-[calc(100vw-310px)] h-[calc(100vh-80px)] p-2 rounded-lg shadow">

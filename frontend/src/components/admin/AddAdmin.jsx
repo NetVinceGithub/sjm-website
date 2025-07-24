@@ -210,152 +210,149 @@ const AddAdmin = () => {
   }
 
   return (
-    <div className="p-2 overflow-auto">
-      <div className="flex h-[calc(100vh-220px)] flex-col">
-        <div className="border rounded p-2 ">
-          <h2 className="text-lg font-bold mb-3 flex text-neutralDGray items-center gap-2">
-            <FaUserPlus className="h-6 w-6 text-neutralDGray" /> Add Employee
-            Access
-          </h2>
-          <form className="space-y-2" onSubmit={handleSubmit}>
-            <div>
-              <label className="block text-sm -mt-1 font-medium text-neutralDGray">
-                Employee Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="mt-1 p-1 w-full border rounded-md text-sm"
-                placeholder="e.g., Jane Smith"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-neutralDGray">
-                Company Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="mt-1 p-1 w-full border rounded-md text-sm"
-                placeholder="e.g., jane.smith@company.com"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-neutralDGray">
-                Password
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="mt-1 p-1 w-full border rounded-md text-sm"
-                placeholder="Create a password"
-                required
-                minLength={8}
-              />
-            </div>
+    <div className="p-2 -mt-5">
+      <div className="h-[calc(100vh-100px)]">
+        {/* Parent Grid Container */}
+        <div className="parent grid grid-cols-4 grid-rows-7 gap-2 h-full">
+          {/* Div1 - Add Employee Form */}
+          <div className="div1 col-span-4 row-span-4 border rounded bg-white shadow p-3 h-[100%]">
+            <h2 className="text-lg font-bold mb-3 flex text-gray-700 items-center gap-2">
+              <FaUserPlus className="h-6 w-6 text-gray-700" /> Add Employee
+              Access
+            </h2>
+            <form className="space-y-0.5 h-[100%]" onSubmit={handleSubmit}>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Employee Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="mt-1 p-2 w-full border rounded-md text-sm"
+                  placeholder="e.g., Jane Smith"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Company Email
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="mt-1 p-2 w-full border rounded-md text-sm"
+                  placeholder="e.g., jane.smith@company.com"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="mt-1 p-2 w-full border rounded-md text-sm"
+                  placeholder="Create a password"
+                  required
+                  minLength={8}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Role
+                </label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  className="mt-1 mb-2 p-2 w-full border rounded-md text-sm"
+                  required
+                >
+                  <option value="" disabled>
+                    Select a Role
+                  </option>
+                  <option value="approver">Approver</option>
+                  <option value="hr">HR</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="text-sm w-full hover:bg-green-400 h-10 hover:text-white text-gray-700 border transition-all duration-300 py-2 px-4 rounded"
+                  disabled={loading}
+                >
+                  {loading ? "Adding..." : "Add Employee"}
+                </button>
+              </div>
+            </form>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-neutralDGray">
-                Role
-              </label>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="mt-1 mb-1 p-1 w-full border rounded-md text-sm"
-                required
-              >
-                <option value="" disabled>
-                  Select a Role
-                </option>
-                <option value="approver">Approver</option>
-                <option value="hr">HR</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="w-32 text-xs hover:bg-green-400 h-10 hover:text-white text-neutralDGray border transition-all duration-300 py-1 px-2 rounded"
-                disabled={loading}
-              >
-                {loading ? "Adding..." : "Add Employee"}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <div className="flex flex-row gap-5 mt-3">
-          {loading ? (
-            <p>Loading users...</p>
-          ) : users.length > 0 ? (
-            <>
-              <div className="w-1/2">
-                {/* Active Users */}
-                <h4 className="text-[14px] mt-1 text-brandPrimary italic">
-                  Active Users
-                </h4>
-                <ul className="border rounded-md p-1 mb-1">
+          {/* Div2 - Active Users */}
+          <div className="div2 col-span-2 row-span-3 row-start-5 border bg-white shadow rounded p-3">
+            <h4 className="text-sm mb-2 text-green-600 font-semibold">
+              Active Users
+            </h4>
+            <div className="overflow-y-auto h-full">
+              {loading ? (
+                <p className="text-sm text-gray-500">Loading users...</p>
+              ) : (
+                <ul className="space-y-2">
                   {users
                     .filter((user) => !user.isBlocked)
                     .map((user, index) => (
-                      <li
-                        key={index}
-                        className="border-b text-[13px] last:border-b-0 px-2"
-                      >
+                      <li key={index} className="border-b pb-2 last:border-b-0">
                         {editingUser === user.id ? (
-                          <div className="bg-gray-200/60 p-1 rounded">
-                            <h6 className="text-sm text-neutralDGray font-semibold">
+                          <div className="bg-gray-100 p-2 rounded">
+                            <h6 className="text-xs text-gray-700 font-semibold mb-2">
                               Edit User
                             </h6>
                             <form
                               onSubmit={handleEditSubmit}
-                              className="flex flex-col gap-1 -mt-1"
+                              className="space-y-2"
                             >
                               <input
                                 type="text"
                                 name="name"
                                 value={editFormData.name}
                                 onChange={handleEditChange}
-                                className="border p-1 rounded text-sm text-neutralDGray"
+                                className="border p-1 rounded text-xs w-full"
                               />
                               <input
                                 type="email"
                                 name="email"
                                 value={editFormData.email}
                                 onChange={handleEditChange}
-                                className="border p-1 rounded text-sm text-neutralDGray"
+                                className="border p-1 rounded text-xs w-full"
                               />
                               <select
                                 name="role"
                                 value={editFormData.role}
                                 onChange={handleEditChange}
-                                className="border p-1 rounded text-sm text-neutralDGray"
+                                className="border p-1 rounded text-xs w-full"
                               >
                                 <option value="approver">Approver</option>
                                 <option value="hr">HR</option>
                                 <option value="admin">Admin</option>
                               </select>
-                              <div className="flex gap-2 text-center">
+                              <div className="flex gap-2">
                                 <button
                                   type="submit"
-                                  className="bg-brandPrimary w-14 h-8 hover:bg-green-500 text-white px-3 py-1 rounded flex items-center justify-center text-[13px]"
+                                  className="hover:bg-green-300 flex-1 h-10 border hover:text-white px-2 py-1 rounded text-xs"
                                 >
                                   Save
                                 </button>
                                 <button
                                   type="button"
                                   onClick={cancelEdit}
-                                  className="bg-gray-300 hover:bg-neutralGray w-14 h-8 text-black px-3 py-1 rounded flex items-center justify-center text-[13px]"
+                                  className="border flex-1 h-10 hover:bg-gray-300 hover:text-white px-2 py-1 rounded text-xs"
                                 >
                                   Cancel
                                 </button>
@@ -364,24 +361,25 @@ const AddAdmin = () => {
                           </div>
                         ) : (
                           <div className="flex justify-between items-center">
-                            <div className="text-center">
-                              <span className="font-bold">{user.name}</span> →{" "}
-                              {user.email}
+                            <div className="text-sm space-y-0.5">
+                              <span className="font-bold">{user.name}</span>
+                              <br />
+                              <span className="text-gray-600 italic text-xs">
+                                {user.email}
+                              </span>
                             </div>
-
-                            <div className="flex gap-1 items-center">
+                            <div className="flex gap-1">
                               <button
                                 onClick={() => startEdit(user)}
-                                className="bg-green-500 hover:bg-green-900 border w-14 h-8 text-white px-3 rounded flex items-center justify-center"
+                                className="bg-green-500 h-10 w-20 hover:bg-green-600 text-white px-2 py-1 rounded text-sm"
                               >
                                 Edit
                               </button>
-
                               <button
                                 onClick={() => handleBlock(user.id)}
-                                className="bg-red-500 hover:bg-red-900 border text-white w-14 h-8 px-3 rounded flex items-center justify-center"
+                                className="bg-red-500 h-10 w-20 hover:bg-red-600 text-white flex text-center items-center justify-center p-1 rounded"
                               >
-                                <MdBlock size={15} />
+                                <MdBlock className="w-5 h-5" />
                               </button>
                             </div>
                           </div>
@@ -389,42 +387,42 @@ const AddAdmin = () => {
                       </li>
                     ))}
                 </ul>
-              </div>
+              )}
+            </div>
+          </div>
 
-              <div className="w-1/2">
-                {/* Blocked Users */}
-                <h4 className="mt-2 text-[14px] text-red-500 italic">
-                  Blocked Users
-                </h4>
-                <ul className="border rounded-md bg-red-50">
-                  {users
-                    .filter((user) => user.isBlocked)
-                    .map((user, index) => (
-                      <li
-                        key={index}
-                        className="py-1 px-2 text-[12px] border-b last:border-b-0 flex justify-between items-center text-red-600"
-                      >
-                        <div className="text-neutralDGray text-[12px]">
-                          <span className="font-bold">{user.name}</span> →{" "}
+          {/* Div3 - Blocked Users */}
+          <div className="div3 col-span-2 row-span-3 col-start-3 row-start-5 border shadow rounded p-3 bg-white">
+            <h4 className="text-sm mb-2 text-red-600 font-semibold">
+              Blocked Users
+            </h4>
+            <div className="overflow-y-auto h-full">
+              <ul className="space-y-2">
+                {users
+                  .filter((user) => user.isBlocked)
+                  .map((user, index) => (
+                    <li
+                      key={index}
+                      className="border-b pb-2 last:border-b-0 flex justify-between items-center"
+                    >
+                      <div className="text-xs text-gray-700">
+                        <span className="font-bold text-sm">{user.name}</span>
+                        <br />
+                        <span className="text-gray-600 italic text-xs">
                           {user.email}
-                        </div>
-
-                        <div className="items-center">
-                          <button
-                            onClick={() => handleUnblock(user.id)}
-                            className="bg-white h-8 w-20 text-[12px] text-neutralDGray hover:bg-red-500 hover:text-white border border-red-300 rounded flex items-center justify-center transition-colors duration-200"
-                          >
-                            Unblock
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            </>
-          ) : (
-            <p>No users found.</p>
-          )}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleUnblock(user.id)}
+                        className="bg-white w-20 h-10 hover:bg-red-500 hover:text-white border border-red-300 text-red-600 px-2 py-1 rounded text-xs transition-colors duration-200"
+                      >
+                        Unblock
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>

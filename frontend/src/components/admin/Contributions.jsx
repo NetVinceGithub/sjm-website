@@ -15,6 +15,8 @@ import {
 } from "recharts";
 import DataTable from "react-data-table-component";
 import axios from "axios";
+import { ThreeDots } from "react-loader-spinner";
+
 const COLORS = ["#4191D6", "#9D426E", "#80B646"];
 const BAR_COLORS = ["#80B646", "#9D426E"];
 
@@ -106,9 +108,145 @@ const Contributions = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [contributions, setContributions] = useState(null);
 
+  // Add new state for filters
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedYear, setSelectedYear] = useState("");
+  const [availableMonths, setAvailableMonths] = useState([]);
+  const [availableYears, setAvailableYears] = useState([]);
+
   useEffect(() => {
     fetchContributions();
   }, []);
+
+  // Add useEffect to extract available months and years when data loads
+  useEffect(() => {
+    if (contributions?.data?.employees) {
+      extractAvailableFilters();
+    }
+  }, [contributions]);
+
+  // Function to extract available months and years from data
+  const extractAvailableFilters = () => {
+    const months = new Set();
+    const years = new Set();
+
+    // Assuming your API data has date information - adjust this based on your actual data structure
+    contributions.data.employees.forEach((employee) => {
+      // If you have a date field in your employee data, extract month/year from it
+      // For now, I'll create sample months/years - replace this with your actual date extraction
+      if (employee.payrollDate) {
+        const date = new Date(employee.payrollDate);
+        months.add(date.getMonth() + 1); // getMonth() returns 0-11, so add 1
+        years.add(date.getFullYear());
+      }
+    });
+
+    // If no date data available, provide default options
+    if (months.size === 0) {
+      for (let i = 1; i <= 12; i++) {
+        months.add(i);
+      }
+    }
+    if (years.size === 0) {
+      const currentYear = new Date().getFullYear();
+      for (let i = currentYear - 5; i <= currentYear; i++) {
+        years.add(i);
+      }
+    }
+
+    setAvailableMonths(Array.from(months).sort((a, b) => a - b));
+    setAvailableYears(Array.from(years).sort((a, b) => b - a));
+  };
+
+  // Function to filter contributions based on selected month and year
+  const getFilteredContributions = () => {
+    if (!contributions?.data?.employees) return { employees: [], summary: {} };
+
+    let filteredEmployees = contributions.data.employees;
+
+    // Apply month filter
+    if (selectedMonth) {
+      filteredEmployees = filteredEmployees.filter((employee) => {
+        // Adjust this condition based on your actual date field structure
+        if (employee.payrollDate) {
+          const date = new Date(employee.payrollDate);
+          return date.getMonth() + 1 === parseInt(selectedMonth);
+        }
+        return true; // If no date field, include all
+      });
+    }
+
+    // Apply year filter
+    if (selectedYear) {
+      filteredEmployees = filteredEmployees.filter((employee) => {
+        // Adjust this condition based on your actual date field structure
+        if (employee.payrollDate) {
+          const date = new Date(employee.payrollDate);
+          return date.getFullYear() === parseInt(selectedYear);
+        }
+        return true; // If no date field, include all
+      });
+    }
+
+    // Recalculate summary based on filtered employees
+    const filteredSummary = {
+      totalSSS: filteredEmployees.reduce(
+        (sum, emp) => sum + (emp.contributions?.sss?.total || 0),
+        0
+      ),
+      totalPhilhealth: filteredEmployees.reduce(
+        (sum, emp) => sum + (emp.contributions?.philhealth?.total || 0),
+        0
+      ),
+      totalPagibig: filteredEmployees.reduce(
+        (sum, emp) => sum + (emp.contributions?.pagibig?.total || 0),
+        0
+      ),
+    };
+    filteredSummary.grandTotal =
+      filteredSummary.totalSSS +
+      filteredSummary.totalPhilhealth +
+      filteredSummary.totalPagibig;
+
+    return {
+      employees: filteredEmployees,
+      summary: filteredSummary,
+    };
+  };
+
+  // Get month name from number
+  const getMonthName = (monthNumber) => {
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    return months[monthNumber - 1];
+  };
+
+  // Handle filter changes
+  const handleMonthChange = (e) => {
+    setSelectedMonth(e.target.value);
+  };
+
+  const handleYearChange = (e) => {
+    setSelectedYear(e.target.value);
+  };
+
+  // Clear filters function
+  const clearFilters = () => {
+    setSelectedMonth("");
+    setSelectedYear("");
+  };
 
   // Fetch data from backend
   const fetchContributions = async () => {
@@ -138,28 +276,31 @@ const Contributions = () => {
     );
   }
 
-  // Get employee data from API response
-  const employeeData = contributions.data.employees.map((employee) => ({
+  // Get filtered data
+  const filteredData = getFilteredContributions();
+
+  // Get employee data from filtered API response
+  const employeeData = filteredData.employees.map((employee) => ({
     name: employee.name,
     sssAccount: employee.employeeSSS,
     philhealthAccount: employee.employeePhilhealth,
     pagibigAccount: employee.employeePagibig,
-    status: employee.status, // Default status since not provided in API
+    status: employee.status,
     sss: employee.contributions.sss.total,
     philhealth: employee.contributions.philhealth.total,
     pagibig: employee.contributions.pagibig.total,
-    employeeShare: employee.grandTotal / 2, // Assuming 50/50 split
-    employerSSSshare: employee.employerSSSshare, // Assuming 50/50 split
-    employerPagibigShare: employee.employerPagibigShare, // Assuming 50/50 split
+    employeeShare: employee.grandTotal / 2,
+    employerSSSshare: employee.employerSSSshare,
+    employerPagibigShare: employee.employerPagibigShare,
   }));
 
-  // Use summary data from API for totals
+  // Use filtered summary data for totals
   const totalContributions = {
-    sss: contributions.data.summary.totalSSS,
-    philhealth: contributions.data.summary.totalPhilhealth,
-    pagibig: contributions.data.summary.totalPagibig,
-    employeeTotal: contributions.data.summary.grandTotal / 2,
-    employerTotal: contributions.data.summary.grandTotal / 2,
+    sss: filteredData.summary.totalSSS || 0,
+    philhealth: filteredData.summary.totalPhilhealth || 0,
+    pagibig: filteredData.summary.totalPagibig || 0,
+    employeeTotal: (filteredData.summary.grandTotal || 0) / 2,
+    employerTotal: (filteredData.summary.grandTotal || 0) / 2,
   };
 
   // Pie chart data
@@ -188,16 +329,6 @@ const Contributions = () => {
     },
   ];
 
-  const totalRow = {
-    name: "TOTAL",
-    sss: totalContributions.sss,
-    philhealth: totalContributions.philhealth,
-    pagibig: totalContributions.pagibig,
-    employerShare: "", // Optional blank for unrelated columns
-    employeeShare: "",
-    isTotalRow: true, // Custom flag to identify it in the row rendering
-  };
-
   const dataWithTotal = [...employeeData];
   const conditionalRowStyles = [
     {
@@ -208,7 +339,7 @@ const Contributions = () => {
     },
   ];
 
-  // DataTable columns
+  // DataTable columns (unchanged)
   const columns = [
     {
       name: "Employee Name",
@@ -254,7 +385,7 @@ const Contributions = () => {
           (SSS)
         </div>
       ),
-      selector: (row) => `₱${(row.employerShare || 0).toLocaleString()}`,
+      selector: (row) => `₱${(row.employeeShare || 0).toLocaleString()}`,
       sortable: true,
       width: "150px",
     },
@@ -273,7 +404,19 @@ const Contributions = () => {
     {
       name: (
         <div style={{ textAlign: "center" }}>
-          Employeer Share
+          Employer Share
+          <br />
+          (PhilHealth)
+        </div>
+      ),
+      selector: (row) => `₱${(row.philhealth || 0).toLocaleString()}`,
+      sortable: true,
+      width: "150px",
+    },
+    {
+      name: (
+        <div style={{ textAlign: "center" }}>
+          Employer Share
           <br />
           (Pag-IBIG)
         </div>
@@ -302,6 +445,66 @@ const Contributions = () => {
 
   return (
     <div className="p-2 h-[calc(100vh-150px)]">
+      <div className="-mt-5 flex justify-end mb-3 gap-1">
+        <div className="h-8 w-full text-neutralDGray text-xs px-2 border border-neutralDGray bg-white rounded">
+          <div className="flex items-center justify-between h-full">
+            <div className="flex items-center">
+              <span>Total Contributions:</span>
+              <span className="ml-2">
+                SSS: ₱{totalContributions.sss.toLocaleString()}
+              </span>
+              <span className="ml-5">
+                PhilHealth: ₱{totalContributions.philhealth.toLocaleString()}
+              </span>
+              <span className="ml-5">
+                Pag-IBIG: ₱{totalContributions.pagibig.toLocaleString()}
+              </span>
+            </div>
+            {(selectedMonth || selectedYear) && (
+              <span className="text-blue-600 font-medium">
+                Filtered:{" "}
+                {selectedMonth && getMonthName(parseInt(selectedMonth))}{" "}
+                {selectedYear}
+              </span>
+            )}
+          </div>
+        </div>
+        {/* Filter Month and Year */}
+        <div className="flex flex-row gap-1 w-1/4">
+          <select
+            className="w-full h-8 p-2 border text-neutralDGray text-xs border-gray-300 rounded-md"
+            value={selectedMonth}
+            onChange={handleMonthChange}
+          >
+            <option value="">All Months</option>
+            {availableMonths.map((month) => (
+              <option key={month} value={month}>
+                {getMonthName(month)}
+              </option>
+            ))}
+          </select>
+          <select
+            className="w-full h-8 p-2 border text-neutralDGray text-xs border-gray-300 rounded-md"
+            value={selectedYear}
+            onChange={handleYearChange}
+          >
+            <option value="">All Years</option>
+            {availableYears.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+          {(selectedMonth || selectedYear) && (
+            <button
+              onClick={clearFilters}
+              className="h-8 px-3 text-xs bg-gray-500 text-white rounded-md hover:bg-gray-600 whitespace-nowrap"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
       <div className="grid grid-cols-6 grid-rows-6 gap-2 min-h-[600px] w-full -mt-3">
         {/* PIE CHART - div1 */}
         <div className="col-span-3 row-span-3 bg-white rounded-lg border p-2">
@@ -364,7 +567,7 @@ const Contributions = () => {
         </div>
 
         {/* DATA TABLE - div3 */}
-        <div className="col-span-3 row-span-6 col-start-4 row-start-1 bg-white rounded-lg border p-2">
+        <div className="col-span-3 row-span-6 col-start-4 row-start-1 bg-white rounded-lg border p-2 bottom-3">
           <h3 className="text-sm text-neutralDGray mb-4">
             Employee Contributions Details
           </h3>
@@ -374,9 +577,17 @@ const Contributions = () => {
             progressPending={loading}
             conditionalRowStyles={conditionalRowStyles}
             progressComponent={
-              <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
-                <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
-                Loading data...
+              <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
+                <ThreeDots
+                  visible={true}
+                  height="60"
+                  width="60"
+                  color="#4fa94d"
+                  radius="9"
+                  ariaLabel="three-dots-loading"
+                  wrapperStyle={{}}
+                  wrapperClass=""
+                />
               </div>
             }
             pagination
@@ -387,8 +598,8 @@ const Contributions = () => {
             dense
             striped
             noDataComponent={
-              <div className="text-center py-8 text-gray-500">
-                No contribution data available.
+              <div className="text-gray-500 text-sm italic py-4 text-center">
+                *** No data found ***
               </div>
             }
           />
