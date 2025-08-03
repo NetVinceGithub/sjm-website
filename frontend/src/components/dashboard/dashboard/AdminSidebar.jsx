@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import axios from "axios";
 import { useAuth } from "../../../context/authContext";
 import {
   FaTachometerAlt,
@@ -33,8 +34,11 @@ import {
 import Logo from "/public/logo-rembg.png";
 
 const AdminSidebar = () => {
+  const [userRole, setUserRole] = useState(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const { user, logout } = useAuth(); // Get user from context
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [activeDropdown, setActiveDropdown] = useState(null);
 
@@ -52,19 +56,46 @@ const AdminSidebar = () => {
     navigate("/payroll-management-login");
   };
 
-  // Get user role from context instead of API call
-  const userRole = user?.role;
-  const isAuthorized = user && ["admin", "approver", "hr"].includes(userRole);
+  useEffect(() => {
+    const checkUserRole = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setIsAuthorized(false);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const userResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/users/current`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const currentUserRole = userResponse.data.user.role;
+        setUserRole(currentUserRole);
+        setIsAuthorized(["admin", "approver", "hr"].includes(currentUserRole));
+      } catch (error) {
+        console.error("Error checking authorization:", error);
+        setIsAuthorized(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUserRole();
+  }, []);
 
   const isAdmin = userRole === "admin";
   const isApprover = userRole === "approver";
   const isHr = userRole === "hr";
 
-  // If no user in context, show loading or redirect
-  if (!user) {
+  if (loading) {
     return <div className="text-white p-4">Loading...</div>;
   }
-
 
   return (
     <>
