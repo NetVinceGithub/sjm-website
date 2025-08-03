@@ -106,7 +106,7 @@ function AppContent() {
           path="/admin-dashboard"
           element={
             <PrivateRoutes>
-              <RoleBaseRoutes requiredRole={["admin"]}>
+              <RoleBaseRoutes requiredRole={["admin", "hr", "employee"]}>
                 <AdminDashboard />
               </RoleBaseRoutes>
             </PrivateRoutes>

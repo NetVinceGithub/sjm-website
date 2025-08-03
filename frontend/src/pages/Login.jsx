@@ -22,14 +22,11 @@ const Login = () => {
   useEffect(() => {
     // Check if user has 'Remember me' set in localStorage
     const savedEmail = localStorage.getItem("email");
-    const savedPassword = localStorage.getItem("password"); // Add this line
     const savedChecked = localStorage.getItem("rememberMe") === "true";
 
     if (savedEmail && savedChecked) {
       setEmail(savedEmail);
-      if (savedPassword) {
-        setPassword(savedPassword); // Add this line to set the password
-      }
+   
       setIsChecked(true);
     }
   }, []);
@@ -50,14 +47,13 @@ const Login = () => {
 
         if (isChecked) {
           localStorage.setItem("email", email);
-          localStorage.setItem("password", password);
           localStorage.setItem("rememberMe", "true");
         } else {
           localStorage.removeItem("email");
           localStorage.removeItem("rememberMe");
         }
 
-        navigate("/admin-dashboard");
+        navigate("/admin-dashboard/overview"); // ✅ correct
       }
     } catch (error) {
       if (error.response && !error.response.data.success) {

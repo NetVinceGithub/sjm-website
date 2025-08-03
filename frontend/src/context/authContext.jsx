@@ -5,13 +5,14 @@ const UserContext = createContext();
 
 const AuthContext = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Initially set loading to true
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const verifyUser = async () => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
+          // Fixed: Using the correct API endpoint that matches your routes
           const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/verify`, {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -19,31 +20,61 @@ const AuthContext = ({ children }) => {
           });
 
           if (response.data.success) {
-            setUser(response.data.user); // Update state when the user is verified
+            setUser(response.data.user);
           } else {
-            setUser(null); // Set to null if verification fails
+            console.log('Invalid token response:', response.data);
+            setUser(null);
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
           }
         } catch (error) {
-          console.error(error);
-          setUser(null); // Set to null if there's an error in verification
+          console.error('Auth verification error:', error);
+          console.log('Error response:', error.response?.data);
+          setUser(null);
+          localStorage.removeItem('token');
+          localStorage.removeItem('userRole');
         }
       } else {
-        setUser(null); // Set to null if no token is found
+        setUser(null);
       }
-      setLoading(false); // Set loading to false after the check is done
+      setLoading(false);
     };
 
     verifyUser();
-  }, []); // Run once when the component mounts
+  }, []);
 
   const login = (userData) => {
-    localStorage.setItem("token", userData.token);
     setUser(userData);
+    // Make sure the role is also set in localStorage if not already done
+    if (userData.role) {
+      localStorage.setItem('userRole', userData.role);
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    const token = localStorage.getItem('token');
+    
+    // Call logout endpoint to invalidate token on server
+    if (token) {
+      try {
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/logout`, {}, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } catch (error) {
+        console.error('Logout API error:', error);
+        // Continue with client-side logout even if API call fails
+      }
+    }
+
+    // Clear all auth-related data
     setUser(null);
     localStorage.removeItem("token");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("email");
+    localStorage.removeItem("password");
+    localStorage.removeItem("rememberMe");
   };
 
   return (
@@ -54,5 +85,4 @@ const AuthContext = ({ children }) => {
 };
 
 export const useAuth = () => useContext(UserContext);
-
 export default AuthContext;
