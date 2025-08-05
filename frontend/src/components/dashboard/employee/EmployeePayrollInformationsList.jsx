@@ -15,6 +15,7 @@ import {
   FaRegFilePdf,
 } from "react-icons/fa6";
 import { useAuth } from "../../../context/authContext";
+import { ThreeDots } from "react-loader-spinner";
 
 const EmployeePayrollInformationsList = () => {
   const { user } = useAuth();
@@ -32,6 +33,8 @@ const EmployeePayrollInformationsList = () => {
   const [bulkSearchTerm, setBulkSearchTerm] = useState("");
   const [filteredBulkEmployees, setFilteredBulkEmployees] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false); // Added loading state
+  const [perPage, setPerPage] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Mock current user - replace with actual user context/auth
   const currentUser = "Admin User"; // Replace this with actual user from context/auth
@@ -228,6 +231,15 @@ const EmployeePayrollInformationsList = () => {
     printWindow.print();
   };
 
+  const handlePerRowsChange = (newPerPage, page) => {
+    setPerPage(newPerPage);
+    setCurrentPage(page);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   // Bulk edit functions
   const handleEmployeeSelect = (employeeId, isSelected) => {
     if (isSelected) {
@@ -377,6 +389,13 @@ const EmployeePayrollInformationsList = () => {
       width: "320px",
     },
     {
+      name: "Employment Rank",
+      selector: (row) => row.employmentrank,
+      sortable: true,
+      center: true,
+      width: "320px",
+    },
+    {
       name: "Daily Rate",
       selector: (row) => `₱${parseFloat(row.daily_rate || 0).toLocaleString()}`,
       sortable: true,
@@ -448,60 +467,53 @@ const EmployeePayrollInformationsList = () => {
       <div>
         <Breadcrumb
           items={[
-            { label: "Payroll", href: "" },
+            { label: "Payroll" },
             {
               label: "Payroll Information",
-              href: "/admin-dashboard/employees",
+              href: "/admin-dashboard/employees/payroll-informations/list",
             },
           ]}
         />
-        <div className="-mt-2 bg-white w-[calc(100vw-310px)] p-3 py-3 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            {/* Button Group */}
-            <div className="inline-flex border border-neutralDGray rounded h-8">
-              <button
-                onClick={bulkEdit}
-                className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
-                title="Bulk Edit"
-              >
-                <FaRegPenToSquare className="text-neutralDGray transition-all duration-300" />
-              </button>
+        <div className="bg-white p-2 -mt-3 rounded-lg shadow w-[calc(100vw-310px)] flex justify-between">
+          <div className="inline-flex border border-neutralDGray rounded h-8">
+            <button
+              onClick={bulkEdit}
+              className="px-3 w-20 h-full border-r  hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
+            >
+              <FaRegPenToSquare
+                title="Print"
+                className="text-neutralDGray] transition-all duration-300"
+              />
+            </button>
 
-              <button
-                onClick={handleExportExcel}
-                className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center"
-                title="Export to Excel"
-              >
-                <FaRegFileExcel className="text-neutralDGray" />
-              </button>
-
-              <button
-                onClick={handleExportPDF}
-                className="px-3 w-20 h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center"
+            <button
+              onClick={handleExportExcel} // Export as Excel
+              className="px-3 w-20 h-full hover:bg-neutralSilver border-l-0 transition-all duration-300 rounded-r flex items-center justify-center"
+            >
+              <FaRegFileExcel
                 title="Export to PDF"
-              >
-                <FaRegFilePdf className="text-neutralDGray" />
-              </button>
-            </div>
-
-            {/* Search & Sync Section */}
-            <div className="flex items-center gap-3">
-              <div className="flex rounded items-center">
-                <input
-                  type="text"
-                  placeholder="Search Employee"
-                  onChange={handleFilter}
-                  className="px-2 rounded py-0.5 border"
-                />
-                <FaSearch className="ml-[-20px] text-neutralDGray" />
-              </div>
-            </div>
+                className=" text-neutralDGray"
+              />
+            </button>
           </div>
 
+          <div className="flex flex-row gap-2 w-1/2 justify-end">
+            <div className="flex w-full">
+              <input
+                type="text"
+                placeholder="Search Employee"
+                onChange={handleFilter}
+                className="px-2 text-xs rounded w-full h-8 py-0.5 border"
+              />
+              <FaSearch className="-ml-6 mt-1.5 text-neutralDGray/60" />
+            </div>
+          </div>
+        </div>
+        <div className="mt-2 bg-white w-[calc(100vw-310px)] p-2 rounded-lg shadow">
           {/* Table Container */}
-          <div className="mt-4">
+          <div>
             <div className="w-full">
-              <div className="max-h-[35rem] overflow-y-auto text-neutralDGray border rounded-md">
+              <div className="h-full overflow-y-auto text-neutralDGray border rounded-md">
                 <div>
                   <DataTable
                     customStyles={customStyles}
@@ -509,16 +521,29 @@ const EmployeePayrollInformationsList = () => {
                     data={filteredEmployees}
                     progressPending={loading}
                     progressComponent={
-                      <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
-                        <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
-                        Loading data...
+                      <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
+                        <ThreeDots
+                          visible={true}
+                          height="60"
+                          width="60"
+                          color="#4fa94d"
+                          radius="9"
+                          ariaLabel="three-dots-loading"
+                          wrapperStyle={{}}
+                          wrapperClass=""
+                        />
                       </div>
                     }
                     pagination
-                    paginationPerPage={10}
-                    paginationRowsPerPageOptions={[10, 20, 30, 50]}
+                    paginationPerPage={20}
+                    onChangeRowsPerPage={handlePerRowsChange}
+                    onChangePage={handlePageChange}
+                    paginationDefaultPage={currentPage}
                     highlightOnHover
                     pointerOnHover
+                    dense
+                    fixedHeader
+                    fixedHeaderScrollHeight="530px"
                   />
                 </div>
               </div>
@@ -542,12 +567,12 @@ const EmployeePayrollInformationsList = () => {
                     placeholder="Search employee by name or ID"
                     value={bulkSearchTerm}
                     onChange={(e) => setBulkSearchTerm(e.target.value)}
-                    className="px-2 h-8 w-80 text-sm font-normal rounded py-0.5 border"
+                    className="px-2 h-8 w-80 text-xs font-normal rounded py-0.5 border"
                   />
                   <FaSearch className="ml-[-20px] text-neutralDGray" />
                 </div>
 
-                <label className="block text-xs font-medium text-gray-500 mb-2 mt-2">
+                <label className="block text-xs font-medium text-gray-500 mb-2">
                   Apply changes to field:
                 </label>
                 <div className="flex gap-2 mb-3">
@@ -561,25 +586,9 @@ const EmployeePayrollInformationsList = () => {
                     <option className="text-gray-300" value="default">
                       Select Information Field
                     </option>
-                    <option className="text-center" value="" disabled>
-                      ---- Employee Pay ----
-                    </option>
                     <option value="daily_rate">Daily Rate</option>
-                    <option value="holiday_pay">Holiday Pay</option>
-                    <option value="night_differential">
-                      Night Differential
-                    </option>
-                    <option value="allowance">Allowance</option>
-                    <option value="overtime_pay">Overtime Pay</option>
-                    <option value="tardiness">Tardiness</option>
                     <option value="adjustment">Adjustments</option>
-                    <option className="text-center" value="" disabled>
-                      ---- Mandatory Benefits ----
-                    </option>
                     <option value="tax_deduction">Tax</option>
-                    <option value="sss_contribution">SSS</option>
-                    <option value="pagibig_contribution">Pag-IBIG</option>
-                    <option value="philhealth_contribution">PhilHealth</option>
                     <option value="loan">Loan</option>
                   </select>
                   <input
@@ -592,7 +601,7 @@ const EmployeePayrollInformationsList = () => {
                 </div>
 
                 {/* Added Reason Field */}
-                <div className="mb-3">
+                <div className="mb-3 -mt-2">
                   <label className="block text-xs font-medium text-gray-500 mb-1">
                     Reason for change (optional):
                   </label>
@@ -604,11 +613,11 @@ const EmployeePayrollInformationsList = () => {
                   />
                 </div>
 
-                <p className="text-xs text-red-300 text-center italic">
+                <p className="text-xs text-red-300 text-center -mt-3 italic">
                   **Note: Changes will be submitted as requests for approval.**
                 </p>
 
-                <div className="border border-neutralDGray rounded p-2 overflow-auto mt-4">
+                <div className="border border-neutralDGray rounded p-2 overflow-auto -mt-2">
                   <div className="flex justify-between mb-3">
                     <div>
                       <h5 className="text-neutralDGray text-sm italic">
@@ -618,13 +627,13 @@ const EmployeePayrollInformationsList = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={handleSelectAll}
-                        className="px-2 py-1 text-xs border h-8 w-36 text-neutralDGray rounded hover:bg-green-400 hover:text-white"
+                        className="px-2 py-1 text-xs border h-7 w-36 text-neutralDGray rounded hover:bg-green-400 hover:text-white"
                       >
                         Select All
                       </button>
                       <button
                         onClick={handleDeselectAll}
-                        className="px-2 text-xs py-1 border h-8 w-36 text-neutralDGray rounded hover:bg-red-400 hover:text-white"
+                        className="px-2 text-xs py-1 border h-7 w-36 text-neutralDGray rounded hover:bg-red-400 hover:text-white"
                       >
                         Deselect All
                       </button>
@@ -632,7 +641,7 @@ const EmployeePayrollInformationsList = () => {
                   </div>
 
                   {/* Employee List */}
-                  <div className="max-h-64 overflow-y-auto">
+                  <div className="max-h-64 overflow-y-auto -mt-2">
                     {filteredBulkEmployees.map((employee) => (
                       <div
                         key={employee.employee_id}

@@ -96,7 +96,7 @@ const Login = () => {
       }}
     >
       <div className="backdrop-blur-md bg-white/20 border border-white/20  rounded-lg shadow-black shadow-2xl p-6 w-full sm:w-[80%] md:w-[60%] lg:w-[40%] xl:w-[30%] max-w-md">
-        <h2 className="font-inter text-[28px] text-center font-bold text-neutralDGray">
+        <h2 className="font-inter text-[28px] text-center font-medium text-neutralDGray">
           Payroll Management Portal
         </h2>
         <hr className="my-3 mb-4 border-t-1 border-black" />
@@ -113,7 +113,7 @@ const Login = () => {
               type="email"
               name="email"
               id="email"
-              className="block py-2.5 px-2 w-full text-sm text-gray-900 bg-transparent border-r-0 border-l-0 border-t-0 border-b-1 border-neutralDGray appearance-none focus:outline-none focus:ring-0 focus:border-brandPrimary     "
+              className="peer block py-2.5 px-2 w-full text-sm text-gray-900 bg-transparent border-r-0 border-l-0 border-t-0 border-b-1 border-neutralDGray appearance-none focus:outline-none focus:ring-0 focus:border-brandPrimary     "
               placeholder=" "
               value={email}
               onChange={(e) => setEmail(e.target.value)}

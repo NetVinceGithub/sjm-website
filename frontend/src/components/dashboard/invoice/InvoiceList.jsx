@@ -7,6 +7,7 @@ import html2canvas from "html2canvas";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { FaSearch, FaSyncAlt } from "react-icons/fa";
+import { ThreeDots } from "react-loader-spinner";
 import {
   FaArrowUpRightFromSquare,
   FaPrint,
@@ -75,7 +76,7 @@ const InvoiceList = () => {
 
           // Extract last 4 digits, convert to number, add 1, and format back with full prefix
           const getNextControlNumber = (currentNumber) => {
-            if (!currentNumber) return "SJM 2025-06-0001"; // Default if no existing numbers
+            if (!currentNumber) return "MBS-2025-06-0001"; // Default if no existing numbers
 
             const lastFourDigits = currentNumber.slice(-4);
             const nextNumber = parseInt(lastFourDigits, 10) + 1;
@@ -459,279 +460,24 @@ const InvoiceList = () => {
           { label: "Invoice List", href: "" },
         ]}
       />
-      <div className="flex flex-row gap-4 -mt-2 w-full">
-        <div className="w-1/2 bg-white rounded shadow-lg p-3 h-[calc(100vh-100px)] overflow-auto">
-          <div className="w-full border overflow-auto">
-            <div className=" w-[47rem] h-[40rem]">
-              <div className="flex mr-5 gap-2 mt-3 p-2 justify-between items-center">
-                <div>
-                  <div className="flex flex-row gap-2 justify-center items center">
-                    <img src={Logo} className="w-20 h-20" />
-                    <div>
-                      <p className="font-semibold text-[#9D426E] text-[10px]">
-                        ST. JOHN MAJORE SERVICES COMPANY, INC.
-                      </p>
-                      <p className="italic text-[9px] -mt-3">
-                        Registered DOLE D.O. RO4A-BPO-DO174-0225-005-N
-                      </p>
-                      <p className="text-[9px] -mt-3">
-                        Batangas, 4226, PHILIPPINES
-                      </p>
-                      <p className="text-[9px] -mt-3">
-                        Cel No.: 0917-185-1909 • Tel. No.:(043) 575-5675
-                      </p>
-                      <p className="text-[9px] -mt-3">www.stjohnmajore.com</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="border-black border rounded-lg flex flex-col divide-y divide-black">
-                  <div className="p-2">
-                    <p className="text-[9px] mb-0">
-                      VAT REGISTERED TIN: 010-837-591-000
-                    </p>
-                  </div>
-                  <div className="p-2">
-                    <p className="flex justify-center text-center items-center mt-2 font-semibold">
-                      BILLING SUMMARY
-                    </p>
-                    <div>
-                      {/* {nextBillingSummary !== null ? (
-                        <p className="text-lg font-semibold text-red-500 text-center">
-                          {String(nextBillingSummary).padStart(5, "0")}
-                        </p>
-                      ) : (
-                        <p className="text-lg font-semibold text-gray-400 text-center">
-                          Loading...
-                        </p>
-                      )} */}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <table className="border-collapse my-8 text-xs font-sans">
-                <tbody>
-                  <tr>
-                    <td></td>
-                    <td className="border-r border-l border-t border-black p-2 text-center align-middle font-semibold"></td>
-
-                    {nextControlNumber !== null ? (
-                      <td
-                        colSpan={2}
-                        className="p-2 border-t border-r w-20 border-black italic text-[10px]"
-                      >
-                        {nextControlNumber}
-                      </td>
-                    ) : (
-                      <td className="text-lg font-semibold text-gray-400 text-center">
-                        Loading...
-                      </td>
-                    )}
-
-                    {/* <td colSpan={2} className="p-2 border-t border-r w-20 border-black italic text-[11px]">
-                      Control #: {getControlNumber()}
-                    </td> */}
-                  </tr>
-                  <tr>
-                    <td></td>
-                    <td className="border-r border-l border-black p-2 text-center align-middle w-20 font-semibold text-xs">
-                      Date:
-                    </td>
-                    <td
-                      colSpan={2}
-                      className="p-2 border-t border-r w-20 border-black italic text-xs"
-                    >
-                      {new Date().toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </td>
-                  </tr>
-                  <tr className="border p-2 border-black font-semibold">
-                    <td>SOLD TO:</td>
-                  </tr>
-                  <tr className="border-l border-r p-2 border-black">
-                    <td className="px-2 py-1">Registered Name:</td>
-                    <td></td>
-                  </tr>
-                  <tr className="border-l border-r p-2 border-black">
-                    <td className="px-2 py-1">TIN:</td>
-                    <td></td>
-                  </tr>
-                  <tr className="border-l border-r p-2 border-black">
-                    <td className="px-2 py-1">Business Address:</td>
-                    <td></td>
-                  </tr>
-                  <tr>
-                    <th className="border border-black p-2 text-center">
-                      Particulars
-                    </th>
-                    <th className="border border-black p-2 text-center">
-                      Quantity
-                    </th>
-                    <th className="border border-black p-2 w-20 text-center">
-                      Unit Price
-                    </th>
-                    <th className="border border-black p-2 w-20 text-center">
-                      Amount
-                    </th>
-                  </tr>
-                  {particulars.map((item) => (
-                    <tr key={item.id}>
-                      <td className="border-r border-l w-72 border-black p-2 text-center">
-                        {item.description}
-                      </td>
-                      <td className="border-r border-l border-black p-2 text-center">
-                        {item.quantity}
-                      </td>
-                      <td className="border-r border-l border-black p-2 text-center">
-                        {item.unitPrice}
-                      </td>
-                      <td className="border-r border-black p-2 text-center flex items-center justify-between">
-                        <span className="text-xs">
-                          {item.amount.toFixed(2)}
-                        </span>
-                        <button
-                          onClick={() => removeParticular(item.id)}
-                          className="border w-6 h-6 rounded hover:bg-red-400 hover:text-white text-xs"
-                        >
-                          -
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-
-                  <tr>
-                    <td className="flex flex-row border-b gap-1 h-10 p-1 border-r border-l border-black">
-                      <input
-                        type="text"
-                        value={particular}
-                        onChange={(e) => {
-                          setParticular(e.target.value);
-                          handleParticularChange("description", e.target.value);
-                        }}
-                        placeholder="Enter particulars"
-                        className="w-full h-full px-2 border rounded text-xs"
-                      />
-                      <button
-                        onClick={addParticular}
-                        className="border w-9 h-full  rounded hover:bg-green-400 hover:text-white"
-                      >
-                        +
-                      </button>
-                    </td>
-                    <td className="border-r border-b border-black">
-                      {particular && (
-                        <input
-                          type="number"
-                          value={currentParticular.quantity}
-                          onChange={(e) =>
-                            handleParticularChange("quantity", e.target.value)
-                          }
-                          placeholder="Qty"
-                          className="w-full h-full px-2 border rounded text-xs"
-                        />
-                      )}
-                    </td>
-                    <td className="border-r border-b border-black">
-                      {particular && (
-                        <input
-                          type="number"
-                          value={currentParticular.unitPrice}
-                          onChange={(e) =>
-                            handleParticularChange("unitPrice", e.target.value)
-                          }
-                          placeholder="Price"
-                          className="w-full h-full px-2 border rounded text-sm"
-                        />
-                      )}
-                    </td>
-                    <td className="border-r border-b border-black">
-                      {particular && (
-                        <input
-                          type="number"
-                          value={currentParticular.amount.toFixed(2)}
-                          placeholder="Amount"
-                          className="w-full h-full px-2 border rounded text-sm"
-                          readOnly
-                        />
-                      )}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td></td>
-                    <td
-                      colSpan={2}
-                      className="border-l border-r border-b text-right font-semibold border-black"
-                    >
-                      TOTAL AMOUNT DUE:
-                    </td>
-                    <td className="border-r border-black border-b">
-                      ₱{calculateTotal()}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <div className="flex flex-row gap-4 -mt-14">
-                <div flex flex-col>
-                  <div>
-                    <table className="w-64">
-                      <tr colSpan={2} className="border border-black text-sm">
-                        <td>Prepared by:</td>
-                      </tr>
-                      <tr colSpan={2} className="border border-black text-sm">
-                        <td>Received by:</td>
-                      </tr>
-                      <tr colSpan={2} className="border border-black text-sm">
-                        <td>Date Received:</td>
-                      </tr>
-                    </table>
-                  </div>
-                  <div className="ml-7">
-                    <p className="text-decoration-underline font-semibold  text-[10px] -mt-3">
-                      "THIS DOCUMENT IS NOT VALID FOR CLAIMING INPUT TAX."
-                    </p>
-                    <p className="text-[8px] -mt-3 font-semibold">
-                      THIS BILLING INVOICE SHALL BE VALID FOR FIVE (5) YEARS
-                      FROM THE DATE OF ATP.
-                    </p>
-                  </div>
-                </div>
-
-                <img src={LongLogo} className="w-36 h-24 -ml-3 mt-5" />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <button className="w-32 text-sm bg-brandPrimary h-8 hover:bg-neutralDGray text-white py-1 px-2 rounded mt-3">
-              Create Invoice
-            </button>
+      <div className="bg-white p-2 -mt-3 rounded-lg shadow flex justify-end">
+        <div className="flex flex-row gap-2 w-1/2 justify-end">
+          <div className="flex w-full">
+            <input
+              type="text"
+              placeholder="Search Project"
+              value={searchTerm}
+              onChange={handleSearch}
+              className="px-2 text-xs rounded w-full h-8 py-0.5 border"
+            />
+            <FaSearch className="-ml-6 mt-1.5 text-neutralDGray/60" />
           </div>
         </div>
+      </div>
 
-        <div className="bg-white w-1/2 py-4 px-3 rounded-lg shadow">
-          <div className="flex justify-between items-center">
-            <h6 className="text-md text-neutralDGray font-bold">
-              Invoice List
-            </h6>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center border rounded px-1 py-1">
-                <input
-                  type="text"
-                  placeholder="Search Project"
-                  className="text-xs h-5 border-white focus:outline-none"
-                  value={searchTerm}
-                  onChange={handleSearch}
-                />
-                <FaSearch className="ml-2 text-neutralDGray" />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-3 border border-neutralDGray h-[95%]  rounded overflow-x-auto">
+      <div className="mt-2">
+        <div className="bg-white w-full p-2 rounded-lg shadow">
+          <div className="border border-neutralDGray h-[95%]  rounded overflow-x-auto">
             <DataTable
               columns={[
                 {
@@ -768,9 +514,31 @@ const InvoiceList = () => {
               ]}
               data={filteredProjects}
               highlightOnHover
+              dense
+              fixedHeader
+              fixedHeaderScrollHeight="530px"
               striped
               pagination
               customStyles={customStyles}
+              progressComponent={
+                <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
+                  <ThreeDots
+                    visible={true}
+                    height="60"
+                    width="60"
+                    color="#4fa94d"
+                    radius="9"
+                    ariaLabel="three-dots-loading"
+                    wrapperStyle={{}}
+                    wrapperClass=""
+                  />
+                </div>
+              }
+              noDataComponent={
+                <div className="text-gray-500 text-sm italic py-4 text-center">
+                  *** No data found ***
+                </div>
+              }
             />
           </div>
 
@@ -1003,7 +771,7 @@ const InvoiceList = () => {
                                 className=" border border-black text-center py-1 text-nowrap"
                                 rowSpan="2"
                               >
-                                NO.
+                                E-CODE
                               </th>
                               <th
                                 className=" border border-black text-center py-1 text-nowrap"
@@ -1015,7 +783,7 @@ const InvoiceList = () => {
                                 className=" border border-black text-center  py-1 text-nowrap"
                                 rowSpan="2"
                               >
-                                DESCRIPTION
+                                DESIGNATION
                               </th>
                               <th
                                 className=" border border-black text-center  py-1 text-nowrap"

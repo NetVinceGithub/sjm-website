@@ -1032,9 +1032,9 @@ const Requests = () => {
   }
 
   return (
-    <div className="flex flex-row gap-8 p-2 overflow-auto">
+    <div className="grid grid-cols-6 grid-rows-5 gap-2 p-2 -mt-5 overflow-auto">
       {/* Payroll Requests Section */}
-      <section className="flex-1 flex flex-col rounded-lg border p-2">
+      <section className="col-span-3 row-span-5 flex flex-col rounded-lg shadow bg-white border p-2">
         <h2 className="text-neutralDGray text-lg font-semibold mb-3 flex items-center gap-2">
           <FaClipboardCheck className="h-8 w-8 text-lg text-neutralDGray" />
           Payroll Requests
@@ -1242,7 +1242,7 @@ const Requests = () => {
       </section>
 
       {/* Changes Requests Section */}
-      <section className="flex-1 flex flex-col rounded-lg border p-2">
+      <section className="col-span-3 row-span-5 col-start-4 flex flex-col shadow rounded-lg bg-white border p-2">
         <h2 className="text-neutralDGray text-lg font-semibold mb-3 flex items-center gap-2">
           <FaPenRuler className="h-8 w-8 text-lg text-neutralDGray" />
           Change Requests

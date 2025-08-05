@@ -14,6 +14,7 @@ import * as XLSX from "xlsx";
 import { Modal, Button } from "react-bootstrap";
 import { toast } from "react-toastify";
 import { useAuth } from "../../../context/authContext";
+import { ThreeDots } from "react-loader-spinner";
 
 const PayrollSummary = () => {
   const { user } = useAuth();
@@ -234,64 +235,67 @@ const PayrollSummary = () => {
   };
 
   const EnhancedModalFooter = () => {
-  const handleApproveOvertime = () => {
-    // Validate overtime data before proceeding
-    const validationIssues = validateOvertimeData();
-    
-    if (validationIssues.length > 0) {
-      toast.error(
-        <div style={{ fontSize: "0.9rem" }}>
-          Please fix the following issues:<br/>
-          {validationIssues.slice(0, 3).map((issue, index) => (
-            <div key={index}>• {issue}</div>
-          ))}
-          {validationIssues.length > 3 && <div>...and {validationIssues.length - 3} more</div>}
-        </div>,
-        {
-          autoClose: 5000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          closeButton: false,
-          position: "top-right",
-        }
-      );
-      return;
-    }
+    const handleApproveOvertime = () => {
+      // Validate overtime data before proceeding
+      const validationIssues = validateOvertimeData();
 
-    // Log what's being sent for debugging
-    console.log("🚀 Approving overtime for employees:", {
-      selectedEmployees: selectedOvertime,
-      individualOvertime,
-      totalEmployees: selectedOvertime.length,
-      totalOvertimeHours: Object.values(individualOvertime)
-        .reduce((sum, hours) => sum + Number(hours || 0), 0)
-    });
+      if (validationIssues.length > 0) {
+        toast.error(
+          <div style={{ fontSize: "0.9rem" }}>
+            Please fix the following issues:
+            <br />
+            {validationIssues.slice(0, 3).map((issue, index) => (
+              <div key={index}>• {issue}</div>
+            ))}
+            {validationIssues.length > 3 && (
+              <div>...and {validationIssues.length - 3} more</div>
+            )}
+          </div>,
+          {
+            autoClose: 5000,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",
+          }
+        );
+        return;
+      }
 
-    proceedWithPayroll(selectedOvertime);
-    handleClose();
+      // Log what's being sent for debugging
+      console.log("🚀 Approving overtime for employees:", {
+        selectedEmployees: selectedOvertime,
+        individualOvertime,
+        totalEmployees: selectedOvertime.length,
+        totalOvertimeHours: Object.values(individualOvertime).reduce(
+          (sum, hours) => sum + Number(hours || 0),
+          0
+        ),
+      });
+
+      proceedWithPayroll(selectedOvertime);
+      handleClose();
+    };
+
+    return (
+      <Modal.Footer>
+        <button
+          className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+          onClick={handleApproveOvertime}
+          disabled={selectedOvertime.length === 0}
+        >
+          Approve Overtime ({selectedOvertime.length} employees)
+        </button>
+        <button
+          className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+          onClick={handleClose}
+        >
+          Close
+        </button>
+      </Modal.Footer>
+    );
   };
-
-  return (
-    <Modal.Footer>
-      <button
-        className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
-        onClick={handleApproveOvertime}
-        disabled={selectedOvertime.length === 0}
-      >
-        Approve Overtime ({selectedOvertime.length} employees)
-      </button>
-      <button
-        className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
-        onClick={handleClose}
-      >
-        Close
-      </button>
-    </Modal.Footer>
-  );
-};
-
-
 
   // 5. Debug function to verify data before sending
   const debugOvertimeData = () => {
@@ -301,9 +305,9 @@ const PayrollSummary = () => {
     console.log("Max Overtime Setting:", maxOvertime);
     console.log("Payroll Type:", payrollType);
     console.log("Cutoff Date:", cutoffDate);
-    
+
     // Verify each selected employee has overtime data
-    selectedOvertime.forEach(ecode => {
+    selectedOvertime.forEach((ecode) => {
       const overtimeHours = individualOvertime[ecode];
       console.log(`Employee ${ecode}: ${overtimeHours} hours`);
     });
@@ -312,14 +316,13 @@ const PayrollSummary = () => {
   // 6. Enhanced overtime input validation
   const handleOvertimeChange = (ecode, value) => {
     // Validate input
-    if (value === '' || (!isNaN(value) && Number(value) >= 0)) {
+    if (value === "" || (!isNaN(value) && Number(value) >= 0)) {
       setIndividualOvertime((prev) => ({
         ...prev,
         [ecode]: value,
       }));
     }
   };
-
 
   const fetchPayslips = async () => {
     try {
@@ -358,7 +361,9 @@ const PayrollSummary = () => {
         return;
       }
 
-      console.log("✅ Cutoff date validation passed, proceeding to load employee data");
+      console.log(
+        "✅ Cutoff date validation passed, proceeding to load employee data"
+      );
 
       setLoading(true);
       setMessage("Loading employee data...");
@@ -425,7 +430,6 @@ const PayrollSummary = () => {
     return isLoading || !hasCutoff;
   };
 
-
   // Key changes to ensure overtime data is properly sent to backend
 
   // 1. Enhanced proceedWithPayroll function with better overtime handling
@@ -438,7 +442,9 @@ const PayrollSummary = () => {
 
     // Additional validation: ensure selected employees
     if (!selectedEmployees || selectedEmployees.length === 0) {
-      setMessage("Please select at least one employee before generating payroll.");
+      setMessage(
+        "Please select at least one employee before generating payroll."
+      );
       return;
     }
 
@@ -455,7 +461,9 @@ const PayrollSummary = () => {
       console.log("📊 Fetched attendance data:", attendanceData);
 
       if (!attendanceData.length) {
-        console.log("🚫 No attendance data found! Stopping payroll generation.");
+        console.log(
+          "🚫 No attendance data found! Stopping payroll generation."
+        );
         setNoAttendanceModalOpen(true);
         setLoading(false);
         return;
@@ -467,10 +475,10 @@ const PayrollSummary = () => {
       console.log("Individual overtime values:", individualOvertime);
 
       // Create overtime summary for backend
-      const overtimeApprovals = selectedEmployees.map(ecode => ({
+      const overtimeApprovals = selectedEmployees.map((ecode) => ({
         ecode,
         approvedOvertimeHours: Number(individualOvertime[ecode] || 0),
-        isApproved: true
+        isApproved: true,
       }));
 
       console.log("✅ Overtime approvals to send:", overtimeApprovals);
@@ -486,7 +494,7 @@ const PayrollSummary = () => {
           // Ensure we don't exceed approved overtime
           overtimeHours: Math.min(record.overtimeHours || 0, employeeOvertime),
           approvedOvertimeHours: employeeOvertime,
-          overtimeApproved: selectedEmployees.includes(record.ecode)
+          overtimeApproved: selectedEmployees.includes(record.ecode),
         };
       });
 
@@ -505,12 +513,14 @@ const PayrollSummary = () => {
         // Additional metadata for backend processing
         metadata: {
           totalEmployeesSelected: selectedEmployees.length,
-          employeesWithOvertime: selectedEmployees.filter(ecode => 
-            Number(individualOvertime[ecode] || 0) > 0
+          employeesWithOvertime: selectedEmployees.filter(
+            (ecode) => Number(individualOvertime[ecode] || 0) > 0
           ).length,
-          totalOvertimeHours: Object.values(individualOvertime)
-            .reduce((sum, hours) => sum + Number(hours || 0), 0)
-        }
+          totalOvertimeHours: Object.values(individualOvertime).reduce(
+            (sum, hours) => sum + Number(hours || 0),
+            0
+          ),
+        },
       };
 
       console.log("📤 Final payroll request payload:", payrollRequest);
@@ -531,10 +541,14 @@ const PayrollSummary = () => {
           setPayslips(response.data.payslips);
           toast.success(
             <div style={{ fontSize: "0.9rem" }}>
-              Payroll successfully generated for {selectedEmployees.length} employee(s).
-              {overtimeApprovals.filter(oa => oa.approvedOvertimeHours > 0).length > 0 && 
-                ` Overtime approved for ${overtimeApprovals.filter(oa => oa.approvedOvertimeHours > 0).length} employee(s).`
-              }
+              Payroll successfully generated for {selectedEmployees.length}{" "}
+              employee(s).
+              {overtimeApprovals.filter((oa) => oa.approvedOvertimeHours > 0)
+                .length > 0 &&
+                ` Overtime approved for ${
+                  overtimeApprovals.filter((oa) => oa.approvedOvertimeHours > 0)
+                    .length
+                } employee(s).`}
             </div>,
             {
               autoClose: 3000,
@@ -550,7 +564,8 @@ const PayrollSummary = () => {
       } else {
         toast.error(
           <div style={{ fontSize: "0.9rem" }}>
-            Failed to generate payroll: {response?.data?.message || "Unknown error"}
+            Failed to generate payroll:{" "}
+            {response?.data?.message || "Unknown error"}
           </div>,
           {
             autoClose: 3000,
@@ -566,7 +581,8 @@ const PayrollSummary = () => {
       console.error("❌ Full error response:", error.response?.data || error);
       toast.error(
         <div style={{ fontSize: "0.9rem" }}>
-          {error?.response?.data?.message || "An error occurred while generating payroll."}
+          {error?.response?.data?.message ||
+            "An error occurred while generating payroll."}
         </div>,
         {
           autoClose: 3000,
@@ -582,26 +598,32 @@ const PayrollSummary = () => {
     }
   };
 
-
   // 2. Enhanced overtime validation before sending
   const validateOvertimeData = () => {
     const issues = [];
-    
+
     // Check if any selected employees have invalid overtime values
-    selectedOvertime.forEach(ecode => {
+    selectedOvertime.forEach((ecode) => {
       const overtimeValue = individualOvertime[ecode];
-      if (overtimeValue === undefined || overtimeValue === null || overtimeValue === '') {
+      if (
+        overtimeValue === undefined ||
+        overtimeValue === null ||
+        overtimeValue === ""
+      ) {
         issues.push(`Employee ${ecode} has no overtime value set`);
       } else if (isNaN(Number(overtimeValue))) {
-        issues.push(`Employee ${ecode} has invalid overtime value: ${overtimeValue}`);
+        issues.push(
+          `Employee ${ecode} has invalid overtime value: ${overtimeValue}`
+        );
       } else if (Number(overtimeValue) < 0) {
-        issues.push(`Employee ${ecode} has negative overtime value: ${overtimeValue}`);
+        issues.push(
+          `Employee ${ecode} has negative overtime value: ${overtimeValue}`
+        );
       }
     });
-    
+
     return issues;
   };
-
 
   const handleClose = () => {
     setShow(false);
@@ -809,17 +831,20 @@ const PayrollSummary = () => {
         {/* Breadcrumb Navigation */}
         <Breadcrumb
           items={[
-            { label: "Payroll", href: "" },
+            { label: "Payroll" },
             {
               label: "Payroll Information",
-              href: "/admin-dashboard/employees",
+              href: "/admin-dashboard/employees/payroll-informations/list",
             },
-            { label: "Payroll Generator", href: "/admin-dashboard/employees" },
+            {
+              label: "Payroll Generator",
+              href: "/admin-dashboard/payroll-generator",
+            },
           ]}
         />
 
         {/* Main Layout */}
-        <div className="flex  flex-wrap gap-4 -mt-2 flex-grow overflow-hidden">
+        <div className="flex  flex-wrap gap-2 -mt-3 flex-grow overflow-hidden">
           {/* Left Section */}
           <div className="w-full lg:w-[70%]  h-full bg-white border-gray-900 rounded gap-2 border shadow-sm p-3">
             <div className="flex justify-between">
@@ -827,10 +852,8 @@ const PayrollSummary = () => {
                 Cutoff Date:
               </label>
 
-
-
               {/* Radio Button Section */}
-              <div className="flex gap-6 mb-4 justify-end">
+              <div className="flex gap-2 mb-2.5 justify-end">
                 <div className="flex items-center">
                   <input
                     type="radio"
@@ -839,9 +862,9 @@ const PayrollSummary = () => {
                     value="weekly"
                     checked={payrollType === "weekly"}
                     onChange={(e) => setPayrollType(e.target.value)}
-                    className="mr-2"
+                    className="mr-1 w-3 h-3"
                   />
-                  <label htmlFor="weekly" className="text-sm text-gray-700">
+                  <label htmlFor="weekly" className="text-xs text-gray-700">
                     Weekly
                   </label>
                 </div>
@@ -853,9 +876,9 @@ const PayrollSummary = () => {
                     value="biweekly"
                     checked={payrollType === "biweekly"}
                     onChange={(e) => setPayrollType(e.target.value)}
-                    className="mr-2"
+                    className="mr-1 w-3 h-3"
                   />
-                  <label htmlFor="biweekly" className="text-sm text-gray-700">
+                  <label htmlFor="biweekly" className="text-xs text-gray-700">
                     Bi-Weekly
                   </label>
                 </div>
@@ -933,12 +956,10 @@ const PayrollSummary = () => {
               </div>
             )}
 
-
-
             {/* Payroll Details */}
-            <div className="flex flex-col rounded-lg mt-3  h-full max-h-[80vh] min-h-[28rem]">
+            <div className="flex flex-col rounded-lg mt-2  h-full max-h-[80vh] min-h-[28rem]">
               <div className="flex flex-col flex-1 rounded-lg overflow-hidden">
-                <h4 className="text-base italic text-neutralDGray font-semibold px-2 py-1 bg-gray-200 mb-3 rounded">
+                <h4 className="text-sm italic text-neutralDGray font-semibold px-2 py-1 bg-gray-200 mb-2 rounded">
                   Payroll Details
                 </h4>
 
@@ -948,25 +969,10 @@ const PayrollSummary = () => {
                   <div className="inline-flex border border-neutralDGray rounded h-8">
                     <button
                       onClick={handleDownloadExcel}
-                      className="px-3 w-20 h-full text-[13px] border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
-                    >
-                      <FaPrint title="Print" className="text-neutralDGray" />
-                    </button>
-                    <button
-                      onClick={handleDownloadExcel}
-                      className="px-3 w-20 h-full text-[13px]  border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center"
+                      className="px-3 w-20 h-full text-[13px] hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center"
                     >
                       <FaRegFileExcel
                         title="Export to Excel"
-                        className="text-neutralDGray"
-                      />
-                    </button>
-                    <button
-                      onClick={handleDownloadExcel}
-                      className="px-3 w-20 text-[13px] h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center"
-                    >
-                      <FaRegFilePdf
-                        title="Export to PDF"
                         className="text-neutralDGray"
                       />
                     </button>
@@ -999,17 +1005,36 @@ const PayrollSummary = () => {
                       {/* or larger width */}
                       <DataTable
                         columns={columns}
-                        className="w-full -mt-3 text-sm"
                         data={payslips}
                         pagination
                         highlightOnHover
                         striped
+                        fixedHeader
+                        fixedHeaderScrollHeight="300px"
+                        noDataComponent={
+                          <div className="text-gray-500 text-sm italic py-4 text-center">
+                            *** No data found ***
+                          </div>
+                        }
+                        progressComponent={
+                          <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
+                            <ThreeDots
+                              visible={true}
+                              height="60"
+                              width="60"
+                              color="#4fa94d"
+                              radius="9"
+                              ariaLabel="three-dots-loading"
+                              wrapperStyle={{}}
+                              wrapperClass=""
+                            />
+                          </div>
+                        }
+                        dense
                       />
                     </div>
                   ) : (
-                    <div className="mt-6 text-center">
-                     
-                    </div>
+                    <div className="mt-6 text-center"></div>
                   )}
                 </div>
               </div>

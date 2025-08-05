@@ -1,8 +1,6 @@
 import React from "react";
 import { Modal } from "react-bootstrap";
-import {
-  FaRegWindowMaximize,
-} from "react-icons/fa6";
+import { FaPersonShelter, FaFileInvoiceDollar } from "react-icons/fa6";
 import {
   FaPhone,
   FaEnvelope,
@@ -18,7 +16,7 @@ export default function ClientProfileModal({
   handleClose,
   onClose,
   client,
-  employees = [],  // <- new prop to pass employee list
+  employees = [], // <- new prop to pass employee list
 }) {
   const isModalOpen = show ?? isOpen;
   const closeHandler = handleClose ?? onClose;
@@ -29,7 +27,8 @@ export default function ClientProfileModal({
   const deployedEmployees = employees.filter(
     (emp) =>
       emp.project?.trim().toUpperCase() ===
-      (client.project?.trim().toUpperCase() || client.name?.trim().toUpperCase())
+      (client.project?.trim().toUpperCase() ||
+        client.name?.trim().toUpperCase())
   );
 
   // Columns config for DataTable
@@ -73,90 +72,125 @@ export default function ClientProfileModal({
       <Modal.Body className="p-0">
         <div className="bg-white">
           {/* Header Section with Avatar and Basic Info */}
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-20 h-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-white font-bold text-2xl">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-2 px-4">
+            <div className="flex items-center gap-3min-h-[60px]">
+              <div className="w-14 h-14 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-neutralGray font-medium text-lg flex-shrink-0">
                 {client.avatar}
               </div>
-              <div>
-                <h2 className="text-2xl font-bold mt-2">{client.name}</h2>
-                <p className="text-blue-100 italic text-xs flex items-center gap-2">
-                  Tin Number: {""}
-                  {client.tin}
+              <div className="flex-1 mt-3 ml-3">
+                <h2 className="text-base font-medium">{client.name}</h2>
+                <p className="text-blue-100 italic text-xs -mt-2">
+                  Brgy. Hugom, Laiya, San Juan, Batangas
+                </p>
+                <p className="text-blue-100 italic text-xs -mt-3">
+                  TIN No.: 123-456-789
                 </p>
               </div>
-              <div className="ml-auto hover:scale-105 transition-all duration-300">
-                <span
-                  className={`px-3 py-1 rounded-full flex text-sm font-medium ${
-                    client.status === "Active"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {client.status}
-                </span>
-              </div>
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-medium shadow-md ${
+                  client.status === "Active"
+                    ? "bg-green-200 text-black shadow-[0_0_8px_#86efac]"
+                    : "bg-red-200 text-black shadow-[0_0_8px_#fca5a5]"
+                }`}
+              >
+                {client.status}
+              </span>
             </div>
           </div>
 
           {/* Contact Information Section */}
-          <div className="p-6">
+          <div className="p-4">
             <h3 className="text-sm text-gray-800 mb-4 border-b pb-1">
               Contact Information
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="flex items-center gap-3 p-3 h-20 bg-gray-50 rounded-lg hover:bg-blue-100 transition-all duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 -mt-2">
+              <div className="flex items-center gap-3 p-3 h-16 bg-gray-50 rounded-lg hover:bg-blue-100 transition-all duration-300">
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <FaPhone className="w-4 h-4 text-blue-600" />
+                  <FaPersonShelter className="w-4 h-4 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 mt-3.5 uppercase tracking-wide">
-                    Phone
+                  <p className="text-xs text-gray-500 mt-3.5 tracking-wide">
+                    Contact Person
                   </p>
-                  <p className="text-sm font-medium -mt-3 text-gray-800">
-                    {client.phone}
+                  <p className="text-xs font-medium -mt-3 text-gray-800">
+                    Karla Chavez
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 h-20 bg-gray-50 rounded-lg hover:bg-green-100 transition-all duration-300">
+              <div className="flex items-center gap-3 p-3 h-16 bg-gray-50 rounded-lg hover:bg-green-100 transition-all duration-300">
                 <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                   <FaEnvelope className="w-4 h-4 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 mt-3.5  uppercase tracking-wide">
+                  <p className="text-xs text-gray-500 mt-3.5 tracking-wide">
                     Email
                   </p>
-                  <p className="text-sm font-medium -mt-3 text-gray-800">
-                    {client.email}
+                  <p className="text-xs font-medium -mt-3 text-gray-800">
+                    karla@palmbeach.com.ph
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3  h-20 bg-gray-50 rounded-lg hover:bg-red-100 transition-all duration-300">
-                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                  <FaMapMarkerAlt className="w-4 h-4 text-red-600" />
+              <div className="flex items-center gap-3 p-3 h-16 bg-gray-50 rounded-lg hover:bg-yellow-100 transition-all duration-300">
+                <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <FaPhone className="w-4 h-4 text-yellow-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 uppercase mt-3.5  tracking-wide">
-                    Location
+                  <p className="text-xs text-gray-500  mt-3.5  tracking-wide">
+                    Contact Number
                   </p>
-                  <p className="text-sm font-medium -mt-3 text-gray-800">
-                    {client.location}
+                  <p className="text-xs font-medium -mt-3 text-gray-800">
+                    09123456789
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div className="flex items-center gap-3 p-3 h-20 bg-gray-50 rounded-lg hover:bg-purple-100 transition-all duration-300">
+          <div className="p-4 -mt-7">
+            <h3 className="text-sm text-gray-800 mb-4  border-b pb-1">
+              Partnership Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 -mt-2">
+              <div className="flex items-center gap-3 p-3 h-16 bg-gray-50 rounded-lg hover:bg-purple-100 transition-all duration-300">
                 <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
                   <FaCalendarAlt className="w-4 h-4 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 mt-3.5 uppercase tracking-wide">
+                  <p className="text-xs text-gray-500 mt-3.5 tracking-wide">
                     Join Date
                   </p>
-                  <p className="text-sm font-medium -mt-3 text-gray-800">
+                  <p className="text-xs font-medium -mt-3 text-gray-800">
                     {client.joinDate}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 h-16 bg-gray-50 rounded-lg hover:bg-red-100 transition-all duration-300">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <FaCalendarAlt className="w-4 h-4 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mt-3.5 tracking-wide">
+                    Expiry Date
+                  </p>
+                  <p className="text-xs font-medium -mt-3 text-gray-800">
+                    {client.joinDate}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 h-16 bg-gray-50 rounded-lg hover:bg-blue-100 transition-all duration-300">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <FaFileInvoiceDollar className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mt-3.5 tracking-wide">
+                    Billing Frequency
+                  </p>
+                  <p className="text-xs font-medium -mt-3 text-gray-800">
+                    Semi-Monthly
                   </p>
                 </div>
               </div>
