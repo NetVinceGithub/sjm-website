@@ -36,37 +36,83 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true); // Start loading
+    setLoading(true);
+    setError(null);
+    
     try {
+      console.log("Making login request to:", `${import.meta.env.VITE_API_URL}/api/auth/login`);
+      console.log("Login credentials:", { email, password: "***hidden***" });
+
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/auth/login`,
-        { email, password }
+        { email, password },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
       );
 
+      console.log("Full login response:", response.data);
+
       if (response.data.success) {
-        login(response.data.user);
+        console.log("Login successful!");
+        console.log("Token received:", response.data.token);
+        console.log("User data:", response.data.user);
+
+        // Store token and user role
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("userRole", response.data.user.role);
 
+        // Verify token was stored
+        const storedToken = localStorage.getItem("token");
+        console.log("Token stored in localStorage:", storedToken);
+        console.log("Token matches received token:", storedToken === response.data.token);
+
+        // Handle remember me functionality
         if (isChecked) {
           localStorage.setItem("email", email);
           localStorage.setItem("password", password);
           localStorage.setItem("rememberMe", "true");
         } else {
           localStorage.removeItem("email");
+          localStorage.removeItem("password");
           localStorage.removeItem("rememberMe");
         }
 
-        navigate("/admin-dashboard");
+        // Login user through context - pass the complete user object
+        login(response.data.user);
+
+        console.log("Navigating to dashboard...");
+
+        // Navigate based on user role
+        switch (response.data.user.role) {
+          case 'admin':
+            navigate("/admin-dashboard");
+            break;
+          case 'hr':
+            navigate("/admin-dashboard");
+            break;
+          default:
+            navigate("/admin-dashboard");
+        }
+      } else {
+        console.error("Login failed - success is false");
+        setError("Login failed");
       }
     } catch (error) {
-      if (error.response && !error.response.data.success) {
-        setError(error.response.data.error);
+      console.error('Login error:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      if (error.response?.data) {
+        setError(error.response.data.error || error.response.data.message || "Login failed");
       } else {
-        setError("Server Error");
+        setError("Network error. Please check your connection.");
       }
     } finally {
-      setLoading(false); // End loading
+      setLoading(false);
     }
   };
 
@@ -96,7 +142,7 @@ const Login = () => {
       }}
     >
       <div className="backdrop-blur-md bg-white/20 border border-white/20  rounded-lg shadow-black shadow-2xl p-6 w-full sm:w-[80%] md:w-[60%] lg:w-[40%] xl:w-[30%] max-w-md">
-        <h2 className="font-inter text-[28px] text-center font-bold text-neutralDGray">
+        <h2 className="font-inter text-[28px] text-center font-medium text-neutralDGray">
           Payroll Management Portal
         </h2>
         <hr className="my-3 mb-4 border-t-1 border-black" />
@@ -113,7 +159,7 @@ const Login = () => {
               type="email"
               name="email"
               id="email"
-              className="block py-2.5 px-2 w-full text-sm text-gray-900 bg-transparent border-r-0 border-l-0 border-t-0 border-b-1 border-neutralDGray appearance-none focus:outline-none focus:ring-0 focus:border-brandPrimary     "
+              className="peer block py-2.5 px-2 w-full text-sm text-gray-900 bg-transparent border-r-0 border-l-0 border-t-0 border-b-1 border-neutralDGray appearance-none focus:outline-none focus:ring-0 focus:border-brandPrimary     "
               placeholder=" "
               value={email}
               onChange={(e) => setEmail(e.target.value)}

@@ -18,14 +18,16 @@ const Menu = () => {
           ]}
         />
 
-        <Tab
-          tabs={[
-            { label: "Request Status", content: <RequestStatus /> },
-            { label: "Contributions", content: <Contributions /> },
-            { label: "Jobs", content: <Job /> },
-            { label: "Messages", content: <ConnectMessages /> },
-          ]}
-        />
+        <div className="w-full -mt-3 text-sm">
+          <Tab
+            tabs={[
+              { label: "Request Status", content: <RequestStatus /> },
+              { label: "Contributions", content: <Contributions /> },
+              { label: "Jobs", content: <Job /> },
+              { label: "Messages", content: <ConnectMessages /> },
+            ]}
+          />
+        </div>
       </div>
     </div>
   );

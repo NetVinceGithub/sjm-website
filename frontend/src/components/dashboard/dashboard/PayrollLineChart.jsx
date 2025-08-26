@@ -21,16 +21,33 @@ export default function PayrollLineChart({ payslips = [] }) {
   useEffect(() => {
     // Process the payslips data passed from parent component
     if (payslips && payslips.length > 0) {
-      // Calculate totals
-      const totalPayroll = payslips.reduce(
+      // Filter payslips for June 16-31 (assuming current year)
+      const currentYear = new Date().getFullYear();
+      const filteredPayslips = payslips.filter((pay) => {
+        const payDate = new Date(pay.date);
+        const payYear = payDate.getFullYear();
+        const payMonth = payDate.getMonth(); // 0-based, so June = 5
+        const payDay = payDate.getDate();
+
+        // Filter for June (month 5) and days 16-31 of current year
+        return (
+          payYear === currentYear &&
+          payMonth === 5 &&
+          payDay >= 16 &&
+          payDay <= 31
+        );
+      });
+
+      // Calculate totals from filtered data
+      const totalPayroll = filteredPayslips.reduce(
         (sum, pay) => sum + parseFloat(pay.netPay || 0),
         0
       );
-      const totalGrossSalary = payslips.reduce(
+      const totalGrossSalary = filteredPayslips.reduce(
         (sum, pay) => sum + parseFloat(pay.gross_pay || 0),
         0
       );
-      const totalBenefits = payslips.reduce(
+      const totalBenefits = filteredPayslips.reduce(
         (sum, pay) => sum + parseFloat(pay.allowance || 0),
         0
       );
@@ -41,16 +58,39 @@ export default function PayrollLineChart({ payslips = [] }) {
         benefits: totalBenefits,
       });
 
-      // Format data for chart
-      const formattedData = payslips.map((pay) => ({
-        date: new Date(pay.date).toLocaleDateString("en-US", {
+      // Group payslips by cutoff periods and format data for chart
+      const groupedData = {};
+
+      filteredPayslips.forEach((pay) => {
+        const payDate = new Date(pay.date);
+        const day = payDate.getDate();
+        const monthShort = payDate.toLocaleDateString("en-US", {
           month: "short",
-          day: "numeric",
-        }),
-        payroll: parseFloat(pay.netPay) || 0,
-        grossSalary: parseFloat(pay.gross_pay) || 0,
-        benefits: parseFloat(pay.allowance) || 0,
-      }));
+        });
+
+        // Determine cutoff period (customize these ranges as needed)
+        let cutoffPeriod;
+        if (day >= 1 && day <= 15) {
+          cutoffPeriod = `${monthShort} 1-15`;
+        } else {
+          cutoffPeriod = `${monthShort} 16-31`;
+        }
+
+        if (!groupedData[cutoffPeriod]) {
+          groupedData[cutoffPeriod] = {
+            date: cutoffPeriod,
+            payroll: 0,
+            grossSalary: 0,
+            benefits: 0,
+          };
+        }
+
+        groupedData[cutoffPeriod].payroll += parseFloat(pay.netPay) || 0;
+        groupedData[cutoffPeriod].grossSalary += parseFloat(pay.gross_pay) || 0;
+        groupedData[cutoffPeriod].benefits += parseFloat(pay.allowance) || 0;
+      });
+
+      const formattedData = Object.values(groupedData);
 
       setChartData(formattedData);
     } else {

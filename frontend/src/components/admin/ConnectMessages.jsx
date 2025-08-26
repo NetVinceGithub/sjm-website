@@ -4,6 +4,7 @@ import DataTable from "react-data-table-component";
 import { FaSearch } from "react-icons/fa";
 import { FaUpRightFromSquare } from "react-icons/fa6";
 import { Modal, Button } from "react-bootstrap";
+import { ThreeDots } from "react-loader-spinner";
 
 const ConnectMessages = () => {
   const [messages, setMessages] = useState([]);
@@ -59,10 +60,30 @@ const ConnectMessages = () => {
 
   const handleFilter = (e) => {
     const searchTerm = e.target.value.toLowerCase();
-    const records = messages.filter((mes) =>
-      mes.firstname.toLowerCase().includes(searchTerm)
-    );
-    setFilteredMessages(records);
+
+    if (searchTerm === "") {
+      // If search is empty, show all messages
+      setFilteredMessages(messages);
+    } else {
+      // Filter across multiple fields
+      const records = messages.filter((mes) => {
+        const searchableFields = [
+          mes.firstname?.toLowerCase() || "",
+          mes.surname?.toLowerCase() || "",
+          mes.type?.toLowerCase() || "",
+          mes.services?.toLowerCase() || "",
+          mes.email?.toLowerCase() || "",
+          mes.phone?.toLowerCase() || "",
+          mes.message?.toLowerCase() || "",
+          // You can also search by formatted date if needed
+          mes.createdAt?.toLowerCase() || "",
+        ];
+
+        // Check if any field contains the search term
+        return searchableFields.some((field) => field.includes(searchTerm));
+      });
+      setFilteredMessages(records);
+    }
   };
 
   const handleOpenModal = (message) => {
@@ -101,25 +122,24 @@ const ConnectMessages = () => {
   };
 
   return (
-    <div className="p-2">
-      <div className="text-left">
-        <h3 className="text-lg -mt-2 font-semibold text-neutralDGray">
-          Website Inquiry Messages
-        </h3>
-      </div>
-      <div className="flex justify-end items-center -mt-5 gap-3">
-        <div className="flex rounded items-center">
-          <input
-            type="text"
-            placeholder="Search"
-            onChange={handleFilter}
-            className="px-2 bg-neutralSilver rounded py-0.5 border"
-          />
-          <FaSearch className="ml-[-20px] text-neutralDGray" />
+    <div>
+      <div className="flex justify-between items-center mt-2 mb-2">
+        <div className="text-left">
+          <h3 className="text-base -mt-2 font-medium text-neutralDGray"></h3>
+        </div>
+        <div className="flex justify-end items-center w-1/2 -mt-5 gap-3">
+          <div className="flex rounded w-full items-center">
+            <input
+              type="text"
+              placeholder="Search messages by Name, Type, Services, Date..."
+              onChange={handleFilter}
+              className="px-2 text-xs h-8 bg-neutralSilver w-full rounded py-0.5 border"
+            />
+            <FaSearch className="ml-[-20px] text-neutralDGray" />
+          </div>
         </div>
       </div>
-      <hr className="mt-2" />
-      <div className="mt-2 overflow-auto rounded-md border">
+      <div className="-mt-1 overflow-auto rounded-md border">
         <DataTable
           columns={[
             {
@@ -155,12 +175,25 @@ const ConnectMessages = () => {
               ),
             },
           ]}
-          data={messages}
+          data={filteredMessages} // Changed from messages to filteredMessages
           progressPending={loading}
           progressComponent={
-            <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
-              <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
-              Loading data...
+            <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
+              <ThreeDots
+                visible={true}
+                height="60"
+                width="60"
+                color="#4fa94d"
+                radius="9"
+                ariaLabel="three-dots-loading"
+                wrapperStyle={{}}
+                wrapperClass=""
+              />
+            </div>
+          }
+          noDataComponent={
+            <div className="text-gray-500 text-sm italic py-4 text-center">
+              *** No data found ***
             </div>
           }
           customStyles={customStyles}
@@ -168,6 +201,7 @@ const ConnectMessages = () => {
           responsive
           highlightOnHover
           striped
+          dense
         />
       </div>
       <Modal show={show} onHide={handleClose} centered size="lg" scrollable>

@@ -4,11 +4,8 @@ import { Navigate } from "react-router-dom";
 import { TailSpin } from "react-loader-spinner";
 import LOGO from "../assets/logo.png"; // Adjust the path as necessary
 
-const PrivateRoutes = ({ children }) => {
+const PrivateRoutes = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
-
-  console.log("PrivateRoutes - user:", user); // Add this line
-  console.log("PrivateRoutes - loading:", loading); // Add this line
 
   if (loading) {
     return (
@@ -28,7 +25,15 @@ const PrivateRoutes = ({ children }) => {
       </div>
     );
   }
-  return user ? children : <Navigate to="/payroll-management-login" />;
+
+  if (!user) return <Navigate to="/payroll-management-login" />;
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/access-denied" />;
+  }
+
+  return children;
 };
+
 
 export default PrivateRoutes;

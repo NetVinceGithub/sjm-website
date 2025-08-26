@@ -579,18 +579,18 @@ const Overview = () => {
 
           {showFilterModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
+              <div className="bg-white p-3 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
                 <h3 className="text-base mb-2 text-neutralDGray">
                   Filter Options
                 </h3>
 
                 <div className="flex flex-col sm:flex-row gap-4 mb-4">
                   <div className="flex-1">
-                    <label className="block text-sm text-neutralDGray mb-1">
+                    <label className="block text-xs text-neutralDGray mb-1">
                       Month
                     </label>
                     <select
-                      className="w-full border px-3 py-2 rounded-md text-sm text-neutralDGray"
+                      className="w-full p-2 border text-xs border-gray-300 rounded-md"
                       value={month}
                       onChange={(e) => setMonth(e.target.value)}
                     >
@@ -617,11 +617,11 @@ const Overview = () => {
                   </div>
 
                   <div className="flex-1">
-                    <label className="block text-sm text-neutralDGray mb-1">
+                    <label className="block text-xs text-neutralDGray mb-1">
                       Year
                     </label>
                     <select
-                      className="w-full border px-3 py-2 rounded-md text-sm text-neutralDGray"
+                      className="w-full p-2 border text-xs border-gray-300 rounded-md"
                       value={year}
                       onChange={(e) => setYear(e.target.value)}
                     >
@@ -638,7 +638,7 @@ const Overview = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 mt-4">
+                <div className="flex justify-end gap-2 text-xs mt-4">
                   <button
                     onClick={clearFilters}
                     className="px-4 py-2 w-20 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-gray-100 transition-all"

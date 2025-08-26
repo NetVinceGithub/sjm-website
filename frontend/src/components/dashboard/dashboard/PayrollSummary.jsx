@@ -14,6 +14,7 @@ import * as XLSX from "xlsx";
 import { Modal, Button } from "react-bootstrap";
 import { toast } from "react-toastify";
 import { useAuth } from "../../../context/authContext";
+import { ThreeDots } from "react-loader-spinner";
 
 const PayrollSummary = () => {
   const { user } = useAuth();
@@ -39,6 +40,17 @@ const PayrollSummary = () => {
   const [maxOvertime, setMaxOvertime] = useState("");
 
   const navigate = useNavigate();
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+  };
+
 
   // Fixed function to filter employees based on search term
   const filterEmployeesBySearch = (employeeList = filteredEmployees) => {
@@ -86,7 +98,7 @@ const PayrollSummary = () => {
         try {
           console.log("📩 Fetching attendance data...");
           const attendanceResponse = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`
+            `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`, getAuthHeaders()
           );
 
           const attendanceData = attendanceResponse.data.attendance || [];
@@ -234,64 +246,67 @@ const PayrollSummary = () => {
   };
 
   const EnhancedModalFooter = () => {
-  const handleApproveOvertime = () => {
-    // Validate overtime data before proceeding
-    const validationIssues = validateOvertimeData();
-    
-    if (validationIssues.length > 0) {
-      toast.error(
-        <div style={{ fontSize: "0.9rem" }}>
-          Please fix the following issues:<br/>
-          {validationIssues.slice(0, 3).map((issue, index) => (
-            <div key={index}>• {issue}</div>
-          ))}
-          {validationIssues.length > 3 && <div>...and {validationIssues.length - 3} more</div>}
-        </div>,
-        {
-          autoClose: 5000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          closeButton: false,
-          position: "top-right",
-        }
-      );
-      return;
-    }
+    const handleApproveOvertime = () => {
+      // Validate overtime data before proceeding
+      const validationIssues = validateOvertimeData();
 
-    // Log what's being sent for debugging
-    console.log("🚀 Approving overtime for employees:", {
-      selectedEmployees: selectedOvertime,
-      individualOvertime,
-      totalEmployees: selectedOvertime.length,
-      totalOvertimeHours: Object.values(individualOvertime)
-        .reduce((sum, hours) => sum + Number(hours || 0), 0)
-    });
+      if (validationIssues.length > 0) {
+        toast.error(
+          <div style={{ fontSize: "0.9rem" }}>
+            Please fix the following issues:
+            <br />
+            {validationIssues.slice(0, 3).map((issue, index) => (
+              <div key={index}>• {issue}</div>
+            ))}
+            {validationIssues.length > 3 && (
+              <div>...and {validationIssues.length - 3} more</div>
+            )}
+          </div>,
+          {
+            autoClose: 5000,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",
+          }
+        );
+        return;
+      }
 
-    proceedWithPayroll(selectedOvertime);
-    handleClose();
+      // Log what's being sent for debugging
+      console.log("🚀 Approving overtime for employees:", {
+        selectedEmployees: selectedOvertime,
+        individualOvertime,
+        totalEmployees: selectedOvertime.length,
+        totalOvertimeHours: Object.values(individualOvertime).reduce(
+          (sum, hours) => sum + Number(hours || 0),
+          0
+        ),
+      });
+
+      proceedWithPayroll(selectedOvertime);
+      handleClose();
+    };
+
+    return (
+      <Modal.Footer>
+        <button
+          className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+          onClick={handleApproveOvertime}
+          disabled={selectedOvertime.length === 0}
+        >
+          Approve Overtime ({selectedOvertime.length} employees)
+        </button>
+        <button
+          className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+          onClick={handleClose}
+        >
+          Close
+        </button>
+      </Modal.Footer>
+    );
   };
-
-  return (
-    <Modal.Footer>
-      <button
-        className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
-        onClick={handleApproveOvertime}
-        disabled={selectedOvertime.length === 0}
-      >
-        Approve Overtime ({selectedOvertime.length} employees)
-      </button>
-      <button
-        className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
-        onClick={handleClose}
-      >
-        Close
-      </button>
-    </Modal.Footer>
-  );
-};
-
-
 
   // 5. Debug function to verify data before sending
   const debugOvertimeData = () => {
@@ -301,9 +316,9 @@ const PayrollSummary = () => {
     console.log("Max Overtime Setting:", maxOvertime);
     console.log("Payroll Type:", payrollType);
     console.log("Cutoff Date:", cutoffDate);
-    
+
     // Verify each selected employee has overtime data
-    selectedOvertime.forEach(ecode => {
+    selectedOvertime.forEach((ecode) => {
       const overtimeHours = individualOvertime[ecode];
       console.log(`Employee ${ecode}: ${overtimeHours} hours`);
     });
@@ -312,7 +327,7 @@ const PayrollSummary = () => {
   // 6. Enhanced overtime input validation
   const handleOvertimeChange = (ecode, value) => {
     // Validate input
-    if (value === '' || (!isNaN(value) && Number(value) >= 0)) {
+    if (value === "" || (!isNaN(value) && Number(value) >= 0)) {
       setIndividualOvertime((prev) => ({
         ...prev,
         [ecode]: value,
@@ -320,12 +335,11 @@ const PayrollSummary = () => {
     }
   };
 
-
   const fetchPayslips = async () => {
     try {
       setLoading(true); // Ensure loading state is set
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/payslip`
+        `${import.meta.env.VITE_API_URL}/api/payslip`, getAuthHeaders()
       );
       setPayslips([...response.data]); // Force a new reference to trigger re-render
     } catch (error) {
@@ -358,7 +372,9 @@ const PayrollSummary = () => {
         return;
       }
 
-      console.log("✅ Cutoff date validation passed, proceeding to load employee data");
+      console.log(
+        "✅ Cutoff date validation passed, proceeding to load employee data"
+      );
 
       setLoading(true);
       setMessage("Loading employee data...");
@@ -366,14 +382,14 @@ const PayrollSummary = () => {
       // Fetch all required data
       const [employeeResponse, attendanceResponse, holidaysResponse] =
         await Promise.all([
-          axios.get(`${import.meta.env.VITE_API_URL}/api/employee`),
+          axios.get(`${import.meta.env.VITE_API_URL}/api/employees`, getAuthHeaders()),
           axios.get(
-            `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`
+            `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`, getAuthHeaders()
           ),
-          axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`),
+          axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`, getAuthHeaders()),
         ]);
 
-      const employeeData = employeeResponse.data.employees || [];
+      const employeeData = employeeResponse.data.data?.data || employeeResponse.data.employees || employeeResponse.data.data || [];
       const attendanceData = attendanceResponse.data.attendance || [];
       const holidaysData = holidaysResponse.data.holidays || [];
 
@@ -425,10 +441,8 @@ const PayrollSummary = () => {
     return isLoading || !hasCutoff;
   };
 
-
   // Key changes to ensure overtime data is properly sent to backend
 
-  // 1. Enhanced proceedWithPayroll function with better overtime handling
   const proceedWithPayroll = async (selectedEmployees) => {
     // Validate cutoff date
     if (!cutoffDate) {
@@ -446,98 +460,153 @@ const PayrollSummary = () => {
     setLoading(true);
 
     try {
-      console.log("📩 Fetching attendance data...");
-      const attendanceResponse = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`
-      );
+      console.log("📩 Fetching required data...");
+      
+      // Fetch all required data in parallel
+      const [attendanceResponse, holidaysResponse] = await Promise.all([
+        axios.get(
+          `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`, 
+          getAuthHeaders()
+        ),
+        axios.get(
+          `${import.meta.env.VITE_API_URL}/api/holidays`, 
+          getAuthHeaders()
+        )
+      ]);
 
-      const attendanceData = attendanceResponse.data.attendance || [];
-      console.log("📊 Fetched attendance data:", attendanceData);
+      console.log("📊 Raw attendance response:", attendanceResponse.data);
+      console.log("📊 Raw holidays response:", holidaysResponse.data);
 
-      if (!attendanceData.length) {
-        console.log("🚫 No attendance data found! Stopping payroll generation.");
-        setNoAttendanceModalOpen(true);
-        setLoading(false);
-        return;
+      // Process attendance data
+      let attendanceData = [];
+      if (attendanceResponse.data.success && attendanceResponse.data.data) {
+        if (attendanceResponse.data.data.data && Array.isArray(attendanceResponse.data.data.data)) {
+          attendanceData = attendanceResponse.data.data.data;
+        } else if (Array.isArray(attendanceResponse.data.data)) {
+          attendanceData = attendanceResponse.data.data;
+        }
+      } else if (attendanceResponse.data.attendance) {
+        attendanceData = attendanceResponse.data.attendance;
       }
 
-      // Enhanced overtime processing
-      console.log("⏰ Processing overtime data...");
-      console.log("Selected employees:", selectedEmployees);
-      console.log("Individual overtime values:", individualOvertime);
-
-      // Create overtime summary for backend
-      const overtimeApprovals = selectedEmployees.map(ecode => ({
-        ecode,
-        approvedOvertimeHours: Number(individualOvertime[ecode] || 0),
-        isApproved: true
-      }));
-
-      console.log("✅ Overtime approvals to send:", overtimeApprovals);
-
-      // Apply individual overtime values for each attendance record
-      const updatedAttendanceData = attendanceData.map((record) => {
-        const employeeOvertime = selectedEmployees.includes(record.ecode)
-          ? Number(individualOvertime[record.ecode] || 0)
-          : 0;
-
-        return {
-          ...record,
-          // Ensure we don't exceed approved overtime
-          overtimeHours: Math.min(record.overtimeHours || 0, employeeOvertime),
-          approvedOvertimeHours: employeeOvertime,
-          overtimeApproved: selectedEmployees.includes(record.ecode)
-        };
-      });
-
-      console.log("📩 Sending comprehensive payroll request...");
-
-      // Enhanced request payload
-      const payrollRequest = {
-        cutoffDate: cutoffDate.trim(),
-        selectedEmployees,
-        attendanceData: updatedAttendanceData,
-        individualOvertime, // Individual overtime hours per employee
-        overtimeApprovals, // Structured overtime approval data
-        payrollType, // Include payroll type (weekly/biweekly)
-        requestedBy: user.name,
-        generatedAt: new Date().toISOString(),
-        // Additional metadata for backend processing
-        metadata: {
-          totalEmployeesSelected: selectedEmployees.length,
-          employeesWithOvertime: selectedEmployees.filter(ecode => 
-            Number(individualOvertime[ecode] || 0) > 0
-          ).length,
-          totalOvertimeHours: Object.values(individualOvertime)
-            .reduce((sum, hours) => sum + Number(hours || 0), 0)
+      // Process holidays data
+      let holidaysData = [];
+      if (holidaysResponse.data.success && holidaysResponse.data.data) {
+        if (Array.isArray(holidaysResponse.data.data.data)) {
+          holidaysData = holidaysResponse.data.data.data;
+        } else if (Array.isArray(holidaysResponse.data.data)) {
+          holidaysData = holidaysResponse.data.data;
         }
-      };
+      } else if (holidaysResponse.data.holidays) {
+        holidaysData = holidaysResponse.data.holidays;
+      }
 
-      console.log("📤 Final payroll request payload:", payrollRequest);
+      console.log("📊 Processed attendance data:", attendanceData?.length || 0);
+      console.log("📊 Processed holidays data:", holidaysData?.length || 0);
 
-      // Send request with comprehensive overtime data
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/payslip/generate`,
-        payrollRequest
+      // Filter employees data to only selected employees
+      const selectedEmployeesData = employees.filter(emp => 
+        selectedEmployees.includes(emp.ecode)
       );
 
-      console.log("✅ Payroll response:", response.data);
+      console.log("👥 Selected employees data:", selectedEmployeesData.length);
 
-      if (response.data.success && Array.isArray(response.data.payslips)) {
-        if (!response.data.payslips.length) {
-          console.log("🚫 No payslips generated, opening modal.");
+      // Process overtime approvals
+      const overtimeApprovals = selectedEmployees.map((ecode) => ({
+        ecode,
+        approvedOvertimeHours: Number(individualOvertime[ecode] || 0),
+        isApproved: true,
+      }));
+
+      console.log("⏰ Overtime approvals:", overtimeApprovals);
+
+      // Create the request payload - send all data without validation
+      const payrollRequest = {
+        cutoffDate: cutoffDate.trim(),
+        requestedBy: user?.name || 'Unknown User',
+        selectedEmployees: selectedEmployees,
+        employees: selectedEmployeesData,
+        attendanceData: attendanceData, // Send all attendance data
+        holidaysData: holidaysData,
+        individualOvertime: individualOvertime,
+        overtimeApprovals: overtimeApprovals,
+        payrollType: payrollType,
+        maxOvertime: Number(maxOvertime || 0),
+        
+        // Additional metadata for debugging
+        metadata: {
+          totalEmployeesSelected: selectedEmployees.length,
+          totalAttendanceRecords: attendanceData.length,
+          totalHolidays: holidaysData.length,
+          employeesWithOvertime: selectedEmployees.filter(
+            (ecode) => Number(individualOvertime[ecode] || 0) > 0
+          ).length,
+          totalOvertimeHours: Object.values(individualOvertime).reduce(
+            (sum, hours) => sum + Number(hours || 0),
+            0
+          ),
+          generatedAt: new Date().toISOString(),
+        },
+      };
+
+      console.log("📤 Final payroll request payload:");
+      console.log("- Cutoff Date:", payrollRequest.cutoffDate);
+      console.log("- Selected Employees:", payrollRequest.selectedEmployees.length);
+      console.log("- Employee Data:", payrollRequest.employees.length);
+      console.log("- Attendance Records:", payrollRequest.attendanceData.length);
+      console.log("- Holidays:", payrollRequest.holidaysData.length);
+      console.log("- Overtime Approvals:", payrollRequest.overtimeApprovals.length);
+
+      // Send the request
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/payslip/generate`,
+        payrollRequest,
+        {
+          ...getAuthHeaders(),
+          timeout: 60000, // 60 seconds timeout for payroll generation
+        }
+      );
+
+      console.log("✅ Payroll response status:", response.status);
+      console.log("✅ Payroll response data:", response.data);
+      console.log("🔍 Backend Processing Details:", {
+        success: response.data.success,
+        message: response.data.message,
+        processedCount: response.data.processedCount,
+        batchId: response.data.batchId,
+        payslips: response.data.payslips?.length || 0,
+        errors: response.data.errors,
+        details: response.data.details
+      });
+
+      if (response.data.success) {
+        const payslipsGenerated = response.data.payslips || [];
+        
+        if (payslipsGenerated.length === 0) {
+          console.log("🚫 No payslips generated - Backend details:", response.data);
+          setMessage(
+            `No payslips were generated. Backend message: ${response.data.message || 'No specific message'}. ` +
+            `Check server logs for detailed processing information.`
+          );
           setNoAttendanceModalOpen(true);
         } else {
-          setPayslips(response.data.payslips);
+          setPayslips(payslipsGenerated);
+          
+          // Show success message
           toast.success(
             <div style={{ fontSize: "0.9rem" }}>
-              Payroll successfully generated for {selectedEmployees.length} employee(s).
-              {overtimeApprovals.filter(oa => oa.approvedOvertimeHours > 0).length > 0 && 
-                ` Overtime approved for ${overtimeApprovals.filter(oa => oa.approvedOvertimeHours > 0).length} employee(s).`
+              Payroll successfully generated!
+              <br />
+              • {selectedEmployees.length} employee(s) processed
+              • {attendanceData.length} attendance records sent
+              {overtimeApprovals.filter((oa) => oa.approvedOvertimeHours > 0).length > 0 &&
+                <><br />• Overtime approved for {
+                  overtimeApprovals.filter((oa) => oa.approvedOvertimeHours > 0).length
+                } employee(s)</>
               }
             </div>,
             {
-              autoClose: 3000,
+              autoClose: 5000,
               closeOnClick: true,
               pauseOnHover: true,
               draggable: true,
@@ -545,12 +614,14 @@ const PayrollSummary = () => {
               position: "top-right",
             }
           );
+          
           setShow(false);
         }
       } else {
+        console.log("❌ Unexpected response structure:", response.data);
         toast.error(
           <div style={{ fontSize: "0.9rem" }}>
-            Failed to generate payroll: {response?.data?.message || "Unknown error"}
+            Failed to generate payroll: {response?.data?.message || "Unexpected response format"}
           </div>,
           {
             autoClose: 3000,
@@ -562,14 +633,63 @@ const PayrollSummary = () => {
           }
         );
       }
+
     } catch (error) {
-      console.error("❌ Full error response:", error.response?.data || error);
+      console.error("❌ DETAILED ERROR INFORMATION:");
+      console.error("Error object:", error);
+      console.error("Error message:", error.message);
+      console.error("Error response:", error.response);
+      
+      let errorMessage = "An error occurred while generating payroll.";
+      
+      if (error.response) {
+        const status = error.response.status;
+        const responseData = error.response.data;
+        
+        console.error(`❌ Server Error ${status}:`, responseData);
+        
+        switch (status) {
+          case 400:
+            errorMessage = `Bad Request: ${responseData?.message || 'Invalid request data'}`;
+            if (responseData?.errors) {
+              console.error("Validation errors:", responseData.errors);
+              errorMessage += `\nValidation errors: ${Object.keys(responseData.errors).join(', ')}`;
+            }
+            break;
+          case 401:
+            errorMessage = "Authentication failed. Please log in again.";
+            break;
+          case 403:
+            errorMessage = "Access denied. You don't have permission to generate payroll.";
+            break;
+          case 404:
+            errorMessage = "Payroll generation endpoint not found.";
+            break;
+          case 422:
+            errorMessage = `Validation Error: ${responseData?.message || 'Invalid data provided'}`;
+            if (responseData?.errors) {
+              console.error("Validation errors:", responseData.errors);
+            }
+            break;
+          case 500:
+            errorMessage = `Server Error: ${responseData?.message || 'Internal server error'}`;
+            console.error("Full server error response:", responseData);
+            break;
+          default:
+            errorMessage = `Server Error (${status}): ${responseData?.message || error.response.statusText}`;
+        }
+      } else if (error.request) {
+        console.error("❌ Network Error - No response received");
+        errorMessage = "Network error. Please check your connection and try again.";
+      } else {
+        console.error("❌ Request Setup Error:", error.message);
+        errorMessage = `Request error: ${error.message}`;
+      }
+      
       toast.error(
-        <div style={{ fontSize: "0.9rem" }}>
-          {error?.response?.data?.message || "An error occurred while generating payroll."}
-        </div>,
+        <div style={{ fontSize: "0.9rem" }}>{errorMessage}</div>,
         {
-          autoClose: 3000,
+          autoClose: 5000,
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
@@ -586,22 +706,29 @@ const PayrollSummary = () => {
   // 2. Enhanced overtime validation before sending
   const validateOvertimeData = () => {
     const issues = [];
-    
+
     // Check if any selected employees have invalid overtime values
-    selectedOvertime.forEach(ecode => {
+    selectedOvertime.forEach((ecode) => {
       const overtimeValue = individualOvertime[ecode];
-      if (overtimeValue === undefined || overtimeValue === null || overtimeValue === '') {
+      if (
+        overtimeValue === undefined ||
+        overtimeValue === null ||
+        overtimeValue === ""
+      ) {
         issues.push(`Employee ${ecode} has no overtime value set`);
       } else if (isNaN(Number(overtimeValue))) {
-        issues.push(`Employee ${ecode} has invalid overtime value: ${overtimeValue}`);
+        issues.push(
+          `Employee ${ecode} has invalid overtime value: ${overtimeValue}`
+        );
       } else if (Number(overtimeValue) < 0) {
-        issues.push(`Employee ${ecode} has negative overtime value: ${overtimeValue}`);
+        issues.push(
+          `Employee ${ecode} has negative overtime value: ${overtimeValue}`
+        );
       }
     });
-    
+
     return issues;
   };
-
 
   const handleClose = () => {
     setShow(false);
@@ -649,7 +776,7 @@ const PayrollSummary = () => {
   const handleDeletePayroll = async () => {
     try {
       const response = await axios.delete(
-        `${import.meta.env.VITE_API_URL}/api/payslip`
+        `${import.meta.env.VITE_API_URL}/api/payslip`, getAuthHeaders()
       );
       if (response.data.success) {
         setPayslips([]);
@@ -809,17 +936,20 @@ const PayrollSummary = () => {
         {/* Breadcrumb Navigation */}
         <Breadcrumb
           items={[
-            { label: "Payroll", href: "" },
+            { label: "Payroll" },
             {
               label: "Payroll Information",
-              href: "/admin-dashboard/employees",
+              href: "/admin-dashboard/employees/payroll-informations/list",
             },
-            { label: "Payroll Generator", href: "/admin-dashboard/employees" },
+            {
+              label: "Payroll Generator",
+              href: "/admin-dashboard/payroll-generator",
+            },
           ]}
         />
 
         {/* Main Layout */}
-        <div className="flex  flex-wrap gap-4 -mt-2 flex-grow overflow-hidden">
+        <div className="flex  flex-wrap gap-2 -mt-3 flex-grow overflow-hidden">
           {/* Left Section */}
           <div className="w-full lg:w-[70%]  h-full bg-white border-gray-900 rounded gap-2 border shadow-sm p-3">
             <div className="flex justify-between">
@@ -827,10 +957,8 @@ const PayrollSummary = () => {
                 Cutoff Date:
               </label>
 
-
-
               {/* Radio Button Section */}
-              <div className="flex gap-6 mb-4 justify-end">
+              <div className="flex gap-2 mb-2.5 justify-end">
                 <div className="flex items-center">
                   <input
                     type="radio"
@@ -839,9 +967,9 @@ const PayrollSummary = () => {
                     value="weekly"
                     checked={payrollType === "weekly"}
                     onChange={(e) => setPayrollType(e.target.value)}
-                    className="mr-2"
+                    className="mr-1 w-3 h-3"
                   />
-                  <label htmlFor="weekly" className="text-sm text-gray-700">
+                  <label htmlFor="weekly" className="text-xs text-gray-700">
                     Weekly
                   </label>
                 </div>
@@ -853,9 +981,9 @@ const PayrollSummary = () => {
                     value="biweekly"
                     checked={payrollType === "biweekly"}
                     onChange={(e) => setPayrollType(e.target.value)}
-                    className="mr-2"
+                    className="mr-1 w-3 h-3"
                   />
-                  <label htmlFor="biweekly" className="text-sm text-gray-700">
+                  <label htmlFor="biweekly" className="text-xs text-gray-700">
                     Bi-Weekly
                   </label>
                 </div>
@@ -933,12 +1061,10 @@ const PayrollSummary = () => {
               </div>
             )}
 
-
-
             {/* Payroll Details */}
-            <div className="flex flex-col rounded-lg mt-3  h-full max-h-[80vh] min-h-[28rem]">
+            <div className="flex flex-col rounded-lg mt-2  h-full max-h-[80vh] min-h-[28rem]">
               <div className="flex flex-col flex-1 rounded-lg overflow-hidden">
-                <h4 className="text-base italic text-neutralDGray font-semibold px-2 py-1 bg-gray-200 mb-3 rounded">
+                <h4 className="text-sm italic text-neutralDGray font-semibold px-2 py-1 bg-gray-200 mb-2 rounded">
                   Payroll Details
                 </h4>
 
@@ -948,25 +1074,10 @@ const PayrollSummary = () => {
                   <div className="inline-flex border border-neutralDGray rounded h-8">
                     <button
                       onClick={handleDownloadExcel}
-                      className="px-3 w-20 h-full text-[13px] border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
-                    >
-                      <FaPrint title="Print" className="text-neutralDGray" />
-                    </button>
-                    <button
-                      onClick={handleDownloadExcel}
-                      className="px-3 w-20 h-full text-[13px]  border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center"
+                      className="px-3 w-20 h-full text-[13px] hover:bg-neutralSilver transition-all duration-300 border-neutralDGray flex items-center justify-center"
                     >
                       <FaRegFileExcel
                         title="Export to Excel"
-                        className="text-neutralDGray"
-                      />
-                    </button>
-                    <button
-                      onClick={handleDownloadExcel}
-                      className="px-3 w-20 text-[13px] h-full hover:bg-neutralSilver transition-all duration-300 rounded-r flex items-center justify-center"
-                    >
-                      <FaRegFilePdf
-                        title="Export to PDF"
                         className="text-neutralDGray"
                       />
                     </button>
@@ -999,17 +1110,36 @@ const PayrollSummary = () => {
                       {/* or larger width */}
                       <DataTable
                         columns={columns}
-                        className="w-full -mt-3 text-sm"
                         data={payslips}
                         pagination
                         highlightOnHover
                         striped
+                        fixedHeader
+                        fixedHeaderScrollHeight="300px"
+                        noDataComponent={
+                          <div className="text-gray-500 text-sm italic py-4 text-center">
+                            *** No data found ***
+                          </div>
+                        }
+                        progressComponent={
+                          <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
+                            <ThreeDots
+                              visible={true}
+                              height="60"
+                              width="60"
+                              color="#4fa94d"
+                              radius="9"
+                              ariaLabel="three-dots-loading"
+                              wrapperStyle={{}}
+                              wrapperClass=""
+                            />
+                          </div>
+                        }
+                        dense
                       />
                     </div>
                   ) : (
-                    <div className="mt-6 text-center">
-                     
-                    </div>
+                    <div className="mt-6 text-center"></div>
                   )}
                 </div>
               </div>

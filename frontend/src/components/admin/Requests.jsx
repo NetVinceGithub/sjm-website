@@ -33,6 +33,16 @@ const Requests = () => {
   const [batches, setAvailableBatches] = useState([]);
   const [selectedBatchId, setSelectedBatchId] = useState("");
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+  };
+
   useEffect(() => {
     const checkUserRole = async () => {
       const token = localStorage.getItem("token");
@@ -93,21 +103,40 @@ const Requests = () => {
   // Fetch available batches
   const fetchAvailableBatches = async () => {
     try {
-      // You may need to create this endpoint to get all unique batch IDs
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/payslip/batches`
+        `${import.meta.env.VITE_API_URL}/api/payslip/batches`, 
+        getAuthHeaders()
       );
-      console.log("batches", response.data);
-      setAvailableBatches(response.data);
+      console.log("All batches:", response.data);
+      
+      // Filter batches to only show those with "Generated" status
+      const generatedBatches = response.data.filter(batch => {
+        // Check if batch has uniqueStatuses array and includes "generated"
+        if (batch.uniqueStatuses && Array.isArray(batch.uniqueStatuses)) {
+          return batch.uniqueStatuses.some(status => 
+            status.toLowerCase() === 'generated'
+          );
+        }
+        // Fallback: check individual payslips for "generated" status
+        if (batch.payslips && Array.isArray(batch.payslips)) {
+          return batch.payslips.some(payslip => 
+            payslip.status && payslip.status.toLowerCase() === 'generated'
+          );
+        }
+        // Fallback: check batch status directly
+        return batch.status && batch.status.toLowerCase() === 'generated';
+      });
+
+      console.log("Filtered Generated batches:", generatedBatches);
+      setAvailableBatches(generatedBatches);
 
       // Auto-select the latest batch if available
-      if (response.data.length > 0) {
-        setSelectedBatchId(response.data[0].batchId);
+      if (generatedBatches.length > 0) {
+        setSelectedBatchId(generatedBatches[0].batchId);
       }
     } catch (error) {
       console.error("Error fetching available batches:", error);
-      // If the batches endpoint doesn't exist, you can set a default batchId
-      // or handle this differently based on your requirements
+      setAvailableBatches([]);
     }
   };
 
@@ -121,7 +150,7 @@ const Requests = () => {
         const response = await axios.get(
           `${
             import.meta.env.VITE_API_URL
-          }/api/payslip?batchId=${selectedBatchId}`
+          }/api/payslip?batchId=${selectedBatchId}`, getAuthHeaders()
         );
         console.log(response.data);
         setRequests(response.data);
@@ -134,22 +163,62 @@ const Requests = () => {
       }
     };
 
-    // Updated fetchChangeRequests function
-    const fetchChangeRequests = async () => {
-      try {
-        setLoadingChanges(true);
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/employee/payroll-change-requests`
-        );
-        console.log("Change requests response:", response.data);
+  // Updated fetchChangeRequests function
+  const fetchChangeRequests = async () => {
+    try {
+      setLoadingChanges(true);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/payroll-change-requests`, 
+        getAuthHeaders()
+      );
+      console.log("Change requests response:", response.data);
 
-        if (response.data.success) {
-          const filteredRequests = (response.data.data || []).filter(
+      if (response.data.success) {
+        // Check if data is an array or object
+        let requestsData = [];
+        
+        if (Array.isArray(response.data.data)) {
+          requestsData = response.data.data;
+        } else if (response.data.data && typeof response.data.data === 'object') {
+          // Handle paginated response
+          if (response.data.data.data && Array.isArray(response.data.data.data)) {
+            // This is a paginated Laravel response
+            requestsData = response.data.data.data;
+          } else if (Array.isArray(response.data.data.requests)) {
+            requestsData = response.data.data.requests;
+          } else if (Array.isArray(response.data.data.changeRequests)) {
+            requestsData = response.data.data.changeRequests;
+          } else if (Array.isArray(response.data.data.items)) {
+            requestsData = response.data.data.items;
+          } else {
+            // If it's a single object, wrap it in an array
+            requestsData = [response.data.data];
+          }
+        }
+
+        console.log("Processed requests data:", requestsData);
+        
+        const filteredRequests = requestsData.filter(
+          (req) =>
+            !["approved", "rejected"].includes(req.status?.toLowerCase() || "")
+        );
+
+        // Group requests by batch_id
+        const groupedRequests = groupRequestsByBatch(filteredRequests);
+        setChangesRequests(groupedRequests);
+        notifyChangeRequests(filteredRequests);
+      } else {
+        // Handle the case where the response itself might be paginated
+        if (response.data.data && Array.isArray(response.data.data)) {
+          // This is a direct paginated response
+          const requestsData = response.data.data;
+          console.log("Direct paginated response:", requestsData);
+          
+          const filteredRequests = requestsData.filter(
             (req) =>
-              !["approved", "rejected"].includes(req.status.toLowerCase())
+              !["approved", "rejected"].includes(req.status?.toLowerCase() || "")
           );
 
-          // Group requests by batch_id
           const groupedRequests = groupRequestsByBatch(filteredRequests);
           setChangesRequests(groupedRequests);
           notifyChangeRequests(filteredRequests);
@@ -157,13 +226,15 @@ const Requests = () => {
           console.error("Failed to fetch change requests:", response.data);
           setChangesRequests([]);
         }
-      } catch (error) {
-        console.error("Error fetching change requests:", error);
-        setChangesRequests([]);
-      } finally {
-        setLoadingChanges(false);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching change requests:", error);
+      console.error("Response data structure:", error.response?.data);
+      setChangesRequests([]);
+    } finally {
+      setLoadingChanges(false);
+    }
+  };
 
     // Helper function to group requests by batch_id
     const groupRequestsByBatch = (requests) => {
@@ -406,7 +477,7 @@ const Requests = () => {
         await axios.put(
           `${
             import.meta.env.VITE_API_URL
-          }/api/employee/approve-batch-change/${batchId}`
+          }/api/employee/approve-batch-change/${batchId}`, getAuthHeaders()
         );
         setShowChangeDetailModal(false);
         toast.success("Batch change request approved successfully");
@@ -421,7 +492,7 @@ const Requests = () => {
         await axios.put(
           `${
             import.meta.env.VITE_API_URL
-          }/api/employee/reject-batch-change/${batchId}`
+          }/api/employee/reject-batch-change/${batchId}`, getAuthHeaders()
         );
         setShowChangeDetailModal(false);
         fetchChangeRequests(); // Refresh the list
@@ -472,13 +543,23 @@ const Requests = () => {
     }));
   };
 
-  const handleApprove = async () => {
+  // Replace your existing handleApprove function with this updated version:
+
+  const handleApprove = async (batchId = null) => {
     try {
       setLoadingPayroll(true);
 
-      // Validation: Check if requests array exists and has data
-      if (!requests || !Array.isArray(requests) || requests.length === 0) {
-        toast.error("No payslips selected for approval", {
+      // Determine which batch to approve
+      let targetBatchId = batchId;
+      
+      // If no specific batchId is provided, use the currently selected batch
+      if (!targetBatchId && selectedBatchId) {
+        targetBatchId = selectedBatchId;
+      }
+      
+      // If still no batch ID, show error
+      if (!targetBatchId) {
+        toast.error("No batch selected for approval", {
           autoClose: 3000,
           closeOnClick: true,
           pauseOnHover: true,
@@ -490,72 +571,25 @@ const Requests = () => {
       }
 
       // Debug logging
-      console.log("Sending payload:", { payslips: requests });
-      console.log("First payslip object:", requests[0]);
-      console.log("Payslip keys:", Object.keys(requests[0]));
-      console.log("Total payslips:", requests.length);
+      console.log("Approving payroll batch:", targetBatchId);
 
-      // Optional: Validate each payslip has required fields
-      const invalidPayslips = requests.filter(
-        (payslip) => !payslip.employeeId || !payslip.id
-      );
-
-      if (invalidPayslips.length > 0) {
-        console.error("Invalid payslips found:", invalidPayslips);
-        toast.error("Some payslips have missing required data", {
-          autoClose: 3000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          closeButton: false,
-          position: "top-right",
-        });
-        return;
-      }
-
-      // Make the API request with proper headers
-      console.log(
-        "Making API request to:",
-        `${import.meta.env.VITE_API_URL}/api/payslip/send-payslip`
-      );
-
+      // Make the API request to approve the payroll batch
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/payslip/send-payslip`,
+        `${import.meta.env.VITE_API_URL}/api/payslip/approve-payroll`,
         {
-          payslips: requests,
-          // Add any additional fields the server might expect:
-          // approvedBy: currentUserId,
-          // approvalDate: new Date().toISOString(),
-          // batchId: generateBatchId(),
+          batchId: targetBatchId,
         },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            // Add authorization header if required:
-            // 'Authorization': `Bearer ${authToken}`,
-          },
-          timeout: 30000, // 30 second timeout
-        }
+        getAuthHeaders()
       );
 
       console.log("API Response received:", response);
-      console.log("Response status:", response.status);
       console.log("Response data:", response.data);
-      console.log("Response data type:", typeof response.data);
-      console.log("Response data success:", response.data?.success);
 
       // Check if response is successful
-      console.log("Checking success condition...");
-      console.log("response.data:", response.data);
-      console.log("response.data.success:", response.data.success);
-      console.log(
-        "Success condition result:",
-        response.data && response.data.success
-      );
-
       if (response.data && response.data.success) {
-        console.log("SUCCESS: Entering success block");
-        toast.success("Payroll approved successfully.", {
+        console.log("SUCCESS: Payroll batch approved");
+        
+        toast.success(`Payroll batch approved successfully! ${response.data.updated_count} payslips updated.`, {
           autoClose: 3000,
           closeOnClick: true,
           pauseOnHover: true,
@@ -566,16 +600,12 @@ const Requests = () => {
 
         // Show success modal
         setShowSuccessModal(true);
-        console.log("SUCCESS: Modal should be shown, toast should appear");
-
-        // Optional: Clear requests or refresh data
-        // setRequests([]);
-        // await fetchPayslips(); // Refresh the list
+        
+        // Refresh the batches to update the UI
+        fetchAvailableBatches();
       } else {
         console.log("ELSE: Response does not indicate success");
-        // Handle case where response doesn't indicate success
-        console.warn("Unexpected response format:", response.data);
-        toast.error("Failed to approve payroll. Please try again.", {
+        toast.error("Failed to approve payroll batch. Please try again.", {
           autoClose: 3000,
           closeOnClick: true,
           pauseOnHover: true,
@@ -585,26 +615,26 @@ const Requests = () => {
         });
       }
     } catch (error) {
-      console.error("Error approving payroll:", error);
+      console.error("Error approving payroll batch:", error);
 
-      // Detailed error logging for debugging
+      // Detailed error logging
       if (error.response) {
         console.error("=== SERVER ERROR DETAILS ===");
         console.error("Status:", error.response.status);
-        console.error("Status Text:", error.response.statusText);
         console.error("Response Data:", error.response.data);
-        console.error("Response Headers:", error.response.headers);
-        console.error("Request URL:", error.config?.url);
-        console.error("Request Method:", error.config?.method);
-        console.error("Request Data:", error.config?.data);
-        console.error("=== END SERVER ERROR DETAILS ===");
 
         // Handle specific error cases
-        if (error.response.status === 400) {
-          const errorMessage =
-            error.response.data?.message ||
-            error.response.data?.error ||
-            "Invalid request data";
+        if (error.response.status === 404) {
+          toast.error("Batch not found or no payslips to approve", {
+            autoClose: 5000,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            closeButton: false,
+            position: "top-right",
+          });
+        } else if (error.response.status === 400) {
+          const errorMessage = error.response.data?.message || "Invalid request";
           toast.error(`Request Error: ${errorMessage}`, {
             autoClose: 5000,
             closeOnClick: true,
@@ -651,7 +681,6 @@ const Requests = () => {
           });
         }
       } else if (error.request) {
-        // Request was made but no response received
         console.error("No response received:", error.request);
         toast.error("Network error. Please check your connection.", {
           autoClose: 3000,
@@ -662,7 +691,6 @@ const Requests = () => {
           position: "top-right",
         });
       } else {
-        // Something else happened
         console.error("Request setup error:", error.message);
         toast.error("An unexpected error occurred.", {
           autoClose: 3000,
@@ -673,25 +701,30 @@ const Requests = () => {
           position: "top-right",
         });
       }
-
-      // Don't show success modal on error
-      // setShowSuccessModal(true); // Remove this line from catch block
     } finally {
       setLoadingPayroll(false);
     }
   };
 
+  // Alternative version that shows the issue more clearly:
   const formatRequestId = (id) => {
     const prefix = "SJM-C";
-    const paddedNumber = id.toString().padStart(4, "0");
+    
+    // More robust handling
+    if (!id && id !== 0) {
+      console.warn('formatRequestId called with invalid id:', id);
+      return `${prefix}XXXX`; // or throw an error, or return null
+    }
+    
+    const paddedNumber = String(id).padStart(4, "0");
     return `${prefix}${paddedNumber}`;
   };
-
+  
   const handleDeleteAll = async () => {
     try {
       // Updated to include batchId parameter for deletion
       await axios.delete(
-        `${import.meta.env.VITE_API_URL}/api/payslip?batchId=${selectedBatchId}`
+        `${import.meta.env.VITE_API_URL}/api/payslip?batchId=${selectedBatchId}`, getAuthHeaders()
       );
       setRequests([]);
       setShowModal(false);
@@ -726,7 +759,7 @@ const Requests = () => {
         axios.post(
           `${
             import.meta.env.VITE_API_URL
-          }/api/employee/approve-payroll-change/${request.id}`
+          }/api/employee/approve-payroll-change/${request.id}`, getAuthHeaders()
         )
       );
 
@@ -749,7 +782,7 @@ const Requests = () => {
         axios.post(
           `${import.meta.env.VITE_API_URL}/api/employee/reject-payroll-change/${
             request.id
-          }`
+          }`, getAuthHeaders()
         )
       );
 
@@ -771,7 +804,7 @@ const Requests = () => {
       const response = await axios.post(
         `${
           import.meta.env.VITE_API_URL
-        }/api/employee/approve-payroll-change/${requestId}`
+        }/api/employee/approve-payroll-change/${requestId}`, getAuthHeaders()
       );
 
       if (response.data.success) {
@@ -817,7 +850,7 @@ const Requests = () => {
       const response = await axios.post(
         `${
           import.meta.env.VITE_API_URL
-        }/api/employee/reject-payroll-change/${requestId}`
+        }/api/employee/reject-payroll-change/${requestId}`, getAuthHeaders()
       );
 
       if (response.data.success) {
@@ -916,7 +949,7 @@ const Requests = () => {
       await axios.put(
         `${
           import.meta.env.VITE_API_URL
-        }/api/employee/approve-batch-change/${batchId}`
+        }/api/employee/approve-batch-change/${batchId}`, getAuthHeaders()
       );
       setShowChangeDetailModal(false);
       toast.success("Batch change request approved successfully");
@@ -931,7 +964,7 @@ const Requests = () => {
       await axios.put(
         `${
           import.meta.env.VITE_API_URL
-        }/api/employee/reject-batch-change/${batchId}`
+        }/api/employee/reject-batch-change/${batchId}`, getAuthHeaders()
       );
       setShowChangeDetailModal(false);
       fetchChangeRequests(); // Refresh the list
@@ -1032,9 +1065,9 @@ const Requests = () => {
   }
 
   return (
-    <div className="flex flex-row gap-8 p-2 overflow-auto">
+    <div className="grid grid-cols-6 grid-rows-5 gap-2 p-2 -mt-5 overflow-auto">
       {/* Payroll Requests Section */}
-      <section className="flex-1 flex flex-col rounded-lg border p-2">
+      <section className="col-span-3 row-span-5 flex flex-col rounded-lg shadow bg-white border p-2">
         <h2 className="text-neutralDGray text-lg font-semibold mb-3 flex items-center gap-2">
           <FaClipboardCheck className="h-8 w-8 text-lg text-neutralDGray" />
           Payroll Requests
@@ -1043,122 +1076,152 @@ const Requests = () => {
         {message && <p className="text-green-500">{message}</p>}
 
         <div className="leading-snug overflow-y-auto pr-2 flex-1">
+
           {loading ? (
             <p className="text-gray-500">Loading payroll requests...</p>
-          ) : batches && batches.length > 0 ? (
-            <div className="space-y-4">
-              {/* Summary Header */}
-              <div className="border p-3 rounded shadow-md bg-white">
-                <p className="text-md mb-1 italic">
-                  Total Payroll:{" "}
-                  <span className="font-normal text-blue-600">
-                    {batches.length}
-                  </span>
-                </p>
-                <hr className="my-2" />
-                {batches.map((batch) => {
-                  const batchTotalNetPay = batch.payslips.reduce(
-                    (sum, slip) => sum + (slip.netPay || slip.net_pay || 0),
-                    0
-                  );
+            ) : batches && batches.length > 0 ? (
+              <div className="space-y-4">
+                {/* Summary Header */}
+                <div className="border p-3 rounded shadow-md bg-white">
+                  <p className="text-md mb-1 italic">
+                    Total Payroll:{" "}
+                    <span className="font-normal text-blue-600">
+                      {batches.filter(batch => {
+                        // Filter for Generated status at display level
+                        if (batch.uniqueStatuses && Array.isArray(batch.uniqueStatuses)) {
+                          return batch.uniqueStatuses.some(status => 
+                            status.toLowerCase() === 'generated'
+                          );
+                        }
+                        return batch.status && batch.status.toLowerCase() === 'generated';
+                      }).length}
+                    </span>
+                  </p>
+                  <hr className="my-2" />
+                  {batches
+                    .filter(batch => {
+                      // Filter for Generated status
+                      if (batch.uniqueStatuses && Array.isArray(batch.uniqueStatuses)) {
+                        return batch.uniqueStatuses.some(status => 
+                          status.toLowerCase() === 'generated'
+                        );
+                      }
+                      if (batch.payslips && Array.isArray(batch.payslips)) {
+                        return batch.payslips.some(payslip => 
+                          payslip.status && payslip.status.toLowerCase() === 'generated'
+                        );
+                      }
+                      return batch.status && batch.status.toLowerCase() === 'generated';
+                    })
+                    .map((batch) => {
+                      const batchTotalNetPay = batch.payslips.reduce(
+                        (sum, slip) => sum + (slip.netPay || slip.net_pay || 0),
+                        0
+                      );
 
-                  return (
-                    <div
-                      key={batch.batchId}
-                      className="border p-3 bg-gray-50  rounded shadow-md mb-4 flex justify-between items-start"
-                    >
-                      <p className="text-md mb-1 italic">
-                        {/* Batch Payslips: <span className="font-normal text-red-500">{batch.payslips.length}</span> */}
-                      </p>
-
-                      <div className="mb-2 flex-1">
-                        <p className="font-semibold text-sm">
-                          Batch ID: {batch.batchId}
-                        </p>
-                        <p className="text-xs -mt-3 text-gray-600">
-                          Payroll Amount: ₱
-                          {batch.payslips
-                            .reduce(
-                              (total, payslip) =>
-                                total + parseFloat(payslip.netPay),
-                              0
-                            )
-                            .toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                            })}
-                        </p>{" "}
-                        <p className="text-xs -mt-3 text-gray-600">
-                          Cutoff Period: {batch.cutoffDate || "N/A"}
-                        </p>
-                        <p className="text-xs -mt-3 text-gray-600">
-                          Status:
-                          {batch.uniqueStatuses
-                            .join(", ")
-                            .charAt(0)
-                            .toUpperCase() + batch.uniqueStatuses[0].slice(1)}
-                        </p>
-                        <p className="text-xs -mt-3 -mb-2 text-gray-600">
-                          Date Requested:{" "}
-                          {batch.payslips.length > 0 && batch.payslips[0].date
-                            ? new Date(
-                                batch.payslips[0].date
-                              ).toLocaleDateString()
-                            : "N/A"}
-                        </p>
-                      </div>
-                      <div className="flex gap-1 items-center border h-8 w-32 rounded justify-end">
-                        <button
-                          onClick={() => {
-                            setSelectedPayrollRequest(batch); // Set the entire batch object
-                            setShowPayrollDetailModal(true);
-                          }}
-                          className="p-2 text-neutralDGray hover:text-blue-600 rounded flex items-center justify-center"
-                          title="View Details"
+                      return (
+                        <div
+                          key={batch.batchId}
+                          className="border p-3 bg-gray-50 rounded shadow-md mb-4 flex justify-between items-start"
                         >
-                          <FaEye size={14} />
-                        </button>
-
-                        <>
-                          <button
-                            onClick={() => handleApprove(batch.batchId)}
-                            className="p-2 text-neutralDGray hover:text-green-600 rounded flex items-center justify-center"
-                            title="Approve"
-                          >
-                            <FaCheck size={14} />
-                          </button>
-                          <button
-                            onClick={() => setShowModal(batch.batchId)}
-                            className="p-2 text-neutralDGray hover:text-red-100 rounded flex items-center justify-center"
-                            title="Reject"
-                          >
-                            <FaTimes size={14} />
-                          </button>
-                        </>
-                      </div>
+                          {/* Rest of your batch rendering code remains the same */}
+                          <div className="mb-2 flex-1">
+                            <p className="font-semibold text-sm">
+                              Batch ID: {batch.batchId}
+                            </p>
+                            <p className="text-xs -mt-3 text-gray-600">
+                              Payroll Amount: ₱
+                              {batch.payslips
+                                .reduce(
+                                  (total, payslip) =>
+                                    total + parseFloat(payslip.netPay),
+                                  0
+                                )
+                                .toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                })}
+                            </p>
+                            <p className="text-xs -mt-3 text-gray-600">
+                              Cutoff Period: {batch.cutoffDate || "N/A"}
+                            </p>
+                            <p className="text-xs -mt-3 text-gray-600">
+                              Status:
+                              {batch.uniqueStatuses
+                                .join(", ")
+                                .charAt(0)
+                                .toUpperCase() + batch.uniqueStatuses[0].slice(1)}
+                            </p>
+                            <p className="text-xs -mt-3 -mb-2 text-gray-600">
+                              Date Requested:{" "}
+                              {batch.payslips.length > 0 && batch.payslips[0].date
+                                ? new Date(batch.payslips[0].date).toLocaleDateString()
+                                : "N/A"}
+                            </p>
+                          </div>
+                          <div className="flex gap-1 items-center border h-8 w-32 rounded justify-end">
+                            <button
+                              onClick={() => {
+                                setSelectedPayrollRequest(batch);
+                                setShowPayrollDetailModal(true);
+                              }}
+                              className="p-2 text-neutralDGray hover:text-blue-600 rounded flex items-center justify-center"
+                              title="View Details"
+                            >
+                              <FaEye size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleApprove(batch.batchId)}
+                              className="p-2 text-neutralDGray hover:text-green-600 rounded flex items-center justify-center"
+                              title="Approve"
+                            >
+                              <FaCheck size={14} />
+                            </button>
+                            <button
+                              onClick={() => setShowModal(batch.batchId)}
+                              className="p-2 text-neutralDGray hover:text-red-100 rounded flex items-center justify-center"
+                              title="Reject"
+                            >
+                              <FaTimes size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  
+                  {/* Show buttons only if there are Generated batches */}
+                  {batches.filter(batch => {
+                    if (batch.uniqueStatuses && Array.isArray(batch.uniqueStatuses)) {
+                      return batch.uniqueStatuses.some(status => 
+                        status.toLowerCase() === 'generated'
+                      );
+                    }
+                    return batch.status && batch.status.toLowerCase() === 'generated';
+                  }).length > 0 && (
+                    <div className="flex gap-2 -mt-3">
+                      <button
+                        onClick={() => handleApprove()} // This will use selectedBatchId
+                        className="hover:bg-green-400 border text-neutralDGray text-xs w-32 h-8 px-3 py-1 rounded hover:text-white disabled:opacity-50"
+                      >
+                        Approve All
+                      </button>
+                      <button
+                        onClick={() => setShowModal(true)}
+                        className="hover:bg-red-400 border text-neutralDGray text-xs w-32 h-8 px-3 py-1 rounded hover:text-white disabled:opacity-50"
+                      >
+                        Reject All
+                      </button>
                     </div>
-                  );
-                })}
-                <div className="flex gap-2 -mt-3">
-                  <button
-                    onClick={handleApprove}
-                    className="hover:bg-green-400 border text-neutralDGray text-xs w-32 h-8 px-3 py-1 rounded hover:text-white disabled:opacity-50"
-                  >
-                    Approve All
-                  </button>
-                  <button
-                    onClick={() => setShowModal(true)}
-                    className="hover:bg-red-400 border text-neutralDGray text-xs w-32 h-8  px-3 py-1 rounded hover:text-white disabled:opacity-50"
-                  >
-                    Reject All
-                  </button>
+                  )}
                 </div>
               </div>
-            </div>
-          ) : (
-            <p className="text-gray-500 text-xs italic text-center">
-              ** No pending payroll requests. **
-            </p>
-          )}
+            ) : (
+              <p className="text-gray-500 text-xs italic text-center">
+                ** No pending payroll requests with Generated status. **
+              </p>
+            )}
+
+
+
 
           {/* Loading Modal */}
           {loadingPayroll && (
@@ -1242,7 +1305,7 @@ const Requests = () => {
       </section>
 
       {/* Changes Requests Section */}
-      <section className="flex-1 flex flex-col rounded-lg border p-2">
+      <section className="col-span-3 row-span-5 col-start-4 flex flex-col shadow rounded-lg bg-white border p-2">
         <h2 className="text-neutralDGray text-lg font-semibold mb-3 flex items-center gap-2">
           <FaPenRuler className="h-8 w-8 text-lg text-neutralDGray" />
           Change Requests
@@ -1265,80 +1328,95 @@ const Requests = () => {
 
               {/* Individual Change Requests - Now inside the total changes div */}
               <div className="mb-2">
-                {changesRequests.map((request) => {
-                  const changedFields = getChangedFields(request.changes);
-                  return (
-                    <div
-                      key={request.id}
-                      className="border p-2 h-[100px] rounded shadow-sm  mb-2"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm">
-                            Request ID: {formatRequestId(request.id)}
-                          </p>
-                          <p className="text-xs -mt-3 text-gray-600">
-                            Requested by: {request.requested_by}
-                          </p>
-                          <p className="text-xs -mt-3 text-gray-500">
-                            Status:{" "}
-                            <span
-                              className={`font-semibold ${
-                                request.status === "Pending"
-                                  ? "text-orange-500"
-                                  : request.status === "Rejected"
-                                  ? "text-red-600"
-                                  : "text-green-600"
-                              }`}
-                            >
-                              {request.status}
-                            </span>
-                          </p>
-                          <p className="text-xs -mt-3 text-gray-500">
-                            Created at:{" "}
-                            {new Date(request.createdAt).toLocaleDateString()}{" "}
-                            at{" "}
-                            {new Date(request.createdAt).toLocaleTimeString()}
-                          </p>
-                        </div>
-                        <div className="flex gap-1 items-center border h-8 w-32 rounded justify-end">
-                          <button
-                            onClick={() => {
-                              setSelectedChangeRequest(request);
-                              setShowChangeDetailModal(true);
-                            }}
-                            className="p-2 text-neutralDGray hover:text-blue-600 rounded flex items-center justify-center"
-                            title="View Details"
+              {changesRequests.map((request, index) => {
+                console.log(`Request ${index}:`, request);
+                console.log(`Request ${index} keys:`, Object.keys(request));
+                
+                // Let's see what ID-like properties exist
+                const possibleIdKeys = ['id', '_id', 'requestId', 'request_id', 'changeRequestId', 'batch_id'];
+                console.log('Possible ID properties:');
+                possibleIdKeys.forEach(key => {
+                  console.log(`  ${key}:`, request[key]);
+                });
+                
+                // Try to find a valid ID property
+                let requestId = request.id || request._id || request.requestId || request.request_id || 
+                                request.changeRequestId || request.batch_id || index;
+                
+                console.log(`Using requestId: ${requestId}`);
+                
+                const changedFields = getChangedFields(request.changes);
+                return (
+                  <div
+                    key={requestId || `request-${index}`}
+                    className="border p-2 h-[100px] rounded shadow-sm mb-2"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm">
+                          Request ID: {formatRequestId(requestId)}
+                        </p>
+                        <p className="text-xs -mt-3 text-gray-600">
+                          Requested by: {request.requested_by}
+                        </p>
+                        <p className="text-xs -mt-3 text-gray-500">
+                          Status:{" "}
+                          <span
+                            className={`font-semibold ${
+                              request.status === "Pending"
+                                ? "text-orange-500"
+                                : request.status === "Rejected"
+                                ? "text-red-600"
+                                : "text-green-600"
+                            }`}
                           >
-                            <FaEye size={14} />
-                          </button>
-                          {request.status === "Pending" && (
-                            <>
-                              <button
-                                onClick={() =>
-                                  handleApproveIndividualChange(request.id)
-                                }
-                                className="p-2 text-neutralDGray hover:text-green-600 rounded flex items-center justify-center"
-                                title="Approve"
-                              >
-                                <FaCheck size={14} />
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleRejectIndividualChange(request.id)
-                                }
-                                className="p-2 text-neutralDGray hover:text-red-100 rounded flex items-center justify-center"
-                                title="Reject"
-                              >
-                                <FaTimes size={14} />
-                              </button>
-                            </>
-                          )}
-                        </div>
+                            {request.status}
+                          </span>
+                        </p>
+                        <p className="text-xs -mt-3 text-gray-500">
+                          Created at:{" "}
+                          {request.createdAt ? new Date(request.createdAt).toLocaleDateString() : 'N/A'}{" "}
+                          {request.createdAt ? new Date(request.createdAt).toLocaleTimeString() : ''}
+                        </p>
+                      </div>
+                      <div className="flex gap-1 items-center border h-8 w-32 rounded justify-end">
+                        <button
+                          onClick={() => {
+                            setSelectedChangeRequest(request);
+                            setShowChangeDetailModal(true);
+                          }}
+                          className="p-2 text-neutralDGray hover:text-blue-600 rounded flex items-center justify-center"
+                          title="View Details"
+                        >
+                          <FaEye size={14} />
+                        </button>
+                        {request.status === "Pending" && (
+                          <>
+                            <button
+                              onClick={() =>
+                                handleApproveIndividualChange(requestId)
+                              }
+                              className="p-2 text-neutralDGray hover:text-green-600 rounded flex items-center justify-center"
+                              title="Approve"
+                            >
+                              <FaCheck size={14} />
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleRejectIndividualChange(requestId)
+                              }
+                              className="p-2 text-neutralDGray hover:text-red-100 rounded flex items-center justify-center"
+                              title="Reject"
+                            >
+                              <FaTimes size={14} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                );
+              })}
               </div>
 
               {/* Approve All and Reject All buttons - Now at the bottom */}
@@ -1695,9 +1773,7 @@ const Requests = () => {
                   {selectedPayrollRequest.uniqueStatuses[0] === "pending" && (
                     <>
                       <button
-                        onClick={() =>
-                          handleApprove(selectedPayrollRequest.batchId)
-                        }
+                        onClick={() => handleApprove(selectedPayrollRequest.batchId)}
                         className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                       >
                         Approve

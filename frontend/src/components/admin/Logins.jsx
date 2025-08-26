@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import DataTable from "react-data-table-component";
+import { ThreeDots } from "react-loader-spinner";
 
 const Logins = () => {
   const [loginRecords, setLoginRecords] = useState([]);
@@ -205,8 +206,8 @@ const Logins = () => {
   ];
 
   return (
-    <div className="p-2">
-      <h1 className="text-neutralDGray text-lg font-semibold -mt-3 mb-4">
+    <div className="p-2 bg-white rounded shadow -mt-3">
+      <h1 className="text-neutralDGray text-base  font-medium mb-4">
         Website Access Log
       </h1>
       {error && (
@@ -225,9 +226,22 @@ const Logins = () => {
           expandableRowExpanded={(row) => !!expandedRows[row.id]}
           progressPending={loading}
           progressComponent={
-            <div className="flex justify-center items-center gap-2 py-4 text-gray-600 text-sm">
-              <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-500"></span>
-              Loading data...
+            <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
+              <ThreeDots
+                visible={true}
+                height="60"
+                width="60"
+                color="#4fa94d"
+                radius="9"
+                ariaLabel="three-dots-loading"
+                wrapperStyle={{}}
+                wrapperClass=""
+              />
+            </div>
+          }
+          noDataComponent={
+            <div className="text-gray-500 text-sm italic py-4 text-center">
+              *** No data found ***
             </div>
           }
           paginationPerPage={12}
@@ -236,7 +250,6 @@ const Logins = () => {
           highlightOnHover
           striped
           customStyles={customStyles}
-          noDataComponent="No login records found."
         />
       </div>
     </div>

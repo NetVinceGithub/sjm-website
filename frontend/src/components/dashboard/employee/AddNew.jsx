@@ -1,8 +1,37 @@
 import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import Breadcrumb from "../dashboard/Breadcrumb";
+
+
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+
+
+const apiClient =  axios.create({
+  baseURL: API_BASE_URL, 
+  headers: {
+    'Content-Type' : 'application/json',
+    'Accept': 'application/json',
+  },
+})
+
+// Add request interceptor to include auth token
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 const AddNew = () => {
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     // Personal Information
     ecode: "",
@@ -59,26 +88,71 @@ const AddNew = () => {
   });
 
   const [sameAsCurrent, setSameAsCurrent] = useState(false);
-
   const inputRefs = useRef({});
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    };
+  };
+
+
+    useEffect(() => {
+      fetchNextEcode();
+    }, []);
+
+
+    const fetchNextEcode = async () => {
+    try {
+      const response = await apiClient.get('/employees/next-ecode');
+      
+      if (response.data.success) {
+        setFormData(prev => ({
+          ...prev,
+          ecode: response.data.data.ecode
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching next ecode:', error);
+      // Fallback to manual generation if API fails
+      const generateEcode = () => {
+        const baseCode = "M";
+        const startingNumber = 2;
+        const paddedNumber = String(startingNumber).padStart(5, "0");
+        return baseCode + paddedNumber;
+      };
+      setFormData(prev => ({
+        ...prev,
+        ecode: generateEcode()
+      }));
+    }
+  };
+
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const generateEcode = () => {
-      const baseCode = "M";
-      const startingNumber = 2;
-      const paddedNumber = String(startingNumber).padStart(5, "0"); // 00002
-      return baseCode + paddedNumber;
-    };
-
+    
     setFormData((prev) => ({
       ...prev,
       [name]: value,
       ...(name === "currentAddress" && sameAsCurrent
         ? { permanentAddress: value }
         : {}),
-      ecode: generateEcode(),
     }));
+
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: null
+      }));
+    }
   };
 
   useEffect(() => {
@@ -90,7 +164,8 @@ const AddNew = () => {
     }
   }, [sameAsCurrent, formData.currentAddress]);
 
-  const calculateAge = (dob) => {
+
+ const calculateAge = (dob) => {
     if (!dob) return "";
     const birth = new Date(dob);
     const today = new Date();
@@ -112,56 +187,187 @@ const AddNew = () => {
   const age = calculateAge(formData.birthdate);
 
   const handleKeyDown = (e, name) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const fields = [
-        "ecode",
-        "lastName",
-        "firstName",
-        "middleName",
-        "gender",
-        "civilStatus",
-        "birthdate",
-        "contactNo",
-        "emailAddress",
-        "currentAddress",
-        "permanentAddress",
-        "positionTitle",
-        "project",
-        "department",
-        "areaSection",
-        "employmentRank",
-        "dateOfHire",
-        "employmentClassification",
-        "dateOfSeparation",
-        "governmentIdType",
-        "governmentIdNumber",
-        "emergencyContactName",
-        "emergencyContactNumber",
-        "emergencyContactAddress",
-        "dailyRate",
-        "salaryPackage",
-        "medicalDate",
-        "healthCardDate",
-        "gmpDate",
-        "prpDate",
-        "housekeepingDate",
-        "safetyDate",
-        "crrDate",
-        "sss",
-        "philHealth",
-        "pagIbig",
-        "tin",
-      ];
-      const idx = fields.indexOf(name);
-      if (idx >= 0 && idx < fields.length - 1) {
-        const next = fields[idx + 1];
-        inputRefs.current[next]?.focus();
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const fields = [
+          "ecode",
+          "lastName",
+          "firstName",
+          "middleName",
+          "gender",
+          "civilStatus",
+          "birthdate",
+          "contactNo",
+          "emailAddress",
+          "currentAddress",
+          "permanentAddress",
+          "positionTitle",
+          "project",
+          "department",
+          "areaSection",
+          "employmentRank",
+          "dateOfHire",
+          "employmentClassification",
+          "dateOfSeparation",
+          "governmentIdType",
+          "governmentIdNumber",
+          "emergencyContactName",
+          "emergencyContactNumber",
+          "emergencyContactAddress",
+          "dailyRate",
+          "salaryPackage",
+          "medicalDate",
+          "healthCardDate",
+          "gmpDate",
+          "prpDate",
+          "housekeepingDate",
+          "safetyDate",
+          "crrDate",
+          "sss",
+          "philHealth",
+          "pagIbig",
+          "tin",
+        ];
+        const idx = fields.indexOf(name);
+        if (idx >= 0 && idx < fields.length - 1) {
+          const next = fields[idx + 1];
+          inputRefs.current[next]?.focus();
+        }
       }
+    };
+
+
+    const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrors({});
+
+    try {
+      // Prepare data to match backend expectations
+      const submitData = {
+        // Convert camelCase to snake_case to match Laravel validation
+        last_name: formData.lastName,
+        first_name: formData.firstName,
+        middle_name: formData.middleName,
+        complete_name: completeName,
+        position_title: formData.positionTitle,
+        project: formData.project,
+        department: formData.department,
+        area_section: formData.areaSection,
+        employment_rank: formData.employmentRank,
+        date_of_hire: formData.dateOfHire,
+        employment_classification: formData.employmentClassification,
+        civil_status: formData.civilStatus,
+        gender: formData.gender,
+        birthdate: formData.birthdate,
+        current_address: formData.currentAddress,
+        permanent_address: formData.permanentAddress,
+        contact_no: formData.contactNo,
+        email_address: formData.emailAddress,
+        government_id_type: formData.governmentIdType,
+        government_id_number: formData.governmentIdNumber,
+        emergency_contact_name: formData.emergencyContactName,
+        emergency_contact_number: formData.emergencyContactNumber,
+        emergency_contact_address: formData.emergencyContactAddress,
+        daily_rate: parseFloat(formData.dailyRate) || 0,
+        salary_package: parseFloat(formData.salaryPackage) || 0,
+        medical_date: formData.medicalDate,
+        health_card_date: formData.healthCardDate,
+        gmp_date: formData.gmpDate,
+        prp_date: formData.prpDate,
+        housekeeping_date: formData.housekeepingDate,
+        safety_date: formData.safetyDate,
+        crr_date: formData.crrDate,
+        sss: formData.sss,
+        phil_health: formData.philHealth,
+        pag_ibig: formData.pagIbig,
+        tin: formData.tin,
+        date_of_separation: formData.dateOfSeparation || null,
+      };
+
+      const response = await apiClient.post('/api/employees', submitData, getAuthHeaders());
+
+      if (response.data.success) {
+        // Success! Show success message and reset form
+        alert('Employee added successfully!');
+        
+        // Reset form
+        setFormData({
+          ecode: "",
+          lastName: "",
+          firstName: "",
+          middleName: "",
+          completeName: "",
+          positionTitle: "",
+          project: "",
+          department: "",
+          areaSection: "",
+          employmentRank: "",
+          dateOfHire: "",
+          employmentClassification: "",
+          civilStatus: "",
+          gender: "",
+          birthdate: "",
+          age: "",
+          currentAddress: "",
+          permanentAddress: "",
+          contactNo: "",
+          emailAddress: "",
+          governmentIdType: "",
+          governmentIdNumber: "",
+          emergencyContactName: "",
+          emergencyContactNumber: "",
+          emergencyContactAddress: "",
+          dailyRate: "",
+          salaryPackage: "",
+          medicalDate: "",
+          healthCardDate: "",
+          gmpDate: "",
+          prpDate: "",
+          housekeepingDate: "",
+          safetyDate: "",
+          crrDate: "",
+          sss: "",
+          philHealth: "",
+          pagIbig: "",
+          tin: "",
+          dateOfSeparation: "",
+        });
+
+        // Fetch next employee code for next entry
+        fetchNextEcode();
+        setSameAsCurrent(false);
+
+        // Optionally redirect to employee list
+        // window.location.href = '/admin-dashboard/employees';
+        
+      }
+    } catch (error) {
+      console.error('Error creating employee:', error);
+      
+      if (error.response && error.response.status === 422) {
+        // Validation errors
+        setErrors(error.response.data.errors || {});
+        alert('Please check the form for errors and try again.');
+      } else if (error.response && error.response.data.message) {
+        alert(error.response.data.message);
+      } else {
+        alert('Network error. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
+   const getErrorMessage = (fieldName) => {
+    return errors[fieldName] ? errors[fieldName][0] : '';
+  };
+
+  const hasError = (fieldName) => {
+    return errors[fieldName] && errors[fieldName].length > 0;
+  };
+
+ return (
     <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <Breadcrumb
         items={[
@@ -186,710 +392,881 @@ const AddNew = () => {
         </p>
       </div>
 
-      {/* Personal Information Section */}
-      <div className="bg-white p-3 rounded-lg shadow-md mb-2">
-        <div className="bg-red-50 px-2 rounded">
-          <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
-            Personal Information
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Ecode<span className="text-red-500">*</span>
-            </label>
-            <input
-              name="ecode"
-              value={formData.ecode}
-              disabled
-              className="w-full p-2 border text-xs border-gray-300 rounded-md bg-gray-100"
-            />
+      <form onSubmit={handleSubmit}>
+        {/* Personal Information Section */}
+        <div className="bg-white p-3 rounded-lg shadow-md mb-2">
+          <div className="bg-red-50 px-2 rounded">
+            <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
+              Personal Information
+            </h3>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Last Name<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["lastName"] = el)}
-              name="lastName"
-              value={formData.lastName}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "lastName")}
-              placeholder="e.g. Doe, Smith"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              First Name<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["firstName"] = el)}
-              name="firstName"
-              value={formData.firstName}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "firstName")}
-              placeholder="e.g. John, Jane"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Middle Name <span className="italic"> (Optional)</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["middleName"] = el)}
-              name="middleName"
-              value={formData.middleName}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "middleName")}
-              placeholder="e.g. Doe, Smith"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Complete Name<span className="text-red-500">*</span>
-            </label>
-            <input
-              value={completeName}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              disabled
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Gender<span className="text-red-500">*</span>
-            </label>
-            <select
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-              ref={(el) => (inputRefs.current["gender"] = el)}
-              name="gender"
-              value={formData["gender"]}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "gender")}
-            >
-              <option value="">Select</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Civil Status<span className="text-red-500">*</span>
-            </label>
-            <select
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-              ref={(el) => (inputRefs.current["civilStatus"] = el)}
-              name="civilStatus"
-              value={formData["civilStatus"]}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "civilStatus")}
-            >
-              <option value="">Select</option>
-              <option value="single">Single</option>
-              <option value="married">Married</option>
-              <option value="widowed">Widowed</option>
-              <option value="separated">Separated</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Birthdate<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["birthdate"] = el)}
-              name="birthdate"
-              type="date"
-              value={formData.birthdate}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "birthdate")}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Age<span className="text-red-500">*</span>
-            </label>
-            <input
-              value={age}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              disabled
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Contact Number<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["contactNo"] = el)}
-              name="contactNo"
-              type="number"
-              value={formData.contactNo}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "contactNo")}
-              placeholder="e.g. 09123456789"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Email Address<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["emailAddress"] = el)}
-              name="emailAddress"
-              type="email"
-              value={formData.emailAddress}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "emailAddress")}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              placeholder="e.g. johndoe@example.com"
-              required
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Current Address<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["currentAddress"] = el)}
-              name="currentAddress"
-              value={formData.currentAddress}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "currentAddress")}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              placeholder="e.g. 123 Main St, City, Country"
-              required
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Permanent Address<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["permanentAddress"] = el)}
-              name="permanentAddress"
-              value={formData.permanentAddress}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "permanentAddress")}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              placeholder="e.g. 123 Main St, City, Country"
-              required
-            />
-            <label className="flex items-center mt-2 text-xs text-neutralDGray">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Ecode<span className="text-red-500">*</span>
+              </label>
               <input
-                type="checkbox"
-                checked={sameAsCurrent}
-                onChange={(e) => setSameAsCurrent(e.target.checked)}
-                className="mr-1 h-3 w-3 rounded-full"
+                name="ecode"
+                value={formData.ecode}
+                disabled
+                className="w-full p-2 border text-xs border-gray-300 rounded-md bg-gray-100"
               />
-              Same as Current Address
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {/* Employment Information Section */}
-      <div className="bg-white p-3 rounded-lg shadow-md mb-2">
-        <div className="bg-red-50 px-2 rounded">
-          <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
-            Employment Information
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Position Title<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["positionTitle"] = el)}
-              name="positionTitle"
-              value={formData.positionTitle}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "positionTitle")}
-              placeholder="e.g. Software Engineer, Manager"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Project<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["project"] = el)}
-              name="project"
-              value={formData.project}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "project")}
-              placeholder="e.g. Jollibee, Inasal"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Department<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["department"] = el)}
-              name="department"
-              value={formData.department}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "department")}
-              placeholder="e.g. IT, HR"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Area/Section<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["areaSection"] = el)}
-              name="areaSection"
-              value={formData.areaSection}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "areaSection")}
-              placeholder="e.g. Kitchen, Office"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Employment Rank<span className="text-red-500">*</span>
-            </label>
-            <select
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-              ref={(el) => (inputRefs.current["employmentRank"] = el)}
-              name="employmentRank"
-              value={formData["employmentRank"]}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "employmentRank")}
-            >
-              <option value="">Select</option>
-              <option value="managerial">Managerial</option>
-              <option value="managerial-staff">Managerial Staff</option>
-              <option value="supervisory">Supervisory</option>
-              <option value="rank-and-file">Rank and File</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Employment Classification<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["employmentClassification"] = el)}
-              name="employmentClassification"
-              value={formData.employmentClassification}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "employmentClassification")}
-              placeholder="e.g. Regular, Probationary"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Date of Hire<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["dateOfHire"] = el)}
-              name="dateOfHire"
-              type="date"
-              value={formData.dateOfHire}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "dateOfHire")}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Date of Separation
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["dateOfHire"] = el)}
-              name="dateOfSeparation"
-              type="date"
-              value={formData.dateOfSeparation}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "dateOfSeparation")}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-            />
-            <p className="text-xs text-neutralDGray italic">
-              Leave blank if still employed.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Government ID Information Section */}
-      <div className="bg-white p-3 rounded-lg shadow-md mb-2">
-        <div className="bg-red-50 px-2 rounded">
-          <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
-            Government ID Information
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              ID Type<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["governmentIdType"] = el)}
-              name="governmentIdType"
-              value={formData.governmentIdType}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "governmentIdType")}
-              placeholder="e.g. Passport, SSS ID"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              ID Number<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["governmentIdNumber"] = el)}
-              name="governmentIdNumber"
-              value={formData.governmentIdNumber}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "governmentIdNumber")}
-              placeholder="e.g. 123456789"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Government ID<span className="text-red-500">*</span>
-            </label>
-            <input
-              value={govID}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              disabled
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Emergency Contact Section */}
-      <div className="bg-white p-3 rounded-lg shadow-md mb-2">
-        <div className="bg-red-50 px-2 rounded">
-          <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
-            Emergency Contact Information
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Emergency Contact Name<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["emergencyContactName"] = el)}
-              name="emergencyContactName"
-              value={formData.emergencyContactName}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "emergencyContactName")}
-              placeholder="e.g. Jane Doe"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Emergency Contact Number<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["emergencyContactNumber"] = el)}
-              name="emergencyContactNumber"
-              value={formData.emergencyContactNumber}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "emergencyContactNumber")}
-              placeholder="e.g. 09123456789"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Emergency Contact Address<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["permanentAddress"] = el)}
-              name="permanentAddress"
-              value={formData.permanentAddress}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "permanentAddress")}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              placeholder="e.g. 123 Main St, City, Country"
-              required
-            />
-            <label className="flex items-center mt-2 text-xs text-neutralDGray">
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Last Name<span className="text-red-500">*</span>
+              </label>
               <input
-                type="checkbox"
-                checked={sameAsCurrent}
-                onChange={(e) => setSameAsCurrent(e.target.checked)}
-                className="mr-1 h-3 w-3 rounded-full"
+                ref={(el) => (inputRefs.current["lastName"] = el)}
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "lastName")}
+                placeholder="e.g. Doe, Smith"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('last_name') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
               />
-              Same as Personal Address
-            </label>
+              {hasError('last_name') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('last_name')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                First Name<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["firstName"] = el)}
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "firstName")}
+                placeholder="e.g. John, Jane"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('first_name') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('first_name') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('first_name')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Middle Name <span className="italic"> (Optional)</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["middleName"] = el)}
+                name="middleName"
+                value={formData.middleName}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "middleName")}
+                placeholder="e.g. Doe, Smith"
+                className="w-full p-2 border text-xs border-gray-300 rounded-md"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Complete Name<span className="text-red-500">*</span>
+              </label>
+              <input
+                value={completeName}
+                className="w-full p-2 border text-xs border-gray-300 rounded-md"
+                disabled
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Gender<span className="text-red-500">*</span>
+              </label>
+              <select
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('gender') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+                ref={(el) => (inputRefs.current["gender"] = el)}
+                name="gender"
+                value={formData["gender"]}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "gender")}
+              >
+                <option value="">Select</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+              {hasError('gender') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('gender')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Civil Status<span className="text-red-500">*</span>
+              </label>
+              <select
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('civil_status') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+                ref={(el) => (inputRefs.current["civilStatus"] = el)}
+                name="civilStatus"
+                value={formData["civilStatus"]}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "civilStatus")}
+              >
+                <option value="">Select</option>
+                <option value="single">Single</option>
+                <option value="married">Married</option>
+                <option value="widowed">Widowed</option>
+                <option value="separated">Separated</option>
+              </select>
+              {hasError('civil_status') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('civil_status')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Birthdate<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["birthdate"] = el)}
+                name="birthdate"
+                type="date"
+                value={formData.birthdate}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "birthdate")}
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('birthdate') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('birthdate') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('birthdate')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Age<span className="text-red-500">*</span>
+              </label>
+              <input
+                value={age}
+                className="w-full p-2 border text-xs border-gray-300 rounded-md"
+                disabled
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Contact Number<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["contactNo"] = el)}
+                name="contactNo"
+                type="tel"
+                value={formData.contactNo}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "contactNo")}
+                placeholder="e.g. 09123456789"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('contact_no') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('contact_no') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('contact_no')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Email Address<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["emailAddress"] = el)}
+                name="emailAddress"
+                type="email"
+                value={formData.emailAddress}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "emailAddress")}
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('email_address') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="e.g. johndoe@example.com"
+                required
+              />
+              {hasError('email_address') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('email_address')}</p>
+              )}
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Current Address<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["currentAddress"] = el)}
+                name="currentAddress"
+                value={formData.currentAddress}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "currentAddress")}
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('current_address') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="e.g. 123 Main St, City, Country"
+                required
+              />
+              {hasError('current_address') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('current_address')}</p>
+              )}
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Permanent Address<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["permanentAddress"] = el)}
+                name="permanentAddress"
+                value={formData.permanentAddress}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "permanentAddress")}
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('permanent_address') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="e.g. 123 Main St, City, Country"
+                required
+              />
+              {hasError('permanent_address') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('permanent_address')}</p>
+              )}
+              <label className="flex items-center mt-2 text-xs text-neutralDGray">
+                <input
+                  type="checkbox"
+                  checked={sameAsCurrent}
+                  onChange={(e) => setSameAsCurrent(e.target.checked)}
+                  className="mr-1 h-3 w-3 rounded-full"
+                />
+                Same as Current Address
+              </label>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Compensation Section */}
-      <div className="bg-white p-3 rounded-lg shadow-md mb-2">
-        <div className="bg-red-50 px-2 rounded">
-          <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
-            Compensation Information
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Daily Rate<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["dailyRate"] = el)}
-              name="dailyRate"
-              value={formData.dailyRate}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "dailyRate")}
-              type="number"
-              placeholder="e.g. 500"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
+        {/* Employment Information Section */}
+        <div className="bg-white p-3 rounded-lg shadow-md mb-2">
+          <div className="bg-red-50 px-2 rounded">
+            <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
+              Employment Information
+            </h3>
           </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Salary Package<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["salaryPackage"] = el)}
-              name="salaryPackage"
-              value={formData.salaryPackage}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "salaryPackage")}
-              placeholder="e.g. 25000"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              type="number"
-              required
-            />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Position Title<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["positionTitle"] = el)}
+                name="positionTitle"
+                value={formData.positionTitle}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "positionTitle")}
+                placeholder="e.g. Software Engineer, Manager"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('position_title') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('position_title') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('position_title')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Project<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["project"] = el)}
+                name="project"
+                value={formData.project}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "project")}
+                placeholder="e.g. Jollibee, Inasal"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('project') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('project') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('project')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Department<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["department"] = el)}
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "department")}
+                placeholder="e.g. IT, HR"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('department') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('department') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('department')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Area/Section<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["areaSection"] = el)}
+                name="areaSection"
+                value={formData.areaSection}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "areaSection")}
+                placeholder="e.g. Kitchen, Office"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('area_section') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('area_section') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('area_section')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Employment Rank<span className="text-red-500">*</span>
+              </label>
+              <select
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('employment_rank') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+                ref={(el) => (inputRefs.current["employmentRank"] = el)}
+                name="employmentRank"
+                value={formData["employmentRank"]}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "employmentRank")}
+              >
+                <option value="">Select</option>
+                <option value="managerial">Managerial</option>
+                <option value="managerial-staff">Managerial Staff</option>
+                <option value="supervisory">Supervisory</option>
+                <option value="rank-and-file">Rank and File</option>
+              </select>
+              {hasError('employment_rank') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('employment_rank')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Employment Classification<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["employmentClassification"] = el)}
+                name="employmentClassification"
+                value={formData.employmentClassification}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "employmentClassification")}
+                placeholder="e.g. Regular, Probationary"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('employment_classification') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('employment_classification') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('employment_classification')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Date of Hire<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["dateOfHire"] = el)}
+                name="dateOfHire"
+                type="date"
+                value={formData.dateOfHire}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "dateOfHire")}
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('date_of_hire') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('date_of_hire') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('date_of_hire')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Date of Separation
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["dateOfSeparation"] = el)}
+                name="dateOfSeparation"
+                type="date"
+                value={formData.dateOfSeparation}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "dateOfSeparation")}
+                className="w-full p-2 border text-xs border-gray-300 rounded-md"
+              />
+              <p className="text-xs text-neutralDGray italic">
+                Leave blank if still employed.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Training & Certification Section */}
-      <div className="bg-white p-3 rounded-lg shadow-md mb-2">
-        <div className="bg-red-50 px-2 rounded">
-          <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
-            Training & Certification Dates
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Medical<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["medicalDate"] = el)}
-              name="medicalDate"
-              type="date"
-              value={formData.medicalDate}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "medicalDate")}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
+        {/* Government ID Information Section */}
+        <div className="bg-white p-3 rounded-lg shadow-md mb-2">
+          <div className="bg-red-50 px-2 rounded">
+            <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
+              Government ID Information
+            </h3>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Health Card<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["healthCardDate"] = el)}
-              name="healthCardDate"
-              type="date"
-              value={formData.healthCardDate}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "healthCardDate")}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              GMP<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["gmpDate"] = el)}
-              name="gmpDate"
-              type="date"
-              value={formData.gmpDate}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "gmpDate")}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              PRP<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["prpDate"] = el)}
-              name="prpDate"
-              type="date"
-              value={formData.prpDate}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "prpDate")}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Housekeeping<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["housekeepingDate"] = el)}
-              name="housekeepingDate"
-              type="date"
-              value={formData.housekeepingDate}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "housekeepingDate")}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Safety<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["safetyDate"] = el)}
-              name="safetyDate"
-              type="date"
-              value={formData.safetyDate}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "safetyDate")}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              CRR<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["crrDate"] = el)}
-              name="crrDate"
-              type="date"
-              value={formData.crrDate}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "crrDate")}
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                ID Type<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["governmentIdType"] = el)}
+                name="governmentIdType"
+                value={formData.governmentIdType}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "governmentIdType")}
+                placeholder="e.g. Passport, SSS ID"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('government_id_type') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('government_id_type') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('government_id_type')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                ID Number<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["governmentIdNumber"] = el)}
+                name="governmentIdNumber"
+                value={formData.governmentIdNumber}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "governmentIdNumber")}
+                placeholder="e.g. 123456789"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('government_id_number') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('government_id_number') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('government_id_number')}</p>
+              )}
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Government ID<span className="text-red-500">*</span>
+              </label>
+              <input
+                value={govID}
+                className="w-full p-2 border text-xs border-gray-300 rounded-md"
+                disabled
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Government Benefits Section */}
-      <div className="bg-white p-3 rounded-lg shadow-md mb-2">
-        <div className="bg-red-50 px-2 rounded">
-          <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
-            Government Benefits Section
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              SSS Number<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["sss"] = el)}
-              name="sss"
-              value={formData.sss}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "sss")}
-              type="number"
-              placeholder="e.g. 1234567890"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
+        {/* Emergency Contact Section */}
+        <div className="bg-white p-3 rounded-lg shadow-md mb-2">
+          <div className="bg-red-50 px-2 rounded">
+            <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
+              Emergency Contact Information
+            </h3>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              PhilHealth Number<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["philHealth"] = el)}
-              name="philHealth"
-              value={formData.philHealth}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "philHealth")}
-              placeholder="e.g. 1234567890"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              type="number"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              Pag-IBIG Number<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["pagIbig"] = el)}
-              name="pagIbig"
-              value={formData.pagIbig}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "pagIbig")}
-              type="number"
-              placeholder="e.g. 1234567890"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutralDGray mb-1">
-              TIN Number<span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={(el) => (inputRefs.current["tin"] = el)}
-              name="tin"
-              value={formData.tin}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, "tin")}
-              placeholder="e.g. 1234567890"
-              className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              type="number"
-              required
-            />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Emergency Contact Name<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["emergencyContactName"] = el)}
+                name="emergencyContactName"
+                value={formData.emergencyContactName}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "emergencyContactName")}
+                placeholder="e.g. Jane Doe"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('emergency_contact_name') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('emergency_contact_name') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('emergency_contact_name')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Emergency Contact Number<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["emergencyContactNumber"] = el)}
+                name="emergencyContactNumber"
+                value={formData.emergencyContactNumber}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "emergencyContactNumber")}
+                placeholder="e.g. 09123456789"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('emergency_contact_number') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('emergency_contact_number') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('emergency_contact_number')}</p>
+              )}
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Emergency Contact Address<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["emergencyContactAddress"] = el)}
+                name="emergencyContactAddress"
+                value={formData.emergencyContactAddress}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "emergencyContactAddress")}
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('emergency_contact_address') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="e.g. 123 Main St, City, Country"
+                required
+              />
+              {hasError('emergency_contact_address') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('emergency_contact_address')}</p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <button
-        className="w-full h-10 bg-[#974364] hover:bg-[#5f263d] disabled:bg-blue-400 text-white text-sm py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2"
-        onClick={() => alert(JSON.stringify(formData))}
-      >
-        Add Employee
-      </button>
+        {/* Compensation Section */}
+        <div className="bg-white p-3 rounded-lg shadow-md mb-2">
+          <div className="bg-red-50 px-2 rounded">
+            <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
+              Compensation Information
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Daily Rate<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["dailyRate"] = el)}
+                name="dailyRate"
+                value={formData.dailyRate}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "dailyRate")}
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="e.g. 500"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('daily_rate') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('daily_rate') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('daily_rate')}</p>
+              )}
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Salary Package<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["salaryPackage"] = el)}
+                name="salaryPackage"
+                value={formData.salaryPackage}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "salaryPackage")}
+                placeholder="e.g. 25000"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('salary_package') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                type="number"
+                step="0.01"
+                min="0"
+                required
+              />
+              {hasError('salary_package') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('salary_package')}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Training & Certification Section */}
+        <div className="bg-white p-3 rounded-lg shadow-md mb-2">
+          <div className="bg-red-50 px-2 rounded">
+            <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
+              Training & Certification Dates
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Medical<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["medicalDate"] = el)}
+                name="medicalDate"
+                type="date"
+                value={formData.medicalDate}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "medicalDate")}
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('medical_date') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('medical_date') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('medical_date')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Health Card<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["healthCardDate"] = el)}
+                name="healthCardDate"
+                type="date"
+                value={formData.healthCardDate}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "healthCardDate")}
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('health_card_date') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('health_card_date') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('health_card_date')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                GMP<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["gmpDate"] = el)}
+                name="gmpDate"
+                type="date"
+                value={formData.gmpDate}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "gmpDate")}
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('gmp_date') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('gmp_date') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('gmp_date')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                PRP<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["prpDate"] = el)}
+                name="prpDate"
+                type="date"
+                value={formData.prpDate}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "prpDate")}
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('prp_date') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('prp_date') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('prp_date')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Housekeeping<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["housekeepingDate"] = el)}
+                name="housekeepingDate"
+                type="date"
+                value={formData.housekeepingDate}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "housekeepingDate")}
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('housekeeping_date') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('housekeeping_date') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('housekeeping_date')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Safety<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["safetyDate"] = el)}
+                name="safetyDate"
+                type="date"
+                value={formData.safetyDate}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "safetyDate")}
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('safety_date') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('safety_date') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('safety_date')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                CRR<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["crrDate"] = el)}
+                name="crrDate"
+                type="date"
+                value={formData.crrDate}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "crrDate")}
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('crr_date') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('crr_date') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('crr_date')}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Government Benefits Section */}
+        <div className="bg-white p-3 rounded-lg shadow-md mb-2">
+          <div className="bg-red-50 px-2 rounded">
+            <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
+              Government Benefits Section
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                SSS Number<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["sss"] = el)}
+                name="sss"
+                value={formData.sss}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "sss")}
+                placeholder="e.g. 1234567890"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('sss') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('sss') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('sss')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                PhilHealth Number<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["philHealth"] = el)}
+                name="philHealth"
+                value={formData.philHealth}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "philHealth")}
+                placeholder="e.g. 1234567890"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('phil_health') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('phil_health') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('phil_health')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Pag-IBIG Number<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["pagIbig"] = el)}
+                name="pagIbig"
+                value={formData.pagIbig}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "pagIbig")}
+                placeholder="e.g. 1234567890"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('pag_ibig') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('pag_ibig') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('pag_ibig')}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                TIN Number<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["tin"] = el)}
+                name="tin"
+                value={formData.tin}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "tin")}
+                placeholder="e.g. 1234567890"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError('tin') ? 'border-red-500' : 'border-gray-300'
+                }`}
+                required
+              />
+              {hasError('tin') && (
+                <p className="text-red-500 text-xs mt-1">{getErrorMessage('tin')}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full h-10 bg-[#974364] hover:bg-[#5f263d] disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2"
+        >
+          {loading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              Adding Employee...
+            </>
+          ) : (
+            'Add Employee'
+          )}
+        </button>
+      </form>
     </div>
   );
 };

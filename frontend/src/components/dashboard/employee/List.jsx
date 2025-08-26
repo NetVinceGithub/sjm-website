@@ -9,6 +9,7 @@ import defaultProfile from "../../../../src/assets/default-profile.png"; // Adju
 import { FaSearch, FaSyncAlt, FaIdCard, FaPaperclip } from "react-icons/fa";
 import EmployeeIDCard from "../EmployeeIDCard";
 import Breadcrumb from "../dashboard/Breadcrumb";
+import DropdownStatusButton from "./DropdownStatusButton";
 import {
   FaPrint,
   FaRegFileExcel,
@@ -18,12 +19,14 @@ import {
 } from "react-icons/fa6";
 import { FaEnvelope, FaMinusSquare, FaTimes } from "react-icons/fa";
 import BlockEmployeeModal from "../modals/BlockEmployeeModal";
+import InactiveEmployee from "../modals/InactiveEmployee";
 import UnBlockEmployeeModal from "../modals/UnblockEmployeeModal";
 import ActivateEmployeeModal from "../modals/ActivateEmployeeModal";
 import BulkEmployeeMessageModal from "../modals/BulkEmployeeMessageModal";
 import { toast } from "react-toastify";
 import { useAuth } from "../../../context/authContext";
 import { ThreeDots } from "react-loader-spinner";
+import FilterList from "../modals/FilterList";
 
 const List = () => {
   const { user } = useAuth();
@@ -38,6 +41,7 @@ const List = () => {
   const [employeeToToggle, setEmployeeToToggle] = useState(null);
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
   const [isUnBlockModalOpen, setIsUnBlockModalOpen] = useState(false);
+  const [isInactiveModalOpen, setIsInactiveModalOpen] = useState(false);
   const [employeeToBlock, setEmployeeToBlock] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [isActivateEmployeeOpen, setIsActivateEmployeeOpen] = useState(false);
@@ -49,7 +53,20 @@ const List = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [showBulkMessage, setShowBulkMessage] = useState(false);
+  const [showFilterList, setshowFilterList] = useState(false);
   const [expandedRows, setExpandedRows] = useState({});
+  const [activeFilters, setActiveFilters] = useState({});
+  const [originalEmployees, setOriginalEmployees] = useState([]);
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+  };
 
   useEffect(() => {
     fetchEmployees();
@@ -63,24 +80,177 @@ const List = () => {
     setShowBulkMessage(false); // ✅ This is correct
   };
 
+  // Add this function to classify employees based on separation date
+  const classifyEmploymentStatus = (employees) => {
+    return employees.map((employee) => {
+      // Check if employee has a date of separation and it's not null/empty
+      if (
+        employee.dateofseparation &&
+        employee.dateofseparation.trim() !== "" &&
+        employee.dateofseparation !== "N/A"
+      ) {
+        // Parse the separation date
+        const separationDate = new Date(employee.dateofseparation);
+        const currentDate = new Date();
+
+        // If separation date is valid and is today or in the past
+        if (!isNaN(separationDate.getTime()) && separationDate <= currentDate) {
+          return {
+            ...employee,
+            employmentstatus: "RESIGNED",
+            status: "Inactive", // Also set status to Inactive for resigned employees
+          };
+        }
+      }
+
+      // Return employee unchanged if no valid separation date
+      return employee;
+    });
+  };
+
+  const openFilterList = () => {
+    setshowFilterList(true);
+  };
+
+  const handleCloseFilterList = () => {
+    setshowFilterList(false); // ✅ This is correct
+  };
+
   const fetchEmployees = async () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/employee`
+        `${import.meta.env.VITE_API_URL}/api/employees`, 
+        getAuthHeaders()
       );
+      
+      console.log("API Response:", response.data); // Debug log
+      
       if (response.data.success) {
-        setEmployees(response.data.employees);
-        notifyBirthdays(response.data.employees);
-        notifyTrainingExpiring(response.data.employees);
-        notifyMedicalExpiring(response.data.employees);
-        setFilteredEmployees(response.data.employees);
+        // Change this line - access the nested data array
+        const employees = response.data.data.data; // Note: data.data.data due to pagination wrapper
+        
+        // Apply employment status classification
+        const classifiedEmployees = classifyEmploymentStatus(employees);
+
+        setEmployees(classifiedEmployees);
+        setOriginalEmployees(classifiedEmployees);
+        notifyBirthdays(classifiedEmployees);
+        notifyTrainingExpiring(classifiedEmployees);
+        notifyMedicalExpiring(classifiedEmployees);
+        setFilteredEmployees(classifiedEmployees);
       }
     } catch (error) {
       console.error("Error fetching employees:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFilterChange = (filters) => {
+    setActiveFilters(filters);
+    applyFilters(filters);
+  };
+
+  const applyFilters = (filters) => {
+    let filtered = [...originalEmployees];
+
+    // Apply search filter if exists
+    const searchInput = document.querySelector(
+      'input[placeholder="Search Employee"]'
+    );
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
+
+    if (searchTerm) {
+      filtered = filtered.filter((emp) =>
+        emp.name.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Apply department filter
+    if (filters.department && filters.department.length > 0) {
+      filtered = filtered.filter((emp) =>
+        filters.department.includes(emp.department)
+      );
+    }
+
+    // Apply status filter
+    if (filters.status && filters.status.length > 0) {
+      filtered = filtered.filter((emp) => {
+        const effectiveStatus =
+          emp.employmentstatus === "RESIGNED" ? "Inactive" : emp.status;
+        return filters.status.includes(effectiveStatus);
+      });
+    }
+
+    // Apply employment status filter
+    if (filters.employmentStatus && filters.employmentStatus.length > 0) {
+      filtered = filtered.filter((emp) =>
+        filters.employmentStatus.includes(emp.employmentstatus)
+      );
+    }
+
+    // Apply position filter
+    if (filters.position && filters.position.length > 0) {
+      filtered = filtered.filter((emp) =>
+        filters.position.includes(emp.positiontitle)
+      );
+    }
+
+    // Apply project filter
+    if (filters.project && filters.project.length > 0) {
+      filtered = filtered.filter((emp) =>
+        filters.project.includes(emp.project || "N/A")
+      );
+    }
+
+    // Apply employment rank filter
+    if (filters.employmentRank && filters.employmentRank.length > 0) {
+      filtered = filtered.filter((emp) =>
+        filters.employmentRank.includes(emp.employmentrank)
+      );
+    }
+
+    if (filters.civilStatus && filters.civilStatus.length > 0) {
+      filtered = filtered.filter((emp) =>
+        filters.civilStatus.includes(emp.civilstatus)
+      );
+    }
+
+    if (filters.sex && filters.sex.length > 0) {
+      filtered = filtered.filter((emp) => filters.sex.includes(emp.gender));
+    }
+
+    // Apply date range filter (date of hire)
+    if (filters.dateRange && filters.dateRange.start && filters.dateRange.end) {
+      const startDate = new Date(filters.dateRange.start);
+      const endDate = new Date(filters.dateRange.end);
+
+      filtered = filtered.filter((emp) => {
+        if (!emp.dateofhire) return false;
+        const hireDate = new Date(emp.dateofhire);
+        return hireDate >= startDate && hireDate <= endDate;
+      });
+    }
+
+    // Apply age range filter
+    if (filters.ageRange && (filters.ageRange.min || filters.ageRange.max)) {
+      filtered = filtered.filter((emp) => {
+        const age = parseInt(emp.age);
+        if (isNaN(age)) return false;
+
+        const minAge = filters.ageRange.min
+          ? parseInt(filters.ageRange.min)
+          : 0;
+        const maxAge = filters.ageRange.max
+          ? parseInt(filters.ageRange.max)
+          : 999;
+
+        return age >= minAge && age <= maxAge;
+      });
+    }
+
+    setFilteredEmployees(filtered);
   };
 
   const syncEmployees = async () => {
@@ -98,10 +268,62 @@ const List = () => {
 
   const handleFilter = (e) => {
     const searchTerm = e.target.value.toLowerCase();
-    const records = employees.filter((emp) =>
-      emp.name.toLowerCase().includes(searchTerm)
+
+    // Start with original data
+    let filtered = [...originalEmployees];
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter((emp) =>
+        emp.name.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Reapply existing filters
+    if (Object.keys(activeFilters).length > 0) {
+      // Apply department filter
+      if (activeFilters.department && activeFilters.department.length > 0) {
+        filtered = filtered.filter((emp) =>
+          activeFilters.department.includes(emp.department)
+        );
+      }
+
+      // Apply status filter
+      if (activeFilters.status && activeFilters.status.length > 0) {
+        filtered = filtered.filter((emp) => {
+          const effectiveStatus =
+            emp.employmentstatus === "RESIGNED" ? "Inactive" : emp.status;
+          return activeFilters.status.includes(effectiveStatus);
+        });
+      }
+
+      // Apply employment status filter
+      if (
+        activeFilters.employmentStatus &&
+        activeFilters.employmentStatus.length > 0
+      ) {
+        filtered = filtered.filter((emp) =>
+          activeFilters.employmentStatus.includes(emp.employmentstatus)
+        );
+      }
+
+      // Apply other filters as needed...
+    }
+
+    setFilteredEmployees(filtered);
+  };
+
+  const clearAllFilters = () => {
+    setActiveFilters({});
+    setFilteredEmployees(originalEmployees);
+
+    // Clear search input
+    const searchInput = document.querySelector(
+      'input[placeholder="Search Employee"]'
     );
-    setFilteredEmployees(records);
+    if (searchInput) {
+      searchInput.value = "";
+    }
   };
 
   const openModal = (employeeId) => {
@@ -218,6 +440,7 @@ const List = () => {
     closeEmailModal();
   };
 
+  // Update the confirmBlockEmployee function to handle both Block and Inactive
   const confirmBlockEmployee = async () => {
     if (employeeToBlock) {
       try {
@@ -240,11 +463,51 @@ const List = () => {
           )
         );
 
+        setIsInactiveModalOpen(false);
+        setEmployeeToBlock(null);
+
+        // Add success notification
+        toast.success("Employee status updated to Inactive!");
+      } catch (error) {
+        console.error("Error updating employee status:", error);
+        toast.error("Failed to update employee status. Please try again.");
+      }
+    }
+  };
+
+  // Separate function specifically for blocking (setting status to "Block")
+  const confirmBlockEmployeeToBlocked = async () => {
+    if (employeeToBlock) {
+      try {
+        // Use the correct API endpoint for blocking
+        await axios.put(
+          `${import.meta.env.VITE_API_URL}/api/employee/block/${
+            employeeToBlock.id
+          }`
+        );
+
+        // Update employee status in state to "Block"
+        setEmployees((prevEmployees) =>
+          prevEmployees.map((emp) =>
+            emp.id === employeeToBlock.id ? { ...emp, status: "Block" } : emp
+          )
+        );
+
+        setFilteredEmployees((prevFiltered) =>
+          prevFiltered.map((emp) =>
+            emp.id === employeeToBlock.id ? { ...emp, status: "Block" } : emp
+          )
+        );
+
+        // Close modal and clear state
         setIsBlockModalOpen(false);
         setEmployeeToBlock(null);
+
+        // Add success notification
+        toast.success("Employee successfully blocked!");
       } catch (error) {
         console.error("Error blocking employee:", error);
-        alert("⚠ Failed to block employee. Please try again.");
+        toast.error("Failed to block employee. Please try again.");
       }
     }
   };
@@ -252,26 +515,66 @@ const List = () => {
   const confirmUnblockEmployee = async () => {
     if (employeeToBlock) {
       try {
-        await axios.put(
-          `${import.meta.env.VITE_API_URL}/api/employee/toggle-status/${
+        // Use appropriate API endpoint based on current status
+        const currentStatus = employeeToBlock.status;
+        let apiEndpoint;
+        let newStatus;
+
+        if (currentStatus === "Block") {
+          // Unblocking from Block status
+          apiEndpoint = `${import.meta.env.VITE_API_URL}/api/employee/unblock/${
             employeeToBlock.id
-          }`
+          }`;
+          newStatus = "Active";
+        } else if (currentStatus === "Inactive") {
+          // Activating from Inactive status
+          apiEndpoint = `${
+            import.meta.env.VITE_API_URL
+          }/api/employee/activate/${employeeToBlock.id}`;
+          newStatus = "Active";
+        } else {
+          // Fallback to toggle-status
+          apiEndpoint = `${
+            import.meta.env.VITE_API_URL
+          }/api/employee/toggle-status/${employeeToBlock.id}`;
+          newStatus = "Active";
+        }
+
+        await axios.put(apiEndpoint);
+
+        // Update employee status in state
+        setEmployees((prevEmployees) =>
+          prevEmployees.map((emp) =>
+            emp.id === employeeToBlock.id ? { ...emp, status: newStatus } : emp
+          )
         );
 
-        await fetchEmployees(); // Force refresh from the backend
+        setFilteredEmployees((prevFiltered) =>
+          prevFiltered.map((emp) =>
+            emp.id === employeeToBlock.id ? { ...emp, status: newStatus } : emp
+          )
+        );
 
         setIsUnBlockModalOpen(false);
         setEmployeeToBlock(null);
+
+        // Add success notification
+        toast.success(
+          `Employee successfully ${
+            currentStatus === "Block" ? "unblocked" : "activated"
+          }!`
+        );
       } catch (error) {
-        console.error("Error unblocking employee:", error);
-        alert("⚠ Failed to unblock employee. Please try again.");
+        console.error("Error updating employee status:", error);
+        toast.error("Failed to update employee status. Please try again.");
       }
     }
   };
 
   const handleResignationConfirm = () => {
+    // After confirming activation of resigned employee, proceed with unblock
     setIsActivateEmployeeOpen(false);
-    setIsUnBlockModalOpen(true); // Proceed with unblock modal
+    setIsUnBlockModalOpen(true);
   };
 
   const handleResignationCancel = () => {
@@ -279,24 +582,61 @@ const List = () => {
     setEmployeeToBlock(null);
   };
 
-  const handleToggleStatus = async (id, currentStatus, employmentStatus) => {
+  // Fixed handleToggleStatus function
+  const handleToggleStatus = async (
+    id,
+    currentStatus,
+    employmentStatus,
+    newStatus
+  ) => {
     const employee = employees.find((emp) => emp.id === id);
-
     if (!employee) return;
 
-    // Check if employee is resigned and trying to activate
+    console.log("Toggle Status Debug:", {
+      id,
+      currentStatus,
+      employmentStatus,
+      newStatus,
+    });
+
+    // If dropdown selection, use newStatus
+    if (newStatus) {
+      if (newStatus === "Block") {
+        setEmployeeToBlock(employee);
+        setIsBlockModalOpen(true);
+        return; // Make sure to return here
+      } else if (newStatus === "Inactive") {
+        setEmployeeToBlock(employee);
+        setIsInactiveModalOpen(true);
+        return; // Make sure to return here
+      } else if (newStatus === "Active") {
+        setEmployeeToBlock(employee);
+        setIsUnBlockModalOpen(true);
+        return; // Make sure to return here
+      }
+    }
+
+    // Handle main button clicks (not dropdown) - only when newStatus is null/undefined
     if (employmentStatus === "RESIGNED" && currentStatus === "Inactive") {
+      // Special case for resigned employees
       setEmployeeToBlock(employee);
       setIsActivateEmployeeOpen(true);
       return;
     }
 
-    if (currentStatus === "Inactive") {
+    // Regular status changes for main button clicks
+    if (currentStatus === "Block") {
+      // Block -> Active (Unblock)
       setEmployeeToBlock(employee);
       setIsUnBlockModalOpen(true);
-    } else {
+    } else if (currentStatus === "Inactive") {
+      // Inactive -> Active (Activate)
       setEmployeeToBlock(employee);
-      setIsBlockModalOpen(true);
+      setIsActivateEmployeeOpen(true);
+    } else if (currentStatus === "Active") {
+      // Active -> Inactive (default action)
+      setEmployeeToBlock(employee);
+      setIsInactiveModalOpen(true);
     }
   };
 
@@ -446,19 +786,19 @@ const List = () => {
     },
     {
       name: "Last Name",
-      selector: (row) => row.lastname,
+      selector: (row) => row.last_name,
       sortable: true,
       width: "100px",
     },
     {
       name: "First Name",
-      selector: (row) => row.firstname,
+      selector: (row) => row.first_name,
       sortable: true,
       width: "110px",
     },
     {
       name: "Middle Name",
-      selector: (row) => row.middlename,
+      selector: (row) => row.middle_name,
       sortable: true,
       width: "120px",
     },
@@ -470,7 +810,7 @@ const List = () => {
     },
     {
       name: "Position",
-      selector: (row) => row.positiontitle,
+      selector: (row) => row.position_title,
       sortable: true,
       width: "310px",
     },
@@ -484,7 +824,7 @@ const List = () => {
       name: "Department",
       selector: (row) => row.department,
       sortable: true,
-      width: "120px",
+      width: "200px",
     },
     {
       name: "Area/Section",
@@ -494,21 +834,21 @@ const List = () => {
     },
     {
       name: "Employment Rank",
-      selector: (row) => row.employmentrank,
+      selector: (row) => row.employment_rank,
       sortable: true,
       width: "230px",
     },
     {
       name: "Date of Hire",
-      selector: (row) => row.dateofhire,
+      selector: (row) => row.date_of_hire,
       sortable: true,
-      width: "120px",
+      width: "180px",
     },
     {
       name: "Date of Separation",
       selector: (row) => row.dateofseparation || "N/A",
       sortable: true,
-      width: "150px",
+      width: "180px",
     },
     {
       name: "Tenurity to Client",
@@ -517,14 +857,20 @@ const List = () => {
       width: "140px",
     },
     {
+      name: "Employment Classification",
+      selector: (row) => row.employment_rank,
+      sortable: true,
+      width: "200px",
+    },
+    {
       name: "Employment Status",
-      selector: (row) => row.employmentstatus,
+      selector: (row) => row.employment_status,
       sortable: true,
       width: "180px",
     },
     {
       name: "Civil Status",
-      selector: (row) => row.civilstatus,
+      selector: (row) => row.civil_status,
       sortable: true,
       width: "120px",
     },
@@ -538,7 +884,7 @@ const List = () => {
       name: "Birthdate",
       selector: (row) => row.birthdate,
       sortable: true,
-      width: "120px",
+      width: "180px",
       cell: (row) => {
         const approaching = isBirthdayApproaching(row.birthdate);
         return (
@@ -564,108 +910,59 @@ const List = () => {
     },
     {
       name: "Current Address",
-      selector: (row) => row.currentaddress || "N/A",
+      selector: (row) => row.current_address || "N/A",
       sortable: true,
       width: "400px",
     },
     {
       name: "Permanent Address",
-      selector: (row) => row.permanentaddress || "N/A",
+      selector: (row) => row.permanent_address || "N/A",
       sortable: true,
       width: "400px",
     },
     {
       name: "Contact No.",
-      selector: (row) => row.contactno,
+      selector: (row) => row.contact_no,
       sortable: true,
       width: "130px",
     },
     {
       name: "Email Address",
-      selector: (row) => row.emailaddress || "N/A",
+      selector: (row) => row.email_address || "N/A",
 
       sortable: true,
       width: "200px",
     },
     {
-      name: "Emergency Contact",
-      selector: (row) => row.emergencyContact,
+      name: "Government ID Number",
+      selector: (row) => row.government_id_number || "N/A",
+
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Emergency Contact Name",
+      selector: (row) => row.emergency_contact,
       sortable: true,
       width: "230px",
     },
     {
       name: <div style={{ textAlign: "center" }}>Emergency Contact No.</div>,
-      selector: (row) => row.emergencyContactNumber,
+      selector: (row) => row.emergency_contact_number,
       sortable: true,
       width: "180px",
     },
     {
       name: "Emergency Contact Address",
-      selector: (row) => row.emergencycontactAddress,
+      selector: (row) => row.emergency_contact_address,
       sortable: true,
       width: "400px",
-    },
-    {
-      name: "Health Card",
-      selector: (row) => row.healthcard,
-      sortable: true,
-      width: "150px",
-    },
-    {
-      name: "PRP",
-      selector: (row) => row.prp || "N/A",
-      sortable: true,
-      width: "150px",
-      cell: (row) => {
-        const dateStr = row.prp;
-        const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
-
-        return (
-          <div
-            style={{
-              backgroundColor: expiring ? "#ff5e58" : "transparent",
-              padding: "4px",
-              borderRadius: "4px",
-              color: expiring ? "#333" : "inherit",
-              fontWeight: expiring ? "bold" : "normal",
-            }}
-          >
-            {dateStr || "N/A"}{" "}
-            {expiring && <span style={{ color: "#b36b00" }}>⚠️</span>}
-          </div>
-        );
-      },
-    },
-    {
-      name: "Safety",
-      selector: (row) => row.safety || "N/A",
-      sortable: true,
-      width: "150px",
-      cell: (row) => {
-        const dateStr = row.safety;
-        const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
-
-        return (
-          <div
-            style={{
-              backgroundColor: expiring ? "#ff5e58" : "transparent",
-              padding: "4px",
-              borderRadius: "4px",
-              color: expiring ? "#333" : "inherit",
-              fontWeight: expiring ? "bold" : "normal",
-            }}
-          >
-            {dateStr || "N/A"}{" "}
-            {expiring && <span style={{ color: "#b36b00" }}>⚠️</span>}
-          </div>
-        );
-      },
     },
     {
       name: "Medical",
       selector: (row) => row.medical || "N/A",
       sortable: true,
-      width: "120px",
+      width: "180px",
       cell: (row) => {
         const medStr = row.medical;
         const expiringMed = isMedicalExpiringSoon(medStr);
@@ -687,9 +984,163 @@ const List = () => {
       },
     },
     {
+      name: "Health Card",
+      selector: (row) => row.health_card,
+      sortable: true,
+      width: "180px",
+    },
+    {
+      name: "GMP",
+      selector: (row) => row.gmp_date || "N/A",
+      sortable: true,
+      width: "180px",
+      cell: (row) => {
+        const dateStr = row.gmp_date;
+        const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
+
+        return (
+          <div
+            style={{
+              backgroundColor: expiring ? "#ff5e58" : "transparent",
+              padding: "4px",
+              borderRadius: "4px",
+              color: expiring ? "#333" : "inherit",
+              fontWeight: expiring ? "bold" : "normal",
+            }}
+          >
+            {dateStr || "N/A"}{" "}
+            {expiring && <span style={{ color: "#b36b00" }}>⚠️</span>}
+          </div>
+        );
+      },
+    },
+    {
+      name: "PRP",
+      selector: (row) => row.prp_date || "N/A",
+      sortable: true,
+      width: "180px",
+      cell: (row) => {
+        const dateStr = row.prp_date;
+        const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
+
+        return (
+          <div
+            style={{
+              backgroundColor: expiring ? "#ff5e58" : "transparent",
+              padding: "4px",
+              borderRadius: "4px",
+              color: expiring ? "#333" : "inherit",
+              fontWeight: expiring ? "bold" : "normal",
+            }}
+          >
+            {dateStr || "N/A"}{" "}
+            {expiring && <span style={{ color: "#b36b00" }}>⚠️</span>}
+          </div>
+        );
+      },
+    },
+    {
+      name: "Housekeeping",
+      selector: (row) => row.housekeeping_date || "N/A",
+      sortable: true,
+      width: "180px",
+      cell: (row) => {
+        const dateStr = row.housekeeping_date;
+        const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
+
+        return (
+          <div
+            style={{
+              backgroundColor: expiring ? "#ff5e58" : "transparent",
+              padding: "4px",
+              borderRadius: "4px",
+              color: expiring ? "#333" : "inherit",
+              fontWeight: expiring ? "bold" : "normal",
+            }}
+          >
+            {dateStr || "N/A"}{" "}
+            {expiring && <span style={{ color: "#b36b00" }}>⚠️</span>}
+          </div>
+        );
+      },
+    },
+    {
+      name: "Safety",
+      selector: (row) => row.safety_date || "N/A",
+      sortable: true,
+      width: "180px",
+      cell: (row) => {
+        const dateStr = row.safety_date;
+        const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
+
+        return (
+          <div
+            style={{
+              backgroundColor: expiring ? "#ff5e58" : "transparent",
+              padding: "4px",
+              borderRadius: "4px",
+              color: expiring ? "#333" : "inherit",
+              fontWeight: expiring ? "bold" : "normal",
+            }}
+          >
+            {dateStr || "N/A"}{" "}
+            {expiring && <span style={{ color: "#b36b00" }}>⚠️</span>}
+          </div>
+        );
+      },
+    },
+    {
+      name: "CRR",
+      selector: (row) => row.crr_date || "N/A",
+      sortable: true,
+      width: "180px",
+      cell: (row) => {
+        const dateStr = row.crr_date;
+        const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
+
+        return (
+          <div
+            style={{
+              backgroundColor: expiring ? "#ff5e58" : "transparent",
+              padding: "4px",
+              borderRadius: "4px",
+              color: expiring ? "#333" : "inherit",
+              fontWeight: expiring ? "bold" : "normal",
+            }}
+          >
+            {dateStr || "N/A"}{" "}
+            {expiring && <span style={{ color: "#b36b00" }}>⚠️</span>}
+          </div>
+        );
+      },
+    },
+    {
+      name: "SSS",
+      selector: (row) => row.sss,
+      sortable: true,
+      width: "150px",
+    },
+    {
+      name: "PhilHealth",
+      selector: (row) => row.philhealth,
+      sortable: true,
+      width: "150px",
+    },
+    {
+      name: "Pag-IBIG",
+      selector: (row) => row.pag_ibig,
+      sortable: true,
+      width: "150px",
+    },
+    {
+      name: "TIN Number",
+      selector: (row) => row.tin,
+      sortable: true,
+      width: "150px",
+    },
+    {
       name: "Options",
       cell: (row) => {
-        // Determine if employee is resigned and should be inactive
         const isResigned = row.employmentstatus === "RESIGNED";
         const effectiveStatus = isResigned ? "Inactive" : row.status;
 
@@ -697,42 +1148,46 @@ const List = () => {
           <div className="flex justify-center items-center sticky-actions">
             <button
               onClick={() => openModal(row.employeeId || row.id)}
-              className="w-14 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center"
+              className="w-10 h-8 border hover:bg-neutralSilver border-neutralDGray rounded-l flex items-center justify-center"
             >
-              <FaIdCard
-                title="View ID"
-                className=" text-neutralDGray w-5 h-5"
-              />
+              <FaIdCard title="View ID" className="text-neutralDGray w-4 h-4" />
             </button>
             <button
-              onClick={() => openEmailModal(row.employeeId || row.id)} // ← Pass the ID
-              className="w-14 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center"
+              onClick={() => openEmailModal(row.employeeId || row.id)}
+              className="w-10 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center"
             >
               <FaEnvelope
                 title="Message"
-                className="text-neutralDGray w-5 h-5"
+                className="text-neutralDGray w-4 h-4"
               />
             </button>
+
             <button
-              className={`w-14 h-8 border border-neutralDGray rounded-r flex items-center justify-center transition ${
-                effectiveStatus === "Active"
-                  ? "bg-green-500 text-white"
-                  : "bg-red-500 text-white"
-              }`}
-              onClick={() =>
-                handleToggleStatus(
-                  row.id,
-                  effectiveStatus,
-                  row.employmentstatus
-                )
-              }
+              onClick={() => openEmailModal(row.employeeId || row.id)}
+              className="w-10 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center"
             >
-              <FaMinusSquare title="Toggle Status" className="w-5 h-5" />
+              <FaEnvelope
+                title="Edit"
+                className="text-neutralDGray w-4 h-4"
+              />
             </button>
+            <DropdownStatusButton
+              row={row}
+              effectiveStatus={effectiveStatus}
+              handleToggleStatus={(id, status, empStatus, newStatus) => {
+                console.log("DropdownButton clicked:", {
+                  id,
+                  status,
+                  empStatus,
+                  newStatus,
+                });
+                handleToggleStatus(id, status, empStatus, newStatus);
+              }}
+            />
           </div>
         );
       },
-      width: "200px",
+      width: "150px",
       right: true,
       center: true,
     },
@@ -876,8 +1331,7 @@ const List = () => {
           { label: "Masterlist", href: "/admin-dashboard/employees" },
         ]}
       />
-      <div className="bg-white rounded-lg -mt-2 mb-2 w-[calc(100vw-310px)]  h-fit px-3 shadow-sm flex items-center justify-between">
-        {/* Button Group - Centered Vertically */}
+      <div className="bg-white p-2 -mt-3 rounded-lg shadow w-[calc(100vw-310px)] flex justify-between">
         <div className="inline-flex border border-neutralDGray rounded h-8">
           <button
             onClick={bulkMessage}
@@ -900,47 +1354,29 @@ const List = () => {
           </button>
         </div>
 
-        {/* Search & Sync Section - Aligned with Buttons */}
-        <div className="flex items-center gap-3">
-          <div className="flex rounded items-center">
+        <div className="flex flex-row gap-2 w-1/2 justify-end">
+          <div className="flex w-full">
             <input
               type="text"
               placeholder="Search Employee"
               onChange={handleFilter}
-              className="px-2 text-xs rounded h-8 py-0.5 border"
+              className="px-2 text-xs rounded w-full h-8 py-0.5 border"
             />
-            <FaSearch className="ml-[-20px] text-neutralDGray/60" />
+            <FaSearch className="-ml-6 mt-1.5 text-neutralDGray/60" />
           </div>
           <div
-            className="mb-3 px-2 w-fit mt-3 h-8 border flex justify-center items-center text-xs text-center text-neutralDGray/60 rounded hover:bg-gray-200 transition-all cursor-pointer"
-            onClick={() => setShowFilterModal(true)}
+            onClick={openFilterList}
+            className="px-2 text-xs text-neutralDGray rounded w-1/4 items-center hover:bg-neutralSilver flex justify-between h-8 py-0.5 border"
           >
-            <FaFilter className="mr-2" /> Filter Options
+            Filter Options{" "}
+            <span>
+              <FaFilter className="mr-2" />
+            </span>
           </div>
-
-          {modalOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
-                <h3 className="text-base mb-2 text-green-500">
-                  Sync Successful!
-                </h3>
-                <p className="text-justify text-sm">
-                  Employees have been successfully synchronized.
-                </p>
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => setModalOpen(false)}
-                    className="px-4 py-2 w-24 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
-      <div className=" bg-white w-[calc(100vw-310px)] p-3 rounded-lg shadow">
+
+      <div className=" bg-white w-[calc(100vw-310px)] p-2 mt-2 rounded-lg shadow">
         {/* Containing the table list */}
         <div className="w-full overflow-x-auto ">
           <div className="w-full flex">
@@ -983,6 +1419,10 @@ const List = () => {
                 <DataTable
                   customStyles={customStyles}
                   columns={columns}
+                  dense
+                  fixedHeader
+                  paginationPerPage={20}
+                  highlightOnHover={true}
                   data={filteredEmployees}
                   progressPending={loading}
                   conditionalRowStyles={conditionalRowStyles}
@@ -1000,6 +1440,12 @@ const List = () => {
                       />
                     </div>
                   }
+                  noDataComponent={
+                    <div className="text-gray-500 text-sm italic py-4 text-center">
+                      *** No data found ***
+                    </div>
+                  }
+                  fixedHeaderScrollHeight="530px"
                   pagination
                   expandableRows={true}
                   expandableRowExpanded={(row) => expandedRows[row.id] === true}
@@ -1207,20 +1653,23 @@ const List = () => {
         refreshEmployees={fetchEmployees} // Pass the function as a prop
       />
 
+      {/* Block Employee Modal - for Active/Inactive to Block transitions */}
       <BlockEmployeeModal
         isOpen={isBlockModalOpen}
         onClose={() => setIsBlockModalOpen(false)}
-        onConfirm={confirmBlockEmployee}
+        onConfirm={confirmBlockEmployeeToBlocked} // Use specific blocking function
         employee={employeeToBlock}
       />
 
+      {/* Activate Employee Modal - for resigned employees */}
       <ActivateEmployeeModal
         isOpen={isActivateEmployeeOpen}
-        onClose={handleResignationCancel}
+        onClose={() => setIsActivateEmployeeOpen(false)}
         onConfirm={handleResignationConfirm}
-        employee={employeeToBlock} // Corrected prop name
+        employee={employeeToBlock}
       />
 
+      {/* Unblock Employee Modal - for Block/Inactive to Active transitions */}
       <UnBlockEmployeeModal
         isOpen={isUnBlockModalOpen}
         onClose={() => setIsUnBlockModalOpen(false)}
@@ -1228,10 +1677,29 @@ const List = () => {
         employee={employeeToBlock}
       />
 
+      {/* Inactive Employee Modal - for Active to Inactive transitions */}
+      <InactiveEmployee
+        isOpen={isInactiveModalOpen}
+        onClose={() => setIsInactiveModalOpen(false)}
+        onConfirm={confirmBlockEmployee} // This will set status to "Inactive"
+        employee={employeeToBlock}
+      />
+
       <BulkEmployeeMessageModal
         show={showBulkMessage} // ✅ Correct prop name
         handleCloseBulk={handleCloseBulk} // ✅ Correct prop name
       />
+
+      {showFilterList && (
+        <FilterList
+          show={showFilterList}
+          handleCloseFilterList={handleCloseFilterList}
+          employees={originalEmployees} // Pass original data for generating filter options
+          onFilterChange={handleFilterChange} // Pass the filter change handler
+          onClearFilters={clearAllFilters} // Pass clear filters function
+          activeFilters={activeFilters} // Pass current active filters
+        />
+      )}
     </div>
   );
 };
