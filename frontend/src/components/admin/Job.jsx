@@ -405,7 +405,7 @@ const Job = () => {
   const fetchJobs = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/all`, getAuthHeaders());
+      const response = await axios.get(`${API_URL}/all`);
       if (response.data.success) {
         setJobs(response.data.jobs);
       } else {

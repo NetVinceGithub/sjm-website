@@ -523,17 +523,15 @@ const PayrollSummary = () => {
       // Create the request payload - send all data without validation
       const payrollRequest = {
         cutoffDate: cutoffDate.trim(),
+        payrollType: payrollType,  // ← add this line
         requestedBy: user?.name || 'Unknown User',
         selectedEmployees: selectedEmployees,
         employees: selectedEmployeesData,
-        attendanceData: attendanceData, // Send all attendance data
+        attendanceData: attendanceData,
         holidaysData: holidaysData,
         individualOvertime: individualOvertime,
         overtimeApprovals: overtimeApprovals,
-        payrollType: payrollType,
         maxOvertime: Number(maxOvertime || 0),
-        
-        // Additional metadata for debugging
         metadata: {
           totalEmployeesSelected: selectedEmployees.length,
           totalAttendanceRecords: attendanceData.length,
@@ -549,7 +547,9 @@ const PayrollSummary = () => {
         },
       };
 
+
       console.log("📤 Final payroll request payload:");
+      console.log("Payroll Type:", payrollRequest.payrollType);
       console.log("- Cutoff Date:", payrollRequest.cutoffDate);
       console.log("- Selected Employees:", payrollRequest.selectedEmployees.length);
       console.log("- Employee Data:", payrollRequest.employees.length);

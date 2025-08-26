@@ -352,18 +352,77 @@ const generatePayslipPDF = async (payslip) => {
 
 export const sendPayslips = async (req, res) => {
   console.log("🚀 Starting sendPayslips function...");
-
   try {
     const { payslips } = req.body;
-    console.log(
-      "📨 Received request to send payslips:",
-      payslips?.length || 0,
-      "payslips"
-    );
-    console.log(
-      "📨 Request body structure:",
-      JSON.stringify(req.body, null, 2)
-    );
+
+    console.log(payslips);
+
+    // Access the first payslip object
+    const firstPayslip = payslips[0];
+
+    // Check if the first payslip exists
+    if (!firstPayslip) {
+      console.log("❌ No payslip data found.");
+      return res.status(400).json({
+        success: false,
+        message: "No payslip data provided.",
+      });
+    }
+
+    console.log(firstPayslip.payrollType); // Access payrollType from the first payslip
+    console.log(firstPayslip.payroll_type); // Access payroll_type from the first payslip
+
+    // Change status to "Approved"
+    firstPayslip.status = "Approved";
+    console.log(`✅ Status updated to "Approved" for payslip:`, firstPayslip);
+
+    // Send immediate response
+    res.status(200).json({
+      success: true,
+      message: "Payslip status updated to 'Approved'. Processing will continue shortly.",
+    });
+
+    // Continue processing after 1 minute
+    setTimeout(async () => {
+      console.log("📅 Continuing with payslip processing...");
+      await processPayslips(req, res);
+    }, 60000); // 1 minute delay
+
+  } catch (mainError) {
+    console.error("💥 CRITICAL ERROR in sendPayslips:");
+    console.error("💥 Error message:", mainError.message);
+    console.error("💥 Error stack:", mainError.stack);
+    console.error("💥 Error details:", mainError);
+    return res.status(500).json({
+      success: false,
+      message: `Critical error: ${mainError.message}`,
+      error:
+        process.env.NODE_ENV === "development" ? mainError.stack : undefined,
+    });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const processPayslips = async (req, res) => {
+    const { payslips } = req.body;
+    console.log("📨 Received request to send payslips:", payslips?.length || 0, "payslips");
+    console.log("📨 Request body structure:", JSON.stringify(req.body, null, 2));
 
     // Enhanced validation with detailed logging
     if (!payslips) {
@@ -389,6 +448,7 @@ export const sendPayslips = async (req, res) => {
     }
 
     console.log("✅ Payslips validation passed");
+
 
     // Check if required dependencies are available
     console.log("🔍 Checking dependencies...");
@@ -835,20 +895,7 @@ export const sendPayslips = async (req, res) => {
 
     console.log("📤 Sending response:", response);
     return res.status(200).json(response);
-  } catch (mainError) {
-    console.error("💥 CRITICAL ERROR in sendPayslips:");
-    console.error("💥 Error message:", mainError.message);
-    console.error("💥 Error stack:", mainError.stack);
-    console.error("💥 Error details:", mainError);
-
-    return res.status(500).json({
-      success: false,
-      message: `Critical error: ${mainError.message}`,
-      error:
-        process.env.NODE_ENV === "development" ? mainError.stack : undefined,
-    });
-  }
-};
+  } ;
 
 // 🔹 Add Payslip
 export const addPayslip = async (req, res) => {
@@ -980,8 +1027,17 @@ export const getAvailableBatches = async (req, res) => {
             "cutoffDate",
             "status",
             "netPay",
+            "gross_pay",
             "requested_by",
+            "shiftHours",
+            "employmentRank",
+            "regularDays",
+            "sss",
+            "hdmf",
+            "phic",
+            "ecode",
             "date",
+            "payroll_type",
           ],
           order: [["name", "ASC"]],
           raw: true,
@@ -1514,6 +1570,7 @@ const determineCutoffPeriod = (cutoffDate) => {
 export const generatePayroll = async (req, res) => {
   const {
     cutoffDate,
+    payrollType,
     selectedEmployees = [],
     selectedSchedules = [],
     employees = [],
@@ -1527,6 +1584,7 @@ export const generatePayroll = async (req, res) => {
 
   console.log("🔍 Incoming request:", {
     cutoffDate,
+    payrollType,
     selectedEmployees,
     selectedSchedules,
     employeesCount: employees.length,
@@ -2088,6 +2146,7 @@ export const generatePayroll = async (req, res) => {
           department: employee.department || "N/A",
           schedule: employee.schedule || "N/A",
           cutoffDate,
+          payrollType,
           dailyrate: parseFloat(rates.dailyRate.toFixed(2)),
           basicPay: parseFloat(basicPay.toFixed(2)),
           noOfDays: parseFloat(finalDaysPresent.toFixed(2)) || 0,

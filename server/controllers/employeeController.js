@@ -705,8 +705,11 @@ export const getEmployee = async (req, res) => {
 export const getPayrollInformations = async (req, res) => {
   try {
     const payrollInformations = await PayrollInformation.findAll();
+    // Don't use raw: true - this will show all fields including NULL ones
+    
     res.status(200).json({ success: true, payrollInformations });
   } catch (error) {
+    console.error('Error fetching payroll information:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -963,10 +966,13 @@ export const getEmployeeStatus = async (req, res) => {
   }
 };
 
+// Enhanced toggleEmployeeStatus controller to handle different status transitions
 export const toggleEmployeeStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(`Received request to toggle status for Employee ID: ${id}`);
+    const route = req.route.path; // Get the current route path
+    
+    console.log(`Received request to change status for Employee ID: ${id}, Route: ${route}`);
 
     const employee = await Employee.findByPk(id);
     if (!employee) {
@@ -974,16 +980,117 @@ export const toggleEmployeeStatus = async (req, res) => {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    const newStatus = employee.status === "Active" ? "Inactive" : "Active";
+    let newStatus;
+    
+    // Determine new status based on the route
+    switch (route) {
+      case "/activate/:id":
+        newStatus = "Active";
+        break;
+      case "/block/:id":
+        newStatus = "Block";
+        break;
+      case "/unblock/:id":
+        newStatus = "Active";
+        break;
+      case "/toggle-status/:id":
+        // Original toggle logic
+        newStatus = employee.status === "Active" ? "Inactive" : "Active";
+        break;
+      default:
+        // Fallback to original toggle logic
+        newStatus = employee.status === "Active" ? "Inactive" : "Active";
+        break;
+    }
+
     await employee.update({ status: newStatus });
 
-    console.log(`Employee ${id} status changed to ${newStatus}`);
-    res.status(200).json({ success: true, newStatus });
+    console.log(`Employee ${id} status changed from ${employee.status} to ${newStatus}`);
+    res.status(200).json({ 
+      success: true, 
+      newStatus,
+      previousStatus: employee.status,
+      message: `Employee status updated to ${newStatus}`
+    });
   } catch (error) {
     console.error("Error updating employee status:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+// Alternative approach: Separate controllers for each action
+export const activateEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`Received request to activate Employee ID: ${id}`);
+
+    const employee = await Employee.findByPk(id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    await employee.update({ status: "Active" });
+
+    console.log(`Employee ${id} status changed to Active`);
+    res.status(200).json({ 
+      success: true, 
+      newStatus: "Active",
+      message: "Employee activated successfully"
+    });
+  } catch (error) {
+    console.error("Error activating employee:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const blockEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`Received request to block Employee ID: ${id}`);
+
+    const employee = await Employee.findByPk(id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    await employee.update({ status: "Block" });
+
+    console.log(`Employee ${id} status changed to Block`);
+    res.status(200).json({ 
+      success: true, 
+      newStatus: "Block",
+      message: "Employee blocked successfully"
+    });
+  } catch (error) {
+    console.error("Error blocking employee:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const unblockEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`Received request to unblock Employee ID: ${id}`);
+
+    const employee = await Employee.findByPk(id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    await employee.update({ status: "Active" });
+
+    console.log(`Employee ${id} status changed to Active (unblocked)`);
+    res.status(200).json({ 
+      success: true, 
+      newStatus: "Active",
+      message: "Employee unblocked successfully"
+    });
+  } catch (error) {
+    console.error("Error unblocking employee:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 
 
 export const rejectPayrollChange = async (req, res) => {
@@ -1913,13 +2020,14 @@ export const bulkRequestPayrollChange = async (req, res) => {
 
   try {
     // Validate required fields
-    const validationError = validateBulkRequestData(req.body);
+  const validationError = validateBulkRequestData(req.body);
     if (validationError) {
       return res.status(400).json({
         success: false,
         message: validationError
       });
     }
+
 
     // Find the requesting user
     const user = await User.findOne({ where: { name: requested_by } });
@@ -1939,12 +2047,13 @@ export const bulkRequestPayrollChange = async (req, res) => {
       }
     });
 
-    if (payrollInfos.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No payroll information found for selected employees"
-      });
-    }
+  if (payrollInfos.length === 0) {
+    return res.status(404).json({
+      success: false,
+      message: "No payroll information found for selected employees"
+    });
+  }
+
 
     // Check if all requested employees were found (optional logging)
     const foundEmployeeIds = payrollInfos.map(info => info.employee_id);
@@ -2914,3 +3023,7 @@ export const createEmployee = async (req, res) => {
     });
   }
 };
+
+
+
+

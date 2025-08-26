@@ -131,48 +131,48 @@ const ClientList = () => {
     }
   };
 
-  const syncClients = async () => {
-    try {
-      setSyncing(true);
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/clients/sync`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+  // const syncClients = async () => {
+  //   try {
+  //     setSyncing(true);
+  //     const response = await fetch(
+  //       `${import.meta.env.VITE_API_URL}/api/clients/sync`,
+  //       {
+  //         method: "POST",
+  //         headers: { "Content-Type": "application/json" },
+  //       }
+  //     );
 
-      const data = await response.json();
+  //     const data = await response.json();
 
-      if (data.success) {
-        await fetchClients();
-        alert(`Successfully synced clients: ${data.message}`);
-      } else {
-        alert(`Sync failed: ${data.message}`);
-      }
-    } catch (error) {
-      console.error("Error syncing clients:", error);
-      alert("Error syncing clients. Please try again.");
-    } finally {
-      setSyncing(false);
-    }
-  };
+  //     if (data.success) {
+  //       await fetchClients();
+  //       alert(`Successfully synced clients: ${data.message}`);
+  //     } else {
+  //       alert(`Sync failed: ${data.message}`);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error syncing clients:", error);
+  //     alert("Error syncing clients. Please try again.");
+  //   } finally {
+  //     setSyncing(false);
+  //   }
+  // };
 
-  const updateClientsWithEmployeeCount = (clientsList, employeesList) => {
-    return clientsList.map((client) => {
-      const count = employeesList.filter(
-        (emp) =>
-          emp.project &&
-          client.name &&
-          emp.project.toLowerCase() === client.name.toLowerCase()
-      ).length;
+  // const updateClientsWithEmployeeCount = (clientsList, employeesList) => {
+  //   return clientsList.map((client) => {
+  //     const count = employeesList.filter(
+  //       (emp) =>
+  //         emp.project &&
+  //         client.name &&
+  //         emp.project.toLowerCase() === client.name.toLowerCase()
+  //     ).length;
 
-      return {
-        ...client,
-        deployed: count.toString(),
-      };
-    });
-  };
+  //     return {
+  //       ...client,
+  //       deployed: count.toString(),
+  //     };
+  //   });
+  // };
 
   const handleSearch = (e) => {
     const term = e.target.value.toLowerCase();
@@ -288,7 +288,7 @@ const ClientList = () => {
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-start gap-3">
                       <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium text-base flex-shrink-0">
-                        {client.avatar}
+                        {client.name.substring(0, 2).toUpperCase()}
                       </div>
                       <div>
                         <h3 className="text-sm font-medium text-gray-800 leading-tight">
@@ -318,7 +318,7 @@ const ClientList = () => {
                     <div className="flex items-center text-sm text-gray-600">
                       <MapPin className="w-3 h-3 mr-2 flex-shrink-0" />
                       <span className="truncate text-xs">
-                        {client.location}
+                        {client.businessAddress}
                       </span>
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
@@ -333,11 +333,11 @@ const ClientList = () => {
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Mail className="w-3 h-3 mr-2 flex-shrink-0" />
-                      <span className="truncate text-xs">{client.email}</span>
+                      <span className="truncate text-xs">{client.emailAddress}</span>
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <FaRegWindowMaximize className="w-3 h-3 mr-2 flex-shrink-0" />
-                      <span className="truncate text-xs">{client.tin}</span>
+                      <span className="truncate text-xs">{client.tinNumber}</span>
                     </div>
                   </div>
 
@@ -345,15 +345,15 @@ const ClientList = () => {
                     <Calendar className="w-3 h-3 mr-2" />
                     <span>
                       Joined{" "}
-                      {client.joinDate &&
-                        client.joinDate !== "No date provided" &&
-                        new Date(client.joinDate).toLocaleDateString("en-US", {
+                      {client.joinedDate &&
+                        client.joinedDate !== "No date provided" &&
+                        new Date(client.joinedDate).toLocaleDateString("en-US", {
                           year: "numeric",
                           month: "long",
                           day: "numeric",
                         })}
-                      {(client.joinDate === "No date provided" ||
-                        !client.joinDate) &&
+                      {(client.joinedDate === "No date provided" ||
+                        !client.joinedDate) &&
                         "N/A"}
                     </span>
                   </div>

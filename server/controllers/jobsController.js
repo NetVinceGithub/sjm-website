@@ -31,6 +31,7 @@ export const addJobs = async (req, res) => {
 export const getAllJobs = async (req, res) => {
   try {
     const jobs = await Jobs.findAll(); // Fetch all jobs from the database
+    console.log("Get all jobs functionsa jobs controller");
     return res.status(200).json({ success: true, jobs });
   } catch (error) {
     console.error('Error fetching jobs:', error);

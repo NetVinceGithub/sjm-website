@@ -1037,7 +1037,7 @@ const List = () => {
     },
     {
       name: "Employment Status",
-      selector: (row) => row.employment_status,
+      selector: (row) => row.status,
       sortable: true,
       width: "180px",
     },
@@ -1115,7 +1115,7 @@ const List = () => {
     },
     {
       name: "Emergency Contact Name",
-      selector: (row) => row.emergency_contact,
+      selector: (row) => row.emergency_contact_name,
       sortable: true,
       width: "230px",
     },
@@ -1158,7 +1158,7 @@ const List = () => {
     },
     {
       name: "Health Card",
-      selector: (row) => row.health_card,
+      selector: (row) => row.health_card_date,
       sortable: true,
       width: "180px",
     },
@@ -1295,7 +1295,7 @@ const List = () => {
     },
     {
       name: "PhilHealth",
-      selector: (row) => row.philhealth,
+      selector: (row) => row.phil_health,
       sortable: true,
       width: "150px",
     },

@@ -23,6 +23,7 @@ const Payslip = db.define(
     position: DataTypes.STRING,
     schedule: DataTypes.STRING,
     cutoffDate: DataTypes.STRING,
+    payrollType: DataTypes.STRING, 
     batchId: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -104,7 +105,7 @@ const Payslip = db.define(
     requestedBy: DataTypes.STRING(25),
     date: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     status: {
-      type: DataTypes.ENUM("draft", "pending", "released"),
+      type: DataTypes.ENUM("approved", "pending", "released", "draft"),
       defaultValue: "draft",
     },
   },

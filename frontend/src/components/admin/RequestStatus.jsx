@@ -58,7 +58,6 @@ const RequestStatus = () => {
       try {
         const response = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/payslip`,
-          getAuthHeaders()
         );
 
         console.log("Data sa useEffect", response.data);
@@ -120,22 +119,27 @@ const RequestStatus = () => {
   const columns = [
     {
       name: "Request ID",
-      selector: (row) => row.batch_id,
+      selector: (row) => row.batchId,
       sortable: true,
     },
     {
       name: "Request Type",
-      selector: (row) => row.generated_at,
+      selector: (row) => row.payrollType,
       sortable: true,
     },
     {
       name: "Date Created",
-      selector: (row) => row.generated_at,
+      selector: (row) => row.date,
+      sortable: true,
+    },
+    {
+      name: "Cut off Date",
+      selector: (row) => row.cutoffDate,
       sortable: true,
     },
     {
       name: "Requestor",
-      selector: (row) => row.generated_by,
+      selector: (row) => row.requestedBy,
       sortable: true,
     },
     {
@@ -143,10 +147,10 @@ const RequestStatus = () => {
       selector: (row) => row.status,
       sortable: true,
     },
-    {
-      name: "Action Taken By",
-      sortable: true,
-    },
+    // {
+    //   name: "Action Taken By",
+    //   sortable: true,
+    // },
   ];
 
   return (

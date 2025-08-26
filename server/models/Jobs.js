@@ -31,11 +31,14 @@ const Jobs = sequelize.define('Jobs', {
   },
   applicationLink: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true
   }
 }, {
   tableName: 'jobs',
-  timestamps: true // Automatically manages createdAt and updatedAt fields
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
+
 });
 
 export default Jobs;

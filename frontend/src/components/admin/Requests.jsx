@@ -157,7 +157,7 @@ const Requests = () => {
       try {
         setLoadingChanges(true);
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/payroll-change-requests`,
+          `${import.meta.env.VITE_API_URL}/api/employee/payroll-change-requests`,
           getAuthHeaders()
         );
         console.log("Change requests response:", response.data);
@@ -1776,7 +1776,32 @@ const Requests = () => {
                       <p className="text-sm italic mb-1">
                         Employees in Payroll:
                       </p>
-                      <ol className="list-decimal list-inside text-xs">
+                        <ol className="list-decimal list-inside text-xs">
+                          {selectedPayrollRequest.payslips.map((payslip, index) => (
+                            <li key={index} className="leading-tight mb-2">
+                              <div>
+                                <span className="font-medium">{payslip.name} →</span>{" "}
+                                {/* ₱{" "}
+                                {parseFloat(payslip.netPay).toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                })} */}
+                              </div>
+                              <div className="text-gray-500 text-[10px] ml-4">
+                                <div>Employee ID: {payslip.ecode}</div>
+                                <div>Net Pay: ₱{parseFloat(payslip.netPay).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                                <div>Gross Pay: ₱{parseFloat(payslip.gross_pay).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                                <div>SSS: ₱{parseFloat(payslip.sss).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                                <div>PhilHealth: ₱{parseFloat(payslip.phic).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                                <div>HDMF: ₱{parseFloat(payslip.hdmf).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                                <div>Regular Days: {payslip.regularDays}</div>
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+                      {/* 
+                      original design */}
+
+                      {/* <ol className="list-decimal list-inside text-xs">
                         {selectedPayrollRequest.payslips.map(
                           (payslip, index) => (
                             <li key={index} className="leading-tight mb-1">
@@ -1793,7 +1818,11 @@ const Requests = () => {
                             </li>
                           )
                         )}
-                      </ol>
+                      </ol> */}
+
+
+
+
                     </div>
                   </div>
                   {selectedPayrollRequest.payslips.map((payslip, index) => (
