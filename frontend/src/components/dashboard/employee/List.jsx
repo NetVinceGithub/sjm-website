@@ -6,7 +6,13 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import defaultProfile from "../../../../src/assets/default-profile.png"; // Adjust path as needed
 // import { EmployeeButtons } from "../../../utils/EmployeeHelper";
-import { FaSearch, FaSyncAlt, FaIdCard, FaPaperclip } from "react-icons/fa";
+import {
+  FaSearch,
+  FaSyncAlt,
+  FaIdCard,
+  FaEdit,
+  FaPaperclip,
+} from "react-icons/fa";
 import EmployeeIDCard from "../EmployeeIDCard";
 import Breadcrumb from "../dashboard/Breadcrumb";
 import DropdownStatusButton from "./DropdownStatusButton";
@@ -27,6 +33,7 @@ import { toast } from "react-toastify";
 import { useAuth } from "../../../context/authContext";
 import { ThreeDots } from "react-loader-spinner";
 import FilterList from "../modals/FilterList";
+import { useNavigate } from "react-router-dom";
 
 const List = () => {
   const { user } = useAuth();
@@ -57,14 +64,15 @@ const List = () => {
   const [expandedRows, setExpandedRows] = useState({});
   const [activeFilters, setActiveFilters] = useState({});
   const [originalEmployees, setOriginalEmployees] = useState([]);
+  const navigate = useNavigate();
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token");
     return {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     };
   };
 
@@ -120,15 +128,15 @@ const List = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/employee`, 
+        `${import.meta.env.VITE_API_URL}/api/employee`
       );
-      
+
       console.log("API Response:", response.data); // Debug log
-      
+
       if (response.data.success) {
         // Fix: Access employees from response.data.employees
         const employees = response.data.employees; // Changed from response.employees
-        
+
         // Apply employment status classification
         const classifiedEmployees = classifyEmploymentStatus(employees);
 
@@ -185,14 +193,24 @@ const List = () => {
     // Apply employment status filter
     if (filters.employmentStatus && filters.employmentStatus.length > 0) {
       filtered = filtered.filter((emp) =>
-        filters.employmentStatus.includes(emp.employmentstatus)
+        filters.employmentStatus.includes(emp.employment_status)
+      );
+    }
+
+    // Apply employment classification filter
+    if (
+      filters.employmentClassification &&
+      filters.employmentClassification.length > 0
+    ) {
+      filtered = filtered.filter((emp) =>
+        filters.employmentClassification.includes(emp.employment_classification)
       );
     }
 
     // Apply position filter
     if (filters.position && filters.position.length > 0) {
       filtered = filtered.filter((emp) =>
-        filters.position.includes(emp.positiontitle)
+        filters.position.includes(emp.position_title)
       );
     }
 
@@ -206,13 +224,13 @@ const List = () => {
     // Apply employment rank filter
     if (filters.employmentRank && filters.employmentRank.length > 0) {
       filtered = filtered.filter((emp) =>
-        filters.employmentRank.includes(emp.employmentrank)
+        filters.employmentRank.includes(emp.employment_rank)
       );
     }
 
     if (filters.civilStatus && filters.civilStatus.length > 0) {
       filtered = filtered.filter((emp) =>
-        filters.civilStatus.includes(emp.civilstatus)
+        filters.civilStatus.includes(emp.civil_status)
       );
     }
 
@@ -639,43 +657,199 @@ const List = () => {
     }
   };
 
+  // requires: import * as XLSX from 'xlsx';
   const exportToExcel = () => {
-    if (filteredEmployees.length === 0) {
+    if (!filteredEmployees || filteredEmployees.length === 0) {
       alert("⚠ No data available to export.");
       return;
     }
 
-    // Define columns to exclude
-    const excludedColumns = [
-      "id",
-      "sss",
-      "tin",
-      "philhealth",
-      "pagibig",
-      "contact_name",
-      "contact_number",
-      "contact_address",
-      "profileImage",
-      "esignature",
-      "status",
-    ]; // Add column keys you want to exclude
+    const headers = [
+      "HC",
+      "ECODE",
+      "LASTNAME",
+      "FIRSTNAME",
+      "MIDDLENAME",
+      "FULLNAME",
+      "POSITION",
+      "PROJECT",
+      "DEPARTMENT",
+      "AREA/SECTION",
+      "EMPLOYMENT RANK",
+      "DATE OF HIRE",
+      "DATE OF SEPARATION",
+      "TENURITY TO CLIENT (IN MONTHS)",
+      "EMPLOYMENT CLASSIFICATION",
+      "EMPLOYMENT STATUS",
+      "CIVIL STATUS",
+      "SEX",
+      "BIRTHDATE",
+      "AGE",
+      "CURRENT ADDRESS",
+      "PERMANENT ADDRESS",
+      "CONTACT NUMBER",
+      "EMAIL ADDRESS",
+      "GOVERNMENT ID NUMBER",
+      "EMERGENCY CONTACT NAME",
+      "EMERGENCY CONTACT NUMBER",
+      "EMERGENCY CONTACT ADDRESS",
+      "MEDICAL",
+      "HEALTHCARD",
+      "GMP",
+      "PRP",
+      "HOUSEKEEPING",
+      "SAFETY",
+      "CRR",
+      "SSS",
+      "PHILHEALTH",
+      "PAGIBIG",
+      "TIN NUMBER",
+    ];
 
-    // Filter out the excluded columns
-    const modifiedData = filteredEmployees.map((employee) => {
-      const filteredEmployee = { ...employee };
-      excludedColumns.forEach((col) => delete filteredEmployee[col]); // Remove unwanted columns
-      return filteredEmployee;
-    });
+    // Map header label -> possible keys in your employee object (in order of preference)
+    const keyMap = {
+      HC: ["hc"],
+      ECODE: ["ecode"],
+      LASTNAME: ["last_name", "lastName"],
+      FIRSTNAME: ["first_name", "firstName"],
+      MIDDLENAME: ["middle_name", "middleName"],
+      FULLNAME: ["name", "complete_name", "completeName"],
+      POSITION: ["position_title", "positiontitle", "designation", "position"],
+      PROJECT: ["project"],
+      DEPARTMENT: ["department"],
+      "AREA/SECTION": ["area_section", "area/section", "areaSection"],
+      "EMPLOYMENT RANK": ["employment_rank", "employmentrank"],
+      "DATE OF HIRE": ["date_of_hire", "dateOfHire"],
+      "DATE OF SEPARATION": ["date_of_separation", "dateOfSeparation"],
+      "TENURITY TO CLIENT (IN MONTHS)": [
+        "tenuritytoclient(inmonths)",
+        "tenuritytoclient",
+        "tenurity_to_client",
+        "tenure_months",
+        "tenureMonths",
+      ],
+      "EMPLOYMENT CLASSIFICATION": ["employment_classification"],
+      "EMPLOYMENT STATUS": ["employment_status", "status"],
+      "CIVIL STATUS": ["civil_status"],
+      SEX: ["gender", "sex"],
+      BIRTHDATE: ["birthdate"],
+      AGE: ["age"],
+      "CURRENT ADDRESS": ["current_address"],
+      "PERMANENT ADDRESS": ["permanent_address"],
+      "CONTACT NUMBER": ["contact_no", "contactNumber"],
+      "EMAIL ADDRESS": ["email_address", "email"],
+      "GOVERNMENT ID NUMBER": ["government_id_number", "governmentIdNumber"],
+      "EMERGENCY CONTACT NAME": [
+        "emergency_contact_name",
+        "emergencyContactName",
+        "emergency_contact",
+      ],
+      "EMERGENCY CONTACT NUMBER": [
+        "emergency_contact_number",
+        "emergencyContactNumber",
+      ],
+      "EMERGENCY CONTACT ADDRESS": [
+        "emergency_contact_address",
+        "emergencyContactAddress",
+      ],
+      MEDICAL: ["medical", "medical_date"],
+      HEALTHCARD: ["health_card_date", "health_card", "healthcard"],
+      GMP: ["gmp_date"],
+      PRP: ["prp_date"],
+      HOUSEKEEPING: ["housekeeping_date"],
+      SAFETY: ["safety_date"],
+      CRR: ["crr_date"],
+      SSS: ["sss"],
+      PHILHEALTH: ["phil_health", "philhealth"],
+      PAGIBIG: ["pag_ibig", "pagibig"],
+      "TIN NUMBER": ["tin", "tin_number"],
+    };
 
-    // Convert the modified data to a worksheet
-    const ws = XLSX.utils.json_to_sheet(modifiedData);
+    // Helper: compute tenure months from dates (if no precomputed field)
+    const computeTenureMonths = (emp) => {
+      const hireStr = emp.date_of_hire || emp.dateOfHire || emp.dateofhire;
+      if (!hireStr) return "";
+      const hire = new Date(hireStr);
+      if (isNaN(hire)) return "";
+      const endStr =
+        emp.date_of_separation ||
+        emp.dateOfSeparation ||
+        emp.dateofseparation ||
+        null;
+      const end = endStr ? new Date(endStr) : new Date();
+      if (isNaN(end)) return "";
+      let months = (end.getFullYear() - hire.getFullYear()) * 12;
+      months += end.getMonth() - hire.getMonth();
+      // adjust if day-of-month smaller
+      if (end.getDate() < hire.getDate()) months -= 1;
+      return months >= 0 ? months : 0;
+    };
 
-    // Create a new workbook and append the worksheet
+    // Get first available value for a header
+    const getValueForHeader = (emp, header) => {
+      if (header === "TENURITY TO CLIENT (IN MONTHS)") {
+        // try precomputed keys first
+        const keys = keyMap[header];
+        for (const k of keys) {
+          if (emp[k] !== undefined && emp[k] !== null && emp[k] !== "") {
+            return emp[k];
+          }
+        }
+        // otherwise compute
+        return computeTenureMonths(emp);
+      }
+
+      const keys = keyMap[header] || [];
+      for (const k of keys) {
+        if (emp[k] !== undefined && emp[k] !== null && emp[k] !== "") {
+          return emp[k];
+        }
+      }
+
+      // fallback: try to find any case-insensitive match (defensive)
+      const lowerKeys = Object.keys(emp).reduce((acc, cur) => {
+        acc[cur.toLowerCase()] = emp[cur];
+        return acc;
+      }, {});
+      const headerKey = header.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+      // try direct normalized match
+      if (lowerKeys[headerKey] !== undefined) return lowerKeys[headerKey];
+
+      return "";
+    };
+
+    // Build rows in the order of headers
+    const rows = filteredEmployees.map((emp) =>
+      headers.map((h) => {
+        const val = getValueForHeader(emp, h);
+        // Format dates as yyyy-mm-dd (if it's a valid date string)
+        if (typeof val === "string" && /\d{4}-\d{2}-\d{2}/.test(val))
+          return val;
+        // For Date objects
+        if (val instanceof Date && !isNaN(val)) {
+          return val.toISOString().slice(0, 10);
+        }
+        // Keep numbers as-is, else stringify
+        return val === null || val === undefined ? "" : val;
+      })
+    );
+
+    const dataWithHeaders = [headers, ...rows];
+
+    // Create worksheet
+    const ws = XLSX.utils.aoa_to_sheet(dataWithHeaders);
+
+    // Optional: auto column widths (basic estimation)
+    ws["!cols"] = headers.map((h) => ({
+      wch: Math.max(10, Math.min(30, h.length + 5)),
+    }));
+
+    // Create workbook and append
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Employees");
 
-    // Write the file and trigger download
-    XLSX.writeFile(wb, "Employee_List.xlsx");
+    // Trigger download
+    XLSX.writeFile(wb, "Employee_Masterlist.xlsx");
   };
 
   const exportToPDF = () => {
@@ -857,7 +1031,7 @@ const List = () => {
     },
     {
       name: "Employment Classification",
-      selector: (row) => row.employment_rank,
+      selector: (row) => row.employment_classification,
       sortable: true,
       width: "200px",
     },
@@ -1151,7 +1325,7 @@ const List = () => {
             >
               <FaIdCard title="View ID" className="text-neutralDGray w-4 h-4" />
             </button>
-            <button
+            {/* <button
               onClick={() => openEmailModal(row.employeeId || row.id)}
               className="w-10 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center"
             >
@@ -1159,16 +1333,17 @@ const List = () => {
                 title="Message"
                 className="text-neutralDGray w-4 h-4"
               />
-            </button>
+            </button> */}
 
             <button
-              onClick={() => openEmailModal(row.employeeId || row.id)}
+              onClick={() =>
+                navigate(
+                  `/admin-dashboard/employees/edit/${row.employeeId || row.id}`
+                )
+              }
               className="w-10 h-8 border hover:bg-neutralSilver border-neutralDGray flex items-center justify-center"
             >
-              <FaEnvelope
-                title="Edit"
-                className="text-neutralDGray w-4 h-4"
-              />
+              <FaEdit title="Edit" className="text-neutralDGray w-4 h-4" />
             </button>
             <DropdownStatusButton
               row={row}

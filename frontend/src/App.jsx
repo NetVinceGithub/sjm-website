@@ -154,6 +154,8 @@ function AppContent() {
           <Route path="invoice-list" element={<InvoiceList />} />
           <Route path="client-list" element={<ClientList />} />
           <Route path="client/add-client" element={<AddClient />} />
+          <Route path="client/edit/:id" element={<AddClient />} />
+
           <Route path="projects" element={<Projects />} />
           <Route path="add-project" element={<AddProject />} />
           <Route path="edit-project/:id" element={<EditProject />} />

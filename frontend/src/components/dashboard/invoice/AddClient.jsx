@@ -9,16 +9,21 @@ import {
   FileText,
 } from "lucide-react";
 import Breadcrumb from "../dashboard/Breadcrumb";
-import { href } from "react-router-dom";
+import { href, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/authContext";
+
 export default function AddClientForm() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const isEditMode = Boolean(id);
+
   function getNextClientCode(lastCode = "MCL00000") {
     const nextNumber = parseInt(lastCode.slice(3)) + 1;
     return "MCL" + String(nextNumber).padStart(5, "0");
   }
 
   const [formData, setFormData] = useState({
-    clientCode: getNextClientCode(),
+    clientCode: isEditMode ? "" : getNextClientCode(),
     clientName: "",
     address: "",
     contactPerson: "",
@@ -32,8 +37,9 @@ export default function AddClientForm() {
   });
 
   const [errors, setErrors] = useState({});
+  const [isLoadingClient, setIsLoadingClient] = useState(isEditMode);
 
-const { user } = useAuth();
+  const { user } = useAuth();
 
   // Create refs for all input fields in order
   const inputRefs = {
@@ -53,8 +59,8 @@ const { user } = useAuth();
   const [isLoadingClientCode, setIsLoadingClientCode] = useState(false);
 
   const getAuthToken = () => {
-    return localStorage.getItem('token');
-  }
+    return localStorage.getItem("token");
+  };
 
   // Define the order of fields for navigation
   const fieldOrder = [
@@ -147,6 +153,50 @@ const { user } = useAuth();
     return newErrors;
   };
 
+  // Fetch client data for edit mode
+  const fetchClientData = async (id) => {
+    setIsLoadingClient(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/clients/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        const clientData = result.data;
+
+        setFormData({
+          clientCode: clientData.client_code || "",
+          clientName: clientData.client_name || "",
+          address: clientData.address || "",
+          contactPerson: clientData.contact_person || "",
+          email: clientData.email || "",
+          phone: clientData.phone || "",
+          joinDate: clientData.join_date || "",
+          expiryDate: clientData.expiry_date || "",
+          billingFrequency: clientData.billing_frequency || "",
+          remarks: clientData.remarks || "",
+          tin: clientData.tin || "",
+        });
+      } else {
+        alert("Failed to load client data. Please try again.");
+        navigate(`/admin-dashboard/client/edit/${id}`);
+      }
+    } catch (error) {
+      console.error("Error fetching client data:", error);
+      alert("Network error. Please check your connection and try again.");
+      navigate(`/admin-dashboard/client/edit/${id}`);
+    } finally {
+      setIsLoadingClient(false);
+    }
+  };
+
   const handleSubmit = async () => {
     const newErrors = validateForm();
 
@@ -166,60 +216,76 @@ const { user } = useAuth();
           remarks: formData.remarks || null,
         };
 
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/clients/add`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(apiData),
-          }
-        );
+        const url = isEditMode
+          ? `${import.meta.env.VITE_API_URL}/api/clients/${id}`
+          : `${import.meta.env.VITE_API_URL}/api/clients/add`;
+
+        const method = isEditMode ? "PUT" : "POST";
+
+        const response = await fetch(url, {
+          method: method,
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(apiData),
+        });
 
         const result = await response.json();
 
         if (response.ok && result.success) {
-          alert("Client added successfully!");
-          
-          setFormData({
-            clientCode: "",
-            clientName: "",
-            address: "",
-            contactPerson: "",
-            email: "",
-            phone: "",
-            joinDate: "",
-            expiryDate: "",
-            billingFrequency: "",
-            remarks: "",
-            tin: "",
-          });
+          const successMessage = isEditMode
+            ? "Client updated successfully!"
+            : "Client added successfully!";
 
-          await fetchNextClientCode();
-          inputRefs.clientName.current?.focus();
+          alert(successMessage);
+
+          if (isEditMode) {
+            // Navigate back to client list or client detail page
+            navigate("/admin-dashboard/client-list");
+          } else {
+            // Reset form for adding new client
+            setFormData({
+              clientCode: "",
+              clientName: "",
+              address: "",
+              contactPerson: "",
+              email: "",
+              phone: "",
+              joinDate: "",
+              expiryDate: "",
+              billingFrequency: "",
+              remarks: "",
+              tin: "",
+            });
+
+            await fetchNextClientCode();
+            inputRefs.clientName.current?.focus();
+          }
         } else {
           if (result.errors) {
             const apiErrors = {};
-            Object.keys(result.errors).forEach(key => {
+            Object.keys(result.errors).forEach((key) => {
               const fieldMap = {
-                'client_name': 'clientName',
-                'contact_person': 'contactPerson',
-                'join_date': 'joinDate',
-                'expiry_date': 'expiryDate',
-                'billing_frequency': 'billingFrequency',
+                client_name: "clientName",
+                contact_person: "contactPerson",
+                join_date: "joinDate",
+                expiry_date: "expiryDate",
+                billing_frequency: "billingFrequency",
               };
               const formField = fieldMap[key] || key;
               apiErrors[formField] = result.errors[key][0];
             });
             setErrors(apiErrors);
           } else {
-            alert(result.message || "Failed to add client. Please try again.");
+            const errorMessage = isEditMode
+              ? "Failed to update client. Please try again."
+              : "Failed to add client. Please try again.";
+            alert(result.message || errorMessage);
           }
         }
       } catch (error) {
-        console.error('Error submitting form:', error);
+        console.error("Error submitting form:", error);
         alert("Network error. Please check your connection and try again.");
       } finally {
         setIsLoading(false);
@@ -233,54 +299,71 @@ const { user } = useAuth();
     }
   };
 
-
   const today = new Date().toISOString().split("T")[0];
 
+  const fetchNextClientCode = async () => {
+    setIsLoadingClientCode(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/clients/next-code`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-
-const fetchNextClientCode = async () => {
-  setIsLoadingClientCode(true);
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/clients/next-code`,
-      {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
-        },
+      if (response.ok) {
+        const data = await response.json();
+        setFormData((prev) => ({
+          ...prev,
+          clientCode: data.data.client_code,
+        }));
       }
-    );
-
-    if (response.ok) {
-      const data = await response.json();
-      setFormData(prev => ({
+    } catch (error) {
+      console.error("Error fetching client code:", error);
+      setFormData((prev) => ({
         ...prev,
-        clientCode: data.data.client_code
+        clientCode: getNextClientCode(),
       }));
+    } finally {
+      setIsLoadingClientCode(false);
     }
-  } catch (error) {
-    console.error('Error fetching client code:', error);
-    setFormData(prev => ({
-      ...prev,
-      clientCode: getNextClientCode()
-    }));
-  } finally {
-    setIsLoadingClientCode(false);
+  };
+
+  useEffect(() => {
+    if (isEditMode && id) {
+      fetchClientData(id);
+    } else {
+      fetchNextClientCode();
+    }
+  }, [id, isEditMode]);
+
+  // Show loading spinner while fetching client data in edit mode
+  if (isLoadingClient) {
+    return (
+      <div className="min-h-screen w-full bg-neutralSilver p-3 pt-16 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#974364] mx-auto"></div>
+          <p className="mt-4 text-neutralDGray">Loading client data...</p>
+        </div>
+      </div>
+    );
   }
-};
-
-
-useEffect(() => {
-  fetchNextClientCode();
-}, []);
 
   return (
-    <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
+    <div className="right-0 bottom-0 min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <Breadcrumb
         items={[
           { label: "Clients" },
           { label: "Masterlist", href: "/admin-dashboard/client-list" },
-          { label: "Add Client", href: "/admin-dashboard/client/add-client" },
+          {
+            label: isEditMode ? "Edit Client" : "Add Client",
+            href: isEditMode
+              ? `/admin-dashboard/client/edit/${id}`
+              : "/admin-dashboard/client/add-client",
+          },
         ]}
       />
 
@@ -289,19 +372,20 @@ useEffect(() => {
         style={{ borderTopColor: "#974364" }}
       >
         <h2 className="text-sm font-medium text-neutralDGray mb-2 flex items-center gap-2">
-          Add New Client
+          {isEditMode ? "Edit Client" : "Add New Client"}
         </h2>
         <p className="text-neutralDGray text-xs">
-          Fill out the form below to add a new client to the system. Double
-          check the information for accuracy before submitting. Press Enter to
-          move to the next field.
+          {isEditMode
+            ? "Update the client information below. Double check the information for accuracy before submitting."
+            : "Fill out the form below to add a new client to the system. Double check the information for accuracy before submitting."}{" "}
+          Press Enter to move to the next field.
         </p>
       </div>
 
       {/* Client Information */}
       <div className="bg-white p-3 rounded-lg shadow-md mb-2">
         <div className="bg-red-50 px-2 rounded">
-          <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
+          <h3 className="text-sm text-neutralDGray mb-3 flex items-center gap-2">
             Client Information
           </h3>
         </div>
@@ -387,7 +471,7 @@ useEffect(() => {
       {/* Client Contact Information */}
       <div className="bg-white p-3 rounded-lg shadow-md mb-2">
         <div className="bg-red-50 px-2 rounded">
-          <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
+          <h3 className="text-sm text-neutralDGray mb-3 flex items-center gap-2">
             Contact Information
           </h3>
         </div>
@@ -463,7 +547,7 @@ useEffect(() => {
       {/* Partnership Information */}
       <div className="bg-white p-3 rounded-lg shadow-md mb-2">
         <div className="bg-red-50 px-2 rounded">
-          <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
+          <h3 className="text-sm text-neutralDGray mb-3 flex items-center gap-2">
             Partnership Information
           </h3>
         </div>
@@ -542,7 +626,7 @@ useEffect(() => {
       {/* Remarks */}
       <div className="bg-white p-3 rounded-lg shadow-md mb-2">
         <div className="bg-red-50 px-2 rounded">
-          <h3 className="text-sm  text-neutralDGray mb-3 flex items-center gap-2">
+          <h3 className="text-sm text-neutralDGray mb-3 flex items-center gap-2">
             Remarks
           </h3>
         </div>
@@ -562,19 +646,35 @@ useEffect(() => {
       </div>
 
       {/* Submit Buttons */}
-      <button
-        type="button"
-        onClick={handleSubmit}
-        disabled={isLoading}
-        className={`w-full h-10 ${
-          isLoading 
-            ? 'bg-gray-400 cursor-not-allowed' 
-            : 'bg-[#974364] hover:bg-[#5f263d]'
-        } disabled:bg-blue-400 text-white text-sm py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2`}
-      >
-        {isLoading ? 'Adding Client...' : 'Add Client'}
-      </button>
-
+      <div className="flex gap-3">
+        {isEditMode && (
+          <button
+            type="button"
+            onClick={() => navigate("/admin-dashboard/client-list")}
+            className="flex-1 h-10 bg-gray-500 hover:bg-gray-600 text-white text-sm py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2"
+          >
+            Cancel
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={isLoading}
+          className={`${isEditMode ? "flex-1" : "w-full"} h-10 ${
+            isLoading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-[#974364] hover:bg-[#5f263d]"
+          } disabled:bg-blue-400 text-white text-sm py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2`}
+        >
+          {isLoading
+            ? isEditMode
+              ? "Updating Client..."
+              : "Adding Client..."
+            : isEditMode
+            ? "Update Client"
+            : "Add Client"}
+        </button>
+      </div>
     </div>
   );
 }

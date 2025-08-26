@@ -8,6 +8,7 @@ import {
   FaBuilding,
   FaCalendarAlt,
 } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import DataTable from "react-data-table-component";
 
 export default function ClientProfileModal({
@@ -20,6 +21,7 @@ export default function ClientProfileModal({
 }) {
   const isModalOpen = show ?? isOpen;
   const closeHandler = handleClose ?? onClose;
+  const navigate = useNavigate();
 
   if (!client) return null;
 
@@ -30,6 +32,11 @@ export default function ClientProfileModal({
       (client.project?.trim().toUpperCase() ||
         client.name?.trim().toUpperCase())
   );
+
+  const handleEdit = () => {
+    closeHandler(); // close modal
+    navigate(`/admin-dashboard/client/edit/${client.id}`); // ⬅ redirect to edit
+  };
 
   // Columns config for DataTable
   const columns = [
@@ -56,7 +63,7 @@ export default function ClientProfileModal({
     },
   ];
 
-    // Format date helper function
+  // Format date helper function
   const formatDate = (dateString) => {
     if (!dateString || dateString === "No date provided") return "N/A";
     try {
@@ -156,7 +163,6 @@ export default function ClientProfileModal({
                   </p>
                   <p className="text-xs font-medium -mt-3 text-gray-800">
                     {client.phone || "No phone provided"}
-
                   </p>
                 </div>
               </div>
@@ -232,6 +238,12 @@ export default function ClientProfileModal({
         </div>
       </Modal.Body>
       <Modal.Footer className="border-t bg-gray-50">
+        <button
+          onClick={handleEdit}
+          className="px-6 py-2 h-8 w-fit flex justify-center items-center text-center text-sm bg-white border border-gray-300 text-gray-700 rounded-md"
+        >
+          Edit
+        </button>
         <button
           onClick={closeHandler}
           className="px-6 py-2 h-8 w-fit flex justify-center items-center text-center text-sm bg-white border border-gray-300 text-gray-700 rounded-md"

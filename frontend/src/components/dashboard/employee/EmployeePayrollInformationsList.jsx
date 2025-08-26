@@ -13,9 +13,11 @@ import {
   FaXmark,
   FaRegFileExcel,
   FaRegFilePdf,
+  FaFilter,
 } from "react-icons/fa6";
 import { useAuth } from "../../../context/authContext";
 import { ThreeDots } from "react-loader-spinner";
+import * as XLSX from "xlsx";
 
 const EmployeePayrollInformationsList = () => {
   const { user } = useAuth();
@@ -35,6 +37,10 @@ const EmployeePayrollInformationsList = () => {
   const [isSubmitting, setIsSubmitting] = useState(false); // Added loading state
   const [perPage, setPerPage] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [selectedEmploymentRanks, setSelectedEmploymentRanks] = useState([]);
+  const [selectedEmploymentRank, setSelectedEmploymentRank] = useState(""); // Changed to single selection
+  const [availableEmploymentRanks, setAvailableEmploymentRanks] = useState([]);
 
   // Mock current user - replace with actual user context/auth
   const currentUser = "Admin User"; // Replace this with actual user from context/auth
@@ -43,15 +49,59 @@ const EmployeePayrollInformationsList = () => {
     const token = localStorage.getItem("token");
     return {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     };
   };
 
   useEffect(() => {
     fetchPayrollInformations();
   }, []);
+
+  useEffect(() => {
+    if (payrollInformations.length > 0) {
+      const ranks = [
+        ...new Set(
+          payrollInformations.map((emp) => emp.employmentrank).filter(Boolean)
+        ),
+      ];
+      setAvailableEmploymentRanks(ranks);
+    }
+  }, [payrollInformations]);
+
+  const applyEmploymentRankFilter = () => {
+    let filtered = payrollInformations;
+
+    if (selectedEmploymentRanks.length > 0) {
+      filtered = filtered.filter((emp) =>
+        selectedEmploymentRanks.includes(emp.employmentrank)
+      );
+    }
+
+    setFilteredEmployees(filtered);
+    setShowFilterModal(false);
+  };
+
+  const handleEmploymentRankChange = (rank) => {
+    setSelectedEmploymentRanks((prev) => {
+      if (prev.includes(rank)) {
+        return prev.filter((r) => r !== rank);
+      }
+      return [...prev, rank];
+    });
+  };
+
+  const clearFilters = () => {
+    setSelectedEmploymentRank("");
+    setFilteredEmployees(payrollInformations);
+    setShowFilterModal(false);
+  };
+
+  // Update your filter options button click handler
+  const openFilterList = () => {
+    setShowFilterModal(true);
+  };
 
   useEffect(() => {
     // Filter employees for bulk edit modal
@@ -67,7 +117,7 @@ const EmployeePayrollInformationsList = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/employee/payroll-informations`,
+        `${import.meta.env.VITE_API_URL}/api/employee/payroll-informations`
       );
       if (response.data.success) {
         console.log(response.data);
@@ -122,12 +172,18 @@ const EmployeePayrollInformationsList = () => {
   };
 
   const handleExportExcel = () => {
-    // Create CSV data
+    if (filteredEmployees.length === 0) {
+      alert("⚠ No data available to export.");
+      return;
+    }
+
+    // Define headers
     const headers = [
       "Employee Code",
       "Name",
       "Position",
       "Daily Rate",
+      "Salary Package",
       "Holiday Pay",
       "Night Differential",
       "Allowance",
@@ -138,32 +194,32 @@ const EmployeePayrollInformationsList = () => {
       "Loan",
     ];
 
-    const csvData = filteredEmployees.map((emp) => [
-      emp.ecode,
-      emp.name,
-      emp.positiontitle || emp.designation,
-      emp.daily_rate || 0,
-      emp.holiday_pay || 0,
-      emp.night_differential || 0,
-      emp.allowance || 0,
-      emp.tax_deduction || 0,
-      emp.sss_contribution || 0,
-      emp.pagibig_contribution || 0,
-      emp.philhealth_contribution || 0,
-      emp.loan || 0,
-    ]);
+    // Map employees to row data
+    const excelData = filteredEmployees.map((emp) => ({
+      "Employee Code": emp.ecode,
+      Name: emp.name,
+      Position: emp.positiontitle || emp.designation,
+      "Daily Rate": emp.daily_rate || 0,
+      "Salary Package": emp.salary_package || 0, // <- added since your headers include it
+      "Holiday Pay": emp.holiday_pay || 0,
+      "Night Differential": emp.night_differential || 0,
+      Allowance: emp.allowance || 0,
+      Tax: emp.tax_deduction || 0,
+      SSS: emp.sss_contribution || 0,
+      Pagibig: emp.pagibig_contribution || 0,
+      PhilHealth: emp.philhealth_contribution || 0,
+      Loan: emp.loan || 0,
+    }));
 
-    const csvContent = [headers, ...csvData]
-      .map((row) => row.map((field) => `"${field}"`).join(","))
-      .join("\n");
+    // Create worksheet
+    const ws = XLSX.utils.json_to_sheet(excelData, { header: headers });
 
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "payroll_information.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Payroll");
+
+    // Export to Excel file
+    XLSX.writeFile(wb, "Payroll_Information.xlsx");
   };
 
   const handleExportPDF = () => {
@@ -283,9 +339,7 @@ const EmployeePayrollInformationsList = () => {
     setIsSubmitting(true);
     try {
       const response = await axios.post(
-        `${
-          import.meta.env.VITE_API_URL
-        }/api/payrolls/bulk-change-requests`,
+        `${import.meta.env.VITE_API_URL}/api/payrolls/bulk-change-requests`,
         {
           employee_ids: selectedEmployees,
           field: bulkEditField,
@@ -297,7 +351,8 @@ const EmployeePayrollInformationsList = () => {
               " "
             )} to ${bulkEditValue}`,
           requested_by: user.name,
-        }, getAuthHeaders()
+        },
+        getAuthHeaders()
       );
 
       if (response.data.success) {
@@ -400,7 +455,7 @@ const EmployeePayrollInformationsList = () => {
     },
     {
       name: "Employment Rank",
-      selector: (row) => row.employmentrank,
+      selector: (row) => row.employment_rank,
       sortable: true,
       center: true,
       width: "320px",
@@ -411,6 +466,14 @@ const EmployeePayrollInformationsList = () => {
       sortable: true,
       center: true,
       width: "110px",
+    },
+    {
+      name: "Salary Package",
+      selector: (row) =>
+        `₱${parseFloat(row.salary_package || 0).toLocaleString()}`,
+      sortable: true,
+      center: true,
+      width: "150px",
     },
     {
       name: "Holiday Pay",
@@ -517,6 +580,15 @@ const EmployeePayrollInformationsList = () => {
               />
               <FaSearch className="-ml-6 mt-1.5 text-neutralDGray/60" />
             </div>
+            <div
+              onClick={openFilterList} // Add this line
+              className="px-2 text-xs text-neutralDGray rounded w-1/4 items-center hover:bg-neutralSilver flex justify-between h-8 py-0.5 border cursor-pointer" // Add cursor-pointer
+            >
+              Filter Options{" "}
+              <span>
+                <FaFilter className="mr-2" />
+              </span>
+            </div>
           </div>
         </div>
         <div className="mt-2 bg-white w-[calc(100vw-310px)] p-2 rounded-lg shadow">
@@ -597,6 +669,7 @@ const EmployeePayrollInformationsList = () => {
                       Select Information Field
                     </option>
                     <option value="daily_rate">Daily Rate</option>
+                    <option value="daily_rate">Salary Package</option>
                     <option value="adjustment">Adjustments</option>
                     <option value="tax_deduction">Tax</option>
                     <option value="loan">Loan</option>
@@ -700,6 +773,65 @@ const EmployeePayrollInformationsList = () => {
               disabled={isSubmitting}
             >
               Close
+            </button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Filter Modal */}
+        <Modal
+          show={showFilterModal}
+          onHide={() => setShowFilterModal(false)}
+          centered
+          size="md"
+        >
+          <Modal.Header className="py-2 px-3 text-[12px]" closeButton>
+            <Modal.Title as="h6" className="text-lg">
+              Filter Options
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div className="p-2">
+              <div className="">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Employment Rank
+                </label>
+                {/* Updated dropdown styling - removed the wrapper div and border */}
+                <select
+                  value={selectedEmploymentRank}
+                  onChange={(e) => handleEmploymentRankChange(e.target.value)}
+                  className="w-full p-2 text-sm border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                >
+                  <option value="">All Employment Ranks</option>
+                  {availableEmploymentRanks.map((rank) => (
+                    <option key={rank} value={rank}>
+                      {rank}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Show selected filter info */}
+              {selectedEmploymentRank && (
+                <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-xs text-blue-700 font-medium">
+                    Selected Filter: {selectedEmploymentRank}
+                  </p>
+                </div>
+              )}
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <button
+              className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
+              onClick={applyEmploymentRankFilter}
+            >
+              Apply Filter
+            </button>
+            <button
+              className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
+              onClick={clearFilters}
+            >
+              Clear All
             </button>
           </Modal.Footer>
         </Modal>

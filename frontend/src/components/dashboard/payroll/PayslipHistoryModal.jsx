@@ -151,7 +151,7 @@ const PayslipHistoryModal = ({ isOpen, onClose, employeeId }) => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <div className="w-3/4">
+          <div className="w-full">
             {loading ? (
               <p>Loading payslip...</p>
             ) : error ? (
@@ -183,7 +183,6 @@ const PayslipHistoryModal = ({ isOpen, onClose, employeeId }) => {
                         Services Company, Inc.
                       </p>
                     </div>
-                    <p className="text-[11px] mt-1">E-PAYSLIP NO.</p>
                   </div>
                   <div
                     style={{
@@ -471,22 +470,13 @@ const PayslipHistoryModal = ({ isOpen, onClose, employeeId }) => {
                   </tbody>
                 </table>
 
-                <table className="border-collapse text-[9px] mx-auto font-sans mt-4 w-full">
-                  <tbody>
-                    <tr>
-                      <td className="text-center px-2">
-                        <div className="border-t border-black py-2">
-                          Prepared by
-                        </div>
-                      </td>
-                      <td className="text-center px-2">
-                        <div className="border-t border-black py-2">
-                          Employee's Signature
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div className="text-center mt-2">
+                  <p className="text-[9px] mt-2 italic text-center">
+                    This payslip is system-generated and does not require a
+                    signature. It is considered valid for all official and
+                    employment related purposes.{" "}
+                  </p>
+                </div>
               </div>
             )}
           </div>
