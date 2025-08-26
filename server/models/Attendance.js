@@ -34,6 +34,8 @@ const Attendance = sequelize.define('Attendance', {
 }, {
   tableName: 'attendance',
   timestamps: true,
+  createdAt: 'created_at', // 👈 map to DB column
+  updatedAt: 'updated_at', // 👈 map to DB column
   // Remove the unique index to allow duplicates
   indexes: [
     // You can add non-unique indexes for performance if needed

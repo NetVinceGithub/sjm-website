@@ -67,7 +67,7 @@ const EmployeePayrollInformationsList = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/payrolls`, getAuthHeaders()
+        `${import.meta.env.VITE_API_URL}/api/employee/payroll-informations`,
       );
       if (response.data.success) {
         console.log(response.data);

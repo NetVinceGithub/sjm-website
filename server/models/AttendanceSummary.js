@@ -72,6 +72,9 @@ const AttendanceSummary = sequelize.define(
   {
     tableName: "attendancesummary",
     timestamps: true, // Enable timestamps for tracking when records are created/updated
+    createdAt: "created_at", // 👈 map Sequelize -> DB
+    updatedAt: "updated_at", // 👈 map Sequelize -> DB
+
     indexes: [
       {
         unique: true,

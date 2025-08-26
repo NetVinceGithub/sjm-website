@@ -348,41 +348,7 @@ const generatePayslipPDF = async (payslip) => {
   }
 };
 
-// Updated ControlNumberHistory model definition
-const ControlNumberHistory = sequelize.define(
-  "ControlNumberHistory",
-  {
-    monthYear: {
-      type: Sequelize.STRING, // Example: '2023-06'
-      allowNull: false,
-    },
-    batchId: {
-      type: Sequelize.STRING, // Store the batchId
-      allowNull: false,
-    },
-    controlNumber: {
-      type: Sequelize.INTEGER,
-      allowNull: false,
-    },
-    billingSummary: {
-      type: Sequelize.INTEGER,
-      allowNull: false,
-    },
-  },
-  {
-    // Composite primary key to ensure unique combination of monthYear and batchId
-    indexes: [
-      {
-        unique: true,
-        fields: ["monthYear", "batchId"],
-      },
-      {
-        unique: true,
-        fields: ["batchId"], // Ensure batchId is globally unique
-      },
-    ],
-  }
-);
+
 
 export const sendPayslips = async (req, res) => {
   console.log("🚀 Starting sendPayslips function...");
@@ -515,114 +481,11 @@ export const sendPayslips = async (req, res) => {
         `🔍 Checking for existing control number for batch ${batchId} in month ${payslipMonthYear}...`
       );
 
-      let existingBatchRecord;
-      try {
-        existingBatchRecord = await ControlNumberHistory.findOne({
-          where: {
-            monthYear: payslipMonthYear,
-            batchId: batchId,
-          },
-        });
-        console.log(
-          "🔍 Existing batch record query result:",
-          existingBatchRecord ? "Found" : "Not found"
-        );
-      } catch (dbError) {
-        console.log(
-          "❌ Database error when checking existing batch record:",
-          dbError
-        );
-        for (let payslip of batchPayslips) {
-          failedEmails.push({
-            name: payslip.name || "Unknown",
-            reason: `Database error: ${dbError.message}`,
-          });
-        }
-        continue;
-      }
+  
 
-      let billingSummary;
       let formattedBillingSummary;
 
-      if (existingBatchRecord) {
-        console.log("✅ Using existing control number and billing summary");
-        controlNumber = existingBatchRecord.controlNumber;
-        billingSummary = existingBatchRecord.billingSummary;
-        formattedControlNumber = `SJM ${payslipMonthYear}-${String(
-          controlNumber
-        ).padStart(4, "0")}`;
-        formattedBillingSummary = String(billingSummary).padStart(5, "0");
-        console.log(
-          `📋 Existing - Control Number: ${formattedControlNumber}, Billing Summary: ${formattedBillingSummary}`
-        );
-      } else {
-        console.log("🆕 Creating new control number and billing summary");
-
-        // This is a new batch, get the next control number for this month
-        try {
-          const lastRecordForMonth = await ControlNumberHistory.findOne({
-            where: {
-              monthYear: payslipMonthYear,
-            },
-            order: [["controlNumber", "DESC"]],
-          });
-
-          if (lastRecordForMonth) {
-            controlNumber = lastRecordForMonth.controlNumber + 1;
-            console.log(
-              `📈 Incrementing control number from ${lastRecordForMonth.controlNumber} to ${controlNumber}`
-            );
-          } else {
-            controlNumber = 1;
-            console.log("🥇 First control number for this month: 1");
-          }
-
-          // Get the next billing summary number (global counter, regardless of month)
-          const lastBillingSummaryRecord = await ControlNumberHistory.findOne({
-            order: [["billingSummary", "DESC"]],
-          });
-
-          if (lastBillingSummaryRecord) {
-            billingSummary = lastBillingSummaryRecord.billingSummary + 1;
-            console.log(
-              `📈 Incrementing billing summary from ${lastBillingSummaryRecord.billingSummary} to ${billingSummary}`
-            );
-          } else {
-            billingSummary = 1;
-            console.log("🥇 First billing summary ever: 1");
-          }
-
-          formattedControlNumber = `SJM ${payslipMonthYear}-${String(
-            controlNumber
-          ).padStart(4, "0")}`;
-          formattedBillingSummary = String(billingSummary).padStart(5, "0");
-          console.log(
-            `📋 New - Control Number: ${formattedControlNumber}, Billing Summary: ${formattedBillingSummary}`
-          );
-
-          // Save the new control number and billing summary record for this batch
-          console.log("💾 Saving new control number record...");
-          await ControlNumberHistory.create({
-            monthYear: payslipMonthYear,
-            batchId: batchId,
-            controlNumber: controlNumber,
-            billingSummary: billingSummary,
-          });
-          console.log("✅ Control number record saved successfully");
-        } catch (dbError) {
-          console.log(
-            "❌ Database error when creating control numbers:",
-            dbError
-          );
-          for (let payslip of batchPayslips) {
-            failedEmails.push({
-              name: payslip.name || "Unknown",
-              reason: `Database error: ${dbError.message}`,
-            });
-          }
-          continue;
-        }
-      }
+  
 
       // Process all payslips in this batch with the same control number
       console.log(
@@ -1098,11 +961,12 @@ export const getPayslipByEmployeeId = async (req, res) => {
 export const getAvailableBatches = async (req, res) => {
   try {
     const batches = await Payslip.findAll({
-      attributes: ["batchId"],
+      attributes: ["batchId", "date"], // include date
       group: ["batchId"],
       order: [["batchId", "DESC"]],
       raw: true,
     });
+
 
     const batchDetails = await Promise.all(
       batches.map(async ({ batchId, date }) => {
@@ -2216,7 +2080,7 @@ export const generatePayroll = async (req, res) => {
         // CRITICAL: Ensure all values are valid numbers before database insertion
         const payslipData = {
           ecode: employee.ecode,
-          email: employee.emailaddress || employee.email || "",
+          email: employee.email_address || employee.email || "",
           employeeId: employee.id,
           name: employee.name,
           project: employee.project || "N/A",

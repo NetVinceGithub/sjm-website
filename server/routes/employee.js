@@ -20,7 +20,8 @@ import {
   bulkMessaging,
   bulkRequestPayrollChange,
   rejectBatchChange,
-  getBatchDetails
+  getBatchDetails,
+  createEmployee
 } from "../controllers/employeeController.js";
 
 const router = express.Router();
@@ -87,6 +88,7 @@ router.post('/bulk-messaging', createBulkMessagingUpload(10), bulkMessaging);
 router.put('/approve-batch-change/:batchId',approvePayrollChange);
 router.put('/reject-batch-change/:batchId', rejectBatchChange);
 router.get('/batch-details/:batchId', getBatchDetails);
+router.post('/employees', createEmployee);
 
 
 

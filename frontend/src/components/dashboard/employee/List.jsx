@@ -120,15 +120,14 @@ const List = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/employees`, 
-        getAuthHeaders()
+        `${import.meta.env.VITE_API_URL}/api/employee`, 
       );
       
       console.log("API Response:", response.data); // Debug log
       
       if (response.data.success) {
-        // Change this line - access the nested data array
-        const employees = response.data.data.data; // Note: data.data.data due to pagination wrapper
+        // Fix: Access employees from response.data.employees
+        const employees = response.data.employees; // Changed from response.employees
         
         // Apply employment status classification
         const classifiedEmployees = classifyEmploymentStatus(employees);

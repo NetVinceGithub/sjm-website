@@ -237,7 +237,7 @@ const AddNew = () => {
     };
 
 
-    const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setErrors({});
@@ -245,53 +245,72 @@ const AddNew = () => {
     try {
       // Prepare data to match backend expectations
       const submitData = {
-        // Convert camelCase to snake_case to match Laravel validation
-        last_name: formData.lastName,
-        first_name: formData.firstName,
-        middle_name: formData.middleName,
-        complete_name: completeName,
-        position_title: formData.positionTitle,
-        project: formData.project,
-        department: formData.department,
-        area_section: formData.areaSection,
+        // Personal Information
+        last_name: formData.lastName.trim(),
+        first_name: formData.firstName.trim(), 
+        middle_name: formData.middleName.trim() || null,
+        complete_name: completeName.trim(),
+        
+        // Employment Information
+        position_title: formData.positionTitle.trim(),
+        project: formData.project.trim(),
+        department: formData.department.trim(),
+        area_section: formData.areaSection.trim(),
         employment_rank: formData.employmentRank,
         date_of_hire: formData.dateOfHire,
-        employment_classification: formData.employmentClassification,
+        employment_classification: formData.employmentClassification.trim(),
+        
+        // Personal Details
         civil_status: formData.civilStatus,
         gender: formData.gender,
         birthdate: formData.birthdate,
-        current_address: formData.currentAddress,
-        permanent_address: formData.permanentAddress,
-        contact_no: formData.contactNo,
-        email_address: formData.emailAddress,
-        government_id_type: formData.governmentIdType,
-        government_id_number: formData.governmentIdNumber,
-        emergency_contact_name: formData.emergencyContactName,
-        emergency_contact_number: formData.emergencyContactNumber,
-        emergency_contact_address: formData.emergencyContactAddress,
+        current_address: formData.currentAddress.trim(),
+        permanent_address: formData.permanentAddress.trim(),
+        contact_no: formData.contactNo.trim(),
+        email_address: formData.emailAddress.trim(),
+        
+        // Government ID
+        government_id_type: formData.governmentIdType.trim() || null,
+        government_id_number: formData.governmentIdNumber.trim() || null,
+        
+        // Emergency Contact
+        emergency_contact_name: formData.emergencyContactName.trim() || null,
+        emergency_contact_number: formData.emergencyContactNumber.trim() || null,
+        emergency_contact_address: formData.emergencyContactAddress.trim() || null,
+        
+        // Compensation
         daily_rate: parseFloat(formData.dailyRate) || 0,
         salary_package: parseFloat(formData.salaryPackage) || 0,
-        medical_date: formData.medicalDate,
-        health_card_date: formData.healthCardDate,
-        gmp_date: formData.gmpDate,
-        prp_date: formData.prpDate,
-        housekeeping_date: formData.housekeepingDate,
-        safety_date: formData.safetyDate,
-        crr_date: formData.crrDate,
-        sss: formData.sss,
-        phil_health: formData.philHealth,
-        pag_ibig: formData.pagIbig,
-        tin: formData.tin,
+        
+        // Training/Certification Dates
+        medical_date: formData.medicalDate || null,
+        health_card_date: formData.healthCardDate || null,
+        gmp_date: formData.gmpDate || null,
+        prp_date: formData.prpDate || null,
+        housekeeping_date: formData.housekeepingDate || null,
+        safety_date: formData.safetyDate || null,
+        crr_date: formData.crrDate || null,
+        
+        // Government Benefits
+        sss: formData.sss.trim() || null,
+        phil_health: formData.philHealth.trim() || null,
+        pag_ibig: formData.pagIbig.trim() || null,
+        tin: formData.tin.trim() || null,
+        
+        // Employment Status
         date_of_separation: formData.dateOfSeparation || null,
       };
 
-      const response = await apiClient.post('/api/employees', submitData, getAuthHeaders());
+      console.log('Submitting data:', submitData); // Debug log
+
+      // Fix the API endpoint - remove '/api/employee' prefix since it's already in baseURL
+      const response = await apiClient.post('/api/employee/employees', submitData);
 
       if (response.data.success) {
         // Success! Show success message and reset form
         alert('Employee added successfully!');
         
-        // Reset form
+        // Reset form to initial state
         setFormData({
           ecode: "",
           lastName: "",
@@ -340,19 +359,30 @@ const AddNew = () => {
 
         // Optionally redirect to employee list
         // window.location.href = '/admin-dashboard/employees';
-        
       }
     } catch (error) {
       console.error('Error creating employee:', error);
+      console.error('Error response:', error.response?.data);
       
       if (error.response && error.response.status === 422) {
         // Validation errors
-        setErrors(error.response.data.errors || {});
-        alert('Please check the form for errors and try again.');
-      } else if (error.response && error.response.data.message) {
-        alert(error.response.data.message);
+        const backendErrors = error.response.data.errors || {};
+        setErrors(backendErrors);
+        
+        // Scroll to first error field
+        const firstErrorField = Object.keys(backendErrors)[0];
+        if (firstErrorField && inputRefs.current[firstErrorField]) {
+          inputRefs.current[firstErrorField].focus();
+          inputRefs.current[firstErrorField].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        alert(`Please check the form for errors: ${error.response.data.message || 'Validation failed'}`);
+      } else if (error.response?.data?.message) {
+        alert(`Error: ${error.response.data.message}`);
+      } else if (error.code === 'ERR_NETWORK') {
+        alert('Network error. Please check your connection and try again.');
       } else {
-        alert('Network error. Please try again.');
+        alert('An unexpected error occurred. Please try again.');
       }
     } finally {
       setLoading(false);

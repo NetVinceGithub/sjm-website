@@ -2623,3 +2623,294 @@ export const getBatchDetails = async (req, res) => {
     });
   }
 };
+
+
+export const createEmployee = async (req, res) => {
+  try {
+    // Debug logging to see what data is received
+    console.log('Received request body:', req.body);
+
+    const {
+      last_name,
+      first_name,
+      middle_name,
+      complete_name,
+      position_title,
+      project,
+      department,
+      area_section,
+      employment_rank,
+      date_of_hire,
+      employment_classification,
+      civil_status,
+      gender,
+      birthdate,
+      current_address,
+      permanent_address,
+      contact_no,
+      email_address,
+      government_id_type,
+      government_id_number,
+      emergency_contact_name,
+      emergency_contact_number,
+      emergency_contact_address,
+      daily_rate,
+      salary_package,
+      medical_date,
+      health_card_date,
+      gmp_date,
+      prp_date,
+      housekeeping_date,
+      safety_date,
+      crr_date,
+      sss,
+      phil_health,
+      pag_ibig,
+      tin,
+      date_of_separation
+    } = req.body;
+
+    // Validate required fields
+    const requiredFields = {
+      last_name: 'Last name',
+      first_name: 'First name', 
+      position_title: 'Position title',
+      department: 'Department',
+      employment_rank: 'Employment rank',
+      date_of_hire: 'Date of hire',
+      employment_classification: 'Employment classification',
+      civil_status: 'Civil status',
+      gender: 'Gender',
+      birthdate: 'Birthdate',
+      current_address: 'Current address',
+      permanent_address: 'Permanent address',
+      contact_no: 'Contact number',
+      email_address: 'Email address'
+    };
+
+    const validationErrors = {};
+    
+    for (const [field, label] of Object.entries(requiredFields)) {
+      const value = req.body[field];
+      if (!value || (typeof value === 'string' && value.trim() === '')) {
+        validationErrors[field] = [`${label} is required`];
+      }
+    }
+
+    // Email validation
+    if (email_address && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email_address)) {
+      validationErrors.email_address = ['Please enter a valid email address'];
+    }
+
+    // Phone validation (basic)
+    if (contact_no && !/^[0-9+\-\s()]+$/.test(contact_no)) {
+      validationErrors.contact_no = ['Please enter a valid contact number'];
+    }
+
+    // Date validation
+    if (birthdate && new Date(birthdate) > new Date()) {
+      validationErrors.birthdate = ['Birthdate cannot be in the future'];
+    }
+
+    if (date_of_hire && new Date(date_of_hire) > new Date()) {
+      validationErrors.date_of_hire = ['Hire date cannot be in the future'];
+    }
+
+    // Civil status validation
+    const validCivilStatuses = ['single', 'married', 'divorced', 'widowed'];
+    if (civil_status && !validCivilStatuses.includes(civil_status.toLowerCase())) {
+      validationErrors.civil_status = ['Civil status must be one of: single, married, divorced, widowed'];
+    }
+
+    // Gender validation
+    const validGenders = ['male', 'female', 'other'];
+    if (gender && !validGenders.includes(gender.toLowerCase())) {
+      validationErrors.gender = ['Gender must be one of: male, female, other'];
+    }
+
+    // If there are validation errors, return them
+    if (Object.keys(validationErrors).length > 0) {
+      return res.status(422).json({
+        success: false,
+        message: 'Validation failed',
+        errors: validationErrors
+      });
+    }
+
+    // Calculate age from birthdate
+    let calculatedAge = 0;
+    if (birthdate) {
+      const today = new Date();
+      const birth = new Date(birthdate);
+      calculatedAge = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        calculatedAge--;
+      }
+    }
+
+    // Generate next employee code with "M" prefix
+    const lastEmployee = await Employee.findOne({
+      order: [['ecode', 'DESC']],
+      where: {
+        ecode: {
+          [Op.regexp]: '^M[0-9]+$' // Match M followed by numbers
+        }
+      },
+      attributes: ['id', 'ecode'] // Only select the columns we need
+    });
+
+    let nextEcode = 'M00001';
+    if (lastEmployee && lastEmployee.ecode) {
+      // Extract numeric part from ecode (remove 'M' prefix)
+      const numericPart = lastEmployee.ecode.substring(1);
+      const lastEcodeNum = parseInt(numericPart);
+      if (!isNaN(lastEcodeNum)) {
+        const nextNumber = lastEcodeNum + 1;
+        nextEcode = 'M' + nextNumber.toString().padStart(5, '0');
+      }
+    }
+
+    // Build complete name if not provided
+    const fullName = complete_name || `${first_name}${middle_name ? ' ' + middle_name : ''} ${last_name}`.trim();
+
+    // Create employee data object - use actual values, not fallbacks to 'N/A'
+    const employeeData = {
+      ecode: nextEcode,
+      name: fullName,
+      complete_name: fullName,
+      last_name: last_name,
+      first_name: first_name,
+      middle_name: middle_name || null,
+      project: project || null,
+      position_title: position_title,
+      department: department,
+      area_section: area_section || null,
+      employment_rank: employment_rank,
+      date_of_hire: date_of_hire,
+      employment_classification: employment_classification,
+      civil_status: civil_status.toLowerCase(),
+      gender: gender.toLowerCase(),
+      birthdate: birthdate,
+      age: calculatedAge,
+      current_address: current_address,
+      permanent_address: permanent_address,
+      contact_no: contact_no,
+      email_address: email_address.toLowerCase(),
+      government_id_type: government_id_type || null,
+      government_id_number: government_id_number || null,
+      emergency_contact_name: emergency_contact_name || null,
+      emergency_contact_address: emergency_contact_address || null,
+      emergency_contact_number: emergency_contact_number || null,
+      daily_rate: daily_rate ? parseFloat(daily_rate) : 520,
+      salary_package: salary_package ? parseFloat(salary_package) : 16224,
+      medical_date: medical_date || null,
+      health_card_date: health_card_date || null,
+      gmp_date: gmp_date || null,
+      prp_date: prp_date || null,
+      housekeeping_date: housekeeping_date || null,
+      safety_date: safety_date || null,
+      crr_date: crr_date || null,
+      sss: sss || null,
+      phil_health: phil_health || null,
+      pag_ibig: pag_ibig || null,
+      tin: tin || null,
+      date_of_separation: date_of_separation || null,
+      status: 'Active'
+    };
+
+    console.log('Employee data to be saved:', employeeData);
+
+    // Create the employee
+    const newEmployee = await Employee.create(employeeData);
+    
+    console.log('Employee created successfully:', newEmployee.toJSON());
+
+    // Fetch the complete employee data with relationships
+    const employeeWithRelations = await Employee.findByPk(newEmployee.id, {
+      include: [{
+        model: PayrollInformation,
+        as: 'payrollInfo',
+        required: false
+      }]
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Employee created successfully',
+      data: {
+        employee: employeeWithRelations,
+        ecode: nextEcode
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating employee:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Handle unique constraint errors
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      const field = error.errors[0]?.path || 'field';
+      let friendlyFieldName = field;
+      
+      // Convert field names to user-friendly names
+      const fieldMappings = {
+        'ecode': 'Employee Code',
+        'email_address': 'Email Address',
+        'contact_no': 'Contact Number'
+      };
+      
+      if (fieldMappings[field]) {
+        friendlyFieldName = fieldMappings[field];
+      }
+      
+      return res.status(422).json({
+        success: false,
+        message: 'Duplicate entry detected',
+        errors: {
+          [field]: [`${friendlyFieldName} already exists in the database`]
+        }
+      });
+    }
+
+    // Handle validation errors from Sequelize model
+    if (error.name === 'SequelizeValidationError') {
+      const validationErrors = {};
+      error.errors.forEach(err => {
+        validationErrors[err.path] = [err.message];
+      });
+      
+      return res.status(422).json({
+        success: false,
+        message: 'Model validation failed',
+        errors: validationErrors
+      });
+    }
+
+    // Handle database connection errors
+    if (error.name === 'SequelizeConnectionError') {
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection error. Please try again later.'
+      });
+    }
+
+    // Handle foreign key constraint errors
+    if (error.name === 'SequelizeForeignKeyConstraintError') {
+      return res.status(422).json({
+        success: false,
+        message: 'Invalid reference data provided'
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      } : 'Something went wrong'
+    });
+  }
+};

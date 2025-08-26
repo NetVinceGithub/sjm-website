@@ -3,7 +3,6 @@ import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
-import LoginHistory from '../models/LoginHistory.js';
 
 const login = async (req, res) => {
   try {
@@ -30,13 +29,7 @@ const login = async (req, res) => {
       { expiresIn: '10d' }
     );
 
-    // ✅ Log the login attempt to the LoginHistory table
-    await LoginHistory.create({
-      userId: user.id,
-      loginTime: new Date(),
-      ipAddress: req.ip || null,
-      userAgent: req.headers['user-agent'] || null
-    });
+ 
 
     res.status(200).json({
       success: true,

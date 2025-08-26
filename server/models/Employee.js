@@ -15,19 +15,19 @@ const PayrollInformation = sequelize.define(
       allowNull: false,
     },
     ecode: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(20),
       allowNull: false,
     },
     name: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(255),
       allowNull: false,
     },
     positiontitle: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(100),
       defaultValue: "N/A",
     },
     area_section: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(100),
       defaultValue: "N/A",
     },
     designation: {
@@ -35,79 +35,79 @@ const PayrollInformation = sequelize.define(
       defaultValue: "Regular",
     },
     daily_rate: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 500,
     },
     hourly_rate: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 65,
     },
     ot_hourly_rate: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 81.25,
     },
     ot_rate_sp_holiday: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 109.85,
     },
     ot_rate_reg_holiday: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 109.85,
     },
     special_hol_rate: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 156,
     },
     regular_hol_ot_rate: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 156,
     },
     overtime_pay: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 100,
     },
     holiday_pay: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 200,
     },
     night_differential: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 6.5,
     },
     allowance: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 104,
     },
     tardiness: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 1.08,
     },
     tax_deduction: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,
     },
     sss_contribution: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,
     },
     pagibig_contribution: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 200,
     },
     philhealth_contribution: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 338,
     },
     loan: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,
     },
     otherDeductions: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,
     },
     adjustment: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,
     },
   },
@@ -127,193 +127,248 @@ const Employee = sequelize.define(
       defaultValue: 0,
     },
     ecode: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(20),
       allowNull: false,
-      unique: "unique_ecode", 
+      unique: true,
     },
-    name: {
-      type: DataTypes.STRING,
+    
+    // Name fields (consolidated)
+    complete_name: {
+      type: DataTypes.STRING(255),
       allowNull: false,
-      defaultValue: "N/A",
     },
-    lastname: {
-      type: DataTypes.STRING,
+    last_name: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+    },
+    first_name: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+    },
+    middle_name: {
+      type: DataTypes.STRING(100),
       allowNull: true,
-      defaultValue: "N/A",
     },
-    firstname: {
-      type: DataTypes.STRING,
+    
+    // Legacy name field for backward compatibility
+    name: {
+      type: DataTypes.STRING(255),
       allowNull: false,
-      defaultValue: "N/A",
     },
-    middlename: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    
+    // Employment details (consolidated)
+    position_title: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
     },
     project: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
-    },
-    positiontitle: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+      type: DataTypes.STRING(100),
+      allowNull: true,
     },
     department: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+      type: DataTypes.STRING(100),
+      allowNull: false,
     },
-    "area/section": {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    area_section: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
     },
-    employmentrank: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    employment_rank: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
     },
-    dateofhire: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    date_of_hire: {
+      type: DataTypes.DATEONLY,
+      allowNull: false,
     },
-    "tenuritytoclient(inmonths)": {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    employment_classification: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
     },
-    employmentstatus: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
-    },
-    "team(a/b)": {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
-    },
-    civilstatus: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    
+    // Personal information (consolidated)
+    civil_status: {
+      type: DataTypes.ENUM('single', 'married', 'divorced', 'widowed'),
+      allowNull: false,
     },
     gender: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+      type: DataTypes.ENUM('male', 'female', 'other'),
+      allowNull: false,
     },
     birthdate: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+      type: DataTypes.DATEONLY,
+      allowNull: false,
     },
     age: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
     },
-    address: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    
+    // Addresses (consolidated)
+    current_address: {
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
-    permanentaddress: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    permanent_address: {
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
-    currentaddress: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    
+    // Contact information (consolidated)
+    contact_no: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
     },
-    contactno: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
-    },
-    emailaddress: {
-      type: DataTypes.STRING,
-      allowNull: true, // Allows null values
+    email_address: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
       validate: {
-        isEmail: true, // Only validates if an email is provided
+        isEmail: true,
       },
+      unique: true,
     },
-    governmentidnumber: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    
+    // Government IDs (consolidated)
+    government_id_type: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
     },
-    emergencyContact: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    government_id_number: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
     },
-    emergencycontactAddress: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    
+    // Emergency contact (consolidated)
+    emergency_contact_name: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
     },
-    emergencyContactNumber: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    emergency_contact_number: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
     },
-    dailyRate: {
-      type: DataTypes.INTEGER,
+    emergency_contact_address: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    
+    // Salary information (consolidated)
+    daily_rate: {
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 520,
     },
-    salaryPackage: {
-      type: DataTypes.INTEGER,
+    salary_package: {
+      type: DataTypes.DECIMAL(10, 2),
       defaultValue: 16224,
     },
-    healthCard: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    
+    // Training and certification dates (consolidated)
+    medical_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
     },
-    prp: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    health_card_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
     },
-    safety: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    gmp_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
     },
+    prp_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
+    housekeeping_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
+    safety_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
+    crr_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
+    
+    // Government numbers (consolidated)
     sss: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+      type: DataTypes.STRING(20),
+      allowNull: true,
+    },
+    phil_health: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+    },
+    pag_ibig: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
     },
     tin: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+      type: DataTypes.STRING(20),
+      allowNull: true,
     },
-    philhealth: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    
+    // Separation
+    date_of_separation: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
     },
-    "pag-ibig": {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
-    },
-    profileImage: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+    
+    // Other fields
+    profile_image: {
+      type: DataTypes.TEXT, // For storing image paths or base64
+      allowNull: true,
     },
     esignature: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
+      type: DataTypes.TEXT, // For storing signature paths or base64
+      allowNull: true,
     },
     status: {
-      type: DataTypes.STRING,
-      defaultValue: "Active",
+      type: DataTypes.ENUM('Active', 'Inactive', 'Terminated'),
+      defaultValue: 'Active',
     },
-    attendedtrainingandseminar: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
-    },
-
-    dateofseparation: {
-      type: DataTypes.STRING,
-      defaultValue: "N/A",
-    },
-    medical: {
-      type: DataTypes.STRING,
+    attended_training: {
+      type: DataTypes.TEXT, // For storing training information
+      allowNull: true,
     },
   },
-  { timestamps: false }
+  { 
+    timestamps: true, // Enable createdAt and updatedAt
+    indexes: [
+      {
+        unique: true,
+        fields: ['ecode']
+      },
+      {
+        unique: true,
+        fields: ['email_address']
+      },
+      {
+        fields: ['status']
+      },
+      {
+        fields: ['department']
+      }
+    ]
+  }
 );
 
 Employee.afterCreate(async (employee) => {
-  await PayrollInformation.create({
-    employee_id: employee.id,
-    ecode: employee.ecode,
-    name: employee.name,
-    positiontitle: employee.positiontitle || "N/A",
-    area_section: employee.department || "N/A",
-    designation: "Regular",
-  });
+  try {
+    await PayrollInformation.create({
+      employee_id: employee.id,
+      ecode: employee.ecode,
+      name: employee.complete_name || employee.name,
+      positiontitle: employee.position_title || "N/A",
+      area_section: employee.area_section || employee.department || "N/A",
+      designation: "Regular",
+      daily_rate: employee.daily_rate || 500,
+    });
+  } catch (error) {
+    console.error('Error creating payroll information:', error);
+  }
 });
 
 // Define the relationship

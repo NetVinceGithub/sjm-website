@@ -27,52 +27,40 @@ const Payslip = db.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+
+    // Rates & base pay
     dailyrate: DataTypes.DECIMAL(10, 2),
     basicPay: DataTypes.DECIMAL(10, 2),
-    noOfDays: DataTypes.INTEGER,
-    holidayDays: DataTypes.INTEGER,
-    regularDays: DataTypes.INTEGER,
+    noOfDays: DataTypes.DECIMAL(10, 2),
 
-    // Holiday-specific fields
-    specialHolidayDays: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-    },
-    regularHolidayDays: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-    },
+    // Holiday fields
+    holidayDays: DataTypes.DECIMAL(10, 2),
+    regularDays: DataTypes.DECIMAL(10, 2),
+    specialHolidayDays: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.0 },
+    regularHolidayDays: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.0 },
     specialNonWorkingHolidayDays: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.0,
     },
 
     // Overtime fields
     overtimePay: DataTypes.DECIMAL(10, 2),
     totalOvertime: DataTypes.DECIMAL(10, 2),
-    totalRegularHours: DataTypes.INTEGER,
-    totalHolidayHours: DataTypes.INTEGER,
+    regularOvertime: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.0 },
+    holidayOvertime: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.0 },
+
+    // Hours
+    totalRegularHours: DataTypes.DECIMAL(10, 2),
+    totalHolidayHours: DataTypes.DECIMAL(10, 2),
     specialHolidayHours: DataTypes.DECIMAL(10, 2),
     regularHolidayHours: DataTypes.DECIMAL(10, 2),
 
-    // Holiday pay fields
+    // Holiday pay
     holidayPay: DataTypes.DECIMAL(10, 2),
-    specialHolidayPay: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 0.0,
-    },
-    regularHolidayPay: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 0.0,
-    },
-    specialHolidayOTPay: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 0.0,
-    },
-    regularHolidayOTPay: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 0.0,
-    },
+    specialHolidayPay: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.0 },
+    regularHolidayPay: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.0 },
+    specialHolidayOTPay: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.0 },
+    regularHolidayOTPay: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.0 },
 
     // Night shift
     nightDifferential: DataTypes.DECIMAL(10, 2),
@@ -90,24 +78,15 @@ const Payslip = db.define(
     hdmf: DataTypes.DECIMAL(10, 2),
 
     // Loans
-    loan: DataTypes.DECIMAL(10, 2), // Keep existing loan field for backward compatibility
-    sssLoan: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 0.0,
-    },
-    pagibigLoan: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 0.0,
-    },
+    loan: DataTypes.DECIMAL(10, 2), // backward compatibility
+    sssLoan: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.0 },
+    pagibigLoan: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.0 },
 
-    // Other deductions
+    // Deductions
     totalTardiness: DataTypes.DECIMAL(10, 2),
     totalHours: DataTypes.DECIMAL(10, 2),
     otherDeductions: DataTypes.DECIMAL(10, 2),
-    taxDeduction: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 0.0,
-    },
+    taxDeduction: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.0 },
 
     // Totals
     totalEarnings: DataTypes.DECIMAL(10, 2),
@@ -116,12 +95,14 @@ const Payslip = db.define(
     gross_pay: DataTypes.DECIMAL(10, 2),
     netPay: DataTypes.DECIMAL(10, 2),
 
+    // Extra fields
+    shiftHours: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0.0 },
+    employmentRank: { type: DataTypes.STRING, defaultValue: "N/A" },
+    isRankAndFile: { type: DataTypes.BOOLEAN, defaultValue: true },
+
     // System fields
     requestedBy: DataTypes.STRING(25),
-    date: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-    },
+    date: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     status: {
       type: DataTypes.ENUM("draft", "pending", "released"),
       defaultValue: "draft",

@@ -1,258 +1,118 @@
-import express from "express";
-import Clients from "../models/Clients.js";
+import Clients from '../models/Clients.js';
+import { Op } from 'sequelize';
 
-const router = express.Router();
 
-// Function to sync clients from Google Sheets
-const syncClientsFromGoogleSheets = async () => {
+export const getNextClientCode = async (req, res) => {
   try {
-    const response = await fetch(process.env.GOOGLE_SHEET_URL_CLIENT);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    const lastClient = await Clients.findOne({
+      order: [["createdAt", "DESC"]],
+    });
+
+    let nextCode = "MCL00001";
+    if (lastClient && lastClient.client_code) {
+      const lastNumber = parseInt(lastClient.client_code.replace("MCL", "")) || 0;
+      const newNumber = lastNumber + 1;
+      nextCode = "MCL" + String(newNumber).padStart(5, "0");
     }
-    
-    const data = await response.json();
-    
-    if (!data.values || data.values.length <= 1) {
-      return { success: false, message: "No data found in Google Sheets" };
-    }
-    
-    // Skip header row (index 0) and process data rows
-    const clientsData = data.values.slice(1);
-    const syncedClients = [];
-    
-    for (const row of clientsData) {
-      const [name, tinNumber, contactNumber, emailAddress, businessAddress, joinedDate, project] = row;
-      
-      // Skip empty rows
-      if (!name || name.trim() === '') continue;
-      
-      // Check if client already exists
-      const existingClient = await Clients.findOne({
-        where: { name: name.trim() }
-      });
-      
-      const clientData = {
-        name: name.trim(),
-        tinNumber: tinNumber?.trim() || null,
-        contactNumber: contactNumber?.trim() || null,
-        emailAddress: emailAddress?.trim() || null,
-        businessAddress: businessAddress?.trim() || null,
-        joinedDate: joinedDate?.trim() || null,
-        project: project?.trim() || null,
-        status: 'Active',
-        deployedEmployees: 1 // Default value, you can modify this logic
-      };
-      
-      if (existingClient) {
-        // Update existing client
-        await existingClient.update(clientData);
-        syncedClients.push({ ...existingClient.dataValues, action: 'updated' });
-      } else {
-        // Create new client
-        const newClient = await Clients.create(clientData);
-        syncedClients.push({ ...newClient.dataValues, action: 'created' });
-      }
-    }
-    
-    return {
-      success: true,
-      message: `Successfully synced ${syncedClients.length} clients`,
-      data: syncedClients
-    };
-    
+
+    res.json({ success: true, data: { client_code: nextCode } });
   } catch (error) {
-    console.error('Error syncing clients from Google Sheets:', error);
-    return {
-      success: false,
-      message: 'Failed to sync clients from Google Sheets',
-      error: error.message
-    };
+    console.error("Error generating client code:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// GET all clients
-router.get("/", async (req, res) => {
-  try {
-    const clients = await Clients.findAll({
-      order: [['created_at', 'DESC']]
-    });
-    
-    res.status(200).json({
-      success: true,
-      data: clients
-    });
-  } catch (error) {
-    console.error('Error fetching clients:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch clients',
-      error: error.message
-    });
-  }
-});
 
-// GET single client by ID
-router.get("/:id", async (req, res) => {
-  try {
-    const client = await Clients.findByPk(req.params.id);
-    
-    if (!client) {
-      return res.status(404).json({
-        success: false,
-        message: 'Client not found'
-      });
-    }
-    
-    res.status(200).json({
-      success: true,
-      data: client
-    });
-  } catch (error) {
-    console.error('Error fetching client:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch client',
-      error: error.message
-    });
-  }
-});
+// Helper function to generate next client code
+const generateClientCode = async () => {
+  const lastClient = await Clients.findOne({
+    order: [["id", "DESC"]],
+  });
 
-// POST request to sync clients from Google Sheets
-router.post("/sync", async (req, res) => {
-  try {
-    const result = await syncClientsFromGoogleSheets();
-    
-    if (result.success) {
-      res.status(200).json(result);
-    } else {
-      res.status(400).json(result);
-    }
-  } catch (error) {
-    console.error('Error in sync endpoint:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error during sync',
-      error: error.message
-    });
+  if (!lastClient || !lastClient.clientCode) {
+    return "MCL00001"; // first code
   }
-});
 
-// POST request to create new client manually
-router.post("/", async (req, res) => {
+  // Extract the number part (e.g., from MCL00009 -> 9)
+  const lastNumber = parseInt(lastClient.clientCode.replace("MCL", ""), 10);
+
+  // Increment and pad with zeros
+  const nextNumber = (lastNumber + 1).toString().padStart(5, "0");
+
+  return `MCL${nextNumber}`;
+};
+
+// Add new client
+// controllers/clientsController.js
+
+export const addClient = async (req, res) => {
   try {
     const {
-      name,
-      tinNumber,
-      contactNumber,
-      emailAddress,
-      businessAddress,
-      joinedDate,
-      status,
-      deployedEmployees
+      client_name,
+      address,
+      tin,
+      contact_person,
+      phone,
+      email,
+      join_date,
+      expiry_date,
+      billing_frequency,
+      remarks,
     } = req.body;
-    
-    if (!name) {
-      return res.status(400).json({
-        success: false,
-        message: 'Client name is required'
-      });
-    }
-    
-    // Check if client already exists
-    const existingClient = await Clients.findOne({
-      where: { name: name.trim() }
+
+    // 🔹 Find the last inserted client code
+    const lastClient = await Clients.findOne({
+      order: [["id", "DESC"]],
     });
-    
-    if (existingClient) {
-      return res.status(400).json({
-        success: false,
-        message: 'Client with this name already exists'
-      });
+
+    let newCode = "MCL00001"; // default if no clients yet
+
+    if (lastClient && lastClient.clientCode) {
+      const lastNumber = parseInt(lastClient.clientCode.replace("MCL", ""), 10);
+      const nextNumber = lastNumber + 1;
+      newCode = "MCL" + nextNumber.toString().padStart(5, "0");
     }
-    
-    const newClient = await Clients.create({
-      name: name.trim(),
-      tinNumber: tinNumber?.trim() || null,
-      contactNumber: contactNumber?.trim() || null,
-      emailAddress: emailAddress?.trim() || null,
-      businessAddress: businessAddress?.trim() || null,
-      joinedDate: joinedDate?.trim() || null,
-      status: status || 'Active',
-      deployedEmployees: deployedEmployees || 0
-    });
-    
+
+  const newClient = await Clients.create({
+    clientCode: newCode, // ✅ corrected field name
+    name: client_name,
+    tinNumber: tin,
+    contactNumber: phone,
+    contactPerson: contact_person,
+    emailAddress: email,
+    businessAddress: address,
+    joinedDate: join_date,
+    expiryDate: expiry_date,
+    billingFrequency: billing_frequency,
+    project: remarks,
+  });
+
     res.status(201).json({
       success: true,
-      message: 'Client created successfully',
-      data: newClient
+      message: "Client added successfully",
+      data: newClient,
     });
   } catch (error) {
-    console.error('Error creating client:', error);
+    console.error("Error adding client:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to create client',
-      error: error.message
+      message: "Error adding client",
+      error: error.message,
     });
   }
-});
+};
 
-// PUT request to update client
-router.put("/:id", async (req, res) => {
+
+
+
+// Get All Clients (Masterlist)
+export const getClients = async (req, res) => {
   try {
-    const client = await Clients.findByPk(req.params.id);
-    
-    if (!client) {
-      return res.status(404).json({
-        success: false,
-        message: 'Client not found'
-      });
-    }
-    
-    const updatedClient = await client.update(req.body);
-    
-    res.status(200).json({
-      success: true,
-      message: 'Client updated successfully',
-      data: updatedClient
-    });
+    const clients = await Clients.findAll({ order: [["createdAt", "DESC"]] });
+    res.json({ success: true, data: clients });
   } catch (error) {
-    console.error('Error updating client:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update client',
-      error: error.message
-    });
+    console.error("Error fetching clients:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
-});
+};
 
-// DELETE request to delete client
-router.delete("/:id", async (req, res) => {
-  try {
-    const client = await Clients.findByPk(req.params.id);
-    
-    if (!client) {
-      return res.status(404).json({
-        success: false,
-        message: 'Client not found'
-      });
-    }
-    
-    await client.destroy();
-    
-    res.status(200).json({
-      success: true,
-      message: 'Client deleted successfully'
-    });
-  } catch (error) {
-    console.error('Error deleting client:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete client',
-      error: error.message
-    });
-  }
-});
-
-export default router;

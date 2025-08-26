@@ -339,7 +339,7 @@ const PayrollSummary = () => {
     try {
       setLoading(true); // Ensure loading state is set
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/payslip`, getAuthHeaders()
+        `${import.meta.env.VITE_API_URL}/api/payslip`
       );
       setPayslips([...response.data]); // Force a new reference to trigger re-render
     } catch (error) {
@@ -382,7 +382,7 @@ const PayrollSummary = () => {
       // Fetch all required data
       const [employeeResponse, attendanceResponse, holidaysResponse] =
         await Promise.all([
-          axios.get(`${import.meta.env.VITE_API_URL}/api/employees`, getAuthHeaders()),
+          axios.get(`${import.meta.env.VITE_API_URL}/api/employee`, getAuthHeaders()),
           axios.get(
             `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`, getAuthHeaders()
           ),

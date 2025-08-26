@@ -48,12 +48,10 @@ const ClientList = () => {
     }
   };
 
-
   const fetchClients = async () => {
     try {
       setLoading(true);
 
-      // Get the token from localStorage
       const token = localStorage.getItem("token");
       
       if (!token) {
@@ -64,7 +62,6 @@ const ClientList = () => {
 
       console.log("Fetching clients with token:", token.substring(0, 20) + "...");
 
-      // Make authenticated request with Bearer token
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/clients`,
         {
@@ -81,35 +78,38 @@ const ClientList = () => {
       const data = response.data;
 
       if (data.success) {
-        // Handle paginated response - data.data contains the actual clients array
-        const clientsData = data.data.data || data.data; // Handle both paginated and non-paginated responses
+        const clientsData = data.data.data || data.data; 
         
         console.log("Raw clients data:", clientsData);
 
+        setClients(clientsData);
+
         const transformedClients = clientsData.map((client) => ({
           id: client.id,
-          name: client.client_name,
-          project: client.client_name, // Using client_name as project
+          name: client.name, // ✅ API already gives "name"
+          project: client.project,
           deployed: client.deployedEmployees || 0,
-          location: client.address || "No address provided",
-          phone: client.phone || "No phone provided",
-          email: client.email || "No email provided",
-          tin: client.tin || "No TIN provided",
-          joinDate: client.join_date || client.created_at || "No date provided",
-          expiryDate: client.expiry_date || "No date provided for expiry date", 
-          status: client.expiry_date && new Date(client.expiry_date) > new Date() ? "Active" : "Inactive", 
-          avatar: client.client_name 
-            ? client.client_name.substring(0, 2).toUpperCase()
+          location: client.businessAddress || "No address provided", // ✅ camelCase
+          phone: client.contactNumber || "No phone provided",
+          email: client.emailAddress || "No email provided",
+          tin: client.tinNumber || "No TIN provided",
+          joinDate: client.joinedDate || client.createdAt || "No date provided",
+          expiryDate: client.expiryDate || "No date provided for expiry date",
+          status:
+            client.expiryDate && new Date(client.expiryDate) > new Date()
+              ? "Active"
+              : "Inactive",
+          avatar: client.name
+            ? client.name.substring(0, 2).toUpperCase()
             : "CL",
           remarks: client.remarks || "No remarks available for this client.",
-          // Add these for debugging
-          contact_person: client.contact_person,
-          billing_frequency: client.billing_frequency,
-          client_code: client.client_code,
+          contact_person: client.contactPerson || "No contact person", // ✅ camelCase
+          billing_frequency: client.billingFrequency,
+          client_code: client.clientCode,
         }));
 
+
         console.log("Transformed clients:", transformedClients);
-        setClients(transformedClients);
         setFilteredClients(transformedClients);
       } else {
         console.error("API returned success: false", data);
@@ -119,18 +119,14 @@ const ClientList = () => {
       console.error("Error response:", error.response?.data);
       console.error("Error status:", error.response?.status);
       
-      // If 401, token might be invalid
       if (error.response?.status === 401) {
         console.error("Authentication failed - redirecting to login");
-        // You might want to redirect to login or refresh token
       }
     } finally {
       setLoading(false);
     }
   };
 
-
-  // Sync clients from Google Sheets
   const syncClients = async () => {
     try {
       setSyncing(true);
@@ -158,10 +154,8 @@ const ClientList = () => {
     }
   };
 
-  // Update deployed count for clients based on employees matching project name
   const updateClientsWithEmployeeCount = (clientsList, employeesList) => {
     return clientsList.map((client) => {
-      // Count employees where employee.project matches client.name (case insensitive)
       const count = employeesList.filter(
         (emp) =>
           emp.project &&
@@ -171,12 +165,11 @@ const ClientList = () => {
 
       return {
         ...client,
-        deployed: count.toString(), // keep string for display consistency
+        deployed: count.toString(),
       };
     });
   };
 
-  // Update this in your handleSearch function:
   const handleSearch = (e) => {
     const term = e.target.value.toLowerCase();
     setSearchTerm(term);
@@ -187,7 +180,6 @@ const ClientList = () => {
       const filtered = clients.filter(
         (client) =>
           client.name.toLowerCase().includes(term) ||
-          // Remove this line: client.company.toLowerCase().includes(term) ||
           client.email.toLowerCase().includes(term) ||
           client.location.toLowerCase().includes(term) ||
           (client.contact_person && client.contact_person.toLowerCase().includes(term))
@@ -196,7 +188,6 @@ const ClientList = () => {
     }
   };
 
-  // Fetch clients and employees on mount
   useEffect(() => {
     const fetchAllData = async () => {
       await fetchEmployees();
@@ -205,9 +196,7 @@ const ClientList = () => {
     fetchAllData();
   }, []);
 
-  // Update deployed count when either clients or employees state changes
   useEffect(() => {
-    // Map project name to count of employees assigned to it
     const employeeCountByProject = employees.reduce((acc, emp) => {
       const projectName = emp.project?.trim().toUpperCase() || "";
       if (projectName) {
@@ -216,7 +205,6 @@ const ClientList = () => {
       return acc;
     }, {});
 
-    // Update clients with employee count based on matching project
     const updatedClients = clients.map((client) => {
       const clientProjectName =
         client.project?.trim().toUpperCase() ||
@@ -243,12 +231,11 @@ const ClientList = () => {
   };
 
   const handleReactivate = (client) => {
-    // Add your reactivate logic here
     console.log("Reactivating client:", client.name);
   };
 
   return (
-    <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
+    <div className="right-0 bottom-0 min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <Breadcrumb
         items={[
           { label: "Clients" },
@@ -258,8 +245,7 @@ const ClientList = () => {
 
       <div className="bg-white h-[calc(100vh-120px)] w-full -mt-2 py-3 p-2 rounded-lg shadow">
         <div className="flex items-center justify-end mb-4">
-          {/* Search & Sync Section - Aligned with Buttons */}
-          <div className="flex rounded w-1/2 justify-end  items-center relative">
+          <div className="flex rounded w-1/2 justify-end items-center relative">
             <input
               type="text"
               placeholder="Search Clients"
@@ -270,8 +256,6 @@ const ClientList = () => {
             <FaSearch className="absolute right-2 text-neutralDGray" />
           </div>
         </div>
-
-        {/* Tooltip component - placed after the container for proper rendering */}
 
         {loading ? (
           <div className="flex justify-center items-center -mt-3 h-[calc(100%-60px)]">
@@ -296,7 +280,6 @@ const ClientList = () => {
                   }`}
                   className="border border-neutralDGray -mt-4 h-fit rounded-lg shadow-md p-2.5 hover:shadow-lg transition-shadow duration-300 cursor-pointer"
                 >
-                  {/* Header Row: Avatar, Name/Title, Status */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-start gap-3">
                       <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium text-base flex-shrink-0">
@@ -326,7 +309,6 @@ const ClientList = () => {
 
                   <hr className="-mt-6" />
 
-                  {/* Contact Info */}
                   <div className="space-y-1 mb-3 -mt-3 p-2 rounded-xl border">
                     <div className="flex items-center text-sm text-gray-600">
                       <MapPin className="w-3 h-3 mr-2 flex-shrink-0" />
@@ -336,7 +318,7 @@ const ClientList = () => {
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Phone className="w-3 h-3 mr-2 flex-shrink-0" />
-                      <span className="truncate text-xs">{client.phone}</span>
+                      <span className="truncate text-xs">{client.name}</span>
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <FaPersonShelter className="w-3 h-3 mr-2 flex-shrink-0" />
@@ -352,7 +334,6 @@ const ClientList = () => {
                     </div>
                   </div>
 
-                  {/* Join Date */}
                   <div className="flex items-center text-xs text-gray-500 mb-3">
                     <Calendar className="w-3 h-3 mr-2" />
                     <span>
@@ -370,7 +351,6 @@ const ClientList = () => {
                     </span>
                   </div>
 
-                  {/* Action Buttons */}
                   {client.status === "Inactive" ? (
                     <div className="flex gap-2">
                       <button
@@ -400,16 +380,14 @@ const ClientList = () => {
           </div>
         )}
 
-        {/* Client Profile Modal */}
         <ClientProfileModal
           show={showProfileModal}
           handleClose={handleCloseModal}
           client={selectedClient}
-          employees={employees} // pass the employees array here
+          employees={employees}
         />
       </div>
 
-      {/* Tooltip component - placed at the end for proper z-index */}
       <Tooltip
         anchorSelect="[data-tooltip-id='client-tooltip']"
         place="top"
@@ -434,19 +412,19 @@ const ClientList = () => {
           return null;
         }}
         style={{
-          backgroundColor: "rgba(71, 81, 95, 0.8)", // Semi-transparent dark background
+          backgroundColor: "rgba(71, 81, 95, 0.8)",
           color: "#ffffff",
           borderRadius: "6px",
           fontSize: "12px",
-          maxWidth: "250px", // Reduced width to fit better on card
+          maxWidth: "250px",
           zIndex: 9999,
           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.25)",
-          backdropFilter: "blur(4px)", // Add blur effect for overlay feel
+          backdropFilter: "blur(4px)",
         }}
-        offset={-5} // Negative offset to position over the card
+        offset={-5}
         delayShow={200}
         delayHide={100}
-        noArrow={true} // Keep arrow for better visual connection
+        noArrow={true}
       />
     </div>
   );
