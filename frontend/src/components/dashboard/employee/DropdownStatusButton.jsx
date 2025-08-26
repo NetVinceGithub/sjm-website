@@ -145,8 +145,6 @@ const DropdownStatusButton = ({ row, effectiveStatus, handleToggleStatus }) => {
           title={`Current status: ${effectiveStatus}. Click to see options.`}
         >
           <FaMinusSquare title="Toggle Status" className="w-4 h-4" />
-          {"  "}
-          <FaChevronDown className="w-2 h-2 top-0" />
         </button>
       </div>
 

@@ -17,6 +17,7 @@ const FilterList = ({
     sex: [],
     status: [],
     position: [],
+    classification: [], // <-- added
     ...activeFilters,
   });
 
@@ -49,15 +50,17 @@ const FilterList = ({
         break;
       case "employmentStatus":
         // This maps to "employmentstatus" in your data
-        values = employees.map((item) => item.employmentstatus).filter(Boolean);
+        values = employees
+          .map((item) => item.employment_status)
+          .filter(Boolean);
         break;
       case "employmentRank":
         // This maps to "employmentrank" in your data
-        values = employees.map((item) => item.employmentrank).filter(Boolean);
+        values = employees.map((item) => item.employment_rank).filter(Boolean);
         break;
       case "civilStatus":
         // This maps to "civilstatus" in your data
-        values = employees.map((item) => item.civilstatus).filter(Boolean);
+        values = employees.map((item) => item.civil_status).filter(Boolean);
         break;
       case "sex":
         // This maps to "gender" in your data (as shown in your DataTable columns)
@@ -74,9 +77,14 @@ const FilterList = ({
           .filter(Boolean);
         break;
       case "position":
-        // This maps to "positiontitle" in your data
-        values = employees.map((item) => item.positiontitle).filter(Boolean);
+        values = employees.map((item) => item.position_title).filter(Boolean);
         break;
+      case "classification":
+        values = employees
+          .map((item) => item.employment_classification)
+          .filter(Boolean);
+        break;
+
       default:
         values = employees.map((item) => item[field]).filter(Boolean);
     }
@@ -117,7 +125,9 @@ const FilterList = ({
       sex: [],
       status: [],
       position: [],
+      classification: [], // <-- added
     };
+
     setFilters(resetFilters);
 
     if (onClearFilters) {
@@ -195,16 +205,20 @@ const FilterList = ({
                 Employment Classification
               </label>
               <select
-                value={filters.employmentStatus?.[0] || ""}
+                value={filters.classification?.[0] || ""}
                 onChange={(e) =>
-                  handleSelectChange("employmentStatus", e.target.value)
+                  handleSelectChange("classification", e.target.value)
                 }
                 className="w-full p-2 border text-xs border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Employment Classifications</option>
-                {getUniqueValues("employmentStatus").map((status) => (
-                  <option key={status} value={status} title={status}>
-                    {status}
+                {getUniqueValues("classification").map((classification) => (
+                  <option
+                    key={classification}
+                    value={classification}
+                    title={classification}
+                  >
+                    {classification}
                   </option>
                 ))}
               </select>

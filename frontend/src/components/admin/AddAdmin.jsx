@@ -32,14 +32,11 @@ const AddAdmin = () => {
     const token = localStorage.getItem("token");
     return {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     };
   };
-
-
-  
 
   useEffect(() => {
     const checkUserRole = async () => {
@@ -243,7 +240,7 @@ const AddAdmin = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="mt-1 p-2 w-full border rounded-md text-sm"
+                  className="mt-1 p-2 w-full border rounded-md h-8 text-xs"
                   placeholder="e.g., Jane Smith"
                   required
                 />
@@ -257,7 +254,7 @@ const AddAdmin = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="mt-1 p-2 w-full border rounded-md text-sm"
+                  className="mt-1 p-2 w-full border rounded-md h-8 text-xs"
                   placeholder="e.g., jane.smith@company.com"
                   required
                 />
@@ -271,7 +268,7 @@ const AddAdmin = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="mt-1 p-2 w-full border rounded-md text-sm"
+                  className="mt-1 p-2 w-full border rounded-md h-8 text-xs"
                   placeholder="Create a password"
                   required
                   minLength={8}
@@ -285,7 +282,7 @@ const AddAdmin = () => {
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
-                  className="mt-1 mb-2 p-2 w-full border rounded-md text-sm"
+                  className="mt-1 mb-2 p-2 h-8 w-full border rounded-md text-xs"
                   required
                 >
                   <option value="" disabled>
@@ -299,7 +296,7 @@ const AddAdmin = () => {
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  className="text-sm w-full hover:bg-green-400 h-10 hover:text-white text-gray-700 border transition-all duration-300 py-2 px-4 rounded"
+                  className="text-sm w-full hover:bg-green-400 h-8 hover:text-white text-gray-700 border transition-all duration-300 py-2 px-4 rounded"
                   disabled={loading}
                 >
                   {loading ? "Adding..." : "Add Employee"}
@@ -313,11 +310,11 @@ const AddAdmin = () => {
             <h4 className="text-sm mb-2 text-green-600 font-semibold">
               Active Users
             </h4>
-            <div className="overflow-y-auto h-full">
+            <div className="overflow-y-auto h-56">
               {loading ? (
                 <p className="text-sm text-gray-500">Loading users...</p>
               ) : (
-                <ul className="space-y-2">
+                <ul className="space-y-0.5">
                   {users
                     .filter((user) => !user.isBlocked)
                     .map((user, index) => (
@@ -375,7 +372,9 @@ const AddAdmin = () => {
                         ) : (
                           <div className="flex justify-between items-center">
                             <div className="text-sm space-y-0.5">
-                              <span className="font-bold">{user.name}</span>
+                              <span className="font-bold text-xs">
+                                {user.name}
+                              </span>
                               <br />
                               <span className="text-gray-600 italic text-xs">
                                 {user.email}
@@ -384,13 +383,13 @@ const AddAdmin = () => {
                             <div className="flex gap-1">
                               <button
                                 onClick={() => startEdit(user)}
-                                className="bg-green-500 h-10 w-20 hover:bg-green-600 text-white px-2 py-1 rounded text-sm"
+                                className="bg-green-500 h-fit w-20 hover:bg-green-600 text-white px-2 py-1 rounded text-sm"
                               >
                                 Edit
                               </button>
                               <button
                                 onClick={() => handleBlock(user.id)}
-                                className="bg-red-500 h-10 w-20 hover:bg-red-600 text-white flex text-center items-center justify-center p-1 rounded"
+                                className="bg-red-500 h-fit w-20 hover:bg-red-600 text-white flex text-center items-center justify-center p-1 rounded"
                               >
                                 <MdBlock className="w-5 h-5" />
                               </button>
@@ -409,7 +408,7 @@ const AddAdmin = () => {
             <h4 className="text-sm mb-2 text-red-600 font-semibold">
               Blocked Users
             </h4>
-            <div className="overflow-y-auto h-full">
+            <div className="overflow-y-auto h-56">
               <ul className="space-y-2">
                 {users
                   .filter((user) => user.isBlocked)
@@ -419,7 +418,7 @@ const AddAdmin = () => {
                       className="border-b pb-2 last:border-b-0 flex justify-between items-center"
                     >
                       <div className="text-xs text-gray-700">
-                        <span className="font-bold text-sm">{user.name}</span>
+                        <span className="font-bold text-xs">{user.name}</span>
                         <br />
                         <span className="text-gray-600 italic text-xs">
                           {user.email}

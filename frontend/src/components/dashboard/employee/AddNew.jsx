@@ -2,23 +2,20 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Breadcrumb from "../dashboard/Breadcrumb";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
-
-
-const apiClient =  axios.create({
-  baseURL: API_BASE_URL, 
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
   headers: {
-    'Content-Type' : 'application/json',
-    'Accept': 'application/json',
+    "Content-Type": "application/json",
+    Accept: "application/json",
   },
-})
+});
 
 // Add request interceptor to include auth token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem("auth_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -94,31 +91,29 @@ const AddNew = () => {
     const token = localStorage.getItem("token");
     return {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
     };
   };
 
+  useEffect(() => {
+    fetchNextEcode();
+  }, []);
 
-    useEffect(() => {
-      fetchNextEcode();
-    }, []);
-
-
-    const fetchNextEcode = async () => {
+  const fetchNextEcode = async () => {
     try {
-      const response = await apiClient.get('/employees/next-ecode');
-      
+      const response = await apiClient.get("/employees/next-ecode");
+
       if (response.data.success) {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          ecode: response.data.data.ecode
+          ecode: response.data.data.ecode,
         }));
       }
     } catch (error) {
-      console.error('Error fetching next ecode:', error);
+      console.error("Error fetching next ecode:", error);
       // Fallback to manual generation if API fails
       const generateEcode = () => {
         const baseCode = "M";
@@ -126,18 +121,16 @@ const AddNew = () => {
         const paddedNumber = String(startingNumber).padStart(5, "0");
         return baseCode + paddedNumber;
       };
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        ecode: generateEcode()
+        ecode: generateEcode(),
       }));
     }
   };
 
-
-
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -148,9 +141,9 @@ const AddNew = () => {
 
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: null
+        [name]: null,
       }));
     }
   };
@@ -164,8 +157,7 @@ const AddNew = () => {
     }
   }, [sameAsCurrent, formData.currentAddress]);
 
-
- const calculateAge = (dob) => {
+  const calculateAge = (dob) => {
     if (!dob) return "";
     const birth = new Date(dob);
     const today = new Date();
@@ -187,55 +179,54 @@ const AddNew = () => {
   const age = calculateAge(formData.birthdate);
 
   const handleKeyDown = (e, name) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        const fields = [
-          "ecode",
-          "lastName",
-          "firstName",
-          "middleName",
-          "gender",
-          "civilStatus",
-          "birthdate",
-          "contactNo",
-          "emailAddress",
-          "currentAddress",
-          "permanentAddress",
-          "positionTitle",
-          "project",
-          "department",
-          "areaSection",
-          "employmentRank",
-          "dateOfHire",
-          "employmentClassification",
-          "dateOfSeparation",
-          "governmentIdType",
-          "governmentIdNumber",
-          "emergencyContactName",
-          "emergencyContactNumber",
-          "emergencyContactAddress",
-          "dailyRate",
-          "salaryPackage",
-          "medicalDate",
-          "healthCardDate",
-          "gmpDate",
-          "prpDate",
-          "housekeepingDate",
-          "safetyDate",
-          "crrDate",
-          "sss",
-          "philHealth",
-          "pagIbig",
-          "tin",
-        ];
-        const idx = fields.indexOf(name);
-        if (idx >= 0 && idx < fields.length - 1) {
-          const next = fields[idx + 1];
-          inputRefs.current[next]?.focus();
-        }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const fields = [
+        "ecode",
+        "lastName",
+        "firstName",
+        "middleName",
+        "gender",
+        "civilStatus",
+        "birthdate",
+        "contactNo",
+        "emailAddress",
+        "currentAddress",
+        "permanentAddress",
+        "positionTitle",
+        "project",
+        "department",
+        "areaSection",
+        "employmentRank",
+        "dateOfHire",
+        "employmentClassification",
+        "dateOfSeparation",
+        "governmentIdType",
+        "governmentIdNumber",
+        "emergencyContactName",
+        "emergencyContactNumber",
+        "emergencyContactAddress",
+        "dailyRate",
+        "salaryPackage",
+        "medicalDate",
+        "healthCardDate",
+        "gmpDate",
+        "prpDate",
+        "housekeepingDate",
+        "safetyDate",
+        "crrDate",
+        "sss",
+        "philHealth",
+        "pagIbig",
+        "tin",
+      ];
+      const idx = fields.indexOf(name);
+      if (idx >= 0 && idx < fields.length - 1) {
+        const next = fields[idx + 1];
+        inputRefs.current[next]?.focus();
       }
-    };
-
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -247,10 +238,10 @@ const AddNew = () => {
       const submitData = {
         // Personal Information
         last_name: formData.lastName.trim(),
-        first_name: formData.firstName.trim(), 
+        first_name: formData.firstName.trim(),
         middle_name: formData.middleName.trim() || null,
         complete_name: completeName.trim(),
-        
+
         // Employment Information
         position_title: formData.positionTitle.trim(),
         project: formData.project.trim(),
@@ -259,7 +250,7 @@ const AddNew = () => {
         employment_rank: formData.employmentRank,
         date_of_hire: formData.dateOfHire,
         employment_classification: formData.employmentClassification.trim(),
-        
+
         // Personal Details
         civil_status: formData.civilStatus,
         gender: formData.gender,
@@ -268,20 +259,22 @@ const AddNew = () => {
         permanent_address: formData.permanentAddress.trim(),
         contact_no: formData.contactNo.trim(),
         email_address: formData.emailAddress.trim(),
-        
+
         // Government ID
         government_id_type: formData.governmentIdType.trim() || null,
         government_id_number: formData.governmentIdNumber.trim() || null,
-        
+
         // Emergency Contact
         emergency_contact_name: formData.emergencyContactName.trim() || null,
-        emergency_contact_number: formData.emergencyContactNumber.trim() || null,
-        emergency_contact_address: formData.emergencyContactAddress.trim() || null,
-        
+        emergency_contact_number:
+          formData.emergencyContactNumber.trim() || null,
+        emergency_contact_address:
+          formData.emergencyContactAddress.trim() || null,
+
         // Compensation
         daily_rate: parseFloat(formData.dailyRate) || 0,
         salary_package: parseFloat(formData.salaryPackage) || 0,
-        
+
         // Training/Certification Dates
         medical_date: formData.medicalDate || null,
         health_card_date: formData.healthCardDate || null,
@@ -290,26 +283,29 @@ const AddNew = () => {
         housekeeping_date: formData.housekeepingDate || null,
         safety_date: formData.safetyDate || null,
         crr_date: formData.crrDate || null,
-        
+
         // Government Benefits
         sss: formData.sss.trim() || null,
         phil_health: formData.philHealth.trim() || null,
         pag_ibig: formData.pagIbig.trim() || null,
         tin: formData.tin.trim() || null,
-        
+
         // Employment Status
         date_of_separation: formData.dateOfSeparation || null,
       };
 
-      console.log('Submitting data:', submitData); // Debug log
+      console.log("Submitting data:", submitData); // Debug log
 
       // Fix the API endpoint - remove '/api/employee' prefix since it's already in baseURL
-      const response = await apiClient.post('/api/employee/employees', submitData);
+      const response = await apiClient.post(
+        "/api/employee/employees",
+        submitData
+      );
 
       if (response.data.success) {
         // Success! Show success message and reset form
-        alert('Employee added successfully!');
-        
+        alert("Employee added successfully!");
+
         // Reset form to initial state
         setFormData({
           ecode: "",
@@ -361,43 +357,50 @@ const AddNew = () => {
         // window.location.href = '/admin-dashboard/employees';
       }
     } catch (error) {
-      console.error('Error creating employee:', error);
-      console.error('Error response:', error.response?.data);
-      
+      console.error("Error creating employee:", error);
+      console.error("Error response:", error.response?.data);
+
       if (error.response && error.response.status === 422) {
         // Validation errors
         const backendErrors = error.response.data.errors || {};
         setErrors(backendErrors);
-        
+
         // Scroll to first error field
         const firstErrorField = Object.keys(backendErrors)[0];
         if (firstErrorField && inputRefs.current[firstErrorField]) {
           inputRefs.current[firstErrorField].focus();
-          inputRefs.current[firstErrorField].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          inputRefs.current[firstErrorField].scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
         }
-        
-        alert(`Please check the form for errors: ${error.response.data.message || 'Validation failed'}`);
+
+        alert(
+          `Please check the form for errors: ${
+            error.response.data.message || "Validation failed"
+          }`
+        );
       } else if (error.response?.data?.message) {
         alert(`Error: ${error.response.data.message}`);
-      } else if (error.code === 'ERR_NETWORK') {
-        alert('Network error. Please check your connection and try again.');
+      } else if (error.code === "ERR_NETWORK") {
+        alert("Network error. Please check your connection and try again.");
       } else {
-        alert('An unexpected error occurred. Please try again.');
+        alert("An unexpected error occurred. Please try again.");
       }
     } finally {
       setLoading(false);
     }
   };
 
-   const getErrorMessage = (fieldName) => {
-    return errors[fieldName] ? errors[fieldName][0] : '';
+  const getErrorMessage = (fieldName) => {
+    return errors[fieldName] ? errors[fieldName][0] : "";
   };
 
   const hasError = (fieldName) => {
     return errors[fieldName] && errors[fieldName].length > 0;
   };
 
- return (
+  return (
     <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <Breadcrumb
         items={[
@@ -454,12 +457,14 @@ const AddNew = () => {
                 onKeyDown={(e) => handleKeyDown(e, "lastName")}
                 placeholder="e.g. Doe, Smith"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('last_name') ? 'border-red-500' : 'border-gray-300'
+                  hasError("last_name") ? "border-red-500" : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('last_name') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('last_name')}</p>
+              {hasError("last_name") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("last_name")}
+                </p>
               )}
             </div>
             <div>
@@ -474,12 +479,14 @@ const AddNew = () => {
                 onKeyDown={(e) => handleKeyDown(e, "firstName")}
                 placeholder="e.g. John, Jane"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('first_name') ? 'border-red-500' : 'border-gray-300'
+                  hasError("first_name") ? "border-red-500" : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('first_name') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('first_name')}</p>
+              {hasError("first_name") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("first_name")}
+                </p>
               )}
             </div>
             <div>
@@ -512,7 +519,7 @@ const AddNew = () => {
               </label>
               <select
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('gender') ? 'border-red-500' : 'border-gray-300'
+                  hasError("gender") ? "border-red-500" : "border-gray-300"
                 }`}
                 required
                 ref={(el) => (inputRefs.current["gender"] = el)}
@@ -525,8 +532,10 @@ const AddNew = () => {
                 <option value="male">Male</option>
                 <option value="female">Female</option>
               </select>
-              {hasError('gender') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('gender')}</p>
+              {hasError("gender") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("gender")}
+                </p>
               )}
             </div>
             <div>
@@ -535,7 +544,9 @@ const AddNew = () => {
               </label>
               <select
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('civil_status') ? 'border-red-500' : 'border-gray-300'
+                  hasError("civil_status")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 required
                 ref={(el) => (inputRefs.current["civilStatus"] = el)}
@@ -550,8 +561,10 @@ const AddNew = () => {
                 <option value="widowed">Widowed</option>
                 <option value="separated">Separated</option>
               </select>
-              {hasError('civil_status') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('civil_status')}</p>
+              {hasError("civil_status") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("civil_status")}
+                </p>
               )}
             </div>
             <div>
@@ -566,12 +579,14 @@ const AddNew = () => {
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, "birthdate")}
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('birthdate') ? 'border-red-500' : 'border-gray-300'
+                  hasError("birthdate") ? "border-red-500" : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('birthdate') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('birthdate')}</p>
+              {hasError("birthdate") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("birthdate")}
+                </p>
               )}
             </div>
             <div>
@@ -597,12 +612,14 @@ const AddNew = () => {
                 onKeyDown={(e) => handleKeyDown(e, "contactNo")}
                 placeholder="e.g. 09123456789"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('contact_no') ? 'border-red-500' : 'border-gray-300'
+                  hasError("contact_no") ? "border-red-500" : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('contact_no') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('contact_no')}</p>
+              {hasError("contact_no") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("contact_no")}
+                </p>
               )}
             </div>
             <div>
@@ -617,13 +634,17 @@ const AddNew = () => {
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, "emailAddress")}
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('email_address') ? 'border-red-500' : 'border-gray-300'
+                  hasError("email_address")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 placeholder="e.g. johndoe@example.com"
                 required
               />
-              {hasError('email_address') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('email_address')}</p>
+              {hasError("email_address") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("email_address")}
+                </p>
               )}
             </div>
             <div className="md:col-span-2">
@@ -637,13 +658,17 @@ const AddNew = () => {
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, "currentAddress")}
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('current_address') ? 'border-red-500' : 'border-gray-300'
+                  hasError("current_address")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 placeholder="e.g. 123 Main St, City, Country"
                 required
               />
-              {hasError('current_address') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('current_address')}</p>
+              {hasError("current_address") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("current_address")}
+                </p>
               )}
             </div>
             <div className="md:col-span-2">
@@ -657,13 +682,17 @@ const AddNew = () => {
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, "permanentAddress")}
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('permanent_address') ? 'border-red-500' : 'border-gray-300'
+                  hasError("permanent_address")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 placeholder="e.g. 123 Main St, City, Country"
                 required
               />
-              {hasError('permanent_address') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('permanent_address')}</p>
+              {hasError("permanent_address") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("permanent_address")}
+                </p>
               )}
               <label className="flex items-center mt-2 text-xs text-neutralDGray">
                 <input
@@ -698,12 +727,16 @@ const AddNew = () => {
                 onKeyDown={(e) => handleKeyDown(e, "positionTitle")}
                 placeholder="e.g. Software Engineer, Manager"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('position_title') ? 'border-red-500' : 'border-gray-300'
+                  hasError("position_title")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('position_title') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('position_title')}</p>
+              {hasError("position_title") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("position_title")}
+                </p>
               )}
             </div>
             <div>
@@ -718,12 +751,14 @@ const AddNew = () => {
                 onKeyDown={(e) => handleKeyDown(e, "project")}
                 placeholder="e.g. Jollibee, Inasal"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('project') ? 'border-red-500' : 'border-gray-300'
+                  hasError("project") ? "border-red-500" : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('project') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('project')}</p>
+              {hasError("project") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("project")}
+                </p>
               )}
             </div>
             <div>
@@ -738,12 +773,14 @@ const AddNew = () => {
                 onKeyDown={(e) => handleKeyDown(e, "department")}
                 placeholder="e.g. IT, HR"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('department') ? 'border-red-500' : 'border-gray-300'
+                  hasError("department") ? "border-red-500" : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('department') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('department')}</p>
+              {hasError("department") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("department")}
+                </p>
               )}
             </div>
             <div>
@@ -758,12 +795,16 @@ const AddNew = () => {
                 onKeyDown={(e) => handleKeyDown(e, "areaSection")}
                 placeholder="e.g. Kitchen, Office"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('area_section') ? 'border-red-500' : 'border-gray-300'
+                  hasError("area_section")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('area_section') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('area_section')}</p>
+              {hasError("area_section") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("area_section")}
+                </p>
               )}
             </div>
             <div>
@@ -772,7 +813,9 @@ const AddNew = () => {
               </label>
               <select
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('employment_rank') ? 'border-red-500' : 'border-gray-300'
+                  hasError("employment_rank")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 required
                 ref={(el) => (inputRefs.current["employmentRank"] = el)}
@@ -787,8 +830,10 @@ const AddNew = () => {
                 <option value="supervisory">Supervisory</option>
                 <option value="rank-and-file">Rank and File</option>
               </select>
-              {hasError('employment_rank') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('employment_rank')}</p>
+              {hasError("employment_rank") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("employment_rank")}
+                </p>
               )}
             </div>
             <div>
@@ -796,19 +841,25 @@ const AddNew = () => {
                 Employment Classification<span className="text-red-500">*</span>
               </label>
               <input
-                ref={(el) => (inputRefs.current["employmentClassification"] = el)}
+                ref={(el) =>
+                  (inputRefs.current["employmentClassification"] = el)
+                }
                 name="employmentClassification"
                 value={formData.employmentClassification}
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, "employmentClassification")}
                 placeholder="e.g. Regular, Probationary"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('employment_classification') ? 'border-red-500' : 'border-gray-300'
+                  hasError("employment_classification")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('employment_classification') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('employment_classification')}</p>
+              {hasError("employment_classification") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("employment_classification")}
+                </p>
               )}
             </div>
             <div>
@@ -823,12 +874,16 @@ const AddNew = () => {
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, "dateOfHire")}
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('date_of_hire') ? 'border-red-500' : 'border-gray-300'
+                  hasError("date_of_hire")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('date_of_hire') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('date_of_hire')}</p>
+              {hasError("date_of_hire") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("date_of_hire")}
+                </p>
               )}
             </div>
             <div>
@@ -861,6 +916,28 @@ const AddNew = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
+                TIN Number<span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["tin"] = el)}
+                name="tin"
+                value={formData.tin}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "tin")}
+                placeholder="e.g. 1234567890"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError("tin") ? "border-red-500" : "border-gray-300"
+                }`}
+                required
+              />
+              {hasError("tin") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("tin")}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
                 ID Type<span className="text-red-500">*</span>
               </label>
               <input
@@ -871,12 +948,16 @@ const AddNew = () => {
                 onKeyDown={(e) => handleKeyDown(e, "governmentIdType")}
                 placeholder="e.g. Passport, SSS ID"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('government_id_type') ? 'border-red-500' : 'border-gray-300'
+                  hasError("government_id_type")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('government_id_type') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('government_id_type')}</p>
+              {hasError("government_id_type") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("government_id_type")}
+                </p>
               )}
             </div>
             <div>
@@ -891,15 +972,19 @@ const AddNew = () => {
                 onKeyDown={(e) => handleKeyDown(e, "governmentIdNumber")}
                 placeholder="e.g. 123456789"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('government_id_number') ? 'border-red-500' : 'border-gray-300'
+                  hasError("government_id_number")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('government_id_number') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('government_id_number')}</p>
+              {hasError("government_id_number") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("government_id_number")}
+                </p>
               )}
             </div>
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
                 Government ID<span className="text-red-500">*</span>
               </label>
@@ -932,12 +1017,16 @@ const AddNew = () => {
                 onKeyDown={(e) => handleKeyDown(e, "emergencyContactName")}
                 placeholder="e.g. Jane Doe"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('emergency_contact_name') ? 'border-red-500' : 'border-gray-300'
+                  hasError("emergency_contact_name")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('emergency_contact_name') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('emergency_contact_name')}</p>
+              {hasError("emergency_contact_name") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("emergency_contact_name")}
+                </p>
               )}
             </div>
             <div>
@@ -952,12 +1041,16 @@ const AddNew = () => {
                 onKeyDown={(e) => handleKeyDown(e, "emergencyContactNumber")}
                 placeholder="e.g. 09123456789"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('emergency_contact_number') ? 'border-red-500' : 'border-gray-300'
+                  hasError("emergency_contact_number")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('emergency_contact_number') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('emergency_contact_number')}</p>
+              {hasError("emergency_contact_number") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("emergency_contact_number")}
+                </p>
               )}
             </div>
             <div className="md:col-span-2">
@@ -965,19 +1058,25 @@ const AddNew = () => {
                 Emergency Contact Address<span className="text-red-500">*</span>
               </label>
               <input
-                ref={(el) => (inputRefs.current["emergencyContactAddress"] = el)}
+                ref={(el) =>
+                  (inputRefs.current["emergencyContactAddress"] = el)
+                }
                 name="emergencyContactAddress"
                 value={formData.emergencyContactAddress}
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, "emergencyContactAddress")}
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('emergency_contact_address') ? 'border-red-500' : 'border-gray-300'
+                  hasError("emergency_contact_address")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 placeholder="e.g. 123 Main St, City, Country"
                 required
               />
-              {hasError('emergency_contact_address') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('emergency_contact_address')}</p>
+              {hasError("emergency_contact_address") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("emergency_contact_address")}
+                </p>
               )}
             </div>
           </div>
@@ -1006,12 +1105,14 @@ const AddNew = () => {
                 min="0"
                 placeholder="e.g. 500"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('daily_rate') ? 'border-red-500' : 'border-gray-300'
+                  hasError("daily_rate") ? "border-red-500" : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('daily_rate') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('daily_rate')}</p>
+              {hasError("daily_rate") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("daily_rate")}
+                </p>
               )}
             </div>
             <div className="md:col-span-2">
@@ -1026,15 +1127,19 @@ const AddNew = () => {
                 onKeyDown={(e) => handleKeyDown(e, "salaryPackage")}
                 placeholder="e.g. 25000"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('salary_package') ? 'border-red-500' : 'border-gray-300'
+                  hasError("salary_package")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 type="number"
                 step="0.01"
                 min="0"
                 required
               />
-              {hasError('salary_package') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('salary_package')}</p>
+              {hasError("salary_package") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("salary_package")}
+                </p>
               )}
             </div>
           </div>
@@ -1060,12 +1165,16 @@ const AddNew = () => {
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, "medicalDate")}
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('medical_date') ? 'border-red-500' : 'border-gray-300'
+                  hasError("medical_date")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('medical_date') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('medical_date')}</p>
+              {hasError("medical_date") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("medical_date")}
+                </p>
               )}
             </div>
             <div>
@@ -1080,12 +1189,16 @@ const AddNew = () => {
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, "healthCardDate")}
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('health_card_date') ? 'border-red-500' : 'border-gray-300'
+                  hasError("health_card_date")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('health_card_date') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('health_card_date')}</p>
+              {hasError("health_card_date") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("health_card_date")}
+                </p>
               )}
             </div>
             <div>
@@ -1100,12 +1213,14 @@ const AddNew = () => {
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, "gmpDate")}
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('gmp_date') ? 'border-red-500' : 'border-gray-300'
+                  hasError("gmp_date") ? "border-red-500" : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('gmp_date') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('gmp_date')}</p>
+              {hasError("gmp_date") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("gmp_date")}
+                </p>
               )}
             </div>
             <div>
@@ -1120,12 +1235,14 @@ const AddNew = () => {
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, "prpDate")}
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('prp_date') ? 'border-red-500' : 'border-gray-300'
+                  hasError("prp_date") ? "border-red-500" : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('prp_date') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('prp_date')}</p>
+              {hasError("prp_date") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("prp_date")}
+                </p>
               )}
             </div>
             <div>
@@ -1140,12 +1257,16 @@ const AddNew = () => {
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, "housekeepingDate")}
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('housekeeping_date') ? 'border-red-500' : 'border-gray-300'
+                  hasError("housekeeping_date")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('housekeeping_date') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('housekeeping_date')}</p>
+              {hasError("housekeeping_date") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("housekeeping_date")}
+                </p>
               )}
             </div>
             <div>
@@ -1160,12 +1281,14 @@ const AddNew = () => {
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, "safetyDate")}
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('safety_date') ? 'border-red-500' : 'border-gray-300'
+                  hasError("safety_date") ? "border-red-500" : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('safety_date') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('safety_date')}</p>
+              {hasError("safety_date") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("safety_date")}
+                </p>
               )}
             </div>
             <div>
@@ -1180,12 +1303,14 @@ const AddNew = () => {
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, "crrDate")}
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('crr_date') ? 'border-red-500' : 'border-gray-300'
+                  hasError("crr_date") ? "border-red-500" : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('crr_date') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('crr_date')}</p>
+              {hasError("crr_date") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("crr_date")}
+                </p>
               )}
             </div>
           </div>
@@ -1198,7 +1323,7 @@ const AddNew = () => {
               Government Benefits Section
             </h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
                 SSS Number<span className="text-red-500">*</span>
@@ -1211,12 +1336,14 @@ const AddNew = () => {
                 onKeyDown={(e) => handleKeyDown(e, "sss")}
                 placeholder="e.g. 1234567890"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('sss') ? 'border-red-500' : 'border-gray-300'
+                  hasError("sss") ? "border-red-500" : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('sss') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('sss')}</p>
+              {hasError("sss") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("sss")}
+                </p>
               )}
             </div>
             <div>
@@ -1231,12 +1358,14 @@ const AddNew = () => {
                 onKeyDown={(e) => handleKeyDown(e, "philHealth")}
                 placeholder="e.g. 1234567890"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('phil_health') ? 'border-red-500' : 'border-gray-300'
+                  hasError("phil_health") ? "border-red-500" : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('phil_health') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('phil_health')}</p>
+              {hasError("phil_health") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("phil_health")}
+                </p>
               )}
             </div>
             <div>
@@ -1251,32 +1380,14 @@ const AddNew = () => {
                 onKeyDown={(e) => handleKeyDown(e, "pagIbig")}
                 placeholder="e.g. 1234567890"
                 className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('pag_ibig') ? 'border-red-500' : 'border-gray-300'
+                  hasError("pag_ibig") ? "border-red-500" : "border-gray-300"
                 }`}
                 required
               />
-              {hasError('pag_ibig') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('pag_ibig')}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-neutralDGray mb-1">
-                TIN Number<span className="text-red-500">*</span>
-              </label>
-              <input
-                ref={(el) => (inputRefs.current["tin"] = el)}
-                name="tin"
-                value={formData.tin}
-                onChange={handleChange}
-                onKeyDown={(e) => handleKeyDown(e, "tin")}
-                placeholder="e.g. 1234567890"
-                className={`w-full p-2 border text-xs rounded-md ${
-                  hasError('tin') ? 'border-red-500' : 'border-gray-300'
-                }`}
-                required
-              />
-              {hasError('tin') && (
-                <p className="text-red-500 text-xs mt-1">{getErrorMessage('tin')}</p>
+              {hasError("pag_ibig") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("pag_ibig")}
+                </p>
               )}
             </div>
           </div>
@@ -1293,7 +1404,7 @@ const AddNew = () => {
               Adding Employee...
             </>
           ) : (
-            'Add Employee'
+            "Add Employee"
           )}
         </button>
       </form>

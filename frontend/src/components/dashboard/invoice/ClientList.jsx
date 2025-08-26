@@ -21,11 +21,13 @@ const ClientList = () => {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [employees, setEmployees] = useState([]);
+  const [showClientProfile, setShowClientProfile] = useState(false);
+  const [showEditClientForm, setShowEditClientForm] = useState(false);
 
   const fetchEmployees = async () => {
     try {
       const token = localStorage.getItem("token");
-      
+
       if (!token) {
         console.error("No token found for fetching employees");
         return;
@@ -40,7 +42,7 @@ const ClientList = () => {
           },
         }
       );
-      
+
       console.log("Employees response:", response.data);
       setEmployees(response.data.employees || response.data.data || []);
     } catch (error) {
@@ -53,14 +55,17 @@ const ClientList = () => {
       setLoading(true);
 
       const token = localStorage.getItem("token");
-      
+
       if (!token) {
         console.error("No token found - user not authenticated");
         setLoading(false);
         return;
       }
 
-      console.log("Fetching clients with token:", token.substring(0, 20) + "...");
+      console.log(
+        "Fetching clients with token:",
+        token.substring(0, 20) + "..."
+      );
 
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/clients`,
@@ -68,7 +73,7 @@ const ClientList = () => {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
           },
         }
       );
@@ -78,8 +83,8 @@ const ClientList = () => {
       const data = response.data;
 
       if (data.success) {
-        const clientsData = data.data.data || data.data; 
-        
+        const clientsData = data.data.data || data.data;
+
         console.log("Raw clients data:", clientsData);
 
         setClients(clientsData);
@@ -108,7 +113,6 @@ const ClientList = () => {
           client_code: client.clientCode,
         }));
 
-
         console.log("Transformed clients:", transformedClients);
         setFilteredClients(transformedClients);
       } else {
@@ -118,7 +122,7 @@ const ClientList = () => {
       console.error("Error fetching clients:", error);
       console.error("Error response:", error.response?.data);
       console.error("Error status:", error.response?.status);
-      
+
       if (error.response?.status === 401) {
         console.error("Authentication failed - redirecting to login");
       }
@@ -182,7 +186,8 @@ const ClientList = () => {
           client.name.toLowerCase().includes(term) ||
           client.email.toLowerCase().includes(term) ||
           client.location.toLowerCase().includes(term) ||
-          (client.contact_person && client.contact_person.toLowerCase().includes(term))
+          (client.contact_person &&
+            client.contact_person.toLowerCase().includes(term))
       );
       setFilteredClients(filtered);
     }
@@ -322,7 +327,9 @@ const ClientList = () => {
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <FaPersonShelter className="w-3 h-3 mr-2 flex-shrink-0" />
-                      <span className="truncate text-xs">{client.contact_person || "No contact person"}</span>
+                      <span className="truncate text-xs">
+                        {client.contact_person || "No contact person"}
+                      </span>
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Mail className="w-3 h-3 mr-2 flex-shrink-0" />
@@ -387,6 +394,16 @@ const ClientList = () => {
           employees={employees}
         />
       </div>
+
+      {showEditClientForm && (
+        <AddClientForm
+          id={selectedClient.id}
+          onClose={() => {
+            setShowEditClientForm(false);
+            setSelectedClient(null); // ✅ clear selected client
+          }}
+        />
+      )}
 
       <Tooltip
         anchorSelect="[data-tooltip-id='client-tooltip']"

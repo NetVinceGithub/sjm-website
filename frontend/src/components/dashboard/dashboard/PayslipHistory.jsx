@@ -24,12 +24,33 @@ const PayslipHistory = () => {
   const { Id } = useParams();
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const handleOpenModal = (employeeId) => {
     console.log("Opening modal for employee:", employeeId); // Debugging
     setSelectedEmployee(employeeId);
     setModalOpen(true);
   };
+
+  useEffect(() => {
+    let filtered = [...payslips];
+
+    if (selectedProject) {
+      filtered = filtered.filter((p) => p.project === selectedProject);
+    }
+
+    // Also apply search filter if needed
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (p) =>
+          p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.employeeId.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredPayslips(filtered);
+  }, [selectedProject, payslips, searchTerm]);
 
   const exportToExcel = () => {
     try {
@@ -150,17 +171,7 @@ const PayslipHistory = () => {
   }, [filteredPayslips]);
 
   const handleSearch = (e) => {
-    const searchValue = e.target.value.toLowerCase();
-    console.log("Search Query:", searchValue);
-
-    const filtered = payslips.filter(
-      (payslip) =>
-        payslip.name.toLowerCase().includes(searchValue) ||
-        payslip.employeeId.toLowerCase().includes(searchValue)
-    );
-
-    console.log("Filtered Payslips:", filtered);
-    setFilteredPayslips(filtered);
+    setSearchTerm(e.target.value);
   };
 
   const columns = [
@@ -173,6 +184,13 @@ const PayslipHistory = () => {
     {
       name: "Name",
       selector: (row) => row.name || "N/A",
+      sortable: true,
+      center: true,
+      width: "200px",
+    },
+    {
+      name: "Project",
+      selector: (row) => row.project || "N/A",
       sortable: true,
       center: true,
       width: "200px",
@@ -279,15 +297,37 @@ const PayslipHistory = () => {
               <FaSearch className="-ml-6 mt-1.5 text-neutralDGray/60" />
             </div>
             <div className="w-1/4">
-              <select className="w-full p-2 border text-neutralDGray text-xs border-gray-300 rounded-md">
-                <option value="">Select Project</option>
+              <select
+                value={selectedProject}
+                onChange={(e) => setSelectedProject(e.target.value)}
+                className="w-full p-2 border text-neutralDGray text-xs border-gray-300 rounded-md"
+              >
+                <option value="">All Projects</option>
+                {Array.from(
+                  new Set(payslips.map((p) => p.project).filter(Boolean))
+                ).map((project) => (
+                  <option key={project} value={project}>
+                    {project}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
         </div>
         <div className="mt-2 bg-white w-[calc(100vw-310px)] h-[calc(100vh-80px)] p-2 rounded-lg shadow">
           {loading ? (
-            <div>Loading...</div>
+            <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
+              <ThreeDots
+                visible={true}
+                height="60"
+                width="60"
+                color="#4fa94d"
+                radius="9"
+                ariaLabel="three-dots-loading"
+                wrapperStyle={{}}
+                wrapperClass=""
+              />
+            </div>
           ) : (
             <div>
               <div className=" border border-neutralDGray rounded overflow-auto">
