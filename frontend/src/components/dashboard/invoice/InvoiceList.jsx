@@ -16,6 +16,8 @@ import {
   FaXmark,
   FaPenToSquare,
 } from "react-icons/fa6";
+import { FaRegEnvelope, FaPhoneVolume, FaLocationDot, FaGlobe } from "react-icons/fa6"; 
+
 import { Modal, Button } from "react-bootstrap";
 import Logo from "../../../assets/logo.png";
 import LongLogo from "../../../assets/long-logo.png";
@@ -559,7 +561,7 @@ const InvoiceList = () => {
                   </Modal.Header>
 
                   <Modal.Body className="overflow-y-auto flex-1">
-                    <div className="w-1/2">
+                    <div className="w-full">
                     <div>
                           <div className="w-1/2">
                             <div className="flex mr-5 gap-2 mt-3 p-2 justify-between items-center">
