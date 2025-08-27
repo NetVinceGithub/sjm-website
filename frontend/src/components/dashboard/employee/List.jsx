@@ -599,7 +599,9 @@ const List = () => {
     setEmployeeToBlock(null);
   };
 
-  // Fixed handleToggleStatus function
+// Fixed handleToggleStatus function - replace the existing one in your List.js component
+
+
   const handleToggleStatus = async (
     id,
     currentStatus,
@@ -621,41 +623,51 @@ const List = () => {
       if (newStatus === "Block") {
         setEmployeeToBlock(employee);
         setIsBlockModalOpen(true);
-        return; // Make sure to return here
+        return;
       } else if (newStatus === "Inactive") {
         setEmployeeToBlock(employee);
         setIsInactiveModalOpen(true);
-        return; // Make sure to return here
+        return;
       } else if (newStatus === "Active") {
+        // For dropdown "Active" selection, determine which modal based on current status
         setEmployeeToBlock(employee);
-        setIsUnBlockModalOpen(true);
-        return; // Make sure to return here
+        if (currentStatus === "Block") {
+          setIsUnBlockModalOpen(true); // Unblock modal for blocked employees
+        } else if (currentStatus === "Inactive") {
+          // Always use Activate modal for inactive employees (regardless of employment status)
+          setIsActivateEmployeeOpen(true);
+        }
+        return;
       }
     }
+  
 
-    // Handle main button clicks (not dropdown) - only when newStatus is null/undefined
+
+
     if (employmentStatus === "RESIGNED" && currentStatus === "Inactive") {
-      // Special case for resigned employees
+      // Special case for resigned employees - show activate modal first
       setEmployeeToBlock(employee);
       setIsActivateEmployeeOpen(true);
       return;
     }
-
+  
     // Regular status changes for main button clicks
     if (currentStatus === "Block") {
-      // Block -> Active (Unblock)
+      // Block -> Active (Unblock) - Use Unblock Modal
       setEmployeeToBlock(employee);
       setIsUnBlockModalOpen(true);
     } else if (currentStatus === "Inactive") {
-      // Inactive -> Active (Activate)
+      // Inactive -> Active - Always use Activate Modal for inactive employees
       setEmployeeToBlock(employee);
-      setIsActivateEmployeeOpen(true);
+      setIsActivateEmployeeOpen(true); 
     } else if (currentStatus === "Active") {
       // Active -> Inactive (default action)
       setEmployeeToBlock(employee);
       setIsInactiveModalOpen(true);
     }
   };
+
+
 
   // requires: import * as XLSX from 'xlsx';
   const exportToExcel = () => {

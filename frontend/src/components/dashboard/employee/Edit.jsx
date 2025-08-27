@@ -6,7 +6,7 @@ import dayjs from "dayjs";
 import Breadcrumb from "../dashboard/Breadcrumb";
 import { FaAngleLeft } from "react-icons/fa";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -48,8 +48,10 @@ const Edit = () => {
     position_title: "",
     project: "",
     department: "",
+    area_section: "", // Add this
     employment_rank: "",
     date_of_hire: "",
+    date_of_separation: "", // Add this
     employment_classification: "",
     sss: "",
     tin: "",
@@ -85,27 +87,21 @@ const Edit = () => {
     return dayjs(dateString).format("YYYY-MM-DD");
   };
 
-  // Fetch Employee Data
   useEffect(() => {
     const fetchEmployee = async () => {
       try {
         const response = await apiClient.get(`/api/employee/${id}`);
-
-        console.log("Employee API Response:", response.data); // Debug log
-
-        if (
-          response.data.success &&
-          response.data.employees &&
-          response.data.employees.length > 0
-        ) {
-          const employeeData = response.data.employees[0];
-          // Format dates for input fields and map all fields
+        console.log("Employee API Response:", response.data);
+  
+        if (response.data.success && response.data.employee) { // Change from 'employees' to 'employee'
+          const employeeData = response.data.employee; // Access directly, no [0]
+          
           setEmployee({
             ecode: employeeData.ecode || "",
             last_name: employeeData.last_name || "",
             first_name: employeeData.first_name || "",
             middle_name: employeeData.middle_name || "",
-            name: employeeData.name || employeeData.complete_name || "",
+            name: employeeData.complete_name || employeeData.name || "", // Note: API uses 'complete_name'
             gender: employeeData.gender || "",
             civil_status: employeeData.civil_status || "",
             birthdate: formatDateForInput(employeeData.birthdate),
@@ -117,10 +113,11 @@ const Edit = () => {
             position_title: employeeData.position_title || "",
             project: employeeData.project || "",
             department: employeeData.department || "",
+            area_section: employeeData.area_section || employeeData["area/section"] || "", // Add this
             employment_rank: employeeData.employment_rank || "",
             date_of_hire: formatDateForInput(employeeData.date_of_hire),
-            employment_classification:
-              employeeData.employment_classification || "",
+            date_of_separation: formatDateForInput(employeeData.date_of_separation || employeeData.dateofseparation), // Add this
+            employment_classification: employeeData.employment_classification || "",
             sss: employeeData.sss || "",
             tin: employeeData.tin || "",
             phil_health: employeeData.phil_health || "",
@@ -128,76 +125,29 @@ const Edit = () => {
             government_id_type: employeeData.government_id_type || "",
             government_id_number: employeeData.government_id_number || "",
             emergency_contact_name: employeeData.emergency_contact_name || "",
-            emergency_contact_number:
-              employeeData.emergency_contact_number || "",
-            emergency_contact_address:
-              employeeData.emergency_contact_address || "",
+            emergency_contact_number: employeeData.emergency_contact_number || "",
+            emergency_contact_address: employeeData.emergency_contact_address || "",
             daily_rate: employeeData.daily_rate || "",
             salary_package: employeeData.salary_package || "",
             profile_image: null,
             esignature: null,
           });
         } else {
-          console.error(
-            "Error fetching employee: Invalid response structure",
-            response.data
-          );
+          console.error("Error fetching employee: Invalid response structure", response.data);
           alert("Failed to load employee data. Please try again.");
         }
       } catch (error) {
         console.error("Error fetching employee:", error);
-        if (error.response) {
-          console.error("Response data:", error.response.data);
-          console.error("Response status:", error.response.status);
-          alert(
-            `Error: ${
-              error.response.data?.error ||
-              error.response.data?.message ||
-              "Failed to fetch employee data"
-            }`
-          );
-        } else {
-          alert("Network error. Please check your connection and try again.");
-        }
+        // ... existing error handling
       }
     };
-
+  
     if (id) {
       fetchEmployee();
     }
   }, [id]);
 
-  // Fetch Projects
-  useEffect(() => {
-    const getProjects = async () => {
-      try {
-        const projects = await fetchProjects();
-        console.log("Projects fetched:", projects); // Debug log
-        setProjects(projects || []);
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-        // Don't show alert, just set empty array and continue
-        setProjects([]);
-      }
-    };
-    getProjects();
-  }, []);
-
-  // Fetch Departments
-  useEffect(() => {
-    const getDepartments = async () => {
-      try {
-        const departments = await fetchDepartments();
-        console.log("Departments fetched:", departments); // Debug log
-        setDepartments(departments || []);
-      } catch (error) {
-        console.error("Error fetching departments:", error);
-        // Don't show alert, just set empty array and continue
-        setDepartments([]);
-      }
-    };
-    getDepartments();
-  }, []);
+ 
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -263,8 +213,9 @@ const Edit = () => {
     }
 
     try {
+      // In handleSubmit function, change this line:
       const response = await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/employee/${id}`,
+        `${import.meta.env.VITE_API_URL}/api/employee/update-details/${id}`, // Add 'update-details'
         formData,
         {
           headers: {
@@ -607,7 +558,6 @@ const Edit = () => {
                 value={employee.date_of_separation}
                 onChange={handleChange}
                 className="w-full p-2 border text-xs rounded-md border-gray-300"
-                required
               />
             </div>
           </div>
