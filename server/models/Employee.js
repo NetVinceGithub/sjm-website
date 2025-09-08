@@ -110,6 +110,15 @@ const PayrollInformation = sequelize.define(
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,
     },
+    employment_rank: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+    },
+    salary_package: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 16224,
+    },
+    
   },
   { timestamps: false }
 );
@@ -150,13 +159,11 @@ const Employee = sequelize.define(
       allowNull: true,
     },
     
-    // Legacy name field for backward compatibility
     name: {
       type: DataTypes.STRING(255),
       allowNull: false,
     },
     
-    // Employment details (consolidated)
     position_title: {
       type: DataTypes.STRING(100),
       allowNull: false,
@@ -326,7 +333,7 @@ const Employee = sequelize.define(
       allowNull: true,
     },
     status: {
-      type: DataTypes.ENUM('Active', 'Inactive', 'Terminated'),
+      type: DataTypes.ENUM('Active', 'Inactive', 'Blocked'),
       defaultValue: 'Active',
     },
     attended_training: {
@@ -363,8 +370,30 @@ Employee.afterCreate(async (employee) => {
       name: employee.complete_name || employee.name,
       positiontitle: employee.position_title || "N/A",
       area_section: employee.area_section || employee.department || "N/A",
-      designation: "Regular",
-      daily_rate: employee.daily_rate || 500,
+      designation: employee.designation,
+      daily_rate: employee.daily_rate || 520,
+      employment_rank: employee.employment_rank,
+      salary_package: employee.salary_package,
+      
+      // Add all the missing fields with their default values
+      hourly_rate: 65,
+      ot_hourly_rate: 81.25,
+      ot_rate_sp_holiday: 109.85,
+      ot_rate_reg_holiday: 109.85,
+      special_hol_rate: 156,
+      regular_hol_ot_rate: 156,
+      overtime_pay: 100,
+      holiday_pay: 200,
+      night_differential: 6.5,
+      allowance: 104,
+      tardiness: 1.08,
+      tax_deduction: 0,
+      sss_contribution: 0,
+      pagibig_contribution: 200,
+      philhealth_contribution: 338,
+      loan: 0,
+      otherDeductions: 0,
+      adjustment: 0
     });
   } catch (error) {
     console.error('Error creating payroll information:', error);

@@ -96,15 +96,15 @@ export default function ClientProfileModal({
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-2 px-4">
             <div className="flex items-center gap-3min-h-[60px]">
               <div className="w-14 h-14 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-neutralGray font-medium text-lg flex-shrink-0">
-                {client.avatar}
+                {client.name.substring(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 mt-3 ml-3">
                 <h2 className="text-base font-medium">{client.name}</h2>
                 <p className="text-blue-100 italic text-xs -mt-2">
-                  {client.client_code || "No client code"}
+                  {client.clientCode || "No client code"}
                 </p>
                 <p className="text-blue-100 italic text-xs -mt-3">
-                  TIN No.: {client.tin || "No TIN provided"}
+                  TIN No.: {client.tinNumber || "No TIN provided"}
                 </p>
               </div>
               <span
@@ -134,7 +134,7 @@ export default function ClientProfileModal({
                     Contact Person
                   </p>
                   <p className="text-xs font-medium -mt-3 text-gray-800">
-                    {client.contact_person || "No contact person"}
+                    {client.contactPerson || "No contact person"}
                   </p>
                 </div>
               </div>
@@ -148,7 +148,7 @@ export default function ClientProfileModal({
                     Email
                   </p>
                   <p className="text-xs font-medium -mt-3 text-gray-800">
-                    {client.email || "No email provided"}
+                    {client.emailAddress || "No email provided"}
                   </p>
                 </div>
               </div>
@@ -162,7 +162,7 @@ export default function ClientProfileModal({
                     Contact Number
                   </p>
                   <p className="text-xs font-medium -mt-3 text-gray-800">
-                    {client.phone || "No phone provided"}
+                    {client.contactNumber || "No phone provided"}
                   </p>
                 </div>
               </div>
@@ -183,7 +183,7 @@ export default function ClientProfileModal({
                     Join Date
                   </p>
                   <p className="text-xs font-medium -mt-3 text-gray-800">
-                    {formatDate(client.joinDate)}
+                    {formatDate(client.joinedDate)}
                   </p>
                 </div>
               </div>
@@ -211,7 +211,7 @@ export default function ClientProfileModal({
                     Billing Frequency
                   </p>
                   <p className="text-xs font-medium -mt-3 text-gray-800">
-                    {client.billing_frequency || "Not specified"}
+                    {client.billingFrequency || "Not specified"}
                   </p>
                 </div>
               </div>

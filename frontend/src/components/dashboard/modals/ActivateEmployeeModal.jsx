@@ -8,7 +8,7 @@ const ActivateEmployeeModal = ({ isOpen, onClose, onConfirm, employee }) => {
       <div className="bg-white p-6 rounded-lg shadow-2xl w-11/12 sm:w-96 md:w-[28rem] lg:w-[30rem] relative">
         <h2 className="text-base mb-2 text-red-500">Activate Employee</h2>
         <p className="text-center text-sm">
-           This employee is resigned. Do you want to continue account activation for <strong>{employee?.name}</strong>?
+           This employee is inactive. Do you want to continue account activation for <strong>{employee?.name}</strong>?
         </p>
         <div className="mt-4 flex justify-center gap-4">
 

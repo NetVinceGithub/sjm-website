@@ -12,6 +12,9 @@ import {
   updateIDDetails,
   getEmployeeStatus,
   toggleEmployeeStatus,
+  activateEmployee,
+  blockEmployee,
+  unblockEmployee,
   requestPayrollChange,
   reviewPayrollChange,
   rejectPayrollChange,
@@ -21,7 +24,8 @@ import {
   bulkRequestPayrollChange,
   rejectBatchChange,
   getBatchDetails,
-  createEmployee
+  createEmployee, 
+
 } from "../controllers/employeeController.js";
 
 const router = express.Router();
@@ -69,26 +73,33 @@ router.get("/payroll-change-requests", reviewPayrollChange);
 router.post("/approve-payroll-change/:id", approvePayrollChange);
 router.post("/reject-payroll-change/:id", rejectPayrollChange);
 
-// Employee status and update routes
+// Employee status routes - USE SPECIFIC CONTROLLERS
+router.put("/activate/:id", activateEmployee);
+router.put("/block/:id", blockEmployee);
+router.put("/unblock/:id", unblockEmployee);
 router.put("/toggle-status/:id", toggleEmployeeStatus);
+
+// Employee update routes
 router.put("/update-details/:id", upload.fields([
   { name: "profileImage", maxCount: 1 },
   { name: "esignature", maxCount: 1 }
 ]), updateIDDetails);
 
-// GENERIC ROUTES LAST
-router.get("/", getEmployees); // This should be after specific routes
-router.get("/:id", getEmployee); // This MUST be the very last route
-
 // Messaging routes
 router.post('/messaging', upload.array('attachments', 10), messageEmployee);
 router.post('/bulk-messaging', createBulkMessagingUpload(10), bulkMessaging);
 
-
-router.put('/approve-batch-change/:batchId',approvePayrollChange);
+// Batch operations
+router.put('/approve-batch-change/:batchId', approvePayrollChange);
 router.put('/reject-batch-change/:batchId', rejectBatchChange);
 router.get('/batch-details/:batchId', getBatchDetails);
+
+// Employee creation
 router.post('/employees', createEmployee);
+
+// GENERIC ROUTES LAST
+router.get("/", getEmployees); // This should be after specific routes
+router.get("/:id", getEmployee); // This MUST be the very last route
 
 
 

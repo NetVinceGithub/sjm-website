@@ -106,34 +106,7 @@ app.get("/long-logo", (req, res) => {
   }
 });
 
-// API Proxy for CrossChex Cloud
-app.post('/api/token', async (req, res) => {
-  try {
-    const response = await axios.post('https://api.us.crosschexcloud.com/v2/oauth2/token', {
-      app_key: process.env.CROSSCHEX_APP_KEY,
-      app_secret: process.env.CROSSCHEX_APP_SECRET
-    });
-    res.json(response.data);
-  } catch (error) {
-    console.error('Error getting CrossChex token:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to get token' });
-  }
-});
 
-app.get('/api/devices', async (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  try {
-    const response = await axios.get('https://api.us.crosschexcloud.com/v2/device/list', {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-    res.json(response.data);
-  } catch (error) {
-    console.error('Error fetching CrossChex devices:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to get devices' });
-  }
-});
 
 app.use("/api/auth", authRouter);
 app.use("/api/employee", employeeRouter);

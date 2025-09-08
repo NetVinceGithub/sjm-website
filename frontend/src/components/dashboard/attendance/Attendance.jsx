@@ -1317,7 +1317,7 @@ const Attendance = () => {
                 Close
               </button>
               <button
-                onClick={() => navigate("/admin-dashboard/payroll-summary")}
+                onClick={() => navigate("/admin-dashboard/payroll-generator")}
                 className="px-4 py-2 w-36 h-8 border flex justify-center text-sm items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
               >
                 Create Payroll
