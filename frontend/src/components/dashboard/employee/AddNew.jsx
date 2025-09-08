@@ -545,8 +545,6 @@ const AddNew = () => {
                   className="w-full p-2 border text-xs border-gray-300 rounded-md"
                 />
               </div>
-
-              {/* Name Suffix */}
               <div>
                 <label className="block text-xs font-medium text-neutralDGray mb-1">
                   Suffix <span className="italic">(Opt.)</span>
