@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import DataTable from "react-data-table-component";
 import { ThreeDots } from "react-loader-spinner";
+import { toast } from "react-toastify";
 
 const Logins = () => {
   const [loginRecords, setLoginRecords] = useState([]);
@@ -116,7 +117,20 @@ const Logins = () => {
         }));
         setLoginRecords(transformedRecords);
       } catch (err) {
-        setError("Failed to fetch login records");
+        toast("Failed to fetch login records.", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
       } finally {
         setLoading(false);
       }

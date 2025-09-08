@@ -325,12 +325,11 @@ const EmployeePayrollInformationsList = () => {
   };
 
   const handleApplyBulkEdit = async () => {
-  if (
-    bulkEditField === "default" ||
-    bulkEditValue === "" || // <-- allow 0
-    selectedEmployees.length === 0
-  )
- {
+    if (
+      bulkEditField === "default" ||
+      bulkEditValue === "" || // <-- allow 0
+      selectedEmployees.length === 0
+    ) {
       alert(
         "Please select a field, enter a value, and select at least one employee."
       );
@@ -340,7 +339,9 @@ const EmployeePayrollInformationsList = () => {
     setIsSubmitting(true);
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/employee/bulk-payroll-change-requests`,
+        `${
+          import.meta.env.VITE_API_URL
+        }/api/employee/bulk-payroll-change-requests`,
         {
           employee_ids: selectedEmployees,
           field: bulkEditField,
@@ -417,9 +418,10 @@ const EmployeePayrollInformationsList = () => {
         backgroundColor: "#fff",
         color: "#333",
         fontWeight: "bold",
-        justifyContent: "center",
         display: "flex",
         alignItems: "center",
+        justifyContent: "flex-start", // 👈 left align headers
+        textAlign: "left",
       },
     },
     cells: {
@@ -427,7 +429,8 @@ const EmployeePayrollInformationsList = () => {
         padding: "8px",
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "flex-start", // 👈 left align row data
+        textAlign: "left",
       },
     },
   };
@@ -437,29 +440,27 @@ const EmployeePayrollInformationsList = () => {
       name: "Ecode",
       selector: (row) => row.ecode,
       sortable: true,
-      center: true,
+      left: true,
       width: "90px",
     },
     {
       name: "Name",
       selector: (row) => row.name,
       sortable: true,
-      center: true,
       width: "200px",
     },
     {
       name: "Position",
       selector: (row) => row.positiontitle || row.designation,
       sortable: true,
-      center: true,
-      width: "320px",
+      width: "180px",
     },
     {
       name: "Employment Rank",
       selector: (row) => row.designation,
       sortable: true,
       center: true,
-      width: "320px",
+      width: "200px",
     },
     {
       name: "Daily Rate",
@@ -500,13 +501,6 @@ const EmployeePayrollInformationsList = () => {
       width: "120px",
     },
     {
-      name: "Tax",
-      selector: (row) =>
-        `₱${parseFloat(row.tax_deduction || 0).toLocaleString()}`,
-      sortable: true,
-      center: true,
-    },
-    {
       name: "SSS",
       selector: (row) =>
         `₱${parseFloat(row.sss_contribution || 0).toLocaleString()}`,
@@ -527,6 +521,20 @@ const EmployeePayrollInformationsList = () => {
       sortable: true,
       center: true,
       width: "120px",
+    },
+    {
+      name: "Adjustment",
+      selector: (row) => `₱${parseFloat(row.adjustment || 0).toLocaleString()}`,
+      sortable: true,
+      center: true,
+      width: "120px",
+    },
+    {
+      name: "Tax",
+      selector: (row) =>
+        `₱${parseFloat(row.tax_deduction || 0).toLocaleString()}`,
+      sortable: true,
+      center: true,
     },
     {
       name: "Loan",
@@ -672,19 +680,33 @@ const EmployeePayrollInformationsList = () => {
                     <option value="daily_rate">Daily Rate</option>
                     <option value="hourly_rate">Hourly Rate</option>
                     <option value="ot_hourly_rate">OT Hourly Rate</option>
-                    <option value="ot_rate_sp_holiday">OT Rate Special Holiday</option>
-                    <option value="ot_rate_reg_holiday">OT Rate Regular Holiday</option>
-                    <option value="special_hol_rate">Special Holiday Rate</option>
-                    <option value="regular_hol_ot_rate">Regular Holiday OT Rate</option>
+                    <option value="ot_rate_sp_holiday">
+                      OT Rate Special Holiday
+                    </option>
+                    <option value="ot_rate_reg_holiday">
+                      OT Rate Regular Holiday
+                    </option>
+                    <option value="special_hol_rate">
+                      Special Holiday Rate
+                    </option>
+                    <option value="regular_hol_ot_rate">
+                      Regular Holiday OT Rate
+                    </option>
                     <option value="overtime_pay">Overtime Pay</option>
                     <option value="holiday_pay">Holiday Pay</option>
-                    <option value="night_differential">Night Differential</option>
+                    <option value="night_differential">
+                      Night Differential
+                    </option>
                     <option value="allowance">Allowance</option>
                     <option value="tardiness">Tardiness</option>
                     <option value="tax_deduction">Tax Deduction</option>
                     <option value="sss_contribution">SSS Contribution</option>
-                    <option value="pagibig_contribution">Pag-IBIG Contribution</option>
-                    <option value="philhealth_contribution">PhilHealth Contribution</option>
+                    <option value="pagibig_contribution">
+                      Pag-IBIG Contribution
+                    </option>
+                    <option value="philhealth_contribution">
+                      PhilHealth Contribution
+                    </option>
                     <option value="loan">Loan</option>
                     <option value="otherDeductions">Other Deductions</option>
                     <option value="adjustment">Adjustment</option>

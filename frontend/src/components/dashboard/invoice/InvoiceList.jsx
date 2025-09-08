@@ -16,7 +16,12 @@ import {
   FaXmark,
   FaPenToSquare,
 } from "react-icons/fa6";
-import { FaRegEnvelope, FaPhoneVolume, FaLocationDot, FaGlobe } from "react-icons/fa6"; 
+import {
+  FaRegEnvelope,
+  FaPhoneVolume,
+  FaLocationDot,
+  FaGlobe,
+} from "react-icons/fa6";
 
 import { Modal, Button } from "react-bootstrap";
 import Logo from "../../../assets/logo.png";
@@ -196,94 +201,194 @@ const InvoiceList = () => {
   /** =================== PDF Export Function =================== */
   const downloadPDF = async () => {
     try {
-      // Create new PDF document with A5 size for the first page (portrait by default)
+      // Create new PDF document
       const doc = new jsPDF({
-        format: "a5",
+        format: "a4",
         unit: "mm",
       });
 
-      // A5 dimensions in mm
-      const a5Width = 148;
-      const a5Height = 210;
+      // A4 dimensions in mm
+      const a4Width = 210;
+      const a4Height = 297;
 
-      // Get the billing summary element (first div in modal body)
-      const billingSummaryElement = document.querySelector(
-        ".modal-body > div:first-child"
-      );
+      // PAGE 1: Billing Summary (Portrait) - Scaled to fit one page
+      const billingSummaryElement = document.getElementById("billing-summary");
 
       if (billingSummaryElement) {
         const originalStyle = billingSummaryElement.style.cssText;
 
-        // Style to match A5 size (in inches for CSS)
-        billingSummaryElement.style.width = "5.8in";
-        billingSummaryElement.style.height = "8.3in";
+        // Get natural dimensions first
+        const naturalCanvas = await html2canvas(billingSummaryElement, {
+          scale: 1,
+          useCORS: true,
+          allowTaint: true,
+        });
+
+        // Calculate scale to fit A4 with margins
+        const maxWidth = a4Width - 20; // 10mm margins on each side
+        const maxHeight = a4Height - 20; // 10mm margins on each side
+
+        const naturalWidth = naturalCanvas.width * 0.264583; // Convert px to mm
+        const naturalHeight = naturalCanvas.height * 0.264583;
+
+        const scaleX = maxWidth / naturalWidth;
+        const scaleY = maxHeight / naturalHeight;
+        const scale = Math.min(scaleX, scaleY, 1); // Don't upscale
+
+        // Apply calculated scale
+        billingSummaryElement.style.transform = `scale(${scale})`;
+        billingSummaryElement.style.transformOrigin = "top left";
 
         const summaryCanvas = await html2canvas(billingSummaryElement, {
           scale: 2,
           useCORS: true,
           allowTaint: true,
-          width: 5.8 * 96, // Convert to px at 96 DPI
-          height: 8.3 * 96,
         });
 
         const summaryImgData = summaryCanvas.toDataURL("image/png");
 
+        // Calculate final dimensions
+        const finalWidth = naturalWidth * scale;
+        const finalHeight = naturalHeight * scale;
+
+        // Center on page
+        const xOffset = (a4Width - finalWidth) / 2;
+        const yOffset = (a4Height - finalHeight) / 2;
+
         doc.addImage(
           summaryImgData,
           "PNG",
-          0, // Start at top-left of page
-          0,
-          a5Width,
-          a5Height
+          xOffset,
+          yOffset,
+          finalWidth,
+          finalHeight
         );
 
+        // Restore original style
         billingSummaryElement.style.cssText = originalStyle;
       }
 
-      // PAGE 2: Billing Details (Landscape orientation)
-      doc.addPage("legal", "landscape");
-
-      const billingDetailsElement = document.querySelector(
-        ".modal-body > div:nth-child(3)"
-      );
+      // PAGES 2+: Billing Details (Split by column groups)
+      const billingDetailsElement = document.getElementById("billing-details");
 
       if (billingDetailsElement) {
         const originalStyle = billingDetailsElement.style.cssText;
 
-        billingDetailsElement.style.width = "8in";
-        billingDetailsElement.style.maxWidth = "8in";
-        billingDetailsElement.style.transform = "scale(1)";
-        billingDetailsElement.style.transformOrigin = "top left";
+        // Get the header and table elements
+        const headerElement = billingDetailsElement.querySelector(".relative");
+        const tableElement = billingDetailsElement.querySelector("table");
 
-        const detailsCanvas = await html2canvas(billingDetailsElement, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          width: 13 * 96,
-          height: 8.5 * 96,
-        });
+        if (tableElement && headerElement) {
+          // Define column groups (adjust indices based on your table structure)
+          const columnGroups = [
+            // Group 1: E-CODE to REST DAY columns (indices 0-20)
+            { start: 0, end: 20, name: "Basic_to_RestDay" },
+            // Group 2: SPECIAL HOLIDAY columns (indices 21-36)
+            { start: 21, end: 36, name: "SpecialHoliday" },
+            // Group 3: HOLIDAY to end columns (indices 37+)
+            { start: 37, end: -1, name: "Holiday_to_End" },
+          ];
 
-        const detailsImgData = detailsCanvas.toDataURL("image/png");
+          // Capture header once
+          const headerCanvas = await html2canvas(headerElement, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+          });
+          const headerImgData = headerCanvas.toDataURL("image/png");
+          const headerHeight = 25;
 
-        const landscapeWidth = 297;
-        const landscapeHeight = 210;
+          for (const group of columnGroups) {
+            // Add new landscape page
+            doc.addPage("a4", "landscape");
 
-        const imgWidth = landscapeWidth - 20;
-        const imgHeight =
-          (detailsCanvas.height * imgWidth) / detailsCanvas.width;
+            // Add header
+            doc.addImage(
+              headerImgData,
+              "PNG",
+              10,
+              5,
+              a4Height - 20, // landscape width (297mm - margins)
+              headerHeight
+            );
 
-        doc.addImage(
-          detailsImgData,
-          "PNG",
-          10,
-          10,
-          imgWidth,
-          Math.min(imgHeight, landscapeHeight - 20)
-        );
+            // Clone table and modify columns
+            const clonedTable = tableElement.cloneNode(true);
 
+            // Get all rows (header and body)
+            const allRows = clonedTable.querySelectorAll("tr");
+
+            allRows.forEach((row) => {
+              const cells = Array.from(row.children);
+              const endIndex = group.end === -1 ? cells.length : group.end + 1;
+
+              // Remove cells outside the current group
+              for (let i = cells.length - 1; i >= 0; i--) {
+                if (i < group.start || (group.end !== -1 && i >= endIndex)) {
+                  cells[i].remove();
+                }
+              }
+            });
+
+            // Create temporary container for the modified table
+            const tempContainer = document.createElement("div");
+            tempContainer.style.position = "absolute";
+            tempContainer.style.left = "-9999px";
+            tempContainer.style.top = "-9999px";
+            tempContainer.style.fontSize = "10px"; // Reduce font size for better fit
+            tempContainer.appendChild(clonedTable);
+            document.body.appendChild(tempContainer);
+
+            try {
+              // Capture the table group
+              const tableCanvas = await html2canvas(tempContainer, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+              });
+
+              const tableImgData = tableCanvas.toDataURL("image/png");
+
+              // Calculate dimensions for landscape orientation
+              const landscapeWidth = a4Height; // 297mm
+              const landscapeHeight = a4Width; // 210mm
+              const availableHeight = landscapeHeight - headerHeight - 15;
+              const availableWidth = landscapeWidth - 20;
+
+              // Scale to fit available space
+              const imgAspectRatio = tableCanvas.width / tableCanvas.height;
+              let imgWidth = availableWidth;
+              let imgHeight = imgWidth / imgAspectRatio;
+
+              if (imgHeight > availableHeight) {
+                imgHeight = availableHeight;
+                imgWidth = imgHeight * imgAspectRatio;
+              }
+
+              // Center horizontally
+              const xOffset = (landscapeWidth - imgWidth) / 2;
+
+              // Add table image
+              doc.addImage(
+                tableImgData,
+                "PNG",
+                xOffset,
+                headerHeight + 10,
+                imgWidth,
+                imgHeight
+              );
+            } finally {
+              // Clean up temporary container
+              document.body.removeChild(tempContainer);
+            }
+          }
+        }
+
+        // Restore original style
         billingDetailsElement.style.cssText = originalStyle;
       }
 
+      // Save the PDF
       doc.save(
         `Billing_Invoice_${
           selectedGroup.cutoffDate
@@ -486,13 +591,13 @@ const InvoiceList = () => {
                   name: "Project",
                   selector: (row) => row.project,
                   sortable: true,
-                  width: "300px",
+                  width: "550px",
                 },
                 {
                   name: "Cutoff Date",
                   selector: (row) => row.cutoffDate,
                   sortable: true,
-                  width: "200px",
+                  width: "550px",
                 },
                 {
                   name: "Action",
@@ -562,57 +667,63 @@ const InvoiceList = () => {
 
                   <Modal.Body className="overflow-y-auto flex-1">
                     <div className="w-full">
-                    <div>
-                          <div className="w-1/2">
-                            <div className="flex mr-5 gap-2 mt-3 p-2 justify-between items-center">
-                              <div>
-                                <div className="flex flex-row gap-2 justify-center items center">
-                                  <img src="{Logo}" className="w-20 h-20" />
-                                  <div>
-                                    <p className="font-semibold text-[#9D426E] text-[10px]">
-                                      ST. JOHN MAJORE SERVICES COMPANY, INC.
-                                    </p>
-                                    <p className="italic text-[9px]">
-                                      Registered DOLE D.O. RO4A-BPO-DO174-0225-005-N
-                                    </p>
-                                    <p className="text-[9px] ">Batangas, 4226, PHILIPPINES</p>
-                                    <p className="text-[9px] ">
-                                      Cel No.: 0917-185-1909 • Tel. No.:(043) 575-5675
-                                    </p>
-                                    <p className="text-[9px] ">www.stjohnmajore.com</p>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="border-black border rounded-lg flex flex-col divide-y divide-black">
-                                <div className="p-2">
-                                  <p className="text-[9px] text-center mb-0">
-                                    VAT REGISTERED TIN: 010-837-591-000
+                      <div>
+                        <div className="w-[70%]" id="billing-summary">
+                          <div className="flex mr-5 gap-2 mt-3 p-2 justify-between items-center">
+                            <div>
+                              <div className="flex flex-row gap-2 justify-center items center">
+                                <img src="{Logo}" className="w-20 h-20" />
+                                <div>
+                                  <p className="font-semibold text-[#9D426E] text-[10px]">
+                                    ST. JOHN MAJORE SERVICES COMPANY, INC.
                                   </p>
-                                </div>
-                                <div className="p-2">
-                                  <p className="flex justify-center text-center items-center -mt-1 font-semibold">
-                                    BILLING SUMMARY
+                                  <p className="italic text-[9px]">
+                                    Registered DOLE D.O.
+                                    RO4A-BPO-DO174-0225-005-N
                                   </p>
-                                  <p className="flex justify-center uppercase text-center items-center -mt-1 text-xs">
-                                    FOR THE CUTOFF PERIOD APRIL 1-15, 2024
+                                  <p className="text-[9px] ">
+                                    Batangas, 4226, PHILIPPINES
+                                  </p>
+                                  <p className="text-[9px] ">
+                                    Cel No.: 0917-185-1909 • Tel. No.:(043)
+                                    575-5675
+                                  </p>
+                                  <p className="text-[9px] ">
+                                    www.stjohnmajore.com
                                   </p>
                                 </div>
                               </div>
                             </div>
+                            <div className="border-black border rounded-lg flex flex-col divide-y divide-black">
+                              <div className="p-2">
+                                <p className="text-[9px] text-center mb-0">
+                                  VAT REGISTERED TIN: 010-837-591-000
+                                </p>
+                              </div>
+                              <div className="p-2">
+                                <p className="flex justify-center text-center items-center -mt-1 font-semibold">
+                                  BILLING SUMMARY
+                                </p>
+                                <p className="flex justify-center uppercase text-center items-center -mt-1 text-xs">
+                                  FOR THE CUTOFF PERIOD APRIL 1-15, 2024
+                                </p>
+                              </div>
+                            </div>
+                          </div>
 
-                            <table className="border-collapse my-8 text-xs w-full font-sans">
-                              <tbody>
-                                <tr>
-                                  <td></td>
-                                  <td className="border-r border-l border-t border-black p-2 text-center align-middle font-semibold"></td>
-                                  <td
-                                    key="{invoice.controlNumber}"
-                                    colspan="2"
-                                    className="p-2 border-t border-r w-20 border-black italic text-[10px]"
-                                  >
-                                    Control #:
-                                  </td>
-                                  {/* {filteredInvoices
+                          <table className="border-collapse my-8 text-xs w-full font-sans">
+                            <tbody>
+                              <tr>
+                                <td></td>
+                                <td className="border-r border-l border-t border-black p-2 text-center align-middle font-semibold"></td>
+                                <td
+                                  key="{invoice.controlNumber}"
+                                  colspan="2"
+                                  className="p-2 border-t border-r w-20 border-black italic text-[10px]"
+                                >
+                                  Control #:
+                                </td>
+                                {/* {filteredInvoices
                                     .filter(
                                       (invoice, index, self) =>
                                         index ===
@@ -623,626 +734,741 @@ const InvoiceList = () => {
                                     .map((invoice) => (
                                       
                                     ))} */}
-                                </tr>
+                              </tr>
 
-                                <tr>
-                                  <td></td>
-                                  <td className="border-r border-l border-black p-2 text-center align-middle w-20 font-semibold text-xs">
-                                    Date:
-                                  </td>
-                                  <td
-                                    colspan="2"
-                                    className="p-2 border-t border-r w-20 border-black italic text-xs"
-                                  >
-                                    {/* {new Date(selectedGroup.cutoffDate).toLocaleDateString(
+                              <tr>
+                                <td></td>
+                                <td className="border-r border-l border-black p-2 text-center align-middle w-20 font-semibold text-xs">
+                                  Date:
+                                </td>
+                                <td
+                                  colspan="2"
+                                  className="p-2 border-t border-r w-20 border-black italic text-xs"
+                                >
+                                  {/* {new Date(selectedGroup.cutoffDate).toLocaleDateString(
                                       "en-US",
                                       { year: "numeric", month: "long", day: "numeric" }
                                     )} */}
-                                  </td>
-                                </tr>
-                                <tr className="border p-2 border-black font-semibold">
-                                  <td>SOLD TO:</td>
-                                </tr>
-                                <tr className="border-l border-r p-2 border-black">
-                                  <td className="px-2 py-1">Registered Name:</td>
-                                  <td></td>
-                                </tr>
-                                <tr className="border-l border-r p-2 border-black">
-                                  <td className="px-2 py-1">TIN:</td>
-                                  <td></td>
-                                </tr>
-                                <tr className="border-l border-r p-2 border-black">
-                                  <td className="px-2 py-1">Business Address:</td>
-                                  <td></td>
-                                </tr>
-                                <tr>
-                                  <th className="border border-black p-2 text-center">
-                                    Particulars
-                                  </th>
-                                  <th className="border border-black p-2   text-center">
-                                    Quantity
-                                  </th>
-                                  <th className="border border-black p-2 w-20 text-center">
-                                    Unit Price
-                                  </th>
-                                  <th className="border border-black p-2 w-20 text-center">
-                                    Amount
-                                  </th>
-                                </tr>
-                                <tr>
-                                  <td className="border h-64 w-72 border-black p-2 text-center"></td>
-                                  <td className="border border-black p-2 text-center"></td>
-                                  <td className="border border-black p-2 text-center"></td>
-                                  <td className="border border-black p-2 text-center"></td>
-                                </tr>
+                                </td>
+                              </tr>
+                              <tr className="border p-2 border-black font-semibold">
+                                <td>SOLD TO:</td>
+                              </tr>
+                              <tr className="border-l border-r p-2 border-black">
+                                <td className="px-2 py-1">Registered Name:</td>
+                                <td></td>
+                              </tr>
+                              <tr className="border-l border-r p-2 border-black">
+                                <td className="px-2 py-1">TIN:</td>
+                                <td></td>
+                              </tr>
+                              <tr className="border-l border-r p-2 border-black">
+                                <td className="px-2 py-1">Business Address:</td>
+                                <td></td>
+                              </tr>
+                              <tr>
+                                <th className="border border-black p-2 text-center">
+                                  Particulars
+                                </th>
+                                <th className="border border-black p-2   text-center">
+                                  Quantity
+                                </th>
+                                <th className="border border-black p-2 w-20 text-center">
+                                  Unit Price
+                                </th>
+                                <th className="border border-black p-2 w-20 text-center">
+                                  Amount
+                                </th>
+                              </tr>
+                              <tr>
+                                <td className="border h-64 w-72 border-black p-2 text-center"></td>
+                                <td className="border border-black p-2 text-center"></td>
+                                <td className="border border-black p-2 text-center"></td>
+                                <td className="border border-black p-2 text-center"></td>
+                              </tr>
 
-                                <tr>
-                                  <td></td>
-                                  <td
-                                    colspan="2"
-                                    className="border-l border-r border-b text-right font-semibold border-black"
+                              <tr>
+                                <td></td>
+                                <td
+                                  colspan="2"
+                                  className="border-l border-r border-b text-right font-semibold border-black"
+                                >
+                                  TOTAL AMOUNT DUE:
+                                </td>
+                                <td className="border-r border-black border-b">
+                                  ₱ [Total]
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+
+                          <div className="flex flex-row gap-4 mt-6">
+                            <div flex flex-col>
+                              <div>
+                                <table className="w-80">
+                                  <tr
+                                    colSpan="{2}"
+                                    className="border border-black text-sm"
                                   >
-                                    TOTAL AMOUNT DUE:
-                                  </td>
-                                  <td className="border-r border-black border-b">₱ [Total]</td>
+                                    <td>Prepared by: Paula Jane Y. Castillo</td>
+                                  </tr>
+                                  <tr
+                                    colSpan="{2}"
+                                    className="border border-black text-sm"
+                                  >
+                                    <td>
+                                      Approved by: Dr. Leandro C. Manalaysay
+                                    </td>
+                                  </tr>
+                                  <tr
+                                    colSpan="{2}"
+                                    className="border border-black text-sm"
+                                  >
+                                    <td>
+                                      Received by:{" "}
+                                      <input
+                                        type="text"
+                                        class="border-0 focus:outline-none text-left text-sm w-48"
+                                        placeholder="Enter Receiver's Name"
+                                      />
+                                    </td>
+                                  </tr>
+                                </table>
+                              </div>
+                              <div className="ml-1">
+                                <p className="text-decoration-underline font-semibold mt-3 text-[10px]">
+                                  "THIS DOCUMENT IS NOT VALID FOR CLAIMING INPUT
+                                  TAX."
+                                </p>
+                                <p className="text-[8px] font-semibold">
+                                  THIS BILLING INVOICE SHALL BE VALID FOR FIVE
+                                  (5) YEARS FROM THE DATE OF ATP.
+                                </p>
+                              </div>
+                            </div>
+
+                            <img
+                              src="{LongLogo}"
+                              className="w-36 h-24 ml-7 mt-5"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="mt- mb-10">
+                          <hr />
+                        </div>
+
+                        <div id="billing-details">
+                          <div className="relative w-full">
+                            {/* Top clipped bar */}
+                            <div
+                              className="absolute top-0 left-0 w-full h-24 flex items-center"
+                              style={{
+                                clipPath:
+                                  "polygon(0 0, 80% 0, 70% 100%, 0% 100%)",
+                                backgroundColor: "rgb(68, 20, 36)", // r:68 g:20 b:36
+                              }}
+                            >
+                              <div className="flex items-center px-6">
+                                <img
+                                  src="{Logo}"
+                                  alt="Logo"
+                                  className="w-16 h-16 object-contain"
+                                />
+                                <h1 className="text-white text-2xl font-bold ml-4">
+                                  ST. JOHN MAJORE SERVICES COMPANY, INC.
+                                </h1>
+                              </div>
+                            </div>
+
+                            {/* Main background div */}
+                            <div
+                              className="w-full h-24"
+                              style={{ backgroundColor: "rgb(110, 32, 58)" }} // r:110 g:32 b:58
+                            >
+                              <div className="p-2 space-y-1">
+                                <div className="flex items-center justify-end text-white text-xs">
+                                  <p>sjmajore@gmail.com</p>
+                                  <FaRegEnvelope className="ml-2" />
+                                </div>
+                                <div className="flex items-center justify-end text-white text-xs">
+                                  <p>0917-185-1909 ▪ 043 575-5675</p>
+                                  <FaPhoneVolume className="ml-2" />
+                                </div>
+                                <div className="flex items-center justify-end text-white text-xs">
+                                  <p>
+                                    #8 De Villa St., Poblacion, San Juan,
+                                    Batangas
+                                  </p>
+                                  <FaLocationDot className="ml-2" />
+                                </div>
+                                <div className="flex items-center justify-end text-white text-xs">
+                                  <p>www.stjohnmajore.com</p>
+                                  <FaGlobe className="ml-2" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="font-bold text-sm mt-3 uppercase">
+                              REPLACE WITH CLIENT NAME
+                            </p>
+                            <p className="text-sm -mt-1">
+                              Replace with Project Address
+                            </p>
+
+                            <p className="text-sm mt-3">REGULAR BILLING</p>
+                            <p className="text-sm uppercase">
+                              FOR THE CUTOFF PERIOD (REPLACE WITH DATE RANGE)
+                            </p>
+                          </div>
+
+                          <div>
+                            <table className="min-w-full -ml-0 table-auto border-separate border border-black text-sm mt-5">
+                              <thead>
+                                <tr>
+                                  <th
+                                    className="border border-black text-center py-1 text-nowrap"
+                                    rowSpan="3"
+                                  >
+                                    E-CODE
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1 text-nowrap"
+                                    rowSpan="3"
+                                  >
+                                    EMPLOYEE NAME
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1 text-nowrap"
+                                    rowSpan="3"
+                                  >
+                                    DESIGNATION
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="3"
+                                  >
+                                    BASIC SALARY
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="6"
+                                  >
+                                    REGULAR DAY
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="8"
+                                  >
+                                    REST DAY
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="16"
+                                  >
+                                    SPECIAL HOLIDAY
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="16"
+                                  >
+                                    HOLIDAY
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                    rowSpan="2"
+                                  >
+                                    LATE/ <br />
+                                    UNDERTIME
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1 text-nowrap"
+                                    rowSpan="3"
+                                  >
+                                    GROSS PAY
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1 text-nowrap"
+                                    rowSpan="3"
+                                  >
+                                    SIL
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1 text-nowrap"
+                                    rowSpan="3"
+                                  >
+                                    13TH <br />
+                                    MONTH PAY
+                                  </th>
+
+                                  <th
+                                    className="border border-black text-center py-1 text-nowrap"
+                                    rowSpan="3"
+                                  >
+                                    ALLOWANCE
+                                  </th>
+
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                    rowSpan="2"
+                                  >
+                                    SSS
+                                  </th>
+
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="1"
+                                    rowSpan="2"
+                                  >
+                                    PHIC
+                                  </th>
+
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="1"
+                                    rowSpan="2"
+                                  >
+                                    HDMF
+                                  </th>
+
+                                  <th
+                                    className="border border-black text-center py-1 text-nowrap"
+                                    rowSpan="3"
+                                  >
+                                    TOTAL GOV'T <br />
+                                    DUES
+                                  </th>
+
+                                  <th
+                                    className="border border-black text-center py-1 text-nowrap"
+                                    rowSpan="3"
+                                  >
+                                    TOTAL AMOUNT
+                                  </th>
+
+                                  <th
+                                    className="border border-black text-center py-1 text-nowrap"
+                                    colSpan="3"
+                                    rowSpan="2"
+                                  >
+                                    ADMIN FEE
+                                  </th>
+
+                                  <th
+                                    className="border border-black text-center py-1 text-nowrap"
+                                    rowSpan="3"
+                                  >
+                                    TOTAL AMOUNT DUE
+                                  </th>
                                 </tr>
-                              </tbody>
-                            </table>
+                                <tr>
+                                  {/* BASIC SALARY sub-columns */}
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    rowSpan="2"
+                                  >
+                                    RATE
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    rowSpan="2"
+                                  >
+                                    TOTAL DAYS <br /> RENDERED
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    rowSpan="2"
+                                  >
+                                    AMOUNT
+                                  </th>
 
-                            <div className="flex flex-row gap-4 mt-6">
-                              <div flex flex-col>
-                                <div>
-                                  <table className="w-80">
-                                    <tr colSpan="{2}" className="border border-black text-sm">
-                                      <td>Prepared by: Paula Jane Y. Castillo</td>
-                                    </tr>
-                                    <tr colSpan="{2}" className="border border-black text-sm">
-                                      <td>Approved by: Dr. Leandro C. Manalaysay</td>
-                                    </tr>
-                                    <tr colSpan="{2}" className="border border-black text-sm">
-                                      <td>
-                                        Received by:{" "}
-                                        <input
-                                          type="text"
-                                          class="border-0 focus:outline-none text-left text-sm w-48"
-                                          placeholder="Enter Receiver's Name"
-                                        />
-                                      </td>
-                                    </tr>
-                                  </table>
-                                </div>
-                                <div className="ml-1">
-                                  <p className="text-decoration-underline font-semibold mt-3 text-[10px]">
-                                    "THIS DOCUMENT IS NOT VALID FOR CLAIMING INPUT TAX."
-                                  </p>
-                                  <p className="text-[8px] font-semibold">
-                                    THIS BILLING INVOICE SHALL BE VALID FOR FIVE (5) YEARS FROM THE
-                                    DATE OF ATP.
-                                  </p>
-                                </div>
-                              </div>
+                                  {/* REGULAR DAY sub-sections */}
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    OT
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    ND
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    ND/OT
+                                  </th>
 
-                              <img src="{LongLogo}" className="w-36 h-24 ml-7 mt-5" />
-                            </div>
-                          </div>
+                                  {/* REST DAY sub-sections */}
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    RD
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    OT
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    ND
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    ND/OT
+                                  </th>
 
-                          <div className="mt- mb-10">
-                            <hr />
-                          </div>
+                                  {/* SPECIAL HOLIDAY  DAY sub-sections */}
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    SPECIAL <br />
+                                    HOLIDAY
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    SH/OT
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    SH/ND
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    SH/ND/OT
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    HOL. then <br />
+                                    RD
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    HOL. then <br />
+                                    RD/OT
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    HOL. then <br />
+                                    RD/ND
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    HOL. then <br />
+                                    RD/ND/OT
+                                  </th>
 
-                          <div className="">
-                            <div className="relative w-full">
-                              {/* Top clipped bar */}
-                              <div
-                                className="absolute top-0 left-0 w-full h-24 flex items-center"
-                                style={{
-                                  clipPath: "polygon(0 0, 80% 0, 70% 100%, 0% 100%)",
-                                  backgroundColor: "rgb(68, 20, 36)", // r:68 g:20 b:36
-                                }}
-                              >
-                                <div className="flex items-center px-6">
-                                  <img
-                                    src="{Logo}"
-                                    alt="Logo"
-                                    className="w-16 h-16 object-contain"
-                                  />
-                                  <h1 className="text-white text-2xl font-bold ml-4">
-                                    ST. JOHN MAJORE SERVICES COMPANY, INC.
-                                  </h1>
-                                </div>
-                              </div>
+                                  {/*HOLIDAY  DAY sub-sections */}
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    REGULAR
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    OT
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    ND
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    ND/OT
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    HOL. then <br />
+                                    RD
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    HOL. then <br />
+                                    RD/OT
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    HOL. then <br />
+                                    RD/ND
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    colSpan="2"
+                                  >
+                                    HOL. then <br />
+                                    RD/ND/OT
+                                  </th>
+                                </tr>
+                                <tr>
+                                  {/* REGULAR DAY → OT */}
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                              {/* Main background div */}
-                              <div
-                                className="w-full h-24"
-                                style={{ backgroundColor: "rgb(110, 32, 58)" }} // r:110 g:32 b:58
-                              >
-                                <div className="p-2 space-y-1">
-                                  <div className="flex items-center justify-end text-white text-xs">
-                                    <p>sjmajore@gmail.com</p>
-                                    <FaRegEnvelope className="ml-2" />
-                                  </div>
-                                  <div className="flex items-center justify-end text-white text-xs">
-                                    <p>0917-185-1909 ▪ 043 575-5675</p>
-                                    <FaPhoneVolume className="ml-2" />
-                                  </div>
-                                  <div className="flex items-center justify-end text-white text-xs">
-                                    <p>#8 De Villa St., Poblacion, San Juan, Batangas</p>
-                                    <FaLocationDot className="ml-2" />
-                                  </div>
-                                  <div className="flex items-center justify-end text-white text-xs">
-                                    <p>www.stjohnmajore.com</p>
-                                    <FaGlobe className="ml-2" />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
+                                  {/* REGULAR DAY → ND */}
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                            <div>
-                              <p className="font-bold text-sm mt-3 uppercase">
-                                REPLACE WITH CLIENT NAME
-                              </p>
-                              <p className="text-sm -mt-1">Replace with Project Address</p>
+                                  {/* REGULAR DAY → ND/OT */}
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                              <p className="text-sm mt-3">REGULAR BILLING</p>
-                              <p className="text-sm uppercase">
-                                FOR THE CUTOFF PERIOD (REPLACE WITH DATE RANGE)
-                              </p>
-                            </div>
+                                  {/* REST DAY → RD */}
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                            <div>
-                              <table className="min-w-full -ml-0 table-auto border-separate border border-black text-sm mt-5">
-                                <thead>
-                                  <tr>
-                                    <th
-                                      className="border border-black text-center py-1 text-nowrap"
-                                      rowSpan="3"
-                                    >
-                                      E-CODE
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1 text-nowrap"
-                                      rowSpan="3"
-                                    >
-                                      EMPLOYEE NAME
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1 text-nowrap"
-                                      rowSpan="3"
-                                    >
-                                      DESIGNATION
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="3"
-                                    >
-                                      BASIC SALARY
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="6"
-                                    >
-                                      REGULAR DAY
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="8"
-                                    >
-                                      REST DAY
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="16"
-                                    >
-                                      SPECIAL HOLIDAY
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="16"
-                                    >
-                                      HOLIDAY
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                      rowSpan="2"
-                                    >
-                                      LATE/ <br />
-                                      UNDERTIME
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1 text-nowrap"
-                                      rowSpan="3"
-                                    >
-                                      GROSS PAY
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1 text-nowrap"
-                                      rowSpan="3"
-                                    >
-                                      SIL
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1 text-nowrap"
-                                      rowSpan="3"
-                                    >
-                                      13TH <br />
-                                      MONTH PAY
-                                    </th>
+                                  {/* REGULAR DAY → OT */}
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    <th
-                                      className="border border-black text-center py-1 text-nowrap"
-                                      rowSpan="3"
-                                    >
-                                      ALLOWANCE
-                                    </th>
+                                  {/* REGULAR DAY → ND */}
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                      rowSpan="2"
-                                    >
-                                      SSS
-                                    </th>
+                                  {/* REGULAR DAY → ND/OT */}
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="1"
-                                      rowSpan="2"
-                                    >
-                                      PHIC
-                                    </th>
+                                  {/* SPECIAL HOLIDAY → SPECIAL HOLIDAY */}
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="1"
-                                      rowSpan="2"
-                                    >
-                                      HDMF
-                                    </th>
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    <th
-                                      className="border border-black text-center py-1 text-nowrap"
-                                      rowSpan="3"
-                                    >
-                                      TOTAL GOV'T <br />
-                                      DUES
-                                    </th>
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    <th
-                                      className="border border-black text-center py-1 text-nowrap"
-                                      rowSpan="3"
-                                    >
-                                      TOTAL AMOUNT
-                                    </th>
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    <th
-                                      className="border border-black text-center py-1 text-nowrap"
-                                      colSpan="3"
-                                      rowSpan="2"
-                                    >
-                                      ADMIN FEE
-                                    </th>
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    <th
-                                      className="border border-black text-center py-1 text-nowrap"
-                                      rowSpan="3"
-                                    >
-                                      TOTAL AMOUNT DUE
-                                    </th>
-                                  </tr>
-                                  <tr>
-                                    {/* BASIC SALARY sub-columns */}
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      rowSpan="2"
-                                    >
-                                      RATE
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      rowSpan="2"
-                                    >
-                                      TOTAL DAYS <br /> RENDERED
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      rowSpan="2"
-                                    >
-                                      AMOUNT
-                                    </th>
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    {/* REGULAR DAY sub-sections */}
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      OT
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      ND
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      ND/OT
-                                    </th>
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    {/* REST DAY sub-sections */}
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      RD
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      OT
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      ND
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      ND/OT
-                                    </th>
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    {/* SPECIAL HOLIDAY  DAY sub-sections */}
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      SPECIAL <br />
-                                      HOLIDAY
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      SH/OT
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      SH/ND
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      SH/ND/OT
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      HOL. then <br />
-                                      RD
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      HOL. then <br />
-                                      RD/OT
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      HOL. then <br />
-                                      RD/ND
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      HOL. then <br />
-                                      RD/ND/OT
-                                    </th>
+                                  {/* HOLIDAY */}
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    {/*HOLIDAY  DAY sub-sections */}
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      REGULAR
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      OT
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      ND
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      ND/OT
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      HOL. then <br />
-                                      RD
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      HOL. then <br />
-                                      RD/OT
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      HOL. then <br />
-                                      RD/ND
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      colSpan="2"
-                                    >
-                                      HOL. then <br />
-                                      RD/ND/OT
-                                    </th>
-                                  </tr>
-                                  <tr>
-                                    {/* REGULAR DAY → OT */}
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    {/* REGULAR DAY → ND */}
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    {/* REGULAR DAY → ND/OT */}
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    {/* REST DAY → RD */}
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    {/* REGULAR DAY → OT */}
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    {/* REGULAR DAY → ND */}
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    {/* REGULAR DAY → ND/OT */}
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
+                                  <th className="border border-black text-center py-1">
+                                    HRS.
+                                  </th>
+                                  <th className="border border-black text-center py-1">
+                                    AMT.
+                                  </th>
 
-                                    {/* SPECIAL HOLIDAY → SPECIAL HOLIDAY */}
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
+                                  {/* LATE sub-columns */}
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    rowSpan="2"
+                                  >
+                                    HRS.
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    rowSpan="2"
+                                  >
+                                    AMT.
+                                  </th>
 
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
+                                  {/* SSS */}
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    rowSpan="2"
+                                  >
+                                    ER
+                                  </th>
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    rowSpan="2"
+                                  >
+                                    EC
+                                  </th>
 
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
+                                  {/* PHIC */}
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    rowSpan="2"
+                                  >
+                                    ER
+                                  </th>
 
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
+                                  {/* HDMF */}
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    rowSpan="2"
+                                  >
+                                    ER
+                                  </th>
 
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
+                                  {/* ADMIN FEE */}
+                                  <th
+                                    className="border border-black text-center py-1"
+                                    rowSpan="2"
+                                    colspan="2"
+                                  >
+                                    10%
+                                  </th>
+                                </tr>
+                              </thead>
 
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
-
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
-
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
-
-                                    {/* HOLIDAY */}
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
-
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
-
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
-
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
-
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
-
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
-
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
-
-                                    <th className="border border-black text-center py-1">HRS.</th>
-                                    <th className="border border-black text-center py-1">AMT.</th>
-
-                                    {/* LATE sub-columns */}
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      rowSpan="2"
-                                    >
-                                      HRS.
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      rowSpan="2"
-                                    >
-                                      AMT.
-                                    </th>
-
-                                    {/* SSS */}
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      rowSpan="2"
-                                    >
-                                      ER
-                                    </th>
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      rowSpan="2"
-                                    >
-                                      EC
-                                    </th>
-
-                                    {/* PHIC */}
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      rowSpan="2"
-                                    >
-                                      ER
-                                    </th>
-
-                                    {/* HDMF */}
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      rowSpan="2"
-                                    >
-                                      ER
-                                    </th>
-
-                                    {/* ADMIN FEE */}
-                                    <th
-                                      className="border border-black text-center py-1"
-                                      rowSpan="2"
-                                      colspan="2"
-                                    >
-                                      10%
-                                    </th>
-                                  </tr>
-                                </thead>
-
-                                <tbody>
-                                  {/* {(() => { // Initialize totals let totalDailyRate = 0; let
+                              <tbody>
+                                {/* {(() => { // Initialize totals let totalDailyRate = 0; let
                                 totalOvertimeHours = 0; let totalOvertimeAmount = 0; let
                                 totalGrossPay = 0; let totalAdminFee = 0; let totalAmount = 0; let
                                 totalVat = 0; let totalAmountDue = 0; // Map rows and compute totals
@@ -1257,944 +1483,647 @@ const InvoiceList = () => {
                                 overtimeHours; totalOvertimeAmount += overtimeAmount; totalGrossPay
                                 += grossPay; totalAdminFee += adminFee; totalAmount += subtotal;
                                 totalVat += vat; totalAmountDue += totalDue; return ( */}
-                                  <tr key="{invoice.id}">
-                                    <td className="border border-black text-center px-4 py-2 text-xs text-nowrap">
-                                      {/* {index + 1} */}
-                                    </td>
-                                    <td className="border border-black text-left px-4 py-2 text-xs text-nowrap">
-                                      {/* {invoice.name} */}
-                                    </td>
-                                    <td className="border border-black text-left px-4 py-2 text-xs text-nowrap">
-                                      {/* {invoice.position || "—"} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {dailyRate.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {overtimeHours.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {overtimeAmount.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {grossPay.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {adminFee.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {subtotal.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                    <td
-                                      className="border border-black text-right px-4 py-2 text-xs text-nowrap"
-                                      colspan="3"
-                                    >
-                                      {/* {vat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                      {/* {totalDue.toFixed(2)} */}
-                                    </td>
-                                  </tr>
-                                  {/* ); } ); // Append totals row rows.push( */}
-                                  <tr key="totals">
-                                    <td
-                                      className="border border-black font-semibold text-right px-4 py-2"
-                                      colspan="3"
-                                    >
-                                      TOTAL AMOUNT
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalDailyRate.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalOvertimeHours.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalOvertimeAmount.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalGrossPay.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAdminFee.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmount.toFixed(2)} */}
-                                    </td>
-                                    <td
-                                      className="border border-black text-right px-4 py-2"
-                                      colspan="3"
-                                    >
-                                      {/* {totalVat.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td
-                                      className="border border-black text-right px-4 py-2"
-                                      colspan="3"
-                                    >
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      {/* {totalAmountDue.toFixed(2)} */}
-                                    </td>
-                                  </tr>
-                                  {/* ); return rows; })()} */}
-                                  <tr>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2" colspan="4"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                  </tr>
-                                  <tr>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className=" text-right px-4 py-2" colspan="3"></td>
-                                    <td className=" text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td className="text-right px-4 py-2"></td>
-                                    <td
-                                      className="border border-black text-right px-4 py-2"
-                                      colspan="4"
-                                    >
-                                      TOTAL BILLING:
-                                    </td>
-                                    <td className="border border-black text-right px-4 py-2">
-                                      ₱(TOTAL)
-                                    </td>
-                                  </tr>
-                                </tbody>
-                              </table>
-
-                              <div className="grid grid-cols-3 gap-8 mt-20">
-                                {/* Prepared by */}
-                                <div className="flex flex-col items-center">
-                                  <p className="text-xs font-bold text-center">
-                                    PAULA JANE Y. CASTILLO
-                                  </p>
-                                  <div className="flex items-center w-full">
-                                    <p className="text-xs mr-2 whitespace-nowrap">Prepared by:</p>
-                                    <div className="flex-1 border-b border-black"></div>
-                                  </div>
-                                  <div className="text-center w-full">
-                                    <p className="text-xs font-bold mt-1">ADMINISTRATIVE HEAD</p>
-                                    <p className="text-xs">(SIGNATURE OVER PRINTED NAME)</p>
-                                  </div>
-                                </div>
-
-                                {/* Approved by */}
-                                <div className="flex flex-col items-center">
-                                  <p className="text-xs font-bold text-center">
-                                    DR. LEANDRO C. MANALAYSAY
-                                  </p>
-                                  <div className="flex items-center w-full">
-                                    <p className="text-xs mr-2 whitespace-nowrap">Approved by:</p>
-                                    <div className="flex-1 border-b border-black"></div>
-                                  </div>
-                                  <div className="text-center w-full">
-                                    <p className="text-xs font-bold mt-1">
-                                      PRESIDENT & CHIEF FINANCE OFFICER
-                                    </p>
-                                    <p className="text-xs">(SIGNATURE OVER PRINTED NAME)</p>
-                                  </div>
-                                </div>
-
-                                {/* Received by */}
-                                <div className="flex flex-col items-center">
-                                  {/* Input with "Received by:" on the same line */}
-                                  <div className="flex items-center w-full">
-                                    <p className="text-xs mr-2 whitespace-nowrap">Received by:</p>
-                                    <input
-                                      type="text"
-                                      placeholder="Enter Receiver Name"
-                                      className="text-xs uppercase font-bold text-center border-0 border-b border-black focus:ring-0 -mt-2 focus:outline-none flex-1"
-                                    />
-                                  </div>
-
-                                  {/* Position below */}
-                                  <div className="text-center w-full">
-                                    <p className="text-xs font-bold mt-1">(NAME OF CLIENT HERE)</p>
-                                    <p className="text-xs">(SIGNATURE OVER PRINTED NAME)</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                      <table className="border-collapse my-8 text-xs font-sans">
-                        <tbody>
-                          <tr>
-                            <td></td>
-                            <td className="border-r border-l border-t border-black p-2 text-center align-middle font-semibold"></td>
-                            {filteredInvoices
-                              .filter(
-                                (invoice, index, self) =>
-                                  index ===
-                                  self.findIndex(
-                                    (inv) =>
-                                      inv.controlNumber ===
-                                      invoice.controlNumber
-                                  )
-                              )
-                              .map((invoice) => (
-                                <td
-                                  key={invoice.controlNumber}
-                                  colSpan={2}
-                                  className="p-2 border-t border-r w-20 border-black italic text-[10px]"
-                                >
-                                  Control #: {invoice.controlNumber}
-                                </td>
-                              ))}
-                          </tr>
-
-                          <tr>
-                            <td></td>
-                            <td className="border-r border-l border-black p-2 text-center align-middle w-20 font-semibold text-xs">
-                              Date:
-                            </td>
-                            <td
-                              colSpan={2}
-                              className="p-2 border-t border-r w-20 border-black italic text-xs"
-                            >
-                              {new Date(
-                                selectedGroup.cutoffDate
-                              ).toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
-                            </td>
-                          </tr>
-                          <tr className="border p-2 border-black font-semibold">
-                            <td>SOLD TO:</td>
-                          </tr>
-                          <tr className="border-l border-r p-2 border-black">
-                            <td className="px-2 py-1">Registered Name:</td>
-                            <td></td>
-                          </tr>
-                          <tr className="border-l border-r p-2 border-black">
-                            <td className="px-2 py-1">TIN:</td>
-                            <td></td>
-                          </tr>
-                          <tr className="border-l border-r p-2 border-black">
-                            <td className="px-2 py-1">Business Address:</td>
-                            <td></td>
-                          </tr>
-                          <tr>
-                            <th className="border border-black p-2 text-center">
-                              Particulars
-                            </th>
-                            <th className="border border-black p-2   text-center">
-                              Quantity
-                            </th>
-                            <th className="border border-black p-2 w-20 text-center">
-                              Unit Price
-                            </th>
-                            <th className="border border-black p-2 w-20 text-center">
-                              Amount
-                            </th>
-                          </tr>
-                          <tr>
-                            <td className="border h-64 w-72 border-black p-2 text-center"></td>
-                            <td className="border border-black p-2 text-center"></td>
-                            <td className="border border-black p-2 text-center"></td>
-                            <td className="border border-black p-2 text-center"></td>
-                          </tr>
-
-                          <tr>
-                            <td></td>
-                            <td
-                              colSpan={2}
-                              className="border-l border-r border-b text-right font-semibold border-black"
-                            >
-                              TOTAL AMOUNT DUE:
-                            </td>
-                            <td className="border-r border-black border-b">
-                              ₱ [Total]
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-
-                      <div className="flex flex-row gap-4 -mt-14">
-                        <div flex flex-col>
-                          <div>
-                            <table className="w-64">
-                              <tr
-                                colSpan={2}
-                                className="border border-black text-sm"
-                              >
-                                <td>Prepared by:</td>
-                              </tr>
-                              <tr
-                                colSpan={2}
-                                className="border border-black text-sm"
-                              >
-                                <td>Received by:</td>
-                              </tr>
-                              <tr
-                                colSpan={2}
-                                className="border border-black text-sm"
-                              >
-                                <td>Date Received:</td>
-                              </tr>
-                            </table>
-                          </div>
-                          <div className="ml-7">
-                            <p className="text-decoration-underline font-semibold  text-[10px] -mt-3">
-                              "THIS DOCUMENT IS NOT VALID FOR CLAIMING INPUT
-                              TAX."
-                            </p>
-                            <p className="text-[8px] -mt-3 font-semibold">
-                              THIS BILLING INVOICE SHALL BE VALID FOR FIVE (5)
-                              YEARS FROM THE DATE OF ATP.
-                            </p>
-                          </div>
-                        </div>
-
-                        <img src={LongLogo} className="w-36 h-24 -ml-3 mt-5" />
-                      </div>
-                    </div>
-
-                    <div className="mt- mb-10">
-                      <hr />
-                    </div>
-
-                    <div className="">
-                      <div>
-                        <p className="italic font-semibold text-[#9D426E] text-sm">
-                          ST. JOHN MAJORE SERVICES COMPANY, INC.
-                        </p>
-                        <p className="text-xs -mt-3">
-                          Details of Billing Invoice
-                        </p>
-                        <p className="text-xs -mt-3">
-                          For the period of {selectedGroup.cutoffDate}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-sm mt-5">
-                          Principal: {selectedGroup.project}
-                        </p>
-                      </div>
-
-                      <div>
-                        <table className="min-w-full -ml-0 table-auto border-separate border border-black text-sm mt-5">
-                          <thead>
-                            <tr>
-                              <th
-                                className=" border border-black text-center py-1 text-nowrap"
-                                rowSpan="2"
-                              >
-                                E-CODE
-                              </th>
-                              <th
-                                className=" border border-black text-center py-1 text-nowrap"
-                                rowSpan="2"
-                              >
-                                EMPLOYEE NAME
-                              </th>
-                              <th
-                                className=" border border-black text-center  py-1 text-nowrap"
-                                rowSpan="2"
-                              >
-                                DESIGNATION
-                              </th>
-                              <th
-                                className=" border border-black text-center  py-1 text-nowrap"
-                                rowSpan="2"
-                              >
-                                PAYROLL RATE
-                              </th>
-                              <th
-                                className=" border border-black text-center py-1"
-                                colSpan="2"
-                              >
-                                REGULAR OVERTIME (excess in 8/hrs/day)
-                              </th>
-                              <th
-                                className=" border border-black text-center py-1"
-                                rowSpan="2"
-                              >
-                                GROSS PAY (DUE TO EMPLOYEES)
-                              </th>
-                              <th
-                                className=" border border-black text-center py-1 text-nowrap"
-                                rowSpan="2"
-                              >
-                                ADMIN FEE (10%)
-                              </th>
-                              <th
-                                className=" border border-black text-center  py-1 text-nowrap"
-                                rowSpan="2"
-                              >
-                                TOTAL AMOUNT
-                              </th>
-                              <th
-                                className=" border border-black text-center py-1"
-                                rowSpan="2"
-                              >
-                                12% VALUE ADDED TAX
-                              </th>
-                              <th
-                                className=" border border-black text-center  py-1 text-nowrap"
-                                rowSpan="2"
-                              >
-                                TOTAL AMOUNT DUE
-                              </th>
-                            </tr>
-                            <tr>
-                              <th className=" border border-black text-center  py-1">
-                                Hrs
-                              </th>
-                              <th className=" border border-black text-center  py-1">
-                                Amount
-                              </th>
-                            </tr>
-                          </thead>
-
-                          <tbody>
-                            {(() => {
-                              // Initialize totals
-                              let totalDailyRate = 0;
-                              let totalOvertimeHours = 0;
-                              let totalOvertimeAmount = 0;
-                              let totalGrossPay = 0;
-                              let totalAdminFee = 0;
-                              let totalAmount = 0;
-                              let totalVat = 0;
-                              let totalAmountDue = 0;
-
-                              // Map rows and compute totals at the same time
-                              const rows = filteredInvoices.map(
-                                (invoice, index) => {
-                                  const dailyRate = parseFloat(
-                                    invoice.dailyrate || 0
-                                  );
-                                  const overtimeHours = parseFloat(
-                                    invoice.totalOvertime || 0
-                                  );
-                                  const overtimeAmount = parseFloat(
-                                    invoice.overtimePay || 0
-                                  );
-                                  const grossPay = parseFloat(
-                                    invoice.gross_pay || 0
-                                  );
-                                  const adminFee = grossPay * 0.1;
-                                  const subtotal = grossPay + adminFee;
-                                  const vat = subtotal * 0.12;
-                                  const totalDue = subtotal + vat;
-
-                                  // Accumulate totals
-                                  totalDailyRate += dailyRate;
-                                  totalOvertimeHours += overtimeHours;
-                                  totalOvertimeAmount += overtimeAmount;
-                                  totalGrossPay += grossPay;
-                                  totalAdminFee += adminFee;
-                                  totalAmount += subtotal;
-                                  totalVat += vat;
-                                  totalAmountDue += totalDue;
-
-                                  return (
-                                    <tr key={invoice.id}>
-                                      <td className="border border-black text-center px-4 py-2 text-xs text-nowrap">
-                                        {index + 1}
-                                      </td>
-                                      <td className="border border-black text-left px-4 py-2 text-xs text-nowrap">
-                                        {invoice.name}
-                                      </td>
-                                      <td className="border border-black text-left px-4 py-2 text-xs text-nowrap">
-                                        {invoice.position || "—"}
-                                      </td>
-                                      <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                        {dailyRate.toFixed(2)}
-                                      </td>
-                                      <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                        {overtimeHours.toFixed(2)}
-                                      </td>
-                                      <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                        {overtimeAmount.toFixed(2)}
-                                      </td>
-                                      <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                        {grossPay.toFixed(2)}
-                                      </td>
-                                      <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                        {adminFee.toFixed(2)}
-                                      </td>
-                                      <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                        {subtotal.toFixed(2)}
-                                      </td>
-                                      <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                        {vat.toFixed(2)}
-                                      </td>
-                                      <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
-                                        {totalDue.toFixed(2)}
-                                      </td>
-                                    </tr>
-                                  );
-                                }
-                              );
-
-                              // Append totals row
-                              rows.push(
+                                <tr key="{invoice.id}">
+                                  <td className="border border-black text-center px-4 py-2 text-xs text-nowrap">
+                                    {/* {index + 1} */}
+                                  </td>
+                                  <td className="border border-black text-left px-4 py-2 text-xs text-nowrap">
+                                    {/* {invoice.name} */}
+                                  </td>
+                                  <td className="border border-black text-left px-4 py-2 text-xs text-nowrap">
+                                    {/* {invoice.position || "—"} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {dailyRate.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {overtimeHours.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {overtimeAmount.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {grossPay.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {adminFee.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {subtotal.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                  <td
+                                    className="border border-black text-right px-4 py-2 text-xs text-nowrap"
+                                    colspan="3"
+                                  >
+                                    {/* {vat.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2 text-xs text-nowrap">
+                                    {/* {totalDue.toFixed(2)} */}
+                                  </td>
+                                </tr>
+                                {/* ); } ); // Append totals row rows.push( */}
                                 <tr key="totals">
                                   <td
-                                    className="border border-black font-semibold text-center px-4 py-2"
-                                    colSpan="3"
+                                    className="border border-black font-semibold text-right px-4 py-2"
+                                    colspan="3"
                                   >
                                     TOTAL AMOUNT
                                   </td>
                                   <td className="border border-black text-right px-4 py-2">
-                                    {totalDailyRate.toFixed(2)}
+                                    {/* {totalDailyRate.toFixed(2)} */}
                                   </td>
                                   <td className="border border-black text-right px-4 py-2">
-                                    {totalOvertimeHours.toFixed(2)}
+                                    {/* {totalOvertimeHours.toFixed(2)} */}
                                   </td>
                                   <td className="border border-black text-right px-4 py-2">
-                                    {totalOvertimeAmount.toFixed(2)}
+                                    {/* {totalOvertimeAmount.toFixed(2)} */}
                                   </td>
                                   <td className="border border-black text-right px-4 py-2">
-                                    {totalGrossPay.toFixed(2)}
+                                    {/* {totalGrossPay.toFixed(2)} */}
                                   </td>
                                   <td className="border border-black text-right px-4 py-2">
-                                    {totalAdminFee.toFixed(2)}
+                                    {/* {totalAdminFee.toFixed(2)} */}
                                   </td>
                                   <td className="border border-black text-right px-4 py-2">
-                                    {totalAmount.toFixed(2)}
+                                    {/* {totalAmount.toFixed(2)} */}
+                                  </td>
+                                  <td
+                                    className="border border-black text-right px-4 py-2"
+                                    colspan="3"
+                                  >
+                                    {/* {totalVat.toFixed(2)} */}
                                   </td>
                                   <td className="border border-black text-right px-4 py-2">
-                                    {totalVat.toFixed(2)}
+                                    {/* {totalAmountDue.toFixed(2)} */}
                                   </td>
                                   <td className="border border-black text-right px-4 py-2">
-                                    {totalAmountDue.toFixed(2)}
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td
+                                    className="border border-black text-right px-4 py-2"
+                                    colspan="3"
+                                  >
+                                    {/* {totalAmountDue.toFixed(2)} */}
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    {/* {totalAmountDue.toFixed(2)} */}
                                   </td>
                                 </tr>
-                              );
+                                {/* ); return rows; })()} */}
+                                <tr>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className="text-right px-4 py-2"
+                                    colspan="4"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                </tr>
+                                <tr>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className=" text-right px-4 py-2"
+                                    colspan="3"
+                                  ></td>
+                                  <td className=" text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td className="text-right px-4 py-2"></td>
+                                  <td
+                                    className="border border-black text-right px-4 py-2"
+                                    colspan="4"
+                                  >
+                                    TOTAL BILLING:
+                                  </td>
+                                  <td className="border border-black text-right px-4 py-2">
+                                    ₱(TOTAL)
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
 
-                              return rows;
-                            })()}
-                          </tbody>
-                        </table>
+                            <div className="grid grid-cols-3 gap-8 mt-20">
+                              {/* Prepared by */}
+                              <div className="flex flex-col items-center">
+                                <p className="text-xs font-bold text-center">
+                                  PAULA JANE Y. CASTILLO
+                                </p>
+                                <div className="flex items-center w-full">
+                                  <p className="text-xs mr-2 whitespace-nowrap">
+                                    Prepared by:
+                                  </p>
+                                  <div className="flex-1 border-b border-black"></div>
+                                </div>
+                                <div className="text-center w-full">
+                                  <p className="text-xs font-bold mt-1">
+                                    ADMINISTRATIVE HEAD
+                                  </p>
+                                  <p className="text-xs">
+                                    (SIGNATURE OVER PRINTED NAME)
+                                  </p>
+                                </div>
+                              </div>
 
-                        <table className="table-fixed border border-black text-xs w-fit">
-                          <tbody>
-                            <tr>
-                              <td className="px-2 border-r border-black">
-                                TOTAL APPROVED MAN HOURS
-                              </td>
-                              <td className="px-2 w-32 text-right">1</td>
-                            </tr>
-                          </tbody>
-                        </table>
+                              {/* Approved by */}
+                              <div className="flex flex-col items-center">
+                                <p className="text-xs font-bold text-center">
+                                  DR. LEANDRO C. MANALAYSAY
+                                </p>
+                                <div className="flex items-center w-full">
+                                  <p className="text-xs mr-2 whitespace-nowrap">
+                                    Approved by:
+                                  </p>
+                                  <div className="flex-1 border-b border-black"></div>
+                                </div>
+                                <div className="text-center w-full">
+                                  <p className="text-xs font-bold mt-1">
+                                    PRESIDENT & CHIEF FINANCE OFFICER
+                                  </p>
+                                  <p className="text-xs">
+                                    (SIGNATURE OVER PRINTED NAME)
+                                  </p>
+                                </div>
+                              </div>
 
-                        <div className="grid grid-cols-3 gap-4 text-center mt-20">
-                          <div>
-                            <p className="text-xs text-left mb-2">
-                              Prepared by:
-                            </p>
-                            <div className="border-t border-black h-6"></div>
-                            <p className="text-xs -mt-3">
-                              Ms. Paula Jane Y. Castillo
-                            </p>
-                            <p className="text-xs -mt-3">Billing Head</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-left mb-2">
-                              Received by:
-                            </p>
-                            <div className="border-t border-black h-6"></div>
-                            <p className="text-xs -mt-3">Client</p>
+                              {/* Received by */}
+                              <div className="flex flex-col items-center">
+                                {/* Input with "Received by:" on the same line */}
+                                <div className="flex items-center w-full">
+                                  <p className="text-xs mr-2 whitespace-nowrap">
+                                    Received by:
+                                  </p>
+                                  <input
+                                    type="text"
+                                    placeholder="Enter Receiver Name"
+                                    className="text-xs uppercase font-bold text-center border-0 border-b border-black focus:ring-0 -mt-2 focus:outline-none flex-1"
+                                  />
+                                </div>
+
+                                {/* Position below */}
+                                <div className="text-center w-full">
+                                  <p className="text-xs font-bold mt-1">
+                                    (NAME OF CLIENT HERE)
+                                  </p>
+                                  <p className="text-xs">
+                                    (SIGNATURE OVER PRINTED NAME)
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>

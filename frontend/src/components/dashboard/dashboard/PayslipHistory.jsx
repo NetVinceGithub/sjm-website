@@ -210,14 +210,7 @@ const PayslipHistory = () => {
       width: "130px",
     },
     {
-      name: "Overtime Pay",
-      selector: (row) => `₱${(row.overtimePay ?? 0).toLocaleString()}`,
-      sortable: true,
-      center: true,
-      width: "130px",
-    },
-    {
-      name: "Holiday Pay",
+      name: "Gross Pay",
       selector: (row) => `₱${(row.holidayPay ?? 0).toLocaleString()}`,
       sortable: true,
       center: true,
@@ -314,7 +307,7 @@ const PayslipHistory = () => {
             </div>
           </div>
         </div>
-        <div className="mt-2 bg-white w-[calc(100vw-310px)] h-[calc(100vh-80px)] p-2 rounded-lg shadow">
+        <div className="mt-2 bg-white w-[calc(100vw-310px)]  p-2 rounded-lg shadow">
           {loading ? (
             <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
               <ThreeDots
@@ -337,6 +330,7 @@ const PayslipHistory = () => {
                     data={filteredPayslips}
                     pagination
                     progressPending={loading}
+                    paginationPerPage={20}
                     progressComponent={
                       <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
                         <ThreeDots

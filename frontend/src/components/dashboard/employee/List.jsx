@@ -198,12 +198,9 @@ const List = () => {
     }
 
     // Apply employment classification filter
-    if (
-      filters.employmentClassification &&
-      filters.employmentClassification.length > 0
-    ) {
+    if (filters.classification && filters.classification.length > 0) {
       filtered = filtered.filter((emp) =>
-        filters.employmentClassification.includes(emp.employment_classification)
+        filters.classification.includes(emp.employment_classification)
       );
     }
 
@@ -484,10 +481,36 @@ const List = () => {
         setEmployeeToBlock(null);
 
         // Add success notification
-        toast.success("Employee status updated to Inactive!");
+        toast("Employee status updated to Inactive!", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>✅</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
       } catch (error) {
         console.error("Error updating employee status:", error);
-        toast.error("Failed to update employee status. Please try again.");
+        toast("Failed to update employee status. Please try again.", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
       }
     }
   };
@@ -521,10 +544,36 @@ const List = () => {
         setEmployeeToBlock(null);
 
         // Add success notification
-        toast.success("Employee successfully blocked!");
+        toast("Employee successfully blocked!", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>✅</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
       } catch (error) {
         console.error("Error blocking employee:", error);
-        toast.error("Failed to block employee. Please try again.");
+        toast("Failed to block employee. Please try again.", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
       }
     }
   };
@@ -576,14 +625,41 @@ const List = () => {
         setEmployeeToBlock(null);
 
         // Add success notification
-        toast.success(
+        toast(
           `Employee successfully ${
             currentStatus === "Block" ? "unblocked" : "activated"
-          }!`
+          }!`,
+          {
+            position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>✅</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
+          }
         );
       } catch (error) {
         console.error("Error updating employee status:", error);
-        toast.error("Failed to update employee status. Please try again.");
+        toast("Failed to update employee status. Please try again.", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
       }
     }
   };
@@ -599,8 +675,7 @@ const List = () => {
     setEmployeeToBlock(null);
   };
 
-// Fixed handleToggleStatus function - replace the existing one in your List.js component
-
+  // Fixed handleToggleStatus function - replace the existing one in your List.js component
 
   const handleToggleStatus = async (
     id,
@@ -640,9 +715,6 @@ const List = () => {
         return;
       }
     }
-  
-
-
 
     if (employmentStatus === "RESIGNED" && currentStatus === "Inactive") {
       // Special case for resigned employees - show activate modal first
@@ -650,7 +722,7 @@ const List = () => {
       setIsActivateEmployeeOpen(true);
       return;
     }
-  
+
     // Regular status changes for main button clicks
     if (currentStatus === "Block") {
       // Block -> Active (Unblock) - Use Unblock Modal
@@ -659,15 +731,13 @@ const List = () => {
     } else if (currentStatus === "Inactive") {
       // Inactive -> Active - Always use Activate Modal for inactive employees
       setEmployeeToBlock(employee);
-      setIsActivateEmployeeOpen(true); 
+      setIsActivateEmployeeOpen(true);
     } else if (currentStatus === "Active") {
       // Active -> Inactive (default action)
       setEmployeeToBlock(employee);
       setIsInactiveModalOpen(true);
     }
   };
-
-
 
   // requires: import * as XLSX from 'xlsx';
   const exportToExcel = () => {
@@ -705,6 +775,9 @@ const List = () => {
       "EMERGENCY CONTACT NAME",
       "EMERGENCY CONTACT NUMBER",
       "EMERGENCY CONTACT ADDRESS",
+      "EMERGENCY CONTACT BIRTHPLACE",
+      "EMERGENCY CONTACT RELIGION",
+      "EMERGENCY CONTACT RELATIONSHIP",
       "MEDICAL",
       "HEALTHCARD",
       "GMP",
@@ -763,6 +836,20 @@ const List = () => {
       "EMERGENCY CONTACT ADDRESS": [
         "emergency_contact_address",
         "emergencyContactAddress",
+      ],
+      "EMERGENCY CONTACT BIRTHPLACE": [
+        "emergency_contact_birthplace",
+        "emergencyContactBirthplace",
+      ],
+      "EMERGENCY CONTACT RELIGION": [
+        "emergency_contact_religion",
+        "emergencyContactReligion",
+      ],
+      "EMERGENCY CONTACT RELATIONSHIP": [
+        "emergency_contact_relationship",
+        "emergencyContactRelationship",
+        "emergency_contact_relation",
+        "emergencyContactRelation",
       ],
       MEDICAL: ["medical", "medical_date"],
       HEALTHCARD: ["health_card_date", "health_card", "healthcard"],
@@ -1013,13 +1100,25 @@ const List = () => {
     },
     {
       name: "Area/Section",
-      selector: (row) => row["area/section"] || "N/A",
+      selector: (row) => row.area_section || "N/A",
       sortable: true,
       width: "200px",
     },
     {
       name: "Employment Rank",
-      selector: (row) => row.employment_rank,
+      selector: (row) => {
+        if (!row.employment_rank) return "";
+
+        return row.employment_rank
+          .replace(/-/g, " ") // replace dashes with spaces
+          .split(" ") // split into words
+          .map((word) =>
+            word.toLowerCase() === "and"
+              ? "&"
+              : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          )
+          .join(" ");
+      },
       sortable: true,
       width: "230px",
     },
@@ -1055,13 +1154,23 @@ const List = () => {
     },
     {
       name: "Civil Status",
-      selector: (row) => row.civil_status,
+      selector: (row) => {
+        if (!row.civil_status) return "";
+        return row.civil_status
+          .toLowerCase()
+          .replace(/\b\w/g, (char) => char.toUpperCase()); // capitalize first letter of each word
+      },
       sortable: true,
       width: "120px",
     },
     {
       name: "Sex",
-      selector: (row) => row.gender,
+      selector: (row) => {
+        if (!row.gender) return "";
+        return row.gender
+          .toLowerCase()
+          .replace(/\b\w/g, (char) => char.toUpperCase());
+      },
       sortable: true,
       width: "100px",
     },
@@ -1140,6 +1249,24 @@ const List = () => {
     {
       name: "Emergency Contact Address",
       selector: (row) => row.emergency_contact_address,
+      sortable: true,
+      width: "400px",
+    },
+    {
+      name: "Emergency Contact Religion",
+      selector: (row) => row.emergency_contact_religion || "N/A",
+      sortable: true,
+      width: "220px",
+    },
+    {
+      name: "Emergency Contact Relationship",
+      selector: (row) => row.emergency_contact_relationship || "N/A",
+      sortable: true,
+      width: "250px",
+    },
+    {
+      name: "Emergency Contact Birthplace",
+      selector: (row) => row.emergency_contact_birthplace || "N/A",
       sortable: true,
       width: "400px",
     },
@@ -1300,6 +1427,31 @@ const List = () => {
       },
     },
     {
+      name: "HACCP",
+      selector: (row) => row.haccp_date || "N/A",
+      sortable: true,
+      width: "180px",
+      cell: (row) => {
+        const dateStr = row.haccp_date;
+        const expiring = dateStr ? isTrainingExpiringSoon(dateStr) : false;
+
+        return (
+          <div
+            style={{
+              backgroundColor: expiring ? "#ff5e58" : "transparent",
+              padding: "4px",
+              borderRadius: "4px",
+              color: expiring ? "#333" : "inherit",
+              fontWeight: expiring ? "bold" : "normal",
+            }}
+          >
+            {dateStr || "N/A"}{" "}
+            {expiring && <span style={{ color: "#b36b00" }}>⚠️</span>}
+          </div>
+        );
+      },
+    },
+    {
       name: "SSS",
       selector: (row) => row.sss,
       sortable: true,
@@ -1424,16 +1576,24 @@ const List = () => {
       isBirthdayApproaching(p.birthdate)
     ).length;
     if (count > 0) {
-      toast.info(
+      toast(
         <div style={{ fontSize: "0.8rem" }}>
           {count} {count > 1 ? "people have" : "person has"} their birthday
           {count > 1 ? "s" : ""} approaching soon.
         </div>,
         {
-          autoClose: 5000,
+          position: "top-right",
+          autoClose: 2000,
           closeButton: false,
           closeOnClick: true,
-          position: "top-right",
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>ℹ️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
         }
       );
     }
@@ -1444,15 +1604,23 @@ const List = () => {
       isTrainingExpiringSoon(p.attendedtrainingandseminar)
     ).length;
     if (count > 0) {
-      toast.warning(
+      toast(
         <div style={{ fontSize: "0.8rem" }}>
           {count} training{count > 1 ? "s are" : " is"} expiring soon.
         </div>,
         {
-          autoClose: 5000,
-          closeOnClick: true,
-          closeButton: false,
           position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>ℹ️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
         }
       );
     }
@@ -1461,15 +1629,23 @@ const List = () => {
   const notifyMedicalExpiring = (people) => {
     const count = people.filter((p) => isMedicalExpiringSoon(p.medical)).length;
     if (count > 0) {
-      toast.error(
+      toast(
         <div style={{ fontSize: "0.8rem" }}>
           {count} medical{count > 1 ? "s are" : " is"} expiring soon.
         </div>,
         {
-          autoClose: 5000,
-          closeOnClick: true,
-          closeButton: false,
           position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>ℹ️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
         }
       );
     }
@@ -1524,7 +1700,7 @@ const List = () => {
             className="px-3 w-20 h-full border-r  hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
           >
             <FaRegEnvelope
-              title="Print"
+              title="Message"
               className="text-neutralDGray] transition-all duration-300"
             />
           </button>

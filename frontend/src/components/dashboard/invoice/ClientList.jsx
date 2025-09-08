@@ -87,34 +87,8 @@ const ClientList = () => {
 
         console.log("Raw clients data:", clientsData);
 
+        // Store the raw clients data for employee count calculation
         setClients(clientsData);
-
-        const transformedClients = clientsData.map((client) => ({
-          id: client.id,
-          name: client.name, // ✅ API already gives "name"
-          project: client.project,
-          deployed: client.deployedEmployees || 0,
-          location: client.businessAddress || "No address provided", // ✅ camelCase
-          phone: client.contactNumber || "No phone provided",
-          email: client.emailAddress || "No email provided",
-          tin: client.tinNumber || "No TIN provided",
-          joinDate: client.joinedDate || client.createdAt || "No date provided",
-          expiryDate: client.expiryDate || "No date provided for expiry date",
-          status:
-            client.expiryDate && new Date(client.expiryDate) > new Date()
-              ? "Active"
-              : "Inactive",
-          avatar: client.name
-            ? client.name.substring(0, 2).toUpperCase()
-            : "CL",
-          remarks: client.remarks || "No remarks available for this client.",
-          contact_person: client.contactPerson || "No contact person", // ✅ camelCase
-          billing_frequency: client.billingFrequency,
-          client_code: client.clientCode,
-        }));
-
-        console.log("Transformed clients:", transformedClients);
-        setFilteredClients(transformedClients);
       } else {
         console.error("API returned success: false", data);
       }
@@ -131,57 +105,15 @@ const ClientList = () => {
     }
   };
 
-  // const syncClients = async () => {
-  //   try {
-  //     setSyncing(true);
-  //     const response = await fetch(
-  //       `${import.meta.env.VITE_API_URL}/api/clients/sync`,
-  //       {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //       }
-  //     );
-
-  //     const data = await response.json();
-
-  //     if (data.success) {
-  //       await fetchClients();
-  //       alert(`Successfully synced clients: ${data.message}`);
-  //     } else {
-  //       alert(`Sync failed: ${data.message}`);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error syncing clients:", error);
-  //     alert("Error syncing clients. Please try again.");
-  //   } finally {
-  //     setSyncing(false);
-  //   }
-  // };
-
-  // const updateClientsWithEmployeeCount = (clientsList, employeesList) => {
-  //   return clientsList.map((client) => {
-  //     const count = employeesList.filter(
-  //       (emp) =>
-  //         emp.project &&
-  //         client.name &&
-  //         emp.project.toLowerCase() === client.name.toLowerCase()
-  //     ).length;
-
-  //     return {
-  //       ...client,
-  //       deployed: count.toString(),
-  //     };
-  //   });
-  // };
-
   const handleSearch = (e) => {
     const term = e.target.value.toLowerCase();
     setSearchTerm(term);
 
     if (term === "") {
-      setFilteredClients(clients);
+      // Reset to all clients with current employee counts
+      updateClientEmployeeCounts();
     } else {
-      const filtered = clients.filter(
+      const filtered = filteredClients.filter(
         (client) =>
           client.name.toLowerCase().includes(term) ||
           client.email.toLowerCase().includes(term) ||
@@ -193,6 +125,93 @@ const ClientList = () => {
     }
   };
 
+  // Function to update client data with employee counts
+  const updateClientEmployeeCounts = () => {
+    if (!clients.length || !employees.length) return;
+
+    console.log("Updating employee counts...");
+    console.log("Clients:", clients);
+    console.log("Employees:", employees);
+
+    // Helper function to normalize text for comparison (same as in modal)
+    const normalizeText = (text) => {
+      if (!text) return "";
+      return text
+        .toLowerCase()
+        .replace(/[.,\s]+/g, " ") // Replace punctuation and multiple spaces with single space
+        .replace(
+          /\binc\b|\bincorporated\b|\bcorp\b|\bcorporation\b|\bltd\b|\blimited\b/g,
+          ""
+        ) // Remove common company suffixes
+        .trim();
+    };
+
+    // Helper function to check if two names match using fuzzy matching
+    const namesMatch = (name1, name2) => {
+      const normalized1 = normalizeText(name1);
+      const normalized2 = normalizeText(name2);
+
+      if (!normalized1 || !normalized2) return false;
+
+      const words1 = normalized1.split(" ").filter((word) => word.length > 2);
+      const words2 = normalized2.split(" ").filter((word) => word.length > 2);
+
+      if (words1.length === 0 || words2.length === 0) return false;
+
+      const matches = words1.filter((word1) =>
+        words2.some((word2) => word1.includes(word2) || word2.includes(word1))
+      );
+
+      // Return true if at least 60% of words match
+      return matches.length / Math.max(words1.length, words2.length) >= 0.6;
+    };
+
+    // Transform clients with employee counts using fuzzy matching
+    const transformedClients = clients.map((client) => {
+      // Count employees that match this client
+      const deployedCount = employees.filter((emp) => {
+        const empProject = emp.project || emp.client || emp.clientName || "";
+        const clientName = client.name || "";
+
+        return namesMatch(empProject, clientName);
+      }).length;
+
+      console.log(`Client "${client.name}" has ${deployedCount} employees`);
+
+      return {
+        id: client.id,
+        name: client.name,
+        project: client.project,
+        deployed: deployedCount, // This now uses fuzzy matching
+        location: client.businessAddress || "No address provided",
+        businessAddress: client.businessAddress || "No address provided",
+        phone: client.contactNumber || "No phone provided",
+        email: client.emailAddress || "No email provided",
+        emailAddress: client.emailAddress || "No email provided",
+        tin: client.tinNumber || "No TIN provided",
+        tinNumber: client.tinNumber || "No TIN provided",
+        joinDate: client.joinedDate || client.createdAt || "No date provided",
+        joinedDate: client.joinedDate || client.createdAt || "No date provided",
+        expiryDate: client.expiryDate || "No date provided for expiry date",
+        status:
+          client.expiryDate && new Date(client.expiryDate) > new Date()
+            ? "Active"
+            : "Inactive",
+        avatar: client.name ? client.name.substring(0, 2).toUpperCase() : "CL",
+        remarks: client.remarks || "No remarks available for this client.",
+        contact_person: client.contactPerson || "No contact person",
+        billing_frequency: client.billingFrequency,
+        client_code: client.clientCode,
+      };
+    });
+
+    console.log(
+      "Transformed clients with employee counts:",
+      transformedClients
+    );
+    setFilteredClients(transformedClients);
+  };
+
   useEffect(() => {
     const fetchAllData = async () => {
       await fetchEmployees();
@@ -201,28 +220,11 @@ const ClientList = () => {
     fetchAllData();
   }, []);
 
+  // Update client employee counts whenever clients or employees data changes
   useEffect(() => {
-    const employeeCountByProject = employees.reduce((acc, emp) => {
-      const projectName = emp.project?.trim().toUpperCase() || "";
-      if (projectName) {
-        acc[projectName] = (acc[projectName] || 0) + 1;
-      }
-      return acc;
-    }, {});
-
-    const updatedClients = clients.map((client) => {
-      const clientProjectName =
-        client.project?.trim().toUpperCase() ||
-        client.name?.trim().toUpperCase() ||
-        "";
-      const deployedCount = employeeCountByProject[clientProjectName] || 0;
-      return {
-        ...client,
-        deployed: deployedCount,
-      };
-    });
-
-    setFilteredClients(updatedClients);
+    if (clients.length > 0) {
+      updateClientEmployeeCounts();
+    }
   }, [employees, clients]);
 
   const handleViewProfile = (client) => {
@@ -323,7 +325,7 @@ const ClientList = () => {
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Phone className="w-3 h-3 mr-2 flex-shrink-0" />
-                      <span className="truncate text-xs">{client.name}</span>
+                      <span className="truncate text-xs">{client.phone}</span>
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <FaPersonShelter className="w-3 h-3 mr-2 flex-shrink-0" />
@@ -333,11 +335,15 @@ const ClientList = () => {
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Mail className="w-3 h-3 mr-2 flex-shrink-0" />
-                      <span className="truncate text-xs">{client.emailAddress}</span>
+                      <span className="truncate text-xs">
+                        {client.emailAddress}
+                      </span>
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <FaRegWindowMaximize className="w-3 h-3 mr-2 flex-shrink-0" />
-                      <span className="truncate text-xs">{client.tinNumber}</span>
+                      <span className="truncate text-xs">
+                        {client.tinNumber}
+                      </span>
                     </div>
                   </div>
 
@@ -347,11 +353,14 @@ const ClientList = () => {
                       Joined{" "}
                       {client.joinedDate &&
                         client.joinedDate !== "No date provided" &&
-                        new Date(client.joinedDate).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
+                        new Date(client.joinedDate).toLocaleDateString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          }
+                        )}
                       {(client.joinedDate === "No date provided" ||
                         !client.joinedDate) &&
                         "N/A"}
@@ -400,7 +409,7 @@ const ClientList = () => {
           id={selectedClient.id}
           onClose={() => {
             setShowEditClientForm(false);
-            setSelectedClient(null); // ✅ clear selected client
+            setSelectedClient(null);
           }}
         />
       )}

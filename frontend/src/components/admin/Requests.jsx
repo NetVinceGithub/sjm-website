@@ -157,7 +157,9 @@ const Requests = () => {
       try {
         setLoadingChanges(true);
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/employee/payroll-change-requests`,
+          `${
+            import.meta.env.VITE_API_URL
+          }/api/employee/payroll-change-requests`,
           getAuthHeaders()
         );
         console.log("Change requests response:", response.data);
@@ -480,10 +482,36 @@ const Requests = () => {
           getAuthHeaders()
         );
         setShowChangeDetailModal(false);
-        toast.success("Batch change request approved successfully");
+        toast("Batch change request approved successfully!", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>✅</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
       } catch (error) {
         console.error("Error approving batch change:", error);
-        toast.error("Failed to approve batch change request");
+        toast("Failed to approve batch change request!", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
       }
     };
 
@@ -497,10 +525,36 @@ const Requests = () => {
         );
         setShowChangeDetailModal(false);
         fetchChangeRequests(); // Refresh the list
-        toast.success("Batch change request rejected successfully");
+        toast("Batch change request rejected successfully!", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>✅</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
       } catch (error) {
         console.error("Error rejecting batch change:", error);
-        toast.error("Failed to reject batch change request");
+        toast("Failed to reject batch change request!", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
       }
     };
 
@@ -552,13 +606,19 @@ const Requests = () => {
 
       // Validation: Check if requests array exists and has data
       if (!requests || !Array.isArray(requests) || requests.length === 0) {
-        toast.error("No payslips selected for approval", {
-          autoClose: 3000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          closeButton: false,
+        toast("No payslips selected for approval.", {
           position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
         });
         return;
       }
@@ -576,13 +636,19 @@ const Requests = () => {
 
       if (invalidPayslips.length > 0) {
         console.error("Invalid payslips found:", invalidPayslips);
-        toast.error("Some payslips have missing required data", {
-          autoClose: 3000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          closeButton: false,
+        toast("Some payslips have missing required data.", {
           position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
         });
         return;
       }
@@ -629,33 +695,38 @@ const Requests = () => {
 
       if (response.data && response.data.success) {
         console.log("SUCCESS: Entering success block");
-        toast.success("Payroll approved successfully.", {
-          autoClose: 3000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          closeButton: false,
+        toast("Payroll approved!", {
           position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>✅</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
         });
-
-        // Show success modal
         setShowSuccessModal(true);
         console.log("SUCCESS: Modal should be shown, toast should appear");
-
-        // Optional: Clear requests or refresh data
-        // setRequests([]);
-        // await fetchPayslips(); // Refresh the list
       } else {
         console.log("ELSE: Response does not indicate success");
-        // Handle case where response doesn't indicate success
         console.warn("Unexpected response format:", response.data);
-        toast.error("Failed to approve payroll. Please try again.", {
-          autoClose: 3000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          closeButton: false,
+        toast("Failed to approve payroll. Please try again.", {
           position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
         });
       }
     } catch (error) {
@@ -679,77 +750,116 @@ const Requests = () => {
             error.response.data?.message ||
             error.response.data?.error ||
             "Invalid request data";
-          toast.error(`Request Error: ${errorMessage}`, {
-            autoClose: 5000,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            closeButton: false,
+          toast(`Request Error: ${errorMessage}`, {
             position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
           });
         } else if (error.response.status === 401) {
-          toast.error("Authentication required. Please log in again.", {
-            autoClose: 3000,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            closeButton: false,
+          toast("Authentication required. Please log in again.", {
             position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
           });
         } else if (error.response.status === 403) {
-          toast.error("You do not have permission to approve payroll.", {
-            autoClose: 3000,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            closeButton: false,
+          toast("You do not have permission to approve payroll.", {
             position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
           });
         } else if (error.response.status >= 500) {
-          toast.error("Server error. Please try again later.", {
-            autoClose: 3000,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            closeButton: false,
+          toast("Server error. Please try again later.", {
             position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
           });
         } else {
-          toast.error("Error approving payroll. Please try again.", {
-            autoClose: 3000,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            closeButton: false,
+          toast("Error approving payroll. Please try again.", {
             position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
           });
         }
       } else if (error.request) {
         // Request was made but no response received
         console.error("No response received:", error.request);
-        toast.error("Network error. Please check your connection.", {
-          autoClose: 3000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          closeButton: false,
+        toast("Network error. Please check your connection.", {
           position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
         });
       } else {
         // Something else happened
         console.error("Request setup error:", error.message);
-        toast.error("An unexpected error occurred.", {
-          autoClose: 3000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          closeButton: false,
+        toast("An unexpected error occurred.", {
           position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
         });
       }
-
-      // Don't show success modal on error
-      // setShowSuccessModal(true); // Remove this line from catch block
     } finally {
       setLoadingPayroll(false);
     }
@@ -775,17 +885,20 @@ const Requests = () => {
       fetchAvailableBatches();
     } catch (error) {
       console.error("Error deleting payroll requests:", error);
-      toast.error(
-        <div style={{ fontSize: "0.9rem" }}>Failed to delete payslips.</div>,
-        {
-          autoClose: 3000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          closeButton: false,
-          position: "top-right",
-        }
-      );
+      toast("Failed to delete payslips.", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
     }
   };
 
@@ -809,7 +922,20 @@ const Requests = () => {
       );
 
       await Promise.all(promises);
-      toast.success("All change requests approved successfully");
+      toast("All change requests approved successfully!", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>✅</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
       setChangesRequests([]);
       setTimeout(() => setChangesMessage(""), 3000);
     } catch (error) {
@@ -833,13 +959,39 @@ const Requests = () => {
       );
 
       await Promise.all(promises);
-      toast.success("All change requests rejected successfully");
+      toast("All change requests rejected successfully!", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>✅</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
       setChangesRequests([]);
       setShowChangesModal(false);
       setTimeout(() => setChangesMessage(""), 3000);
     } catch (error) {
       console.error("Error rejecting changes:", error);
-      toast.error("Error processing change rejection.");
+      toast("Error processing change rejection.", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
     } finally {
       setLoadingChanges(false);
     }
@@ -858,37 +1010,39 @@ const Requests = () => {
         setChangesRequests((prev) =>
           prev.filter((req) => req.id !== requestId)
         );
-        toast.success(
-          <div style={{ fontSize: "0.9rem" }}>
-            Change request approved successfully.
-          </div>,
-          {
-            autoClose: 3000,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            closeButton: false,
-            position: "top-right",
-          }
-        );
+        toast("Change request approved successfully!", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>✅</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
         setShowChangeDetailModal(false);
         setTimeout(() => setChangesMessage(""), 3000);
       }
     } catch (error) {
       console.error("Error approving individual change:", error);
-      toast.error(
-        <div style={{ fontSize: "0.9rem" }}>
-          Error approving change request.
-        </div>,
-        {
-          autoClose: 3000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          closeButton: false,
-          position: "top-right",
-        }
-      );
+      toast("Error approving change request.", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
     }
   };
 
@@ -905,37 +1059,39 @@ const Requests = () => {
         setChangesRequests((prev) =>
           prev.filter((req) => req.id !== requestId)
         );
-        toast.success(
-          <div style={{ fontSize: "0.9rem" }}>
-            Change request rejected successfully.
-          </div>,
-          {
-            autoClose: 3000,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            closeButton: false,
-            position: "top-right",
-          }
-        );
+        toast("Change request rejected successfully!", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>✅</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
         setShowChangeDetailModal(false);
         setTimeout(() => setChangesMessage(""), 3000);
       }
     } catch (error) {
       console.error("Error rejecting individual change:", error);
-      toast.error(
-        <div style={{ fontSize: "0.9rem" }}>
-          Error rejecting change request.
-        </div>,
-        {
-          autoClose: 3000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          closeButton: false,
-          position: "top-right",
-        }
-      );
+      toast("Error rejecting change request.", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
     }
   };
 
@@ -1012,10 +1168,36 @@ const Requests = () => {
         getAuthHeaders()
       );
       setShowChangeDetailModal(false);
-      toast.success("Batch change request approved successfully");
+      toast("Batch change request approved successfully!", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>✅</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
     } catch (error) {
       console.error("Error approving batch change:", error);
-      toast.error("Failed to approve batch change request");
+      toast("Failed to approve batch change request.", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
     }
   };
 
@@ -1029,10 +1211,36 @@ const Requests = () => {
       );
       setShowChangeDetailModal(false);
       fetchChangeRequests(); // Refresh the list
-      toast.success("Batch change request rejected successfully");
+      toast("Batch change request rejected successfully!", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>✅</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
     } catch (error) {
       console.error("Error rejecting batch change:", error);
-      toast.error("Failed to reject batch change request");
+      toast("Failed to reject batch change request.", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
     }
   };
 
@@ -1776,11 +1984,14 @@ const Requests = () => {
                       <p className="text-sm italic mb-1">
                         Employees in Payroll:
                       </p>
-                        <ol className="list-decimal list-inside text-xs">
-                          {selectedPayrollRequest.payslips.map((payslip, index) => (
+                      <ol className="list-decimal list-inside text-xs">
+                        {selectedPayrollRequest.payslips.map(
+                          (payslip, index) => (
                             <li key={index} className="leading-tight mb-2">
                               <div>
-                                <span className="font-medium">{payslip.name} →</span>{" "}
+                                <span className="font-medium">
+                                  {payslip.name} →
+                                </span>{" "}
                                 {/* ₱{" "}
                                 {parseFloat(payslip.netPay).toLocaleString(undefined, {
                                   minimumFractionDigits: 2,
@@ -1788,16 +1999,47 @@ const Requests = () => {
                               </div>
                               <div className="text-gray-500 text-[10px] ml-4">
                                 <div>Employee ID: {payslip.ecode}</div>
-                                <div>Net Pay: ₱{parseFloat(payslip.netPay).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                                <div>Gross Pay: ₱{parseFloat(payslip.gross_pay).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                                <div>SSS: ₱{parseFloat(payslip.sss).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                                <div>PhilHealth: ₱{parseFloat(payslip.phic).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                                <div>HDMF: ₱{parseFloat(payslip.hdmf).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                                <div>
+                                  Net Pay: ₱
+                                  {parseFloat(payslip.netPay).toLocaleString(
+                                    undefined,
+                                    { minimumFractionDigits: 2 }
+                                  )}
+                                </div>
+                                <div>
+                                  Gross Pay: ₱
+                                  {parseFloat(payslip.gross_pay).toLocaleString(
+                                    undefined,
+                                    { minimumFractionDigits: 2 }
+                                  )}
+                                </div>
+                                <div>
+                                  SSS: ₱
+                                  {parseFloat(payslip.sss).toLocaleString(
+                                    undefined,
+                                    { minimumFractionDigits: 2 }
+                                  )}
+                                </div>
+                                <div>
+                                  PhilHealth: ₱
+                                  {parseFloat(payslip.phic).toLocaleString(
+                                    undefined,
+                                    { minimumFractionDigits: 2 }
+                                  )}
+                                </div>
+                                <div>
+                                  HDMF: ₱
+                                  {parseFloat(payslip.hdmf).toLocaleString(
+                                    undefined,
+                                    { minimumFractionDigits: 2 }
+                                  )}
+                                </div>
                                 <div>Regular Days: {payslip.regularDays}</div>
                               </div>
                             </li>
-                          ))}
-                        </ol>
+                          )
+                        )}
+                      </ol>
                       {/* 
                       original design */}
 
@@ -1819,10 +2061,6 @@ const Requests = () => {
                           )
                         )}
                       </ol> */}
-
-
-
-
                     </div>
                   </div>
                   {selectedPayrollRequest.payslips.map((payslip, index) => (

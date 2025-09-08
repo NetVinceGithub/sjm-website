@@ -142,6 +142,9 @@ const FilterList = ({
     setFilters(newFilters);
   };
 
+  const toSentenceCase = (str) =>
+    str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : "";
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-3 rounded-lg z-50 mx-auto shadow-lg max-w-md w-full">
@@ -170,7 +173,7 @@ const FilterList = ({
                 <option value="">All Projects</option>
                 {getUniqueValues("project").map((project) => (
                   <option key={project} value={project} title={project}>
-                    {project}
+                    {toSentenceCase(project)}
                   </option>
                 ))}
               </select>
@@ -194,7 +197,7 @@ const FilterList = ({
                     value={department}
                     title={department}
                   >
-                    {department}
+                    {toSentenceCase(department)}
                   </option>
                 ))}
               </select>
@@ -218,7 +221,7 @@ const FilterList = ({
                     value={classification}
                     title={classification}
                   >
-                    {classification}
+                    {toSentenceCase(classification)}
                   </option>
                 ))}
               </select>
@@ -236,7 +239,7 @@ const FilterList = ({
                 <option value="">All Status</option>
                 {getUniqueValues("status").map((status) => (
                   <option key={status} value={status} title={status}>
-                    {status}
+                    {toSentenceCase(status)}
                   </option>
                 ))}
               </select>
@@ -254,7 +257,7 @@ const FilterList = ({
                 <option value="">All Positions</option>
                 {getUniqueValues("position").map((position) => (
                   <option key={position} value={position} title={position}>
-                    {position}
+                    {toSentenceCase(position)}
                   </option>
                 ))}
               </select>
@@ -274,7 +277,7 @@ const FilterList = ({
                 <option value="">All Employment Ranks</option>
                 {getUniqueValues("employmentRank").map((rank) => (
                   <option key={rank} value={rank} title={rank}>
-                    {rank}
+                    {toSentenceCase(rank)}
                   </option>
                 ))}
               </select>
@@ -294,7 +297,7 @@ const FilterList = ({
                 <option value="">All Civil Status</option>
                 {getUniqueValues("civilStatus").map((status) => (
                   <option key={status} value={status} title={status}>
-                    {status}
+                    {toSentenceCase(status)}
                   </option>
                 ))}
               </select>
@@ -312,7 +315,7 @@ const FilterList = ({
                 <option value="">All Sex</option>
                 {getUniqueValues("sex").map((sex) => (
                   <option key={sex} value={sex} title={sex}>
-                    {sex}
+                    {toSentenceCase(sex)}
                   </option>
                 ))}
               </select>

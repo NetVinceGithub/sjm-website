@@ -36,6 +36,7 @@ const Edit = () => {
     last_name: "",
     first_name: "",
     middle_name: "",
+    suffix: "",
     name: "",
     gender: "",
     civil_status: "",
@@ -48,10 +49,10 @@ const Edit = () => {
     position_title: "",
     project: "",
     department: "",
-    area_section: "", // Add this
+    area_section: "",
     employment_rank: "",
     date_of_hire: "",
-    date_of_separation: "", // Add this
+    date_of_separation: "",
     employment_classification: "",
     sss: "",
     tin: "",
@@ -59,11 +60,21 @@ const Edit = () => {
     pag_ibig: "",
     government_id_type: "",
     government_id_number: "",
+    customGovernmentIdType: "",
     emergency_contact_name: "",
     emergency_contact_number: "",
     emergency_contact_address: "",
-    daily_rate: "",
-    salary_package: "",
+    emergency_contact_birthplace: "", // ADD THIS
+    emergency_contact_religion: "", // ADD THIS
+    emergency_contact_relationship: "", // ADD THIS
+    medical_date: "",
+    health_card_date: "",
+    gmp_date: "",
+    prp_date: "",
+    housekeeping_date: "",
+    safety_date: "",
+    crr_date: "",
+    haccp_date: "",
     profile_image: null,
     esignature: null,
   });
@@ -92,16 +103,17 @@ const Edit = () => {
       try {
         const response = await apiClient.get(`/api/employee/${id}`);
         console.log("Employee API Response:", response.data);
-  
-        if (response.data.success && response.data.employee) { // Change from 'employees' to 'employee'
-          const employeeData = response.data.employee; // Access directly, no [0]
-          
+
+        if (response.data.success && response.data.employee) {
+          const employeeData = response.data.employee;
+
           setEmployee({
             ecode: employeeData.ecode || "",
             last_name: employeeData.last_name || "",
             first_name: employeeData.first_name || "",
             middle_name: employeeData.middle_name || "",
-            name: employeeData.complete_name || employeeData.name || "", // Note: API uses 'complete_name'
+            suffix: employeeData.suffix || "",
+            name: employeeData.complete_name || employeeData.name || "",
             gender: employeeData.gender || "",
             civil_status: employeeData.civil_status || "",
             birthdate: formatDateForInput(employeeData.birthdate),
@@ -113,27 +125,57 @@ const Edit = () => {
             position_title: employeeData.position_title || "",
             project: employeeData.project || "",
             department: employeeData.department || "",
-            area_section: employeeData.area_section || employeeData["area/section"] || "", // Add this
+            area_section:
+              employeeData.area_section || employeeData["area/section"] || "",
             employment_rank: employeeData.employment_rank || "",
             date_of_hire: formatDateForInput(employeeData.date_of_hire),
-            date_of_separation: formatDateForInput(employeeData.date_of_separation || employeeData.dateofseparation), // Add this
-            employment_classification: employeeData.employment_classification || "",
+            date_of_separation: formatDateForInput(
+              employeeData.date_of_separation || employeeData.dateofseparation
+            ),
+            employment_classification:
+              employeeData.employment_classification || "",
             sss: employeeData.sss || "",
             tin: employeeData.tin || "",
             phil_health: employeeData.phil_health || "",
             pag_ibig: employeeData.pag_ibig || "",
             government_id_type: employeeData.government_id_type || "",
             government_id_number: employeeData.government_id_number || "",
+            // Handle custom government ID type - if it's "other", extract the custom type
+            customGovernmentIdType:
+              employeeData.government_id_type === "other"
+                ? employeeData.custom_government_id_type || ""
+                : "",
             emergency_contact_name: employeeData.emergency_contact_name || "",
-            emergency_contact_number: employeeData.emergency_contact_number || "",
-            emergency_contact_address: employeeData.emergency_contact_address || "",
+            emergency_contact_number:
+              employeeData.emergency_contact_number || "",
+            emergency_contact_address:
+              employeeData.emergency_contact_address || "",
+            emergency_contact_birthplace:
+              employeeData.emergency_contact_birthplace || "",
+            emergency_contact_religion:
+              employeeData.emergency_contact_religion || "",
+            emergency_contact_relationship:
+              employeeData.emergency_contact_relationship || "",
             daily_rate: employeeData.daily_rate || "",
             salary_package: employeeData.salary_package || "",
+            medical_date: formatDateForInput(employeeData.medical_date),
+            health_card_date: formatDateForInput(employeeData.health_card_date),
+            gmp_date: formatDateForInput(employeeData.gmp_date),
+            prp_date: formatDateForInput(employeeData.prp_date),
+            housekeeping_date: formatDateForInput(
+              employeeData.housekeeping_date
+            ),
+            safety_date: formatDateForInput(employeeData.safety_date),
+            crr_date: formatDateForInput(employeeData.crr_date),
+            haccp_date: formatDateForInput(employeeData.haccp_date),
             profile_image: null,
             esignature: null,
           });
         } else {
-          console.error("Error fetching employee: Invalid response structure", response.data);
+          console.error(
+            "Error fetching employee: Invalid response structure",
+            response.data
+          );
           alert("Failed to load employee data. Please try again.");
         }
       } catch (error) {
@@ -141,13 +183,25 @@ const Edit = () => {
         // ... existing error handling
       }
     };
-  
+
     if (id) {
       fetchEmployee();
     }
   }, [id]);
 
- 
+  const govID = (() => {
+    if (!employee.government_id_number) return "";
+
+    if (employee.government_id_type === "other") {
+      return employee.customGovernmentIdType
+        ? `${employee.customGovernmentIdType} - ${employee.government_id_number}`
+        : employee.government_id_number;
+    }
+
+    return employee.government_id_type
+      ? `${employee.government_id_type} - ${employee.government_id_number}`
+      : employee.government_id_number;
+  })();
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -199,8 +253,22 @@ const Edit = () => {
     e.preventDefault();
 
     const formData = new FormData();
+
+    // Handle each field individually for better control
     Object.keys(employee).forEach((key) => {
-      if (employee[key] instanceof File) {
+      if (
+        key === "government_id_type" &&
+        employee.government_id_type === "other"
+      ) {
+        // If government_id_type is "other", send the custom type instead
+        formData.append(
+          "government_id_type",
+          employee.customGovernmentIdType || ""
+        );
+      } else if (key === "customGovernmentIdType") {
+        // Don't send customGovernmentIdType as a separate field
+        return;
+      } else if (employee[key] instanceof File) {
         formData.append(key, employee[key]);
       } else {
         formData.append(key, employee[key]);
@@ -213,9 +281,8 @@ const Edit = () => {
     }
 
     try {
-      // In handleSubmit function, change this line:
       const response = await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/employee/update-details/${id}`, // Add 'update-details'
+        `${import.meta.env.VITE_API_URL}/api/employee/update-details/${id}`,
         formData,
         {
           headers: {
@@ -316,16 +383,29 @@ const Edit = () => {
                 required
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-neutralDGray mb-1">
-                Middle Name <span className="italic"> (Optional)</span>
-              </label>
-              <input
-                name="middle_name"
-                value={employee.middle_name}
-                onChange={handleChange}
-                className="w-full p-2 border text-xs rounded-md border-gray-300"
-              />
+            <div className="grid grid-cols-[70%_30%] gap-3">
+              <div>
+                <label className="block text-xs font-medium text-neutralDGray mb-1">
+                  Middle Name <span className="italic"> (Optional)</span>
+                </label>
+                <input
+                  name="middle_name"
+                  value={employee.middle_name}
+                  onChange={handleChange}
+                  className="w-full p-2 border text-xs rounded-md border-gray-300"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-neutralDGray mb-1">
+                  Suffix <span className="italic">(Opt.)</span>
+                </label>
+                <input
+                  name="suffix"
+                  value={employee.suffix}
+                  onChange={handleChange}
+                  className="w-[80%] p-2 border text-xs border-gray-300 rounded-md"
+                />
+              </div>
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-neutralDGray mb-1">
@@ -579,6 +659,7 @@ const Edit = () => {
                 name="tin"
                 value={employee.tin}
                 onChange={handleChange}
+                placeholder="e.g. 1234567890"
                 className="w-full p-2 border text-xs rounded-md border-gray-300"
               />
             </div>
@@ -586,12 +667,26 @@ const Edit = () => {
               <label className="block text-xs font-medium text-neutralDGray mb-1">
                 ID Type
               </label>
-              <input
+              <select
                 name="government_id_type"
                 value={employee.government_id_type}
                 onChange={handleChange}
                 className="w-full p-2 border text-xs rounded-md border-gray-300"
-              />
+              >
+                <option value="">Select</option>
+                <option value="philsys_id">PhilSys ID (National ID)</option>
+                <option value="passport">Philippine Passport</option>
+                <option value="drivers_license">Driver's License</option>
+                <option value="umid">Unified Multi-Purpose ID (UMID)</option>
+                <option value="gsis_ecard">GSIS eCard</option>
+                <option value="postal_id">Postal ID</option>
+                <option value="voters_id">Voter's ID / Certification</option>
+                <option value="prc_id">PRC ID</option>
+                <option value="senior_citizen_id">Senior Citizen ID</option>
+                <option value="pwd_id">PWD ID</option>
+                <option value="cedula">Cedula</option>
+                <option value="other">Other</option>
+              </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
@@ -601,6 +696,7 @@ const Edit = () => {
                 name="government_id_number"
                 value={employee.government_id_number}
                 onChange={handleChange}
+                placeholder="e.g. 123456789"
                 className="w-full p-2 border text-xs rounded-md border-gray-300"
               />
             </div>
@@ -609,10 +705,24 @@ const Edit = () => {
                 Government ID
               </label>
               <input
-                name="government_id_number"
-                value={employee.government_id_number}
+                name="customGovernmentIdType"
+                value={
+                  employee.government_id_type === "other"
+                    ? employee.customGovernmentIdType
+                    : govID
+                }
                 onChange={handleChange}
-                className="w-full p-2 border text-xs rounded-md border-gray-300"
+                placeholder={
+                  employee.government_id_type === "other"
+                    ? "Enter custom ID type"
+                    : "Auto-generated"
+                }
+                className={`w-full p-2 border text-xs rounded-md ${
+                  employee.government_id_type === "other"
+                    ? "border-gray-300 bg-white"
+                    : "border-gray-300 bg-gray-100"
+                }`}
+                disabled={employee.government_id_type !== "other"}
               />
             </div>
           </div>
@@ -669,37 +779,191 @@ const Edit = () => {
               Emergency Contact Information
             </h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                Emergency Contact Name
+                Emergency Contact Name<span className="text-red-500">*</span>
               </label>
               <input
                 name="emergency_contact_name"
                 value={employee.emergency_contact_name}
                 onChange={handleChange}
+                placeholder="e.g. Jane Doe"
                 className="w-full p-2 border text-xs rounded-md border-gray-300"
+                required
               />
             </div>
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                Emergency Contact Number
+                Emergency Contact Number<span className="text-red-500">*</span>
               </label>
               <input
                 name="emergency_contact_number"
                 type="tel"
                 value={employee.emergency_contact_number}
                 onChange={handleChange}
+                placeholder="e.g. 09123456789"
+                className="w-full p-2 border text-xs rounded-md border-gray-300"
+                required
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Emergency Contact Address<span className="text-red-500">*</span>
+              </label>
+              <input
+                name="emergency_contact_address"
+                value={employee.emergency_contact_address}
+                onChange={handleChange}
+                className="w-full p-2 border text-xs rounded-md border-gray-300"
+                placeholder="e.g. 123 Main St, City, Country"
+                required
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Emergency Contact Birthplace
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="emergency_contact_birthplace"
+                value={employee.emergency_contact_birthplace}
+                onChange={handleChange}
+                className="w-full p-2 border text-xs rounded-md border-gray-300"
+                placeholder="e.g. 123 Main St, City, Country"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Emergency Contact Religion
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="emergency_contact_religion"
+                value={employee.emergency_contact_religion}
+                onChange={handleChange}
+                placeholder="e.g. Christianity, Islam"
+                className="w-full p-2 border text-xs rounded-md border-gray-300"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Emergency Contact Relationship
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="emergency_contact_relationship"
+                value={employee.emergency_contact_relationship}
+                onChange={handleChange}
+                placeholder="e.g. Father, Sister"
+                className="w-full p-2 border text-xs rounded-md border-gray-300"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-3 rounded-lg shadow-md mb-2">
+          <div className="bg-red-50 px-2 rounded">
+            <h3 className="text-sm text-neutralDGray mb-3 flex items-center gap-2">
+              Training & Certification Dates
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Medical
+              </label>
+              <input
+                name="medical_date"
+                type="date"
+                value={employee.medical_date}
+                onChange={handleChange}
                 className="w-full p-2 border text-xs rounded-md border-gray-300"
               />
             </div>
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                Emergency Contact Address
+                Health Card
               </label>
               <input
-                name="emergency_contact_address"
-                value={employee.emergency_contact_address}
+                name="health_card_date"
+                type="date"
+                value={employee.health_card_date}
+                onChange={handleChange}
+                className="w-full p-2 border text-xs rounded-md border-gray-300"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                GMP
+              </label>
+              <input
+                name="gmp_date"
+                type="date"
+                value={employee.gmp_date}
+                onChange={handleChange}
+                className="w-full p-2 border text-xs rounded-md border-gray-300"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                PRP
+              </label>
+              <input
+                name="prp_date"
+                type="date"
+                value={employee.prp_date}
+                onChange={handleChange}
+                className="w-full p-2 border text-xs rounded-md border-gray-300"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Housekeeping
+              </label>
+              <input
+                name="housekeeping_date"
+                type="date"
+                value={employee.housekeeping_date}
+                onChange={handleChange}
+                className="w-full p-2 border text-xs rounded-md border-gray-300"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Safety
+              </label>
+              <input
+                name="safety_date"
+                type="date"
+                value={employee.safety_date}
+                onChange={handleChange}
+                className="w-full p-2 border text-xs rounded-md border-gray-300"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                CRR/Compensation & Benefits
+              </label>
+              <input
+                name="crr_date"
+                type="date"
+                value={employee.crr_date}
+                onChange={handleChange}
+                className="w-full p-2 border text-xs rounded-md border-gray-300"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                HACCP
+              </label>
+              <input
+                name="haccp_date"
+                type="date"
+                value={employee.haccp_date}
                 onChange={handleChange}
                 className="w-full p-2 border text-xs rounded-md border-gray-300"
               />

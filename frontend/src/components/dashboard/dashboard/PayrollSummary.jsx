@@ -45,12 +45,11 @@ const PayrollSummary = () => {
     const token = localStorage.getItem("token");
     return {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     };
   };
-
 
   // Fixed function to filter employees based on search term
   const filterEmployeesBySearch = (employeeList = filteredEmployees) => {
@@ -98,7 +97,8 @@ const PayrollSummary = () => {
         try {
           console.log("📩 Fetching attendance data...");
           const attendanceResponse = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`, getAuthHeaders()
+            `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`,
+            getAuthHeaders()
           );
 
           const attendanceData = attendanceResponse.data.attendance || [];
@@ -251,7 +251,7 @@ const PayrollSummary = () => {
       const validationIssues = validateOvertimeData();
 
       if (validationIssues.length > 0) {
-        toast.error(
+        toast(
           <div style={{ fontSize: "0.9rem" }}>
             Please fix the following issues:
             <br />
@@ -263,12 +263,18 @@ const PayrollSummary = () => {
             )}
           </div>,
           {
-            autoClose: 5000,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            closeButton: false,
             position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
           }
         );
         return;
@@ -382,14 +388,25 @@ const PayrollSummary = () => {
       // Fetch all required data
       const [employeeResponse, attendanceResponse, holidaysResponse] =
         await Promise.all([
-          axios.get(`${import.meta.env.VITE_API_URL}/api/employee`, getAuthHeaders()),
           axios.get(
-            `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`, getAuthHeaders()
+            `${import.meta.env.VITE_API_URL}/api/employee`,
+            getAuthHeaders()
           ),
-          axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`, getAuthHeaders()),
+          axios.get(
+            `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`,
+            getAuthHeaders()
+          ),
+          axios.get(
+            `${import.meta.env.VITE_API_URL}/api/holidays`,
+            getAuthHeaders()
+          ),
         ]);
 
-      const employeeData = employeeResponse.data.data?.data || employeeResponse.data.employees || employeeResponse.data.data || [];
+      const employeeData =
+        employeeResponse.data.data?.data ||
+        employeeResponse.data.employees ||
+        employeeResponse.data.data ||
+        [];
       const attendanceData = attendanceResponse.data.attendance || [];
       const holidaysData = holidaysResponse.data.holidays || [];
 
@@ -452,7 +469,9 @@ const PayrollSummary = () => {
 
     // Additional validation: ensure selected employees
     if (!selectedEmployees || selectedEmployees.length === 0) {
-      setMessage("Please select at least one employee before generating payroll.");
+      setMessage(
+        "Please select at least one employee before generating payroll."
+      );
       return;
     }
 
@@ -461,17 +480,17 @@ const PayrollSummary = () => {
 
     try {
       console.log("📩 Fetching required data...");
-      
+
       // Fetch all required data in parallel
       const [attendanceResponse, holidaysResponse] = await Promise.all([
         axios.get(
-          `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`, 
+          `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`,
           getAuthHeaders()
         ),
         axios.get(
-          `${import.meta.env.VITE_API_URL}/api/holidays`, 
+          `${import.meta.env.VITE_API_URL}/api/holidays`,
           getAuthHeaders()
-        )
+        ),
       ]);
 
       console.log("📊 Raw attendance response:", attendanceResponse.data);
@@ -480,7 +499,10 @@ const PayrollSummary = () => {
       // Process attendance data
       let attendanceData = [];
       if (attendanceResponse.data.success && attendanceResponse.data.data) {
-        if (attendanceResponse.data.data.data && Array.isArray(attendanceResponse.data.data.data)) {
+        if (
+          attendanceResponse.data.data.data &&
+          Array.isArray(attendanceResponse.data.data.data)
+        ) {
           attendanceData = attendanceResponse.data.data.data;
         } else if (Array.isArray(attendanceResponse.data.data)) {
           attendanceData = attendanceResponse.data.data;
@@ -505,7 +527,7 @@ const PayrollSummary = () => {
       console.log("📊 Processed holidays data:", holidaysData?.length || 0);
 
       // Filter employees data to only selected employees
-      const selectedEmployeesData = employees.filter(emp => 
+      const selectedEmployeesData = employees.filter((emp) =>
         selectedEmployees.includes(emp.ecode)
       );
 
@@ -523,8 +545,8 @@ const PayrollSummary = () => {
       // Create the request payload - send all data without validation
       const payrollRequest = {
         cutoffDate: cutoffDate.trim(),
-        payrollType: payrollType,  // ← add this line
-        requestedBy: user?.name || 'Unknown User',
+        payrollType: payrollType, // ← add this line
+        requestedBy: user?.name || "Unknown User",
         selectedEmployees: selectedEmployees,
         employees: selectedEmployeesData,
         attendanceData: attendanceData,
@@ -547,15 +569,23 @@ const PayrollSummary = () => {
         },
       };
 
-
       console.log("📤 Final payroll request payload:");
       console.log("Payroll Type:", payrollRequest.payrollType);
       console.log("- Cutoff Date:", payrollRequest.cutoffDate);
-      console.log("- Selected Employees:", payrollRequest.selectedEmployees.length);
+      console.log(
+        "- Selected Employees:",
+        payrollRequest.selectedEmployees.length
+      );
       console.log("- Employee Data:", payrollRequest.employees.length);
-      console.log("- Attendance Records:", payrollRequest.attendanceData.length);
+      console.log(
+        "- Attendance Records:",
+        payrollRequest.attendanceData.length
+      );
       console.log("- Holidays:", payrollRequest.holidaysData.length);
-      console.log("- Overtime Approvals:", payrollRequest.overtimeApprovals.length);
+      console.log(
+        "- Overtime Approvals:",
+        payrollRequest.overtimeApprovals.length
+      );
 
       // Send the request
       const response = await axios.post(
@@ -576,132 +606,148 @@ const PayrollSummary = () => {
         batchId: response.data.batchId,
         payslips: response.data.payslips?.length || 0,
         errors: response.data.errors,
-        details: response.data.details
+        details: response.data.details,
       });
 
       if (response.data.success) {
         const payslipsGenerated = response.data.payslips || [];
-        
+
         if (payslipsGenerated.length === 0) {
-          console.log("🚫 No payslips generated - Backend details:", response.data);
+          console.log(
+            "🚫 No payslips generated - Backend details:",
+            response.data
+          );
           setMessage(
-            `No payslips were generated. Backend message: ${response.data.message || 'No specific message'}. ` +
-            `Check server logs for detailed processing information.`
+            `No payslips were generated. Backend message: ${
+              response.data.message || "No specific message"
+            }. ` + `Check server logs for detailed processing information.`
           );
           setNoAttendanceModalOpen(true);
         } else {
           setPayslips(payslipsGenerated);
-          
+
           // Show success message
-          toast.success(
-            <div style={{ fontSize: "0.9rem" }}>
-              Payroll successfully generated!
-              <br />
-              • {selectedEmployees.length} employee(s) processed
-              • {attendanceData.length} attendance records sent
-              {overtimeApprovals.filter((oa) => oa.approvedOvertimeHours > 0).length > 0 &&
-                <><br />• Overtime approved for {
-                  overtimeApprovals.filter((oa) => oa.approvedOvertimeHours > 0).length
-                } employee(s)</>
-              }
-            </div>,
-            {
-              autoClose: 5000,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-              closeButton: false,
-              position: "top-right",
-            }
-          );
-          
+          toast("Payroll successfully generated!", {
+            position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>✅</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
+          });
           setShow(false);
         }
       } else {
         console.log("❌ Unexpected response structure:", response.data);
-        toast.error(
+        toast(
           <div style={{ fontSize: "0.9rem" }}>
-            Failed to generate payroll: {response?.data?.message || "Unexpected response format"}
+            Failed to generate payroll:{" "}
+            {response?.data?.message || "Unexpected response format"}
           </div>,
           {
-            autoClose: 3000,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            closeButton: false,
             position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
           }
         );
       }
-
     } catch (error) {
       console.error("❌ DETAILED ERROR INFORMATION:");
       console.error("Error object:", error);
       console.error("Error message:", error.message);
       console.error("Error response:", error.response);
-      
+
       let errorMessage = "An error occurred while generating payroll.";
-      
+
       if (error.response) {
         const status = error.response.status;
         const responseData = error.response.data;
-        
+
         console.error(`❌ Server Error ${status}:`, responseData);
-        
+
         switch (status) {
           case 400:
-            errorMessage = `Bad Request: ${responseData?.message || 'Invalid request data'}`;
+            errorMessage = `Bad Request: ${
+              responseData?.message || "Invalid request data"
+            }`;
             if (responseData?.errors) {
               console.error("Validation errors:", responseData.errors);
-              errorMessage += `\nValidation errors: ${Object.keys(responseData.errors).join(', ')}`;
+              errorMessage += `\nValidation errors: ${Object.keys(
+                responseData.errors
+              ).join(", ")}`;
             }
             break;
           case 401:
             errorMessage = "Authentication failed. Please log in again.";
             break;
           case 403:
-            errorMessage = "Access denied. You don't have permission to generate payroll.";
+            errorMessage =
+              "Access denied. You don't have permission to generate payroll.";
             break;
           case 404:
             errorMessage = "Payroll generation endpoint not found.";
             break;
           case 422:
-            errorMessage = `Validation Error: ${responseData?.message || 'Invalid data provided'}`;
+            errorMessage = `Validation Error: ${
+              responseData?.message || "Invalid data provided"
+            }`;
             if (responseData?.errors) {
               console.error("Validation errors:", responseData.errors);
             }
             break;
           case 500:
-            errorMessage = `Server Error: ${responseData?.message || 'Internal server error'}`;
+            errorMessage = `Server Error: ${
+              responseData?.message || "Internal server error"
+            }`;
             console.error("Full server error response:", responseData);
             break;
           default:
-            errorMessage = `Server Error (${status}): ${responseData?.message || error.response.statusText}`;
+            errorMessage = `Server Error (${status}): ${
+              responseData?.message || error.response.statusText
+            }`;
         }
       } else if (error.request) {
         console.error("❌ Network Error - No response received");
-        errorMessage = "Network error. Please check your connection and try again.";
+        errorMessage =
+          "Network error. Please check your connection and try again.";
       } else {
         console.error("❌ Request Setup Error:", error.message);
         errorMessage = `Request error: ${error.message}`;
       }
-      
-      toast.error(
-        <div style={{ fontSize: "0.9rem" }}>{errorMessage}</div>,
-        {
-          autoClose: 5000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          closeButton: false,
-          position: "top-right",
-        }
-      );
+
+      toast(`${errorMessage}`, {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
     } finally {
       setLoading(false);
     }
   };
-
 
   // 2. Enhanced overtime validation before sending
   const validateOvertimeData = () => {
@@ -776,7 +822,8 @@ const PayrollSummary = () => {
   const handleDeletePayroll = async () => {
     try {
       const response = await axios.delete(
-        `${import.meta.env.VITE_API_URL}/api/payslip`, getAuthHeaders()
+        `${import.meta.env.VITE_API_URL}/api/payslip`,
+        getAuthHeaders()
       );
       if (response.data.success) {
         setPayslips([]);
