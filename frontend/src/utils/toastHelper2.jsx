@@ -1,30 +1,31 @@
-import { toast } from 'react-toastify';
-import React from 'react';
+import { toast } from "react-toastify";
+import React from "react";
 
-let hasShownChangeToast = false;   // track if toast shown
-let toastId = null;                // store toast id for dismissal
+let hasShownChangeToast = false; // track if toast shown
+let toastId = null; // store toast id for dismissal
 
 export const notifyChangeRequests = (requests) => {
-  if (!Array.isArray(requests)) return;  // ✅ Prevents `.length` on undefined/null
+  if (!Array.isArray(requests)) return; // ✅ Prevents `.length` on undefined/null
 
   const count = requests.length;
 
   if (count > 0) {
     if (!hasShownChangeToast) {
       // Show toast and save id
-      toastId = toast.info(
-        <div style={{ fontSize: '0.9rem', color: '#fff' }}>
-          You have {count} change request{count > 1 ? 's' : ''} to review.
-        </div>,
+      toastId = toast(
+        `You have ${count} change request${count > 1 ? "s" : ""} to review.`,
         {
-          icon: '⚠️',
-          autoClose: false,
-          closeOnClick: true,
+          position: "top-right",
+          autoClose: 2000,
           closeButton: false,
-          draggable: false,
+          closeOnClick: true,
           hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>🔔</span>,
           style: {
-            backgroundColor: '#444',
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
           },
         }
       );

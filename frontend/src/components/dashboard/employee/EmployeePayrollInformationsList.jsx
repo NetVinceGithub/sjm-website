@@ -73,9 +73,9 @@ const EmployeePayrollInformationsList = () => {
   const applyEmploymentRankFilter = () => {
     let filtered = payrollInformations;
 
-    if (selectedEmploymentRanks.length > 0) {
-      filtered = filtered.filter((emp) =>
-        selectedEmploymentRanks.includes(emp.employmentrank)
+    if (selectedEmploymentRank) {
+      filtered = filtered.filter(
+        (emp) => emp.employmentrank === selectedEmploymentRank
       );
     }
 
@@ -121,9 +121,15 @@ const EmployeePayrollInformationsList = () => {
       );
       if (response.data.success) {
         console.log(response.data);
-        setPayrollInformations(response.data.payrollInformations);
-        setFilteredEmployees(response.data.payrollInformations);
-        setFilteredBulkEmployees(response.data.payrollInformations);
+
+        // ✅ only keep employees where status is not "Inactive"
+        const activeEmployees = response.data.payrollInformations.filter(
+          (emp) => emp.status?.toLowerCase() !== "inactive"
+        );
+
+        setPayrollInformations(activeEmployees);
+        setFilteredEmployees(activeEmployees);
+        setFilteredBulkEmployees(activeEmployees);
       }
     } catch (error) {
       console.error("Error fetching payroll-informations:", error);
@@ -325,12 +331,11 @@ const EmployeePayrollInformationsList = () => {
   };
 
   const handleApplyBulkEdit = async () => {
-  if (
-    bulkEditField === "default" ||
-    bulkEditValue === "" || // <-- allow 0
-    selectedEmployees.length === 0
-  )
- {
+    if (
+      bulkEditField === "default" ||
+      bulkEditValue === "" || // <-- allow 0
+      selectedEmployees.length === 0
+    ) {
       alert(
         "Please select a field, enter a value, and select at least one employee."
       );
@@ -340,7 +345,9 @@ const EmployeePayrollInformationsList = () => {
     setIsSubmitting(true);
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/employee/bulk-payroll-change-requests`,
+        `${
+          import.meta.env.VITE_API_URL
+        }/api/employee/bulk-payroll-change-requests`,
         {
           employee_ids: selectedEmployees,
           field: bulkEditField,
@@ -417,9 +424,10 @@ const EmployeePayrollInformationsList = () => {
         backgroundColor: "#fff",
         color: "#333",
         fontWeight: "bold",
-        justifyContent: "center",
         display: "flex",
         alignItems: "center",
+        justifyContent: "flex-start", // 👈 left align headers
+        textAlign: "left",
       },
     },
     cells: {
@@ -427,7 +435,8 @@ const EmployeePayrollInformationsList = () => {
         padding: "8px",
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "flex-start", // 👈 left align row data
+        textAlign: "left",
       },
     },
   };
@@ -437,29 +446,27 @@ const EmployeePayrollInformationsList = () => {
       name: "Ecode",
       selector: (row) => row.ecode,
       sortable: true,
-      center: true,
+      left: true,
       width: "90px",
     },
     {
       name: "Name",
       selector: (row) => row.name,
       sortable: true,
-      center: true,
       width: "200px",
     },
     {
       name: "Position",
       selector: (row) => row.positiontitle || row.designation,
       sortable: true,
-      center: true,
-      width: "320px",
+      width: "180px",
     },
     {
       name: "Employment Rank",
       selector: (row) => row.designation,
       sortable: true,
       center: true,
-      width: "320px",
+      width: "200px",
     },
     {
       name: "Daily Rate",
@@ -477,17 +484,29 @@ const EmployeePayrollInformationsList = () => {
       width: "150px",
     },
     {
-      name: "Holiday Pay",
-      selector: (row) =>
-        `₱${parseFloat(row.holiday_pay || 0).toLocaleString()}`,
+      name: "Reg. OT Pay",
+      selector: (row) => `₱${parseFloat(row.regOTpay || 0).toLocaleString()}`,
       sortable: true,
       center: true,
       width: "120px",
     },
     {
-      name: "Night Differential",
-      selector: (row) =>
-        `₱${parseFloat(row.night_differential || 0).toLocaleString()}`,
+      name: "NSD Pay",
+      selector: (row) => `₱${parseFloat(row.nsdPay || 0).toLocaleString()}`,
+      sortable: true,
+      center: true,
+      width: "150px",
+    },
+    {
+      name: "ND OT Pay",
+      selector: (row) => `₱${parseFloat(row.ndOTpay || 0).toLocaleString()}`,
+      sortable: true,
+      center: true,
+      width: "120px",
+    },
+    {
+      name: "RD Pay",
+      selector: (row) => `₱${parseFloat(row.rdPay || 0).toLocaleString()}`,
       sortable: true,
       center: true,
       width: "150px",
@@ -498,13 +517,6 @@ const EmployeePayrollInformationsList = () => {
       sortable: true,
       center: true,
       width: "120px",
-    },
-    {
-      name: "Tax",
-      selector: (row) =>
-        `₱${parseFloat(row.tax_deduction || 0).toLocaleString()}`,
-      sortable: true,
-      center: true,
     },
     {
       name: "SSS",
@@ -529,10 +541,33 @@ const EmployeePayrollInformationsList = () => {
       width: "120px",
     },
     {
-      name: "Loan",
-      selector: (row) => `₱${parseFloat(row.loan || 0).toLocaleString()}`,
+      name: "Adjustment",
+      selector: (row) => `₱${parseFloat(row.adjustment || 0).toLocaleString()}`,
       sortable: true,
       center: true,
+      width: "120px",
+    },
+    {
+      name: "Tax",
+      selector: (row) =>
+        `₱${parseFloat(row.tax_deduction || 0).toLocaleString()}`,
+      sortable: true,
+      center: true,
+    },
+    {
+      name: "SSS Loan",
+      selector: (row) => `₱${parseFloat(row.sssloan || 0).toLocaleString()}`,
+      sortable: true,
+      center: true,
+      width: "150px",
+    },
+    {
+      name: "Pagibig Loan",
+      selector: (row) =>
+        `₱${parseFloat(row.pagibigloan || 0).toLocaleString()}`,
+      sortable: true,
+      center: true,
+      width: "150px",
     },
   ];
 
@@ -670,25 +705,10 @@ const EmployeePayrollInformationsList = () => {
                       Select Information Field
                     </option>
                     <option value="daily_rate">Daily Rate</option>
-                    <option value="hourly_rate">Hourly Rate</option>
-                    <option value="ot_hourly_rate">OT Hourly Rate</option>
-                    <option value="ot_rate_sp_holiday">OT Rate Special Holiday</option>
-                    <option value="ot_rate_reg_holiday">OT Rate Regular Holiday</option>
-                    <option value="special_hol_rate">Special Holiday Rate</option>
-                    <option value="regular_hol_ot_rate">Regular Holiday OT Rate</option>
-                    <option value="overtime_pay">Overtime Pay</option>
-                    <option value="holiday_pay">Holiday Pay</option>
-                    <option value="night_differential">Night Differential</option>
-                    <option value="allowance">Allowance</option>
-                    <option value="tardiness">Tardiness</option>
-                    <option value="tax_deduction">Tax Deduction</option>
-                    <option value="sss_contribution">SSS Contribution</option>
-                    <option value="pagibig_contribution">Pag-IBIG Contribution</option>
-                    <option value="philhealth_contribution">PhilHealth Contribution</option>
-                    <option value="loan">Loan</option>
-                    <option value="otherDeductions">Other Deductions</option>
-                    <option value="adjustment">Adjustment</option>
-                    <option value="salary_package">Salary Package</option>
+                    <option value="hourly_rate">Salary Package</option>
+                    <option value="ot_hourly_rate">Adjustments</option>
+                    <option value="sssLoan">SSS Loan</option>
+                    <option value="pagibigLoan">Pagibig Loan</option>
                   </select>
 
                   <input
@@ -815,7 +835,7 @@ const EmployeePayrollInformationsList = () => {
                 {/* Updated dropdown styling - removed the wrapper div and border */}
                 <select
                   value={selectedEmploymentRank}
-                  onChange={(e) => handleEmploymentRankChange(e.target.value)}
+                  onChange={(e) => setSelectedEmploymentRank(e.target.value)}
                   className="w-full p-2 text-sm border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                 >
                   <option value="">All Employment Ranks</option>

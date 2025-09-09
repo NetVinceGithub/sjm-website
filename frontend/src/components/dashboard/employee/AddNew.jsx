@@ -35,6 +35,7 @@ const AddNew = () => {
     lastName: "",
     firstName: "",
     middleName: "",
+    suffix: "",
     completeName: "",
     positionTitle: "",
     project: "",
@@ -55,11 +56,15 @@ const AddNew = () => {
     // Government ID
     governmentIdType: "",
     governmentIdNumber: "",
+    customGovernmentIdType: "",
 
     // Emergency Contact
     emergencyContactName: "",
     emergencyContactNumber: "",
     emergencyContactAddress: "",
+    emergencyContactBirthplace: "",
+    emergencyContactRelationship: "",
+    emergencyContactReligion: "",
 
     // Compensation
     dailyRate: "",
@@ -73,6 +78,7 @@ const AddNew = () => {
     housekeepingDate: "",
     safetyDate: "",
     crrDate: "",
+    haccpDate: "",
 
     // Government Benefits
     sss: "",
@@ -169,12 +175,23 @@ const AddNew = () => {
 
   const completeName = `${formData.firstName} ${
     formData.middleName ? formData.middleName.charAt(0) + "." : ""
-  } ${formData.lastName}`.trim();
+  } ${formData.lastName}${
+    formData.suffix ? ", " + formData.suffix : ""
+  }`.trim();
 
-  const govID =
-    formData.governmentIdType && formData.governmentIdNumber
+  const govID = (() => {
+    if (!formData.governmentIdNumber) return "";
+
+    if (formData.governmentIdType === "other") {
+      return formData.customGovernmentIdType
+        ? `${formData.customGovernmentIdType} - ${formData.governmentIdNumber}`
+        : formData.governmentIdNumber;
+    }
+
+    return formData.governmentIdType
       ? `${formData.governmentIdType} - ${formData.governmentIdNumber}`
-      : "";
+      : formData.governmentIdNumber;
+  })();
 
   const age = calculateAge(formData.birthdate);
 
@@ -186,6 +203,7 @@ const AddNew = () => {
         "lastName",
         "firstName",
         "middleName",
+        "suffix",
         "gender",
         "civilStatus",
         "birthdate",
@@ -198,14 +216,19 @@ const AddNew = () => {
         "department",
         "areaSection",
         "employmentRank",
-        "dateOfHire",
         "employmentClassification",
+        "dateOfHire",
         "dateOfSeparation",
+        "tin",
         "governmentIdType",
         "governmentIdNumber",
+        "customGovernmentIdType",
         "emergencyContactName",
         "emergencyContactNumber",
         "emergencyContactAddress",
+        "emergencyContactBirthplace",
+        "emergencyContactReligion",
+        "emergencyContactRelationship",
         "dailyRate",
         "salaryPackage",
         "medicalDate",
@@ -215,10 +238,10 @@ const AddNew = () => {
         "housekeepingDate",
         "safetyDate",
         "crrDate",
+        "haccpDate",
         "sss",
         "philHealth",
         "pagIbig",
-        "tin",
       ];
       const idx = fields.indexOf(name);
       if (idx >= 0 && idx < fields.length - 1) {
@@ -240,6 +263,7 @@ const AddNew = () => {
         last_name: formData.lastName.trim(),
         first_name: formData.firstName.trim(),
         middle_name: formData.middleName.trim() || null,
+        suffix: formData.suffix.trim() || null,
         complete_name: completeName.trim(),
 
         // Employment Information
@@ -261,7 +285,10 @@ const AddNew = () => {
         email_address: formData.emailAddress.trim(),
 
         // Government ID
-        government_id_type: formData.governmentIdType.trim() || null,
+        government_id_type:
+          formData.governmentIdType === "other"
+            ? formData.customGovernmentIdType.trim() || null
+            : formData.governmentIdType.trim() || null,
         government_id_number: formData.governmentIdNumber.trim() || null,
 
         // Emergency Contact
@@ -270,6 +297,12 @@ const AddNew = () => {
           formData.emergencyContactNumber.trim() || null,
         emergency_contact_address:
           formData.emergencyContactAddress.trim() || null,
+        emergency_contact_birthplace:
+          formData.emergencyContactBirthplace.trim() || null,
+        emergency_contact_relationship:
+          formData.emergencyContactRelationship.trim() || null,
+        emergency_contact_religion:
+          formData.emergencyContactReligion.trim() || null,
 
         // Compensation
         daily_rate: parseFloat(formData.dailyRate) || 0,
@@ -283,6 +316,7 @@ const AddNew = () => {
         housekeeping_date: formData.housekeepingDate || null,
         safety_date: formData.safetyDate || null,
         crr_date: formData.crrDate || null,
+        haccp_date: formData.haccpDate || null,
 
         // Government Benefits
         sss: formData.sss.trim() || null,
@@ -312,6 +346,7 @@ const AddNew = () => {
           lastName: "",
           firstName: "",
           middleName: "",
+          suffix: "",
           completeName: "",
           positionTitle: "",
           project: "",
@@ -330,9 +365,13 @@ const AddNew = () => {
           emailAddress: "",
           governmentIdType: "",
           governmentIdNumber: "",
+          customGovernmentIdType: "",
           emergencyContactName: "",
           emergencyContactNumber: "",
           emergencyContactAddress: "",
+          emergencyContactBirthplace: "",
+          emergencyContactRelationship: "",
+          emergencyContactReligion: "",
           dailyRate: "",
           salaryPackage: "",
           medicalDate: "",
@@ -342,6 +381,7 @@ const AddNew = () => {
           housekeepingDate: "",
           safetyDate: "",
           crrDate: "",
+          haccpDate: "",
           sss: "",
           philHealth: "",
           pagIbig: "",
@@ -489,19 +529,36 @@ const AddNew = () => {
                 </p>
               )}
             </div>
-            <div>
-              <label className="block text-xs font-medium text-neutralDGray mb-1">
-                Middle Name <span className="italic"> (Optional)</span>
-              </label>
-              <input
-                ref={(el) => (inputRefs.current["middleName"] = el)}
-                name="middleName"
-                value={formData.middleName}
-                onChange={handleChange}
-                onKeyDown={(e) => handleKeyDown(e, "middleName")}
-                placeholder="e.g. Doe, Smith"
-                className="w-full p-2 border text-xs border-gray-300 rounded-md"
-              />
+            <div className="grid grid-cols-[70%_30%] gap-3">
+              {/* Middle Name */}
+              <div>
+                <label className="block text-xs font-medium text-neutralDGray mb-1">
+                  Middle Name <span className="italic"> (Optional)</span>
+                </label>
+                <input
+                  ref={(el) => (inputRefs.current["middleName"] = el)}
+                  name="middleName"
+                  value={formData.middleName}
+                  onChange={handleChange}
+                  onKeyDown={(e) => handleKeyDown(e, "middleName")}
+                  placeholder="e.g. Santos"
+                  className="w-full p-2 border text-xs border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-neutralDGray mb-1">
+                  Suffix <span className="italic">(Opt.)</span>
+                </label>
+                <input
+                  ref={(el) => (inputRefs.current["suffix"] = el)}
+                  name="suffix"
+                  value={formData.suffix}
+                  onChange={handleChange}
+                  onKeyDown={(e) => handleKeyDown(e, "suffix")}
+                  placeholder="e.g. Jr."
+                  className="w-[80%] p-2 border text-xs border-gray-300 rounded-md"
+                />
+              </div>
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-neutralDGray mb-1">
@@ -916,7 +973,7 @@ const AddNew = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                TIN Number<span className="text-red-500">*</span>
+                TIN Number
               </label>
               <input
                 ref={(el) => (inputRefs.current["tin"] = el)}
@@ -928,7 +985,6 @@ const AddNew = () => {
                 className={`w-full p-2 border text-xs rounded-md ${
                   hasError("tin") ? "border-red-500" : "border-gray-300"
                 }`}
-                required
               />
               {hasError("tin") && (
                 <p className="text-red-500 text-xs mt-1">
@@ -938,22 +994,31 @@ const AddNew = () => {
             </div>
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                ID Type<span className="text-red-500">*</span>
+                ID Type
               </label>
-              <input
-                ref={(el) => (inputRefs.current["governmentIdType"] = el)}
-                name="governmentIdType"
-                value={formData.governmentIdType}
-                onChange={handleChange}
-                onKeyDown={(e) => handleKeyDown(e, "governmentIdType")}
-                placeholder="e.g. Passport, SSS ID"
+              <select
                 className={`w-full p-2 border text-xs rounded-md ${
                   hasError("government_id_type")
                     ? "border-red-500"
                     : "border-gray-300"
                 }`}
-                required
-              />
+                ref={(el) => (inputRefs.current["governmentIdType"] = el)}
+                name="governmentIdType"
+                value={formData["governmentIdType"]}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "governmentIdType")}
+              >
+                <option value="">Select</option>
+                <option value="PhilSys ID">PhilSys ID (National ID)</option>
+                <option value="Passport">Philippine Passport</option>
+                <option value="Drivers License">Driver's License</option>
+                <option value="UMID">Unified Multi-Purpose ID (UMID)</option>
+                <option value="Postal ID">Postal ID</option>
+                <option value="Voters ID">Voter's ID / Certification</option>
+                <option value="PRC ID">PRC ID</option>
+                <option value="Cedula">Cedula</option>
+                <option value="other">Other</option>
+              </select>
               {hasError("government_id_type") && (
                 <p className="text-red-500 text-xs mt-1">
                   {getErrorMessage("government_id_type")}
@@ -962,7 +1027,7 @@ const AddNew = () => {
             </div>
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                ID Number<span className="text-red-500">*</span>
+                ID Number
               </label>
               <input
                 ref={(el) => (inputRefs.current["governmentIdNumber"] = el)}
@@ -976,7 +1041,6 @@ const AddNew = () => {
                     ? "border-red-500"
                     : "border-gray-300"
                 }`}
-                required
               />
               {hasError("government_id_number") && (
                 <p className="text-red-500 text-xs mt-1">
@@ -989,9 +1053,26 @@ const AddNew = () => {
                 Government ID<span className="text-red-500">*</span>
               </label>
               <input
-                value={govID}
-                className="w-full p-2 border text-xs border-gray-300 rounded-md"
-                disabled
+                ref={(el) => (inputRefs.current["customGovernmentIdType"] = el)}
+                name="customGovernmentIdType"
+                value={
+                  formData.governmentIdType === "other"
+                    ? formData.customGovernmentIdType
+                    : govID
+                }
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "customGovernmentIdType")}
+                placeholder={
+                  formData.governmentIdType === "other"
+                    ? "Enter custom ID type and number"
+                    : govID
+                }
+                className={`w-full p-2 border text-xs rounded-md ${
+                  formData.governmentIdType === "other"
+                    ? "border-gray-300 bg-white"
+                    : "border-gray-300 bg-gray-100"
+                }`}
+                disabled={formData.governmentIdType !== "other"}
               />
             </div>
           </div>
@@ -1079,6 +1160,91 @@ const AddNew = () => {
                 </p>
               )}
             </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Emergency Contact Birthplace
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) =>
+                  (inputRefs.current["emergencyContactBirthplace"] = el)
+                }
+                name="emergencyContactBirthplace"
+                value={formData.emergencyContactBirthplace}
+                onChange={handleChange}
+                onKeyDown={(e) =>
+                  handleKeyDown(e, "emergencyContactBirthplace")
+                }
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError("emergency_contact_birthplace")
+                    ? "border-red-500"
+                    : "border-gray-300"
+                }`}
+                placeholder="e.g. 123 Main St, City, Country"
+                required
+              />
+              {hasError("emergency_contact_birthplace") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("emergency_contact_birthplace")}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Emergency Contact Religion
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) =>
+                  (inputRefs.current["emergencyContactReligion"] = el)
+                }
+                name="emergencyContactReligion"
+                value={formData.emergencyContactNumber}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "emergencyContactReligion")}
+                placeholder="e.g. Christianity, Islam"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError("emergency_contact_religion")
+                    ? "border-red-500"
+                    : "border-gray-300"
+                }`}
+                required
+              />
+              {hasError("emergency_contact_religion") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("emergency_contact_religion")}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Emergency Contact Relationship
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={(el) =>
+                  (inputRefs.current["emergencyContactRelationship"] = el)
+                }
+                name="emergencyContactRelationship"
+                value={formData.emergencyContactRelationship}
+                onChange={handleChange}
+                onKeyDown={(e) =>
+                  handleKeyDown(e, "emergencyContactRelationship")
+                }
+                placeholder="e.g. Father, Sister"
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError("emergency_contact_relationship")
+                    ? "border-red-500"
+                    : "border-gray-300"
+                }`}
+                required
+              />
+              {hasError("emergency_contact_relationship") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("emergency_contact_relationship")}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1117,7 +1283,7 @@ const AddNew = () => {
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                Salary Package<span className="text-red-500">*</span>
+                Salary Package
               </label>
               <input
                 ref={(el) => (inputRefs.current["salaryPackage"] = el)}
@@ -1134,7 +1300,6 @@ const AddNew = () => {
                 type="number"
                 step="0.01"
                 min="0"
-                required
               />
               {hasError("salary_package") && (
                 <p className="text-red-500 text-xs mt-1">
@@ -1155,7 +1320,7 @@ const AddNew = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                Medical<span className="text-red-500">*</span>
+                Medical
               </label>
               <input
                 ref={(el) => (inputRefs.current["medicalDate"] = el)}
@@ -1169,7 +1334,6 @@ const AddNew = () => {
                     ? "border-red-500"
                     : "border-gray-300"
                 }`}
-                required
               />
               {hasError("medical_date") && (
                 <p className="text-red-500 text-xs mt-1">
@@ -1179,7 +1343,7 @@ const AddNew = () => {
             </div>
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                Health Card<span className="text-red-500">*</span>
+                Health Card
               </label>
               <input
                 ref={(el) => (inputRefs.current["healthCardDate"] = el)}
@@ -1193,7 +1357,6 @@ const AddNew = () => {
                     ? "border-red-500"
                     : "border-gray-300"
                 }`}
-                required
               />
               {hasError("health_card_date") && (
                 <p className="text-red-500 text-xs mt-1">
@@ -1203,7 +1366,7 @@ const AddNew = () => {
             </div>
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                GMP<span className="text-red-500">*</span>
+                GMP
               </label>
               <input
                 ref={(el) => (inputRefs.current["gmpDate"] = el)}
@@ -1215,7 +1378,6 @@ const AddNew = () => {
                 className={`w-full p-2 border text-xs rounded-md ${
                   hasError("gmp_date") ? "border-red-500" : "border-gray-300"
                 }`}
-                required
               />
               {hasError("gmp_date") && (
                 <p className="text-red-500 text-xs mt-1">
@@ -1225,7 +1387,7 @@ const AddNew = () => {
             </div>
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                PRP<span className="text-red-500">*</span>
+                PRP
               </label>
               <input
                 ref={(el) => (inputRefs.current["prpDate"] = el)}
@@ -1237,7 +1399,6 @@ const AddNew = () => {
                 className={`w-full p-2 border text-xs rounded-md ${
                   hasError("prp_date") ? "border-red-500" : "border-gray-300"
                 }`}
-                required
               />
               {hasError("prp_date") && (
                 <p className="text-red-500 text-xs mt-1">
@@ -1247,7 +1408,7 @@ const AddNew = () => {
             </div>
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                Housekeeping<span className="text-red-500">*</span>
+                Housekeeping
               </label>
               <input
                 ref={(el) => (inputRefs.current["housekeepingDate"] = el)}
@@ -1261,7 +1422,6 @@ const AddNew = () => {
                     ? "border-red-500"
                     : "border-gray-300"
                 }`}
-                required
               />
               {hasError("housekeeping_date") && (
                 <p className="text-red-500 text-xs mt-1">
@@ -1271,7 +1431,7 @@ const AddNew = () => {
             </div>
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                Safety<span className="text-red-500">*</span>
+                Safety
               </label>
               <input
                 ref={(el) => (inputRefs.current["safetyDate"] = el)}
@@ -1283,7 +1443,6 @@ const AddNew = () => {
                 className={`w-full p-2 border text-xs rounded-md ${
                   hasError("safety_date") ? "border-red-500" : "border-gray-300"
                 }`}
-                required
               />
               {hasError("safety_date") && (
                 <p className="text-red-500 text-xs mt-1">
@@ -1293,7 +1452,7 @@ const AddNew = () => {
             </div>
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                CRR<span className="text-red-500">*</span>
+                CRR/Compensation & Benefits
               </label>
               <input
                 ref={(el) => (inputRefs.current["crrDate"] = el)}
@@ -1305,11 +1464,31 @@ const AddNew = () => {
                 className={`w-full p-2 border text-xs rounded-md ${
                   hasError("crr_date") ? "border-red-500" : "border-gray-300"
                 }`}
-                required
               />
               {hasError("crr_date") && (
                 <p className="text-red-500 text-xs mt-1">
                   {getErrorMessage("crr_date")}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                HACCP
+              </label>
+              <input
+                ref={(el) => (inputRefs.current["haccpDate"] = el)}
+                name="haccpDate"
+                type="date"
+                value={formData.haccpDate}
+                onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, "haccpDate")}
+                className={`w-full p-2 border text-xs rounded-md ${
+                  hasError("crr_date") ? "border-red-500" : "border-gray-300"
+                }`}
+              />
+              {hasError("haccp_date") && (
+                <p className="text-red-500 text-xs mt-1">
+                  {getErrorMessage("haccp_date")}
                 </p>
               )}
             </div>
@@ -1326,7 +1505,7 @@ const AddNew = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                SSS Number<span className="text-red-500">*</span>
+                SSS Number
               </label>
               <input
                 ref={(el) => (inputRefs.current["sss"] = el)}
@@ -1338,7 +1517,6 @@ const AddNew = () => {
                 className={`w-full p-2 border text-xs rounded-md ${
                   hasError("sss") ? "border-red-500" : "border-gray-300"
                 }`}
-                required
               />
               {hasError("sss") && (
                 <p className="text-red-500 text-xs mt-1">
@@ -1348,7 +1526,7 @@ const AddNew = () => {
             </div>
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                PhilHealth Number<span className="text-red-500">*</span>
+                PhilHealth Number
               </label>
               <input
                 ref={(el) => (inputRefs.current["philHealth"] = el)}
@@ -1360,7 +1538,6 @@ const AddNew = () => {
                 className={`w-full p-2 border text-xs rounded-md ${
                   hasError("phil_health") ? "border-red-500" : "border-gray-300"
                 }`}
-                required
               />
               {hasError("phil_health") && (
                 <p className="text-red-500 text-xs mt-1">
@@ -1370,7 +1547,7 @@ const AddNew = () => {
             </div>
             <div>
               <label className="block text-xs font-medium text-neutralDGray mb-1">
-                Pag-IBIG Number<span className="text-red-500">*</span>
+                Pag-IBIG Number
               </label>
               <input
                 ref={(el) => (inputRefs.current["pagIbig"] = el)}
@@ -1382,7 +1559,6 @@ const AddNew = () => {
                 className={`w-full p-2 border text-xs rounded-md ${
                   hasError("pag_ibig") ? "border-red-500" : "border-gray-300"
                 }`}
-                required
               />
               {hasError("pag_ibig") && (
                 <p className="text-red-500 text-xs mt-1">

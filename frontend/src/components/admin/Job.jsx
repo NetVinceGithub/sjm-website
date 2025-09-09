@@ -17,6 +17,7 @@ import {
 import { Button } from "flowbite-react";
 import { FaArrowUp } from "react-icons/fa";
 import { FaSearch } from "react-icons/fa";
+import { ThreeDots } from "react-loader-spinner";
 import axios from "axios"; // Make sure to install axios
 
 const API_URL = `${import.meta.env.VITE_API_URL}/api/jobs`; // Replace with your actual API endpoint
@@ -92,8 +93,6 @@ const JobFormModal = ({
     responsibilities: [""],
     link: "",
   });
-
-
 
   // Reset form when the modal opens with initial data (for editing)
   useEffect(() => {
@@ -367,15 +366,14 @@ const Job = () => {
     fetchJobs();
   }, []);
 
-
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token");
     return {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
     };
   };
 
@@ -444,14 +442,18 @@ const Job = () => {
   const addNewJob = async (jobData) => {
     setIsLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/add`, {
-        title: jobData.title,
-        description: jobData.description,
-        location: jobData.location,
-        requirements: jobData.requirements,
-        responsibilities: jobData.responsibilities,
-        link: jobData.link,
-      },getAuthHeaders());
+      const response = await axios.post(
+        `${API_URL}/add`,
+        {
+          title: jobData.title,
+          description: jobData.description,
+          location: jobData.location,
+          requirements: jobData.requirements,
+          responsibilities: jobData.responsibilities,
+          link: jobData.link,
+        },
+        getAuthHeaders()
+      );
 
       if (response.data.success) {
         // Add the new job to the local state
@@ -472,14 +474,18 @@ const Job = () => {
   const updateJob = async (jobId, jobData) => {
     setIsLoading(true);
     try {
-      const response = await axios.put(`${API_URL}/${jobId}`, {
-        title: jobData.title,
-        description: jobData.description,
-        location: jobData.location,
-        requirements: jobData.requirements,
-        responsibilities: jobData.responsibilities,
-        link: jobData.link,
-      }, getAuthHeaders());
+      const response = await axios.put(
+        `${API_URL}/${jobId}`,
+        {
+          title: jobData.title,
+          description: jobData.description,
+          location: jobData.location,
+          requirements: jobData.requirements,
+          responsibilities: jobData.responsibilities,
+          link: jobData.link,
+        },
+        getAuthHeaders()
+      );
 
       if (response.data.success) {
         // Update the job in the local state
@@ -509,7 +515,10 @@ const Job = () => {
     if (!selectedJobId) return;
     setIsLoading(true);
     try {
-      const response = await axios.delete(`${API_URL}/${selectedJobId}`, getAuthHeaders());
+      const response = await axios.delete(
+        `${API_URL}/${selectedJobId}`,
+        getAuthHeaders()
+      );
       if (response.data.success) {
         setJobs((prev) => prev.filter((job) => job.id !== selectedJobId));
       }
@@ -608,8 +617,17 @@ const Job = () => {
       )}
 
       {isLoading && !showFormModal && (
-        <div className="text-center py-10">
-          <p className="text-xl">Loading jobs...</p>
+        <div className="text-center flex justify-center items-center py-10">
+          <ThreeDots
+            visible={true}
+            height="60"
+            width="60"
+            color="#4fa94d"
+            radius="9"
+            ariaLabel="three-dots-loading"
+            wrapperStyle={{}}
+            wrapperClass=""
+          />
         </div>
       )}
 

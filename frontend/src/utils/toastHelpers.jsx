@@ -1,29 +1,30 @@
-import { toast } from 'react-toastify';
-import React from 'react';
+import { toast } from "react-toastify";
+import React from "react";
 
-let hasShownPayrollToast = false;  // flag outside function, persists during session
-let payrollToastId = null;         // store toast id for dismissal
+let hasShownPayrollToast = false; // flag outside function, persists during session
+let payrollToastId = null; // store toast id for dismissal
 
 export const notifyPayrollRequests = (requests) => {
-  if (!Array.isArray(requests)) return;  // ✅ Prevents `.length` on undefined/null
+  if (!Array.isArray(requests)) return; // ✅ Prevents `.length` on undefined/null
 
   const count = requests.length;
 
   if (count > 0) {
     if (!hasShownPayrollToast) {
-      payrollToastId = toast.info(
-        <div style={{ fontSize: '0.9rem', color: '#fff' }}>
-          You have {count} payroll request{count > 1 ? 's' : ''} to review.
-        </div>,
+      payrollToastId = toast(
+        `You have ${count} payroll request${count > 1 ? "s" : ""} to review.`,
         {
-          icon: '⚠️',
-          autoClose: false,
-          closeOnClick: true,
+          position: "top-right",
+          autoClose: 2000,
           closeButton: false,
-          draggable: false,
+          closeOnClick: true,
           hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>🔔</span>,
           style: {
-            backgroundColor: '#444',
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
           },
         }
       );

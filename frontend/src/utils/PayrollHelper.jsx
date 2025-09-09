@@ -1,9 +1,9 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { FaRegPenToSquare, FaXmark } from "react-icons/fa6";
-import { useAuth } from '.././context/authContext'
+import { useAuth } from ".././context/authContext";
 import ModalPortal from "../utils/ModalPortal";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 
 export const PayrollButtons = ({ Id, refreshData }) => {
   const { user } = useAuth();
@@ -39,100 +39,134 @@ export const PayrollButtons = ({ Id, refreshData }) => {
     }
   };
 
-console.log('PayrollButtons received ID:', Id);
+  console.log("PayrollButtons received ID:", Id);
 
-// 2. Check the API endpoint URL
-console.log('API URL being called:', `${import.meta.env.VITE_API_URL}/api/employee/payroll-informations/${Id}`);
+  // 2. Check the API endpoint URL
+  console.log(
+    "API URL being called:",
+    `${import.meta.env.VITE_API_URL}/api/employee/payroll-informations/${Id}`
+  );
 
-const fetchPayrollInformationsById = async () => {
-  setDataLoading(true);
-  try {
-    console.log('Fetching payroll data for ID:', Id);
-    
-    const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/api/employee/payroll-informations/${Id}`
-    );
+  const fetchPayrollInformationsById = async () => {
+    setDataLoading(true);
+    try {
+      console.log("Fetching payroll data for ID:", Id);
 
-    console.log('API Response:', response.data);
+      const response = await axios.get(
+        `${
+          import.meta.env.VITE_API_URL
+        }/api/employee/payroll-informations/${Id}`
+      );
 
-    if (response.data.success) {
-      // Handle case where payrollInformation exists
-      if (response.data.payrollInformation) {
-        const data = response.data.payrollInformation;
-        
-        const processedData = {
-          name: data.name || "",
-          ecode: data.ecode || "",
-          daily_rate: data.daily_rate || "",
-          overtime_pay: data.overtime_pay || "",
-          holiday_pay: data.holiday_pay || "",
-          night_differential: data.night_differential || "",
-          allowance: data.allowance || "",
-          tax_deduction: data.tax_deduction || "",
-          sss_contribution: data.sss_contribution || "",
-          pagibig_contribution: data.pagibig_contribution || "",
-          philhealth_contribution: data.philhealth_contribution || "",
-          loan: data.loan || "",
-          designation: data.designation || "Regular",
-        };
-        
-        console.log('Using payroll data:', processedData);
-        setPayrollData(processedData);
-        setOriginalPayrollData(processedData);
-      } 
-      // Handle case where payrollInformation is null but employee exists
-      else if (response.data.employee) {
-        const employeeData = response.data.employee;
-        
-        const processedData = {
-          name: employeeData.name || "",
-          ecode: employeeData.ecode || "",
-          daily_rate: "", // Empty since no payroll data exists yet
-          overtime_pay: "",
-          holiday_pay: "",
-          night_differential: "",
-          allowance: "",
-          tax_deduction: "",
-          sss_contribution: "",
-          pagibig_contribution: "",
-          philhealth_contribution: "",
-          loan: "",
-          designation: employeeData.designation || "Regular",
-        };
-        
-        console.log('Using employee data (no payroll data found):', processedData);
-        setPayrollData(processedData);
-        setOriginalPayrollData(processedData);
+      console.log("API Response:", response.data);
+
+      if (response.data.success) {
+        // Handle case where payrollInformation exists
+        if (response.data.payrollInformation) {
+          const data = response.data.payrollInformation;
+
+          const processedData = {
+            name: data.name || "",
+            ecode: data.ecode || "",
+            daily_rate: data.daily_rate || "",
+            overtime_pay: data.overtime_pay || "",
+            holiday_pay: data.holiday_pay || "",
+            night_differential: data.night_differential || "",
+            allowance: data.allowance || "",
+            tax_deduction: data.tax_deduction || "",
+            sss_contribution: data.sss_contribution || "",
+            pagibig_contribution: data.pagibig_contribution || "",
+            philhealth_contribution: data.philhealth_contribution || "",
+            loan: data.loan || "",
+            designation: data.designation || "Regular",
+          };
+
+          console.log("Using payroll data:", processedData);
+          setPayrollData(processedData);
+          setOriginalPayrollData(processedData);
+        }
+        // Handle case where payrollInformation is null but employee exists
+        else if (response.data.employee) {
+          const employeeData = response.data.employee;
+
+          const processedData = {
+            name: employeeData.name || "",
+            ecode: employeeData.ecode || "",
+            daily_rate: "", // Empty since no payroll data exists yet
+            overtime_pay: "",
+            holiday_pay: "",
+            night_differential: "",
+            allowance: "",
+            tax_deduction: "",
+            sss_contribution: "",
+            pagibig_contribution: "",
+            philhealth_contribution: "",
+            loan: "",
+            designation: employeeData.designation || "Regular",
+          };
+
+          console.log(
+            "Using employee data (no payroll data found):",
+            processedData
+          );
+          setPayrollData(processedData);
+          setOriginalPayrollData(processedData);
+        } else {
+          console.warn("No payroll data or employee data found.");
+          // Set default values
+          setPayrollData({
+            name: "Unknown Employee",
+            ecode: "N/A",
+            daily_rate: "",
+            overtime_pay: "",
+            holiday_pay: "",
+            night_differential: "",
+            allowance: "",
+            tax_deduction: "",
+            sss_contribution: "",
+            pagibig_contribution: "",
+            philhealth_contribution: "",
+            loan: "",
+            designation: "Regular",
+          });
+        }
       } else {
-        console.warn("No payroll data or employee data found.");
-        // Set default values
-        setPayrollData({
-          name: "Unknown Employee",
-          ecode: "N/A",
-          daily_rate: "",
-          overtime_pay: "",
-          holiday_pay: "",
-          night_differential: "",
-          allowance: "",
-          tax_deduction: "",
-          sss_contribution: "",
-          pagibig_contribution: "",
-          philhealth_contribution: "",
-          loan: "",
-          designation: "Regular",
+        console.error("API returned success: false");
+        toast("Failed to load employee data.", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
         });
       }
-    } else {
-      console.error("API returned success: false");
-      toast.error("Failed to load employee data.");
+    } catch (error) {
+      console.error("Error fetching payroll information:", error);
+      toast("Failed to load payroll data. Please try again.", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
+    } finally {
+      setDataLoading(false);
     }
-  } catch (error) {
-    console.error("Error fetching payroll information:", error);
-    toast.error("Failed to load payroll data. Please try again.");
-  } finally {
-    setDataLoading(false);
-  }
-};
+  };
 
   const formatFieldName = (field) =>
     field.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -141,7 +175,10 @@ const fetchPayrollInformationsById = async () => {
     if (!originalPayrollData) return [];
 
     return Object.entries(payrollData)
-      .filter(([key, newValue]) => String(newValue) !== String(originalPayrollData[key]))
+      .filter(
+        ([key, newValue]) =>
+          String(newValue) !== String(originalPayrollData[key])
+      )
       .map(([key, value]) => ({
         key,
         value,
@@ -187,19 +224,20 @@ const fetchPayrollInformationsById = async () => {
 
       if (response.data.success) {
         setIsReasonModalOpen(false);
-        toast.success(
-          <div style={{ fontSize: '0.9rem' }}>
-            Payroll change request submitted for approval.
-          </div>,
-          {
-            autoClose: 3000,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            closeButton: false,
-            position: "top-right",
-          }
-        );
+        toast("Payroll change request submitted for approval.", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>✅</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
         refreshData();
       } else {
         alert(`Request submission failed: ${response.data.message}`);
@@ -292,7 +330,10 @@ const fetchPayrollInformationsById = async () => {
                         <select
                           value={payrollData[key] || "Regular"}
                           onChange={(e) =>
-                            setPayrollData({ ...payrollData, [key]: e.target.value })
+                            setPayrollData({
+                              ...payrollData,
+                              [key]: e.target.value,
+                            })
                           }
                           className="w-72 text-[12px] p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                         >
@@ -304,7 +345,10 @@ const fetchPayrollInformationsById = async () => {
                           type="text"
                           value={payrollData[key] || ""}
                           onChange={(e) =>
-                            setPayrollData({ ...payrollData, [key]: e.target.value })
+                            setPayrollData({
+                              ...payrollData,
+                              [key]: e.target.value,
+                            })
                           }
                           className="w-72 text-[12px] h-8 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
                           placeholder={`Enter ${label.toLowerCase()}`}

@@ -25,13 +25,42 @@ export default function ClientProfileModal({
 
   if (!client) return null;
 
-  // Filter employees deployed to this client based on project name
-  const deployedEmployees = employees.filter(
-    (emp) =>
-      emp.project?.trim().toUpperCase() ===
-      (client.project?.trim().toUpperCase() ||
-        client.name?.trim().toUpperCase())
-  );
+  // Helper function to normalize text for comparison
+  const normalizeText = (text) => {
+    if (!text) return "";
+    return text
+      .toLowerCase()
+      .replace(/[.,\s]+/g, " ") // Replace punctuation and multiple spaces with single space
+      .replace(
+        /\binc\b|\bincorporated\b|\bcorp\b|\bcorporation\b|\bltd\b|\blimited\b/g,
+        ""
+      ) // Remove common company suffixes
+      .trim();
+  };
+
+  // Filter employees deployed to this client with fuzzy matching
+  const deployedEmployees = employees.filter((emp) => {
+    const empProject = normalizeText(emp.project);
+    const clientName = normalizeText(client.name);
+
+    // Check if they contain similar words (at least 60% match)
+    const empWords = empProject.split(" ").filter((word) => word.length > 2);
+    const clientWords = clientName.split(" ").filter((word) => word.length > 2);
+
+    if (empWords.length === 0 || clientWords.length === 0) return false;
+
+    const matches = empWords.filter((empWord) =>
+      clientWords.some(
+        (clientWord) =>
+          empWord.includes(clientWord) || clientWord.includes(empWord)
+      )
+    );
+
+    // Return true if at least 60% of words match
+    return (
+      matches.length / Math.max(empWords.length, clientWords.length) >= 0.6
+    );
+  });
 
   const handleEdit = () => {
     closeHandler(); // close modal
@@ -43,23 +72,53 @@ export default function ClientProfileModal({
     {
       name: "Employee Name",
       selector: (row) =>
-        [row.firstname, row.middlename, row.lastname]
+        [row.first_name, row.middle_name, row.last_name]
           .filter(Boolean)
           .join(" ") || "No name available",
       sortable: true,
       wrap: true,
+      width: "230px",
     },
     {
       name: "Position",
-      selector: (row) => row.positiontitle || "N/A",
+      selector: (row) => row.position_title || "N/A",
+      sortable: true,
+      wrap: true,
+      width: "200px",
+    },
+    {
+      name: "Area/Section",
+      selector: (row) => row.area_section || "N/A",
+      sortable: true,
+      wrap: true,
+      width: "180px",
+    },
+    {
+      name: "Employment Status",
+      selector: (row) => row.status || "N/A",
+      sortable: true,
+      wrap: true,
+      width: "160px",
+    },
+    {
+      name: "Employment Classification",
+      selector: (row) => row.employment_classification || "N/A",
       sortable: true,
       wrap: true,
     },
     {
-      name: "Employment Status",
-      selector: (row) => row.employmentstatus || "N/A",
+      name: "Date Hired",
+      selector: (row) => row.date_of_hire || "N/A",
       sortable: true,
       wrap: true,
+      width: "130px",
+    },
+    {
+      name: "Date of Separation",
+      selector: (row) => row.date_of_separation || "N/A",
+      sortable: true,
+      wrap: true,
+      width: "150px",
     },
   ];
 
@@ -101,7 +160,7 @@ export default function ClientProfileModal({
               <div className="flex-1 mt-3 ml-3">
                 <h2 className="text-base font-medium">{client.name}</h2>
                 <p className="text-blue-100 italic text-xs -mt-2">
-                  {client.clientCode || "No client code"}
+                  {client.clientCode || client.client_code || "No client code"}
                 </p>
                 <p className="text-blue-100 italic text-xs -mt-3">
                   TIN No.: {client.tinNumber || "No TIN provided"}
@@ -134,7 +193,9 @@ export default function ClientProfileModal({
                     Contact Person
                   </p>
                   <p className="text-xs font-medium -mt-3 text-gray-800">
-                    {client.contactPerson || "No contact person"}
+                    {client.contactPerson ||
+                      client.contact_person ||
+                      "No contact person"}
                   </p>
                 </div>
               </div>
@@ -162,7 +223,9 @@ export default function ClientProfileModal({
                     Contact Number
                   </p>
                   <p className="text-xs font-medium -mt-3 text-gray-800">
-                    {client.contactNumber || "No phone provided"}
+                    {client.contactNumber ||
+                      client.phone ||
+                      "No phone provided"}
                   </p>
                 </div>
               </div>
@@ -211,14 +274,20 @@ export default function ClientProfileModal({
                     Billing Frequency
                   </p>
                   <p className="text-xs font-medium -mt-3 text-gray-800">
-                    {client.billingFrequency || "Not specified"}
+                    {(
+                      client.billingFrequency ||
+                      client.billing_frequency ||
+                      "Not specified"
+                    )
+                      .toLowerCase()
+                      .replace(/\b\w/g, (c) => c.toUpperCase())}
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Additional Details Section */}
+          {/* Deployed Employees Section */}
           <div className="px-6 pb-6">
             <h3 className="text-sm text-gray-800 mb-4 border-b pb-1">
               Deployed Employees
@@ -228,7 +297,10 @@ export default function ClientProfileModal({
               data={deployedEmployees}
               noDataComponent={
                 <div className="text-center text-xs py-8 text-gray-500">
-                  No deployed employees found.
+                  <div>No deployed employees found.</div>
+                  <div className="text-xs text-gray-400 mt-2">
+                    Looking for employees with project matching: "{client.name}"
+                  </div>
                 </div>
               }
               dense

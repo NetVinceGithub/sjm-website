@@ -149,17 +149,20 @@ const Overview = () => {
     if (year) filterText.push(`Year: ${year}`);
 
     if (filterText.length > 0) {
-      toast.success(
-        `Filters applied: ${filterText.join(", ")}. Found ${
-          filtered.length
-        } payslips.`,
-        {
-          position: "top-right",
-          autoClose: 3000,
-          closeButton: false,
-          closeOnClick: true,
-        }
-      );
+      toast("Filters applied successfully!", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>✅</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
     }
   };
 
@@ -168,11 +171,19 @@ const Overview = () => {
     setYear("");
     setFilteredPayslips(payslips);
     setShowFilterModal(false);
-    toast.warning("Filters cleared", {
+    toast("Filters cleared!", {
       position: "top-right",
       autoClose: 2000,
       closeButton: false,
       closeOnClick: true,
+      hideProgressBar: true,
+      icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+      style: {
+        fontSize: "13px",
+        padding: "6px 12px",
+        width: "auto",
+        minHeight: "10px",
+      },
     });
   };
 
@@ -305,16 +316,20 @@ const Overview = () => {
 
   const handleCreatePayroll = async () => {
     if (!cutoffDate) {
-      toast.info(
-        <div style={{ fontSize: "0.9rem" }}>Please select a cutoff date.</div>,
-        {
-          autoClose: 3000,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          position: "top-right",
-        }
-      );
+      toast("Please select a cutoff date!", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>ℹ️</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
       return;
     }
 
@@ -812,10 +827,10 @@ const Overview = () => {
                         {toProperCase(employee.name)}
                       </p>
                       <p className="text-xs -mt-5 italic text-gray-500">
-                        {toProperCase(employee.positiontitle)}
+                        {toProperCase(employee.position_title)}
                       </p>
                       <p
-                        className={`text-xs font-medium -mt-3 mb-2 px-2 rounded-full w-fit
+                        className={`text-xs font-medium -mt-4 mb-1 px-2 rounded-full w-fit
                     ${
                       employee.employmentstatus === "RESIGNED"
                         ? "bg-yellow-100 text-yellow-700"
@@ -836,8 +851,10 @@ const Overview = () => {
                   ))
                 ) : (
                   <div className="text-center py-8 text-gray-500">
-                    <p className="text-sm">No employees found</p>
-                    <p className="text-xs">Try adjusting your search term</p>
+                    <p className="text-xs">No employees found</p>
+                    <p className="text-xs -mt-4">
+                      Try adjusting your search term
+                    </p>
                   </div>
                 )}
               </div>
