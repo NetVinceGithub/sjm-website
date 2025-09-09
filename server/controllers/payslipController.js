@@ -1843,7 +1843,7 @@ export const generatePayroll = async (req, res) => {
 
             if (holiday) {
               console.log(
-                `   🎉 Holiday found (Present): ${record.date} - ${holiday.type} - Day Value: ${dayValue}`
+                `    Holiday found (Present): ${record.date} - ${holiday.type} - Day Value: ${dayValue}`
               );
               switch (holiday.type) {
                 case "Regular":
@@ -1868,7 +1868,7 @@ export const generatePayroll = async (req, res) => {
           });
 
         // DEBUG: Final counts
-        console.log(`   📊 FINAL COUNTS for ${employee.name}:`);
+        console.log(`    FINAL COUNTS for ${employee.name}:`);
         console.log(`      regularDaysWorked: ${regularDaysWorked}`);
         console.log(`      regularHolidayDays: ${regularHolidayDays}`);
         console.log(`      specialHolidayDays: ${specialHolidayDays}`);
@@ -2027,14 +2027,19 @@ export const generatePayroll = async (req, res) => {
         const safeGrossPay = isNaN(grossPay) ? basicPay : grossPay;
 
         // RANK-AND-FILE LOGIC: Apply different deduction rules
+        // Replace the existing deductions object with this updated version:
+
         const deductions = {
           sss: !isOnCall
             ? calculateSSSWithCutoff(safeGrossPay, new Date(cutoffDate))
-                .employeeContribution // ✅ NEW CODE
+                .employeeContribution 
             : 0,
+          
+          // FIXED: PhilHealth calculation - 2.5% of basic pay
           phic: !isOnCall
-            ? Number(employeePayrollInfo.philhealth_contribution) || 75
+            ? basicPay * 0.025  // 2.5% of basic pay
             : 0,
+            
           hdmf: !isOnCall
             ? Number(employeePayrollInfo.pagibig_contribution) || 50
             : 0,
@@ -2047,6 +2052,17 @@ export const generatePayroll = async (req, res) => {
             : 0,
           tardiness: finalTotalLateMinutes * rates.tardinessRate,
         };
+
+// Add PhilHealth calculation logging
+console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
+  basicPay: basicPay,
+  phicRate: '2.5%',
+  phicAmount: (basicPay * 0.025).toFixed(2),
+  isOnCall: isOnCall
+});
+
+
+
 
         console.log(
           `💳 Deductions for ${employee.name} (Is on call: ${isOnCall}):`,
