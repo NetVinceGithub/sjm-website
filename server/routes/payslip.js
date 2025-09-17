@@ -11,7 +11,8 @@ import {
   releasePayrollByProject,
   getAvailableBatches,
   getContributions,
-  getPayslipHistoryById 
+  getPayslipHistoryById, 
+  approveBatch
 } from "../controllers/payslipController.js";
 import { sequelize } from "../db/db.js"; // Ensure correct path
 import { QueryTypes } from "sequelize";
@@ -32,6 +33,7 @@ router.get("/pending-requests", pendingRequests);
 router.post("/release-payroll", releasePayroll);
 router.post("/send-payslip", sendPayslips);
 router.post("/", addPayslip);
+router.post("/approve-batch", approveBatch);
 
 
 router.get("/batches", getAvailableBatches); // <-- Add this

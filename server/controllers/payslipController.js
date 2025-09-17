@@ -1612,38 +1612,31 @@ export const generatePayroll = async (req, res) => {
       holidays,
       attendanceSummary;
 
-    if (employees.length > 0 && attendanceData.length > 0) {
-      console.log("📦 Using data provided by frontend");
-      employeesData = employees;
-      attendanceRecords = attendanceData;
-      holidays = holidaysData;
-    } else {
-      console.log("📦 Fetching data from database");
-      employeesData = await Employee.findAll({
-        where: { status: { [Op.ne]: "Inactive" } },
-      }).catch(async (error) => {
-        console.error("❌ Error fetching employees:", error);
-        let allEmployees = await Employee.findAll();
-        return allEmployees.filter((emp) => emp.status !== "Inactive");
-      });
+    console.log("📦 Fetching data from database");
+    employeesData = await Employee.findAll({
+      where: { status: { [Op.ne]: "Inactive" } },
+    }).catch(async (error) => {
+      console.error("❌ Error fetching employees:", error);
+      let allEmployees = await Employee.findAll();
+      return allEmployees.filter((emp) => emp.status !== "Inactive");
+    });
 
-      attendanceRecords = await Attendance.findAll().catch((error) => {
-        console.error("❌ Error fetching attendance records:", error);
-        return [];
-      });
+    attendanceRecords = await Attendance.findAll().catch((error) => {
+      console.error("❌ Error fetching attendance records:", error);
+      return [];
+    });
 
-      console.log(`✅ Fetched ${attendanceRecords.length} attendance records`);
+    console.log(`✅ Fetched ${attendanceRecords.length} attendance records`);
 
-      holidays = await Holidays.findAll().catch((error) => {
-        console.error("❌ Error fetching holidays:", error);
-        return [];
-      });
+    holidays = await Holidays.findAll().catch((error) => {
+      console.error("❌ Error fetching holidays:", error);
+      return [];
+    });
 
-      attendanceSummary = await AttendanceSummary.findAll().catch((error) => {
-        console.error("❌ Error fetching attendance summary:", error);
-        return [];
-      });
-    }
+    attendanceSummary = await AttendanceSummary.findAll().catch((error) => {
+      console.error("❌ Error fetching attendance summary:", error);
+      return [];
+    });
 
     employeesData = employeesData.filter(
       (employee) => employee.status !== "Inactive"
@@ -2060,10 +2053,6 @@ console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
   phicAmount: (basicPay * 0.025).toFixed(2),
   isOnCall: isOnCall
 });
-
-
-
-
         console.log(
           `💳 Deductions for ${employee.name} (Is on call: ${isOnCall}):`,
           {
@@ -2417,6 +2406,162 @@ console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
           ? error.message
           : "Internal server error",
       details: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+};
+
+
+
+// Add this to your payslipController.js
+export const approveBatch = async (req, res) => {
+  try {
+    const { batchId } = req.body;
+
+    // Validation: Check if batchId is provided
+    if (!batchId) {
+      return res.status(400).json({
+        success: false,
+        message: "Batch ID is required",
+        error: "Missing batchId parameter"
+      });
+    }
+
+    // Check if batch exists and get payslips
+    const payslips = await Payslip.findAll({
+      where: { 
+        batchId: batchId,
+        status: 'pending' // Only update pending payslips
+      }
+    });
+
+    if (payslips.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No pending payslips found for this batch",
+        error: "Batch not found or already processed"
+      });
+    }
+
+    // Update all payslips in the batch to approved status
+    const [updatedCount] = await Payslip.update(
+      { 
+        status: 'approved'
+      },
+      {
+        where: { 
+          batchId: batchId,
+          status: 'pending'
+        }
+      }
+    );
+
+    if (updatedCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No payslips were updated",
+        error: "All payslips in batch may already be processed"
+      });
+    }
+
+    // Get updated payslips for response
+    const updatedPayslips = await Payslip.findAll({
+      where: { 
+        batchId: batchId,
+        status: 'approved'
+      },
+      attributes: ['id', 'ecode', 'name', 'status', 'batchId', 'netPay']
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Batch ${batchId} approved successfully`,
+      data: {
+        batchId: batchId,
+        updatedCount: updatedCount,
+        payslips: updatedPayslips,
+        totalNetPay: updatedPayslips.reduce((sum, payslip) => 
+          sum + parseFloat(payslip.netPay || 0), 0
+        ).toFixed(2)
+      }
+    });
+
+  } catch (error) {
+    console.error("Error approving batch:", error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while approving batch",
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Server error'
+    });
+  }
+};
+
+// Alternative: Approve multiple batches at once
+export const approveMultipleBatches = async (req, res) => {
+  try {
+    const { batchIds } = req.body;
+
+    // Validation: Check if batchIds array is provided
+    if (!batchIds || !Array.isArray(batchIds) || batchIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Batch IDs array is required",
+        error: "Missing or invalid batchIds parameter"
+      });
+    }
+
+    // Update all payslips in the specified batches
+    const [updatedCount] = await Payslip.update(
+      { 
+        status: 'approved'
+      },
+      {
+        where: { 
+          batchId: batchIds,
+          status: 'pending'
+        }
+      }
+    );
+
+    if (updatedCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No payslips were updated",
+        error: "All payslips in specified batches may already be processed"
+      });
+    }
+
+    // Get summary of updated batches
+    const batchSummary = await sequelize.query(`
+      SELECT 
+        batchId,
+        COUNT(*) as payslipCount,
+        SUM(netPay) as totalNetPay
+      FROM payslips 
+      WHERE batchId IN (:batchIds) AND status = 'approved'
+      GROUP BY batchId
+    `, {
+      replacements: { batchIds },
+      type: QueryTypes.SELECT
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `${batchIds.length} batch(es) approved successfully`,
+      data: {
+        approvedBatches: batchIds,
+        updatedCount: updatedCount,
+        batchSummary: batchSummary
+      }
+    });
+
+  } catch (error) {
+    console.error("Error approving multiple batches:", error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while approving batches",
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Server error'
     });
   }
 };

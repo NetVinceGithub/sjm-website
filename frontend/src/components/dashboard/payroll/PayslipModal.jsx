@@ -298,7 +298,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                         Total OT Hours
                       </td>
                       <td className="border border-black h-5 text-center border-l-white border-t-0 border-b-0">
-                        wala
+                        {payslip.totalOvertime}
                       </td>
                       <td className="border border-t-0 border-b-0 border-black h-5">
                         SSS
@@ -312,7 +312,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                         <li className="ml-3 text-[10px]">Reg. OT Pay</li>
                       </td>
                       <td className="border border-black h-5 text-center border-l-white border-t-0 border-b-0">
-                        wala
+                        {payslip.overtimePay}
                       </td>
                       <td className="border border-black h-5 border-t-0 border-b-0">
                         PhilHealth
@@ -326,7 +326,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                         NSD Hours
                       </td>
                       <td className="border border-l border-black border-r h-5 text-center border-l-white border-t-0 border-b-0">
-                        wala
+                        to be followed
                       </td>
                       <td className="border border-black h-5 border-t-0 border-b-0">
                         Pag-IBIG
@@ -340,13 +340,13 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                         <li className="ml-3 text-[10px]">NSD Pay</li>
                       </td>
                       <td className="border border-black h-5 text-center border-l-white border-t-0 border-b-0">
-                        wala
+                        to be followed
                       </td>
                       <td className="border border-black h-5 border-b-0">
                         SSS Loan
                       </td>
                       <td className="border border-black h-5 border-b-0 text-right border-r">
-                        wala
+                        {payslip.sssLoan}
                       </td>
                     </tr>
                     <tr>
@@ -354,13 +354,13 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                         ND OT
                       </td>
                       <td className="border border-black h-5 text-center border-l-white border-t-0 border-b-0">
-                        wala
+                        to be followed
                       </td>
                       <td className="border border-black h-5 border-t-0 border-b-0">
                         Pag-IBIG Loan
                       </td>
                       <td className="border border-black h-5 border-t-0 border-b-0 text-right border-r">
-                        wala
+                        {payslip.pagibigLoan}
                       </td>
                     </tr>
                     <tr>
@@ -381,7 +381,9 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                       <td className="border border-t-0 border-l border-b-0 border-r border-black h-5">
                         Holiday Pay
                       </td>
-                      <td className="border border-black h-5 text-center border-l-white border-t-0 border-b-0"></td>
+                      <td className="border border-black h-5 text-center border-l-white border-t-0 border-b-0">
+                        {payslip.holidayPay}
+                      </td>
                       <td className="border border-black h-5 border-t-0 border-b-0">
                         Other Deductions
                       </td>

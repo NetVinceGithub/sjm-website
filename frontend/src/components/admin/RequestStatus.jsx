@@ -2,109 +2,62 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Search } from "lucide-react";
 import { ThreeDots } from "react-loader-spinner";
 import DataTable from "react-data-table-component";
-import axios from 'axios';
+import axios from "axios";
+import dayjs from "dayjs";
 
 const RequestStatus = () => {
   const [payslips, setPayslips] = useState([]);
-  
-  // Sample data - replace with your actual data source
-  const [originalData] = useState([
-    {
-      "Request ID": "REQ-001",
-      "Request Type": "Leave Request",
-      "Date Created": "2024-01-15",
-      Requestor: "John Doe",
-      "Request Status": "Pending",
-      "Action Taken By": "HR Manager",
-    },
-    {
-      "Request ID": "REQ-002",
-      "Request Type": "Equipment Request",
-      "Date Created": "2024-01-16",
-      Requestor: "Jane Smith",
-      "Request Status": "Approved",
-      "Action Taken By": "IT Manager",
-    },
-    {
-      "Request ID": "REQ-003",
-      "Request Type": "Training Request",
-      "Date Created": "2024-01-17",
-      Requestor: "Bob Johnson",
-      "Request Status": "Rejected",
-      "Action Taken By": "Training Coordinator",
-    },
-    {
-      "Request ID": "REQ-004",
-      "Request Type": "Travel Request",
-      "Date Created": "2024-01-18",
-      Requestor: "Alice Brown",
-      "Request Status": "Under Review",
-      "Action Taken By": "Finance Manager",
-    },
-  ]);
-
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
-    return {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    };
-  };
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPayslips = async () => {  
+    const fetchPayslips = async () => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/payslip`,
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
+        const approvedPayslips = response.data.filter(
+          (p) => p.status?.toLowerCase() === "approved"
         );
 
-        console.log("Data sa useEffect", response.data);
-        const approvedPayslips = response.data.filter(payslip => 
-          payslip.status?.toLowerCase() === 'approved'
-        );
-        setPayslips(approvedPayslips); 
+        // Compute releaseDate for each payslip
+        const payslipsWithRelease = approvedPayslips.map((p) => {
+          const match = p.cutoffDate.match(/^([A-Za-z]+)\s+(\d+)-\d+,\s*(\d+)$/);
+          if (!match) return { ...p, releaseDate: null };
+
+          const [, monthName, startDayStr, yearStr] = match;
+          const startDay = parseInt(startDayStr, 10);
+          const year = parseInt(yearStr, 10);
+          const releaseDay = startDay <= 15 ? 4 : 19;
+
+          const monthNames = {
+            January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
+            July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
+          };
+
+          const monthIndex = monthNames[monthName]; // 0-indexed month
+
+          const releaseDate = dayjs()
+            .year(year)
+            .month(monthIndex)
+            .date(releaseDay)
+            .startOf("day");
+
+          return { ...p, releaseDate };
+        });
+
+        setPayslips(payslipsWithRelease);
+        setLoading(false);
       } catch (error) {
         console.error("Error fetching payslips:", error);
+        setLoading(false);
       }
     };
 
-    fetchPayslips(); 
+    fetchPayslips();
   }, []);
 
-  const customStyles = {
-    headCells: {
-      style: {
-        backgroundColor: "#f9fafb",
-        fontSize: "13px",
-        fontWeight: "600",
-        color: "#374151",
-        padding: "8px",
-      },
-    },
-    rows: {
-      style: {
-        fontSize: "13px",
-        color: "#4B5563",
-        minHeight: "40px",
-        borderBottom: "1px solid #e5e7eb",
-      },
-    },
-    cells: {
-      style: {
-        padding: "8px",
-      },
-    },
-  };
-
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading] = useState(false);
 
-  // Filter data based on search term (already filtered for approved status)
   const filteredData = useMemo(() => {
     if (!searchTerm) return payslips;
-
     return payslips.filter((row) =>
       Object.values(row).some((value) =>
         value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
@@ -112,45 +65,20 @@ const RequestStatus = () => {
     );
   }, [payslips, searchTerm]);
 
-  const handleFilter = (e) => {
-    setSearchTerm(e.target.value);
-  };
+  const handleFilter = (e) => setSearchTerm(e.target.value);
 
   const columns = [
+    { name: "Request ID", selector: (row) => row.batchId, sortable: true },
+    { name: "Request Type", selector: (row) => row.payrollType, sortable: true },
+    { name: "Date Created", selector: (row) => row.date, sortable: true },
+    { name: "Cut off Date", selector: (row) => row.cutoffDate, sortable: true },
+    { name: "Requestor", selector: (row) => row.requestedBy, sortable: true },
+    { name: "Request Status", selector: (row) => row.status, sortable: true },
     {
-      name: "Request ID",
-      selector: (row) => row.batchId,
+      name: "Release Date",
+      selector: (row) => row.releaseDate?.format("YYYY-MM-DD") || "-",
       sortable: true,
     },
-    {
-      name: "Request Type",
-      selector: (row) => row.payrollType,
-      sortable: true,
-    },
-    {
-      name: "Date Created",
-      selector: (row) => row.date,
-      sortable: true,
-    },
-    {
-      name: "Cut off Date",
-      selector: (row) => row.cutoffDate,
-      sortable: true,
-    },
-    {
-      name: "Requestor",
-      selector: (row) => row.requestedBy,
-      sortable: true,
-    },
-    {
-      name: "Request Status",
-      selector: (row) => row.status,
-      sortable: true,
-    },
-    // {
-    //   name: "Action Taken By",
-    //   sortable: true,
-    // },
   ];
 
   return (
@@ -172,15 +100,13 @@ const RequestStatus = () => {
           </div>
         </div>
       </div>
-      
-      {/* Display search results info */}
+
       {searchTerm && (
         <div className="-mt-4 text-sm text-gray-600 mb-2">
-          Showing {filteredData.length} of {originalData.length} results for "
-          {searchTerm}"
+          Showing {filteredData.length} of {payslips.length} results for "{searchTerm}"
         </div>
       )}
-      
+
       <div className="-mt-1 overflow-auto rounded-md border border-gray-200">
         <DataTable
           columns={columns}
@@ -195,8 +121,6 @@ const RequestStatus = () => {
                 color="#4fa94d"
                 radius="9"
                 ariaLabel="three-dots-loading"
-                wrapperStyle={{}}
-                wrapperClass=""
               />
             </div>
           }
@@ -206,7 +130,26 @@ const RequestStatus = () => {
             </div>
           }
           pagination
-          customStyles={customStyles}
+          customStyles={{
+            headCells: {
+              style: {
+                backgroundColor: "#f9fafb",
+                fontSize: "13px",
+                fontWeight: "600",
+                color: "#374151",
+                padding: "8px",
+              },
+            },
+            rows: {
+              style: {
+                fontSize: "13px",
+                color: "#4B5563",
+                minHeight: "40px",
+                borderBottom: "1px solid #e5e7eb",
+              },
+            },
+            cells: { style: { padding: "8px" } },
+          }}
           responsive
           highlightOnHover
           striped

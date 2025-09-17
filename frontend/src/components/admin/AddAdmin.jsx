@@ -379,6 +379,10 @@ const AddAdmin = () => {
                               <span className="text-gray-600 italic text-xs">
                                 {user.email}
                               </span>
+                              <br />
+                              <span className="text-gray-600 italic text-xs">
+                                {user.role}
+                              </span>
                             </div>
                             <div className="flex gap-1">
                               <button
@@ -422,6 +426,10 @@ const AddAdmin = () => {
                         <br />
                         <span className="text-gray-600 italic text-xs">
                           {user.email}
+                        </span>
+                        <br />
+                        <span className="text-gray-600 italic text-xs">
+                          {user.role}
                         </span>
                       </div>
                       <button

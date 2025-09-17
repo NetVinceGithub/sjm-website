@@ -1,6 +1,5 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../db/db.js";
-import moment from "moment";
 
 const Attendance = sequelize.define('Attendance', {
   id: {
@@ -26,19 +25,112 @@ const Attendance = sequelize.define('Attendance', {
     allowNull: true,
     field: 'offDuty'
   },
+  workHours: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+  },
   status: {
-    type: DataTypes.ENUM('present', 'absent'),
+    type: DataTypes.ENUM('present', 'absent', 'half-day'),
     allowNull: false,
     defaultValue: 'absent'
+  },
+  shift: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    defaultValue: 'Unknown'
+  },
+  attendanceValue: {
+    type: DataTypes.DECIMAL(3, 2), // Supports 0, 0.5, 1.0
+    allowNull: false,
+    defaultValue: 0,
+  },
+  isLate: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+  lateMinutes: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  isHoliday: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+  isRestDay: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+  
+  // Enhanced Payroll Breakdown Fields
+  regularHours: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+  },
+  overtimeHours: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+  },
+  nightDifferentialHours: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+  },
+  holidayHours: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+  },
+  holidayOvertimeHours: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+  },
+  restDayHours: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+  },
+  restDayOvertimeHours: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+  },
+  
+  // Undertime Tracking Fields
+  undertimeHours: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+  },
+  undertimeMinutes: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  expectedHours: {
+    type: DataTypes.DECIMAL(4, 2), // Max 99.99 hours
+    allowNull: false,
+    defaultValue: 8,
+  },
+  
+  // Legacy field for backward compatibility
+  ea_txndte: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
   }
 }, {
   tableName: 'attendance',
   timestamps: true,
-  createdAt: 'created_at', // 👈 map to DB column
-  updatedAt: 'updated_at', // 👈 map to DB column
-  // Remove the unique index to allow duplicates
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
   indexes: [
-    // You can add non-unique indexes for performance if needed
     {
       fields: ['ecode']
     },
@@ -47,6 +139,12 @@ const Attendance = sequelize.define('Attendance', {
     },
     {
       fields: ['status']
+    },
+    {
+      fields: ['shift']
+    },
+    {
+      fields: ['ecode', 'date'] // Composite index for better query performance
     }
   ]
 });

@@ -1,4 +1,3 @@
-// Updated AttendanceSummary Model with fractional days support
 import { DataTypes } from "sequelize";
 import sequelize from "../db/db.js";
 
@@ -15,7 +14,8 @@ const AttendanceSummary = sequelize.define(
       allowNull: false,
       unique: true, // Ensure one record per employee
     },
-    // Changed to DECIMAL to support fractional days (0.5, 1.0, etc.)
+    
+    // Basic attendance tracking with fractional support
     presentDays: {
       type: DataTypes.DECIMAL(10, 2), // Supports up to 99999999.99 with 2 decimal places
       allowNull: false,
@@ -31,6 +31,13 @@ const AttendanceSummary = sequelize.define(
       allowNull: false,
       defaultValue: 0,
     },
+    halfDays: {
+      type: DataTypes.DECIMAL(10, 2), // NEW: Track half days separately
+      allowNull: false,
+      defaultValue: 0,
+    },
+    
+    // Tardiness tracking
     lateDays: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -41,7 +48,15 @@ const AttendanceSummary = sequelize.define(
       allowNull: false,
       defaultValue: 0,
     },
-    // Updated shift-specific day counts to support fractional days
+    
+    // NEW: Undertime tracking
+    totalUndertimeMinutes: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    
+    // Shift-specific day counts with fractional support
     dayShiftDays: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
@@ -57,6 +72,52 @@ const AttendanceSummary = sequelize.define(
       allowNull: false,
       defaultValue: 0,
     },
+    
+    // Work hours summary
+    totalWorkHours: {
+      type: DataTypes.DECIMAL(12, 2), // Allow for larger totals
+      allowNull: false,
+      defaultValue: 0,
+    },
+    
+    // Enhanced payroll breakdown - comprehensive tracking
+    totalRegularHours: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0,
+    },
+    totalOvertimeHours: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0,
+    },
+    totalNightDifferentialHours: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0,
+    },
+    totalHolidayHours: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0,
+    },
+    totalHolidayOvertimeHours: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0,
+    },
+    totalRestDayHours: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0,
+    },
+    totalRestDayOvertimeHours: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0,
+    },
+    
+    // Legacy/calculated fields
     regularHoursDays: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
@@ -80,6 +141,15 @@ const AttendanceSummary = sequelize.define(
         unique: true,
         fields: ["ecode"],
       },
+      {
+        fields: ["attendanceRate"],
+      },
+      {
+        fields: ["totalDays"],
+      },
+      {
+        fields: ["presentDays"],
+      }
     ],
   }
 );

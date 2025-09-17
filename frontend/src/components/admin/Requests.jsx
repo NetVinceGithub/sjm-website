@@ -599,103 +599,24 @@ const Requests = () => {
   };
 
   // Replace your existing handleApprove function with this updated version:
-
-  const handleApprove = async () => {
+  const handleApproveBatch = async (batchId) => {
     try {
       setLoadingPayroll(true);
 
-      // Validation: Check if requests array exists and has data
-      if (!requests || !Array.isArray(requests) || requests.length === 0) {
-        toast("No payslips selected for approval.", {
-          position: "top-right",
-          autoClose: 2000,
-          closeButton: false,
-          closeOnClick: true,
-          hideProgressBar: true,
-          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
-          style: {
-            fontSize: "13px",
-            padding: "6px 12px",
-            width: "auto",
-            minHeight: "10px",
-          },
-        });
-        return;
-      }
-
-      // Debug logging
-      console.log("Sending payload:", { payslips: requests });
-      console.log("First payslip object:", requests[0]);
-      console.log("Payslip keys:", Object.keys(requests[0]));
-      console.log("Total payslips:", requests.length);
-
-      // Optional: Validate each payslip has required fields
-      const invalidPayslips = requests.filter(
-        (payslip) => !payslip.employeeId || !payslip.id
-      );
-
-      if (invalidPayslips.length > 0) {
-        console.error("Invalid payslips found:", invalidPayslips);
-        toast("Some payslips have missing required data.", {
-          position: "top-right",
-          autoClose: 2000,
-          closeButton: false,
-          closeOnClick: true,
-          hideProgressBar: true,
-          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
-          style: {
-            fontSize: "13px",
-            padding: "6px 12px",
-            width: "auto",
-            minHeight: "10px",
-          },
-        });
-        return;
-      }
-
-      // Make the API request with proper headers
-      console.log(
-        "Making API request to:",
-        `${import.meta.env.VITE_API_URL}/api/payslip/send-payslip`
-      );
-
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/payslip/send-payslip`,
+        `${import.meta.env.VITE_API_URL}/api/payslip/approve-batch`,
+        { batchId: batchId },
         {
-          payslips: requests,
-          // Add any additional fields the server might expect:
-          // approvedBy: currentUserId,
-          // approvalDate: new Date().toISOString(),
-          // batchId: generateBatchId(),
-        },
-        {
-          headers: {
+          headers: { 
             "Content-Type": "application/json",
-            // Add authorization header if required:
-            // 'Authorization': `Bearer ${authToken}`,
+            Authorization: `Bearer ${localStorage.getItem("token")}`
           },
-          timeout: 30000, // 30 second timeout
+          timeout: 30000,
         }
       );
 
-      console.log("API Response received:", response);
-      console.log("Response status:", response.status);
-      console.log("Response data:", response.data);
-      console.log("Response data type:", typeof response.data);
-      console.log("Response data success:", response.data?.success);
-
-      // Check if response is successful
-      console.log("Checking success condition...");
-      console.log("response.data:", response.data);
-      console.log("response.data.success:", response.data.success);
-      console.log(
-        "Success condition result:",
-        response.data && response.data.success
-      );
-
       if (response.data && response.data.success) {
-        console.log("SUCCESS: Entering success block");
-        toast("Payroll approved!", {
+        toast("Batch approved successfully!", {
           position: "top-right",
           autoClose: 2000,
           closeButton: false,
@@ -709,126 +630,58 @@ const Requests = () => {
             minHeight: "10px",
           },
         });
+        
+        // Refresh the batches list
+        fetchAvailableBatches();
+        setShowPayrollDetailModal(false);
         setShowSuccessModal(true);
-        console.log("SUCCESS: Modal should be shown, toast should appear");
+        
       } else {
-        console.log("ELSE: Response does not indicate success");
-        console.warn("Unexpected response format:", response.data);
-        toast("Failed to approve payroll. Please try again.", {
-          position: "top-right",
-          autoClose: 2000,
-          closeButton: false,
-          closeOnClick: true,
-          hideProgressBar: true,
-          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
-          style: {
-            fontSize: "13px",
-            padding: "6px 12px",
-            width: "auto",
-            minHeight: "10px",
-          },
-        });
+        throw new Error(response.data?.message || "Failed to approve batch");
       }
     } catch (error) {
-      console.error("Error approving payroll:", error);
+      console.error("Error approving batch:", error);
+      
+      let errorMessage = "Failed to approve batch. Please try again.";
+      
+      if (error.response?.status === 404) {
+        errorMessage = "Batch not found or no pending payslips in batch.";
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response.data?.message || "Invalid batch data.";
+      } else if (error.response?.status === 500) {
+        errorMessage = "Server error. Please try again later.";
+      }
+      
+      toast(errorMessage, {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
+    } finally {
+      setLoadingPayroll(false);
+    }
+  };
 
-      // Detailed error logging for debugging
-      if (error.response) {
-        console.error("=== SERVER ERROR DETAILS ===");
-        console.error("Status:", error.response.status);
-        console.error("Status Text:", error.response.statusText);
-        console.error("Response Data:", error.response.data);
-        console.error("Response Headers:", error.response.headers);
-        console.error("Request URL:", error.config?.url);
-        console.error("Request Method:", error.config?.method);
-        console.error("Request Data:", error.config?.data);
-        console.error("=== END SERVER ERROR DETAILS ===");
-
-        // Handle specific error cases
-        if (error.response.status === 400) {
-          const errorMessage =
-            error.response.data?.message ||
-            error.response.data?.error ||
-            "Invalid request data";
-          toast(`Request Error: ${errorMessage}`, {
-            position: "top-right",
-            autoClose: 2000,
-            closeButton: false,
-            closeOnClick: true,
-            hideProgressBar: true,
-            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
-            style: {
-              fontSize: "13px",
-              padding: "6px 12px",
-              width: "auto",
-              minHeight: "10px",
-            },
-          });
-        } else if (error.response.status === 401) {
-          toast("Authentication required. Please log in again.", {
-            position: "top-right",
-            autoClose: 2000,
-            closeButton: false,
-            closeOnClick: true,
-            hideProgressBar: true,
-            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
-            style: {
-              fontSize: "13px",
-              padding: "6px 12px",
-              width: "auto",
-              minHeight: "10px",
-            },
-          });
-        } else if (error.response.status === 403) {
-          toast("You do not have permission to approve payroll.", {
-            position: "top-right",
-            autoClose: 2000,
-            closeButton: false,
-            closeOnClick: true,
-            hideProgressBar: true,
-            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
-            style: {
-              fontSize: "13px",
-              padding: "6px 12px",
-              width: "auto",
-              minHeight: "10px",
-            },
-          });
-        } else if (error.response.status >= 500) {
-          toast("Server error. Please try again later.", {
-            position: "top-right",
-            autoClose: 2000,
-            closeButton: false,
-            closeOnClick: true,
-            hideProgressBar: true,
-            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
-            style: {
-              fontSize: "13px",
-              padding: "6px 12px",
-              width: "auto",
-              minHeight: "10px",
-            },
-          });
-        } else {
-          toast("Error approving payroll. Please try again.", {
-            position: "top-right",
-            autoClose: 2000,
-            closeButton: false,
-            closeOnClick: true,
-            hideProgressBar: true,
-            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
-            style: {
-              fontSize: "13px",
-              padding: "6px 12px",
-              width: "auto",
-              minHeight: "10px",
-            },
-          });
-        }
-      } else if (error.request) {
-        // Request was made but no response received
-        console.error("No response received:", error.request);
-        toast("Network error. Please check your connection.", {
+  // Add this new function for approving all batches
+  const handleApproveAllBatches = async () => {
+    try {
+      setLoadingPayroll(true);
+      
+      const pendingBatches = batches.filter(batch => 
+        batch.uniqueStatuses?.includes("pending")
+      );
+      
+      if (pendingBatches.length === 0) {
+        toast("No pending batches to approve.", {
           position: "top-right",
           autoClose: 2000,
           closeButton: false,
@@ -842,10 +695,52 @@ const Requests = () => {
             minHeight: "10px",
           },
         });
+        return;
+      }
+
+      // Approve each batch sequentially
+      const approvalPromises = pendingBatches.map(batch => 
+        axios.post(
+          `${import.meta.env.VITE_API_URL}/api/payslip/approve-batch`,
+          { batchId: batch.batchId },
+          {
+            headers: { 
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`
+            },
+            timeout: 30000,
+          }
+        )
+      );
+
+      const responses = await Promise.allSettled(approvalPromises);
+      
+      const successCount = responses.filter(result => 
+        result.status === 'fulfilled' && result.value?.data?.success
+      ).length;
+      
+      const failCount = responses.length - successCount;
+
+      if (successCount > 0) {
+        toast(`${successCount} batch(es) approved successfully!${failCount > 0 ? ` ${failCount} failed.` : ''}`, {
+          position: "top-right",
+          autoClose: 3000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>✅</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
+        
+        fetchAvailableBatches();
+        setShowSuccessModal(true);
       } else {
-        // Something else happened
-        console.error("Request setup error:", error.message);
-        toast("An unexpected error occurred.", {
+        toast("Failed to approve any batches.", {
           position: "top-right",
           autoClose: 2000,
           closeButton: false,
@@ -860,6 +755,23 @@ const Requests = () => {
           },
         });
       }
+
+    } catch (error) {
+      console.error("Error approving all batches:", error);
+      toast("Error approving batches. Please try again.", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
     } finally {
       setLoadingPayroll(false);
     }
@@ -1415,7 +1327,7 @@ const Requests = () => {
                             <FaEye size={14} />
                           </button>
                           <button
-                            onClick={() => handleApprove(batch.batchId)}
+                            onClick={() => handleApproveBatch(batch.batchId)}
                             className="p-2 text-neutralDGray hover:text-green-600 rounded flex items-center justify-center"
                             title="Approve"
                           >
