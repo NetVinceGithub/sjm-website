@@ -326,7 +326,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                         NSD Hours
                       </td>
                       <td className="border border-l border-black border-r h-5 text-center border-l-white border-t-0 border-b-0">
-                        to be followed
+                        {payslip.nightShiftHours}
                       </td>
                       <td className="border border-black h-5 border-t-0 border-b-0">
                         Pag-IBIG
@@ -340,7 +340,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                         <li className="ml-3 text-[10px]">NSD Pay</li>
                       </td>
                       <td className="border border-black h-5 text-center border-l-white border-t-0 border-b-0">
-                        to be followed
+                        {payslip.nightDifferential}
                       </td>
                       <td className="border border-black h-5 border-b-0">
                         SSS Loan

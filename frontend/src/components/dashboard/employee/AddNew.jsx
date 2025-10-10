@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Breadcrumb from "../dashboard/Breadcrumb";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -88,7 +88,35 @@ const AddNew = () => {
 
     // Employment Status
     dateOfSeparation: "",
+
+    // Schedule
+    scheduleType: "",
+    customSchedule: "",
+    mondayStart: "",
+    mondayEnd: "",
+    tuesdayStart: "",
+    tuesdayEnd: "",
+    wednesdayStart: "",
+    wednesdayEnd: "",
+    thursdayStart: "",
+    thursdayEnd: "",
+    fridayStart: "",
+    fridayEnd: "",
+    saturdayStart: "",
+    saturdayEnd: "",
+    sundayStart: "",
+    sundayEnd: "",
   });
+
+  const [selectedDays, setSelectedDays] = useState({
+  monday: false,
+  tuesday: false,
+  wednesday: false,
+  thursday: false,
+  friday: false,
+  saturday: false,
+  sunday: false,
+});
 
   const [sameAsCurrent, setSameAsCurrent] = useState(false);
   const inputRefs = useRef({});
@@ -162,6 +190,67 @@ const AddNew = () => {
       }));
     }
   }, [sameAsCurrent, formData.currentAddress]);
+
+  const handleDayToggle = (day) => {
+    setSelectedDays((prev) => ({
+      ...prev,
+      [day]: !prev[day],
+    }));
+  };
+
+  const buildScheduleArray = () => {
+    if (formData.scheduleType === "custom") {
+      // For custom schedule, store as a single object
+      return formData.customSchedule ? [{
+        type: 'custom',
+        description: formData.customSchedule
+      }] : null;
+    }
+
+    const scheduleArray = [];
+    const days = [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+      "sunday",
+    ];
+
+    days.forEach((day) => {
+      if (selectedDays[day]) {
+        const startTime = formData[`${day}Start`];
+        const endTime = formData[`${day}End`];
+        if (startTime && endTime) {
+          scheduleArray.push({
+            day: day,
+            dayName: day.charAt(0).toUpperCase() + day.slice(1),
+            startTime: startTime,
+            endTime: endTime,
+            // Calculate hours for payroll
+            hours: calculateHours(startTime, endTime)
+          });
+        }
+      }
+    });
+
+    return scheduleArray.length > 0 ? scheduleArray : null;
+  };
+
+// Helper function to calculate hours between start and end time
+const calculateHours = (startTime, endTime) => {
+  const start = new Date(`2000-01-01 ${startTime}`);
+  const end = new Date(`2000-01-01 ${endTime}`);
+  let diff = (end - start) / (1000 * 60 * 60); // Convert to hours
+  
+  // Handle overnight shifts
+  if (diff < 0) {
+    diff += 24;
+  }
+  
+  return parseFloat(diff.toFixed(2));
+};
 
   const calculateAge = (dob) => {
     if (!dob) return "";
@@ -326,6 +415,10 @@ const AddNew = () => {
 
         // Employment Status
         date_of_separation: formData.dateOfSeparation || null,
+
+        // Schedule
+        schedule: buildScheduleArray(),  // Changed from buildScheduleString()
+
       };
 
       console.log("Submitting data:", submitData); // Debug log
@@ -387,6 +480,34 @@ const AddNew = () => {
           pagIbig: "",
           tin: "",
           dateOfSeparation: "",
+          scheduleType: "",
+          customSchedule: "",
+          mondayStart: "",
+          mondayEnd: "",
+          tuesdayStart: "",
+          tuesdayEnd: "",
+          wednesdayStart: "",
+          wednesdayEnd: "",
+          thursdayStart: "",
+          thursdayEnd: "",
+          fridayStart: "",
+          fridayEnd: "",
+          saturdayStart: "",
+          saturdayEnd: "",
+          sundayStart: "",
+          sundayEnd: "",
+          
+        });
+
+        // Reset selected days
+        setSelectedDays({
+          monday: false,
+          tuesday: false,
+          wednesday: false,
+          thursday: false,
+          friday: false,
+          saturday: false,
+          sunday: false,
         });
 
         // Fetch next employee code for next entry
@@ -1566,6 +1687,375 @@ const AddNew = () => {
                 </p>
               )}
             </div>
+          </div>
+
+        </div>
+        {/* Work Schedule Section */}
+        <div className="bg-white p-3 rounded-lg shadow-md mb-2">
+          <div className="bg-red-50 px-2 rounded">
+            <h3 className="text-sm text-neutralDGray mb-3 flex items-center gap-2">
+              Work Schedule
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-neutralDGray mb-1">
+                Schedule Type
+              </label>
+              <select
+                className="w-full p-2 border text-xs border-gray-300 rounded-md"
+                name="scheduleType"
+                value={formData.scheduleType}
+                onChange={handleChange}
+              >
+                <option value="">Select Schedule Type</option>
+                <option value="weekly">Weekly Schedule</option>
+                <option value="custom">Custom Schedule (Free Text)</option>
+              </select>
+            </div>
+
+            {formData.scheduleType === "custom" && (
+              <div>
+                <label className="block text-xs font-medium text-neutralDGray mb-1">
+                  Custom Schedule
+                </label>
+                <textarea
+                  name="customSchedule"
+                  value={formData.customSchedule}
+                  onChange={handleChange}
+                  placeholder="e.g. Flexible hours, 9AM-5PM Mon-Fri, Rotating shifts, etc."
+                  className="w-full p-2 border text-xs border-gray-300 rounded-md"
+                  rows="3"
+                />
+              </div>
+            )}
+
+            {formData.scheduleType === "weekly" && (
+              <div>
+                <p className="text-xs text-neutralDGray mb-2">
+                  Select working days and set time for each day:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {/* Monday */}
+                  <div className="border border-gray-200 rounded-md p-2">
+                    <label className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedDays.monday}
+                        onChange={() => handleDayToggle("monday")}
+                        className="mr-2 h-4 w-4"
+                      />
+                      <span className="text-xs font-medium text-neutralDGray">
+                        Monday
+                      </span>
+                    </label>
+                    {selectedDays.monday && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs text-neutralDGray mb-1">
+                            Start
+                          </label>
+                          <input
+                            type="time"
+                            name="mondayStart"
+                            value={formData.mondayStart}
+                            onChange={handleChange}
+                            className="w-full p-1 border text-xs border-gray-300 rounded"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-neutralDGray mb-1">
+                            End
+                          </label>
+                          <input
+                            type="time"
+                            name="mondayEnd"
+                            value={formData.mondayEnd}
+                            onChange={handleChange}
+                            className="w-full p-1 border text-xs border-gray-300 rounded"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tuesday */}
+                  <div className="border border-gray-200 rounded-md p-2">
+                    <label className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedDays.tuesday}
+                        onChange={() => handleDayToggle("tuesday")}
+                        className="mr-2 h-4 w-4"
+                      />
+                      <span className="text-xs font-medium text-neutralDGray">
+                        Tuesday
+                      </span>
+                    </label>
+                    {selectedDays.tuesday && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs text-neutralDGray mb-1">
+                            Start
+                          </label>
+                          <input
+                            type="time"
+                            name="tuesdayStart"
+                            value={formData.tuesdayStart}
+                            onChange={handleChange}
+                            className="w-full p-1 border text-xs border-gray-300 rounded"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-neutralDGray mb-1">
+                            End
+                          </label>
+                          <input
+                            type="time"
+                            name="tuesdayEnd"
+                            value={formData.tuesdayEnd}
+                            onChange={handleChange}
+                            className="w-full p-1 border text-xs border-gray-300 rounded"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Wednesday */}
+                  <div className="border border-gray-200 rounded-md p-2">
+                    <label className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedDays.wednesday}
+                        onChange={() => handleDayToggle("wednesday")}
+                        className="mr-2 h-4 w-4"
+                      />
+                      <span className="text-xs font-medium text-neutralDGray">
+                        Wednesday
+                      </span>
+                    </label>
+                    {selectedDays.wednesday && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs text-neutralDGray mb-1">
+                            Start
+                          </label>
+                          <input
+                            type="time"
+                            name="wednesdayStart"
+                            value={formData.wednesdayStart}
+                            onChange={handleChange}
+                            className="w-full p-1 border text-xs border-gray-300 rounded"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-neutralDGray mb-1">
+                            End
+                          </label>
+                          <input
+                            type="time"
+                            name="wednesdayEnd"
+                            value={formData.wednesdayEnd}
+                            onChange={handleChange}
+                            className="w-full p-1 border text-xs border-gray-300 rounded"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Thursday */}
+                  <div className="border border-gray-200 rounded-md p-2">
+                    <label className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedDays.thursday}
+                        onChange={() => handleDayToggle("thursday")}
+                        className="mr-2 h-4 w-4"
+                      />
+                      <span className="text-xs font-medium text-neutralDGray">
+                        Thursday
+                      </span>
+                    </label>
+                    {selectedDays.thursday && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs text-neutralDGray mb-1">
+                            Start
+                          </label>
+                          <input
+                            type="time"
+                            name="thursdayStart"
+                            value={formData.thursdayStart}
+                            onChange={handleChange}
+                            className="w-full p-1 border text-xs border-gray-300 rounded"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-neutralDGray mb-1">
+                            End
+                          </label>
+                          <input
+                            type="time"
+                            name="thursdayEnd"
+                            value={formData.thursdayEnd}
+                            onChange={handleChange}
+                            className="w-full p-1 border text-xs border-gray-300 rounded"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Friday */}
+                  <div className="border border-gray-200 rounded-md p-2">
+                    <label className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedDays.friday}
+                        onChange={() => handleDayToggle("friday")}
+                        className="mr-2 h-4 w-4"
+                      />
+                      <span className="text-xs font-medium text-neutralDGray">
+                        Friday
+                      </span>
+                    </label>
+                    {selectedDays.friday && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs text-neutralDGray mb-1">
+                            Start
+                          </label>
+                          <input
+                            type="time"
+                            name="fridayStart"
+                            value={formData.fridayStart}
+                            onChange={handleChange}
+                            className="w-full p-1 border text-xs border-gray-300 rounded"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-neutralDGray mb-1">
+                            End
+                          </label>
+                          <input
+                            type="time"
+                            name="fridayEnd"
+                            value={formData.fridayEnd}
+                            onChange={handleChange}
+                            className="w-full p-1 border text-xs border-gray-300 rounded"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Saturday */}
+                  <div className="border border-gray-200 rounded-md p-2">
+                    <label className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedDays.saturday}
+                        onChange={() => handleDayToggle("saturday")}
+                        className="mr-2 h-4 w-4"
+                      />
+                      <span className="text-xs font-medium text-neutralDGray">
+                        Saturday
+                      </span>
+                    </label>
+                    {selectedDays.saturday && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs text-neutralDGray mb-1">
+                            Start
+                          </label>
+                          <input
+                            type="time"
+                            name="saturdayStart"
+                            value={formData.saturdayStart}
+                            onChange={handleChange}
+                            className="w-full p-1 border text-xs border-gray-300 rounded"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-neutralDGray mb-1">
+                            End
+                          </label>
+                          <input
+                            type="time"
+                            name="saturdayEnd"
+                            value={formData.saturdayEnd}
+                            onChange={handleChange}
+                            className="w-full p-1 border text-xs border-gray-300 rounded"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Sunday */}
+                  <div className="border border-gray-200 rounded-md p-2">
+                    <label className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedDays.sunday}
+                        onChange={() => handleDayToggle("sunday")}
+                        className="mr-2 h-4 w-4"
+                      />
+                      <span className="text-xs font-medium text-neutralDGray">
+                        Sunday
+                      </span>
+                    </label>
+                    {selectedDays.sunday && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs text-neutralDGray mb-1">
+                            Start
+                          </label>
+                          <input
+                            type="time"
+                            name="sundayStart"
+                            value={formData.sundayStart}
+                            onChange={handleChange}
+                            className="w-full p-1 border text-xs border-gray-300 rounded"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-neutralDGray mb-1">
+                            End
+                          </label>
+                          <input
+                            type="time"
+                            name="sundayEnd"
+                            value={formData.sundayEnd}
+                            onChange={handleChange}
+                            className="w-full p-1 border text-xs border-gray-300 rounded"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Schedule Preview */}
+                {buildScheduleArray() && (
+                  <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="text-xs font-medium text-neutralDGray mb-1">
+                      Schedule Preview:
+                    </p>
+                    <div className="text-xs text-neutralDGray">
+                      {buildScheduleArray()?.map((item, index) => (
+                        <div key={index}>
+                          {item.dayName}: {item.startTime} - {item.endTime} ({item.hours} hrs)
+                        </div>
+                      ))}
+                    </div>
+
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

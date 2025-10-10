@@ -1668,8 +1668,7 @@ export const generatePayroll = async (req, res) => {
           })`
         );
 
-        const isRankAndFile =
-          employee.employmentrank === "RANK-AND-FILE EMPLOYEE";
+        const isRankAndFile = employee.employmentrank === "RANK-AND-FILE EMPLOYEE";
         const isOnCall = employee.employmentstatus === "ON-CALL";
         console.log(
           `👤 Employee ${employee.name} - Employment Rank: ${employee.employmentrank}, Is Rank-and-File: ${isRankAndFile}`
@@ -1689,9 +1688,8 @@ export const generatePayroll = async (req, res) => {
           continue;
         }
 
-        const employeePayrollInfo =
-          payrollInformations.find((info) => info.ecode === employee.ecode) ||
-          {};
+        const employeePayrollInfo = payrollInformations.find((info) => info.ecode === employee.ecode) || {};
+
         const attendanceSummaryRecord = attendanceSummary
           ? attendanceSummary.find((info) => info.ecode === employee.ecode)
           : null;
@@ -1704,6 +1702,8 @@ export const generatePayroll = async (req, res) => {
 
         // Calculate basic attendance metrics from attendance records
         const daysPresent = employeeAttendance.length;
+
+        console.log("Day present:", daysPresent);
         const totalLateMinutes = employeeAttendance.reduce((total, record) => {
           return total + (record.lateMinutes || 0);
         }, 0);
@@ -2147,7 +2147,7 @@ console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
           employeeId: employee.id,
           name: employee.name,
           project: employee.project || "N/A",
-          position: employee.positiontitle || employee.position || "N/A",
+          position: employee.positiontitle || employee.position || employee.position_title || "N/A",
           department: employee.department || "N/A",
           schedule: employee.schedule || "N/A",
           cutoffDate,

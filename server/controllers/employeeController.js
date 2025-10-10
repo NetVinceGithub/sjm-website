@@ -2763,6 +2763,9 @@ export const createEmployee = async (req, res) => {
       emergency_contact_name,
       emergency_contact_number,
       emergency_contact_address,
+      emergency_contact_birthplace,  // Add this
+      emergency_contact_relationship, // Add this
+      emergency_contact_religion,     // Add this
       daily_rate,
       salary_package,
       medical_date,
@@ -2772,11 +2775,14 @@ export const createEmployee = async (req, res) => {
       housekeeping_date,
       safety_date,
       crr_date,
+      haccp_date,  // Add this
       sss,
       phil_health,
       pag_ibig,
       tin,
-      date_of_separation
+      date_of_separation,
+      schedule,  // Add this for the schedule field
+      suffix     // Add this for suffix
     } = req.body;
 
     // Validate required fields
@@ -2826,9 +2832,9 @@ export const createEmployee = async (req, res) => {
     }
 
     // Civil status validation
-    const validCivilStatuses = ['single', 'married', 'divorced', 'widowed'];
+    const validCivilStatuses = ['single', 'married', 'divorced', 'widowed', 'separated'];
     if (civil_status && !validCivilStatuses.includes(civil_status.toLowerCase())) {
-      validationErrors.civil_status = ['Civil status must be one of: single, married, divorced, widowed'];
+      validationErrors.civil_status = ['Civil status must be one of: single, married, divorced, widowed, separated'];
     }
 
     // Gender validation
@@ -2880,8 +2886,15 @@ export const createEmployee = async (req, res) => {
       }
     }
 
-    // Build complete name if not provided
-    const fullName = complete_name || `${first_name}${middle_name ? ' ' + middle_name : ''} ${last_name}`.trim();
+    // Build complete name with suffix if provided
+    let fullName = complete_name;
+    if (!fullName) {
+      fullName = `${first_name}${middle_name ? ' ' + middle_name : ''} ${last_name}`;
+      if (suffix) {
+        fullName += `, ${suffix}`;
+      }
+      fullName = fullName.trim();
+    }
 
     // Create employee data object - use actual values, not fallbacks to 'N/A'
     const employeeData = {
@@ -2891,6 +2904,7 @@ export const createEmployee = async (req, res) => {
       last_name: last_name,
       first_name: first_name,
       middle_name: middle_name || null,
+      suffix: suffix || null,  // Add suffix
       project: project || null,
       position_title: position_title,
       department: department,
@@ -2911,6 +2925,9 @@ export const createEmployee = async (req, res) => {
       emergency_contact_name: emergency_contact_name || null,
       emergency_contact_address: emergency_contact_address || null,
       emergency_contact_number: emergency_contact_number || null,
+      emergency_contact_birthplace: emergency_contact_birthplace || null,  // Add this
+      emergency_contact_relationship: emergency_contact_relationship || null,  // Add this
+      emergency_contact_religion: emergency_contact_religion || null,  // Add this
       daily_rate: daily_rate ? parseFloat(daily_rate) : 520,
       salary_package: salary_package ? parseFloat(salary_package) : 16224,
       medical_date: medical_date || null,
@@ -2920,11 +2937,13 @@ export const createEmployee = async (req, res) => {
       housekeeping_date: housekeeping_date || null,
       safety_date: safety_date || null,
       crr_date: crr_date || null,
+      haccp_date: haccp_date || null,  // Add this
       sss: sss || null,
       phil_health: phil_health || null,
       pag_ibig: pag_ibig || null,
       tin: tin || null,
       date_of_separation: date_of_separation || null,
+      schedule: schedule || null,  // This will now accept JSON array
       status: 'Active'
     };
 
@@ -3024,6 +3043,43 @@ export const createEmployee = async (req, res) => {
   }
 };
 
+export const editEmployeeSchedule = async (req, res) => {
+  const { id } = req.params;
+  const { schedule } = req.body; // Expecting schedule as JSON (array of days)
 
+  try {
+    // Validate if schedule exists
+    if (!schedule) {
+      return res.status(400).json({
+        success: false,
+        message: "Schedule data is required",
+      });
+    }
 
+    // Find employee by ID
+    const employee = await Employee.findOne({ where: { id } });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "Employee not found",
+      });
+    }
+
+    // Update schedule (stringify because database stores it as a string)
+    employee.schedule = JSON.stringify(schedule);
+    await employee.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Schedule updated successfully",
+      employee,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 

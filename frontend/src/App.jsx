@@ -53,6 +53,7 @@ import Holidays from "./components/dashboard/attendance/Holidays";
 import Conversion from "./components/dashboard/attendance/Conversion";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import EmployeeSchedule from "./components/dashboard/employee/EmployeeSchedule";
 
 const PageTitleUpdater = () => {
   const location = useLocation();
@@ -121,10 +122,8 @@ function AppContent() {
           <Route path="employees" element={<List />} />
           <Route path="menu" element={<Menu />} />
           <Route path="employees/add-employee" element={<AddNew />} />
-          <Route
-            path="employees/payroll-informations/list"
-            element={<EmployeePayrollInformationsList />}
-          />
+          <Route path="employees/employee-schedule" element={<EmployeeSchedule/>} />
+          <Route path="employees/payroll-informations/list" element={<EmployeePayrollInformationsList />} />
           <Route path="add-masterlist" element={<AddMasterlist />} />
           <Route path="employees/edit/:id" element={<Edit />} />
           <Route path="employee/:id" element={<EmployeeIDCard />} />
@@ -132,23 +131,14 @@ function AppContent() {
           <Route path="employees/rates" element={<PayrollSystemData />} />
           <Route path="rates-data-dashboard" element={<RatesDashboard />} />
           <Route path="create-payroll" element={<CreatePayroll />} />
-          <Route
-            path="employees/payroll-data/:id"
-            element={<EmployeePayrollData />}
-          />
+          <Route path="employees/payroll-data/:id" element={<EmployeePayrollData />}/>
           <Route path="payslip-history" element={<PayslipHistory />} />
           <Route path="payroll-generator" element={<PayrollSummary />} />
           <Route path="employees/payslip/:id" element={<Payslip />} />
-          <Route
-            path="employees/payslip-history/:id"
-            element={<EmployeePayslipHistory />}
-          />
+          <Route path="employees/payslip-history/:id" element={<EmployeePayslipHistory />} />
           <Route path="employees/allowance/:id" element={<Allowance />} />
           <Route path="attendance" element={<Attendance />} />
-          <Route
-            path="attendance-computation"
-            element={<AttendanceForComputation />}
-          />
+          <Route path="attendance-computation" element={<AttendanceForComputation />} />
           <Route path="attendance/history" element={<History />} />
           <Route path="attendance-conversion" element={<Conversion />} />
           <Route path="invoice-list" element={<InvoiceList />} />
@@ -161,10 +151,7 @@ function AppContent() {
           <Route path="edit-project/:id" element={<EditProject />} />
           <Route path="add-rates" element={<AddRatesAndDeductions />} />
           <Route path="rates/edit/:id" element={<EditRatesAndDeductions />} />
-          <Route
-            path="payslip-history/send-payslip-trial"
-            element={<PayslipSend />}
-          />
+          <Route path="payslip-history/send-payslip-trial" element={<PayslipSend />} />
           <Route path="holidays" element={<Holidays />} />
         </Route>
 

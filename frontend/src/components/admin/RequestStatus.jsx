@@ -1,13 +1,26 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Search } from "lucide-react";
+import { Search, Eye, X } from "lucide-react";
 import { ThreeDots } from "react-loader-spinner";
 import DataTable from "react-data-table-component";
 import axios from "axios";
 import dayjs from "dayjs";
+import duration from "dayjs/plugin/duration";
+
+dayjs.extend(duration);
 
 const RequestStatus = () => {
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(dayjs());
+
+  // Update current time every second for countdown
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(dayjs());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const fetchPayslips = async () => {
@@ -67,17 +80,125 @@ const RequestStatus = () => {
 
   const handleFilter = (e) => setSearchTerm(e.target.value);
 
+  // Format countdown display
+  const formatCountdown = (releaseDate) => {
+    if (!releaseDate) return <span className="text-gray-400">-</span>;
+    
+    const now = currentTime;
+    const diff = releaseDate.diff(now);
+    
+    if (diff <= 0) {
+      return (
+        <div className="text-center">
+          <span className="inline-block bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-semibold">
+            Released!
+          </span>
+        </div>
+      );
+    }
+    
+    const duration = dayjs.duration(diff);
+    const days = Math.floor(duration.asDays());
+    const hours = duration.hours();
+    const minutes = duration.minutes();
+    const seconds = duration.seconds();
+    
+    if (days > 0) {
+      return (
+        <div className="text-center">
+          <div className="text-blue-600 font-mono text-sm font-semibold">
+            {days}d {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            {releaseDate.format("MMM DD, YYYY")}
+          </div>
+        </div>
+      );
+    } else if (hours > 0) {
+      return (
+        <div className="text-center">
+          <div className="text-orange-600 font-mono text-sm font-semibold">
+            {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">Today</div>
+        </div>
+      );
+    } else {
+      return (
+        <div className="text-center">
+          <div className="text-red-600 font-mono text-sm font-semibold animate-pulse">
+            {minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
+          </div>
+          <div className="text-xs text-red-500 mt-1">Releasing soon!</div>
+        </div>
+      );
+    }
+  };
+
+  // Handle button actions
+  const handleViewDetails = (row) => {
+    // Implement details view logic
+    console.log("View details for:", row);
+    // You can open a modal, navigate to details page, etc.
+    alert(`Details for Request ID: ${row.batchId}`);
+  };
+
+  const handleCancelRequest = (row) => {
+    // Implement cancel logic
+    console.log("Cancel request:", row);
+    // You can show confirmation dialog and make API call
+    if (window.confirm(`Are you sure you want to cancel request ${row.batchId}?`)) {
+      // Make API call to cancel
+      console.log("Request cancelled");
+      // Refresh data after cancellation
+    }
+  };
+
   const columns = [
-    { name: "Request ID", selector: (row) => row.batchId, sortable: true },
-    { name: "Request Type", selector: (row) => row.payrollType, sortable: true },
-    { name: "Date Created", selector: (row) => row.date, sortable: true },
-    { name: "Cut off Date", selector: (row) => row.cutoffDate, sortable: true },
-    { name: "Requestor", selector: (row) => row.requestedBy, sortable: true },
-    { name: "Request Status", selector: (row) => row.status, sortable: true },
+    { name: "Request ID", selector: (row) => row.batchId, sortable: true, width: "120px" },
+    { name: "Request Type", selector: (row) => row.payrollType, sortable: true, width: "130px" },
+    { name: "Date Created", selector: (row) => row.date, sortable: true, width: "120px" },
+    { name: "Cut off Date", selector: (row) => row.cutoffDate, sortable: true, width: "150px" },
+    { name: "Requestor", selector: (row) => row.requestedBy, sortable: true, width: "130px" },
+    { name: "Status", selector: (row) => row.status, sortable: true, width: "100px" },
     {
-      name: "Release Date",
-      selector: (row) => row.releaseDate?.format("YYYY-MM-DD") || "-",
+      name: "Release Countdown",
+      cell: (row) => formatCountdown(row.releaseDate),
       sortable: true,
+      width: "180px",
+    },
+    {
+      name: "Release Countdown",
+      cell: (row) => formatCountdown(row.releaseDate),
+      sortable: true,
+      width: "180px",
+    },
+    {
+      name: "Actions",
+      cell: (row) => (
+        <div className="flex gap-1">
+          <button
+            onClick={() => handleViewDetails(row)}
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition-all duration-200 font-medium"
+            title="View Details"
+          >
+            <Eye size={12} />
+            Details
+          </button>
+          <button
+            onClick={() => handleCancelRequest(row)}
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-red-50 text-red-600 border border-red-200 rounded hover:bg-red-100 transition-all duration-200 font-medium"
+            title="Cancel Request"
+          >
+            <X size={12} />
+            Cancel
+          </button>
+        </div>
+      ),
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+      width: "150px",
     },
   ];
 
@@ -144,7 +265,7 @@ const RequestStatus = () => {
               style: {
                 fontSize: "13px",
                 color: "#4B5563",
-                minHeight: "40px",
+                minHeight: "50px",
                 borderBottom: "1px solid #e5e7eb",
               },
             },
