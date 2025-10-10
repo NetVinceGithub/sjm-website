@@ -102,6 +102,14 @@ const PayrollInformation = sequelize.define(
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,
     },
+    sss_loan: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0,
+    },
+    pagibig_loan: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0,
+    },
     otherDeductions: {
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,

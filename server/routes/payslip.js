@@ -16,7 +16,7 @@ import {
 } from "../controllers/payslipController.js";
 import { sequelize } from "../db/db.js"; // Ensure correct path
 import { QueryTypes } from "sequelize";
-import PayrollInformation from "../models/PayrollInformation.js";
+import { PayrollInformation } from "../models/Employee.js";
 import Payslip from "../models/Payslip.js";
 
 const router = express.Router();

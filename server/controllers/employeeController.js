@@ -2,7 +2,7 @@ import axios from "axios";
 import dotenv from "dotenv";
 import cron from "node-cron";
 import Employee from "../models/Employee.js"; // Employee Sequelize model
-import PayrollInformation from "../models/PayrollInformation.js"; // Payroll Sequelize model
+import { PayrollInformation } from "../models/Employee.js";
 import PayrollChangeRequest from "../models/PayrollChangeRequest.js";
 
 import sequelize from "../db/db.js";

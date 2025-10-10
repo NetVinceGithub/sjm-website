@@ -10,6 +10,7 @@ import { BsFilter } from "react-icons/bs";
 import Tooltip from "@mui/material/Tooltip";
 import { toast } from "react-toastify";
 import ScheduleSelectionModal from "./ScheduleSelectionModal";
+import axios from 'axios';
 
 const Attendance = () => {
   // State variables
@@ -57,9 +58,28 @@ const Attendance = () => {
       isDefault: true,
     },
   ];
-
+  
+  const [holidays, setHolidays] = useState([]);
   const [selectedSchedules, setSelectedSchedules] = useState([]);
   const [allSchedules, setAllSchedules] = useState(defaultScheduleOptions);
+
+  useEffect(()=>{
+    fetchHolidays();
+  },[])
+
+  const fetchHolidays = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`);
+      if(!response){
+        console.log("No api response");
+      } else {
+        console.log(response.data.holidays);
+        setHolidays(response.data.holidays);
+      }
+    }catch (err) {
+      console.log(err);
+    }
+  }
 
   // 1. Fix the getExpectedHoursForShift function - it's not matching shifts properly
   const getExpectedHoursForShift = (detectedShift, scheduleList) => {

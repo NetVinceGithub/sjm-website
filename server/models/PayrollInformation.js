@@ -76,4 +76,4 @@ PayrollInformation.belongsTo(Employee, {
   onDelete: "CASCADE",
 });
 
-export default PayrollInformation;
+//export default PayrollInformation;

@@ -5,7 +5,7 @@ import Employee from "../models/Employee.js";
 import PayslipHistory from "../models/PayslipHistory.js";
 import { Op } from "sequelize"; // Ensure you have Sequelize operators
 import Attendance from "../models/Attendance.js";
-import PayrollInformation from "../models/PayrollInformation.js";
+import { PayrollInformation } from "../models/Employee.js";
 import axios from "axios";
 import AttendanceSummary from "../models/AttendanceSummary.js";
 import { QueryTypes } from "sequelize";
