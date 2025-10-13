@@ -23,11 +23,10 @@ import { Sequelize } from "sequelize";
 import puppeteer from "puppeteer"; // Make sure puppeteer is installed
 
 import { execSync } from "child_process";
-import {
-  calculateSSSContribution,
-  calculateSSSWithCutoff,
-  updatePayrollWithSSS,
-} from "../utils/sssCalculator.js";
+import { calculateSSSWithCutoff, isSecondCutoffPeriod } from "../utils/sssCalculator.js";
+import { calculatePagIBIGContribution, calculatePagIBIGSemiMonthly } from "../utils/pagibigCalculator.js";
+import { calculatePhilHealthContribution, calculatePhilHealthSemiMonthly } from "../utils/philhealthCalculator.js";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -2022,37 +2021,79 @@ export const generatePayroll = async (req, res) => {
         // RANK-AND-FILE LOGIC: Apply different deduction rules
         // Replace the existing deductions object with this updated version:
 
+    const projectedMonthlyBasicSalary = rates.dailyRate * 26; // 26 working days per month
+
+    // Determine if this is the first or second cutoff
+    const isFirstCutoff = new Date(cutoffDate).getDate() <= 15;
+    const isSecondCutoff = isSecondCutoffPeriod(new Date(cutoffDate));
+
+    // Calculate government contributions
+    let sssContribution = { employeeContribution: 0, employerContribution: 0, ecContribution: 0 };
+    let pagibigContribution = { employeeContribution: 0, employerContribution: 0 };
+    let philhealthContribution = { employeeContribution: 0, employerContribution: 0 };
+
+    if (!isOnCall) {
+      // SSS Contribution - based on gross pay
+      sssContribution = calculateSSSWithCutoff(safeGrossPay, new Date(cutoffDate));
+      
+      // Pag-IBIG Contribution - based on monthly basic salary, split semi-monthly
+      pagibigContribution = calculatePagIBIGSemiMonthly(
+        projectedMonthlyBasicSalary, 
+        isFirstCutoff
+      );
+      
+      // PhilHealth Contribution - based on monthly basic salary
+      // Default: deduct full amount in 2nd cutoff (common practice)
+      philhealthContribution = calculatePhilHealthSemiMonthly(
+        projectedMonthlyBasicSalary,
+        "full_second", // Options: "full_first", "full_second", or "split"
+        isFirstCutoff
+      );
+    }
+
+        console.log(`💳 Government Contributions for ${employee.name}:`, {
+          isOnCall: isOnCall,
+          isFirstCutoff: isFirstCutoff,
+          isSecondCutoff: isSecondCutoff,
+          projectedMonthlyBasicSalary: projectedMonthlyBasicSalary.toFixed(2),
+          sss: {
+            employee: sssContribution.employeeContribution,
+            employer: sssContribution.employerContribution,
+            ec: sssContribution.ecContribution,
+            total: sssContribution.totalContribution
+          },
+          pagibig: {
+            employee: pagibigContribution.employeeContribution,
+            employer: pagibigContribution.employerContribution,
+            total: pagibigContribution.totalContribution,
+            isCapped: pagibigContribution.isCapped || false
+          },
+          philhealth: {
+            employee: philhealthContribution.employeeContribution,
+            employer: philhealthContribution.employerContribution,
+            total: philhealthContribution.totalContribution,
+            isMinimum: philhealthContribution.isMinimum || false,
+            deductionSchedule: philhealthContribution.deductionSchedule
+          }
+        });
+
         const deductions = {
-          sss: !isOnCall
-            ? calculateSSSWithCutoff(safeGrossPay, new Date(cutoffDate))
-                .employeeContribution 
-            : 0,
-          
-          // FIXED: PhilHealth calculation - 2.5% of basic pay
-          phic: !isOnCall
-            ? basicPay * 0.025  // 2.5% of basic pay
-            : 0,
-            
-          hdmf: !isOnCall
-            ? Number(employeePayrollInfo.pagibig_contribution) || 50
-            : 0,
+          sss: parseFloat(sssContribution.employeeContribution.toFixed(2)),
+          phic: parseFloat(philhealthContribution.employeeContribution.toFixed(2)),
+          hdmf: parseFloat(pagibigContribution.employeeContribution.toFixed(2)),
           loan: Number(employeePayrollInfo.loan) || 0,
-          otherDeductions: !isOnCall
-            ? Number(employeePayrollInfo.otherDeductions) || 0
-            : 0,
-          taxDeduction: !isOnCall
-            ? Number(employeePayrollInfo.tax_deduction) || 0
-            : 0,
+          otherDeductions: !isOnCall ? Number(employeePayrollInfo.otherDeductions) || 0 : 0,
+          taxDeduction: !isOnCall ? Number(employeePayrollInfo.tax_deduction) || 0 : 0,
           tardiness: finalTotalLateMinutes * rates.tardinessRate,
         };
 
-// Add PhilHealth calculation logging
-console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
-  basicPay: basicPay,
-  phicRate: '2.5%',
-  phicAmount: (basicPay * 0.025).toFixed(2),
-  isOnCall: isOnCall
-});
+        // Add PhilHealth calculation logging
+        console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
+          basicPay: basicPay,
+          phicRate: '2.5%',
+          phicAmount: (basicPay * 0.025).toFixed(2),
+          isOnCall: isOnCall
+        });
         console.log(
           `💳 Deductions for ${employee.name} (Is on call: ${isOnCall}):`,
           {
@@ -2120,25 +2161,16 @@ console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
           totalHours: totalHours,
         });
 
-        let sssBreakdown = {
-          employeeContribution: 0,
-          employerContribution: 0,
-          ecContribution: 0,
-          totalContribution: 0,
-        };
-        if (!isOnCall) {
-          sssBreakdown = calculateSSSWithCutoff(
-            safeGrossPay,
-            new Date(cutoffDate)
-          );
-          console.log(`🏛️ SSS Breakdown for ${employee.name}:`, {
-            employeeContribution: sssBreakdown.employeeContribution,
-            employerContribution: sssBreakdown.employerContribution,
-            ecContribution: sssBreakdown.ecContribution,
-            totalContribution: sssBreakdown.totalContribution,
-            isSecondCutoff: new Date(cutoffDate).getDate() >= 16,
-          });
-        }
+        const sssBreakdown = sssContribution;
+
+        console.log(`🏛️ SSS Breakdown for ${employee.name}:`, {
+          employeeContribution: sssBreakdown.employeeContribution,
+          employerContribution: sssBreakdown.employerContribution,
+          ecContribution: sssBreakdown.ecContribution,
+          totalContribution: sssBreakdown.totalContribution,
+          isSecondCutoff: isSecondCutoff,
+          salaryBracket: sssBreakdown.salaryRange || 'N/A'
+        });
 
         // CRITICAL: Ensure all values are valid numbers before database insertion
         const payslipData = {
@@ -2193,14 +2225,20 @@ console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
 
           // Government contributions (0 for rank-and-file)
           sss: parseFloat(sssBreakdown.employeeContribution.toFixed(2)),
-          sssEmployerShare: parseFloat(
-            sssBreakdown.employerContribution.toFixed(2)
-          ),
+          sssEmployerShare: parseFloat(sssBreakdown.employerContribution.toFixed(2)),
           sssEC: parseFloat(sssBreakdown.ecContribution.toFixed(2)),
-          sssTotalContribution: parseFloat(sssBreakdown.totalContribution),
+          sssTotalContribution: parseFloat(sssBreakdown.totalContribution.toFixed(2)),
+          
+          phic: parseFloat(philhealthContribution.employeeContribution.toFixed(2)),
+          phicEmployerShare: parseFloat(philhealthContribution.employerContribution.toFixed(2)),
+          phicTotalContribution: parseFloat(philhealthContribution.totalContribution.toFixed(2)),
+          phicIsMinimum: philhealthContribution.isMinimum || false,
+          
+          hdmf: parseFloat(pagibigContribution.employeeContribution.toFixed(2)),
+          hdmfEmployerShare: parseFloat(pagibigContribution.employerContribution.toFixed(2)),
+          hdmfTotalContribution: parseFloat(pagibigContribution.totalContribution.toFixed(2)),
+          hdmfIsCapped: pagibigContribution.isCapped || false,
 
-          phic: parseFloat(deductions.phic.toFixed(2)),
-          hdmf: parseFloat(deductions.hdmf.toFixed(2)),
 
           // Loans - separate SSS and Pag-IBIG loans
           loan: parseFloat(deductions.loan.toFixed(2)),
@@ -2236,6 +2274,41 @@ console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
         };
 
         console.log("ito yung na save sa data base",payslipData);
+        console.log(`💰 Complete Payslip Summary for ${employee.name}:`, {
+          // Basic Info
+          ecode: payslipData.ecode,
+          cutoffDate: payslipData.cutoffDate,
+          isFirstCutoff: isFirstCutoff,
+          isSecondCutoff: isSecondCutoff,
+          
+          // Earnings
+          basicPay: payslipData.basicPay,
+          holidayPay: payslipData.holidayPay,
+          overtimePay: payslipData.overtimePay,
+          allowance: payslipData.allowance,
+          grossPay: payslipData.gross_pay,
+          
+          // Government Contributions (Employee Share)
+          sss: payslipData.sss,
+          phic: payslipData.phic,
+          hdmf: payslipData.hdmf,
+          
+          // Government Contributions (Employer Share) - for reference
+          sssEmployer: payslipData.sssEmployerShare,
+          sssEC: payslipData.sssEC,
+          phicEmployer: payslipData.phicEmployerShare,
+          hdmfEmployer: payslipData.hdmfEmployerShare,
+          
+          // Other Deductions
+          tardiness: payslipData.totalTardiness,
+          loan: payslipData.loan,
+          otherDeductions: payslipData.otherDeductions,
+          taxDeduction: payslipData.taxDeduction,
+          
+          // Totals
+          totalDeductions: payslipData.totalDeductions,
+          netPay: payslipData.netPay,
+        });
 
         // Final validation: Check for any remaining NaN values
         const nanFields = [];

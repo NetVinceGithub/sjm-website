@@ -1,4 +1,4 @@
-// Enhanced Attendance.jsx - Added undertime calculation based on shift schedules
+// Enhanced Attendance.jsx - Added holiday detection and type tracking
 
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
@@ -36,7 +36,7 @@ const Attendance = () => {
       label: "Day Shift (8AM-5PM)",
       start: 8,
       end: 17,
-      expectedHours: 8, // Expected work hours for this shift
+      expectedHours: 8,
       isDefault: true,
     },
     {
@@ -45,7 +45,7 @@ const Attendance = () => {
       label: "Evening Shift (5PM-9PM)",
       start: 17,
       end: 21,
-      expectedHours: 4, // 4-hour shift
+      expectedHours: 4,
       isDefault: true,
     },
     {
@@ -54,7 +54,7 @@ const Attendance = () => {
       label: "Night Shift (9PM-6AM)",
       start: 21,
       end: 6,
-      expectedHours: 8, // 8-hour overnight shift (21:00 to 06:00 = 9 hours - 1 hour break = 8 hours)
+      expectedHours: 8,
       isDefault: true,
     },
   ];
@@ -63,162 +63,89 @@ const Attendance = () => {
   const [selectedSchedules, setSelectedSchedules] = useState([]);
   const [allSchedules, setAllSchedules] = useState(defaultScheduleOptions);
 
-  useEffect(()=>{
+  useEffect(() => {
     fetchHolidays();
-  },[])
+  }, []);
 
   const fetchHolidays = async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`);
-      if(!response){
+      if (!response) {
         console.log("No api response");
       } else {
-        console.log(response.data.holidays);
+        console.log("Fetched holidays:", response.data.holidays);
         setHolidays(response.data.holidays);
       }
-    }catch (err) {
-      console.log(err);
+    } catch (err) {
+      console.log("Error fetching holidays:", err);
     }
-  }
+  };
 
-  // 1. Fix the getExpectedHoursForShift function - it's not matching shifts properly
+  // Helper function to check if a date is a holiday
+  const checkIfHoliday = (dateString) => {
+    if (!dateString || holidays.length === 0) return null;
+    
+    const holiday = holidays.find(h => h.date === dateString);
+    return holiday || null;
+  };
+
   const getExpectedHoursForShift = (detectedShift, scheduleList) => {
     if (!detectedShift || detectedShift === "No Schedule Match" || detectedShift === "Unknown") {
-      return 8; // Default to 8 hours if no shift detected
+      return 8;
     }
 
-    // Better matching logic - look for exact schedule match
     const matchingSchedule = scheduleList.find((schedule) => {
-      // Direct match
       if (detectedShift === schedule.label) return true;
-      
-      // Partial match - check if shift contains schedule label parts
       if (detectedShift.includes("Day") && schedule.label.includes("Day")) return true;
       if (detectedShift.includes("Evening") && schedule.label.includes("Evening")) return true;
       if (detectedShift.includes("Night") && schedule.label.includes("Night")) return true;
-      
-      // Check time range match (e.g., "8-17" matches "Day Shift (8AM-5PM)")
       if (schedule.value && detectedShift.includes(schedule.value)) return true;
-      
       return false;
     });
 
-    console.log(`Shift: ${detectedShift}, Matching Schedule:`, matchingSchedule);
     return matchingSchedule ? matchingSchedule.expectedHours : 8;
   };
 
-
-  // 2. Fix the calculateUndertimeMinutes function - simplify and debug
   const calculateUndertimeMinutes = (onDutyTime, offDutyTime, detectedShift, scheduleList) => {
-    console.log("=== UNDERTIME CALCULATION DEBUG ===");
-    console.log("Input params:", { onDutyTime, offDutyTime, detectedShift });
-    
-    if (!onDutyTime || !offDutyTime) {
-      console.log("Missing time data, returning 0");
-      return 0;
-    }
+    if (!onDutyTime || !offDutyTime) return 0;
+    if (!detectedShift || detectedShift === "No Schedule Match" || detectedShift === "Unknown") return 0;
 
-    if (!detectedShift || detectedShift === "No Schedule Match" || detectedShift === "Unknown") {
-      console.log("No valid shift detected, returning 0");
-      return 0;
-    }
-
-    // Get expected hours for this shift
     const expectedHours = getExpectedHoursForShift(detectedShift, scheduleList);
     const expectedMinutes = expectedHours * 60;
-    console.log(`Expected: ${expectedHours}h (${expectedMinutes}min)`);
 
-    // Calculate actual work time
     const [onHours, onMinutes] = onDutyTime.split(":").map(Number);
     const [offHours, offMinutes] = offDutyTime.split(":").map(Number);
 
     const onDutyMinutes = onHours * 60 + onMinutes;
     let offDutyMinutes = offHours * 60 + offMinutes;
 
-    // Handle overnight shifts
     if (offDutyMinutes < onDutyMinutes) {
       offDutyMinutes += 24 * 60;
     }
 
     let actualWorkMinutes = offDutyMinutes - onDutyMinutes;
-    console.log(`Raw work time: ${actualWorkMinutes}min`);
     
-    // Deduct break time for shifts longer than 6 hours
     const BREAK_TIME_MINUTES = 60;
-    const BREAK_THRESHOLD_MINUTES = 360; // 6 hours
+    const BREAK_THRESHOLD_MINUTES = 360;
     
     if (actualWorkMinutes > BREAK_THRESHOLD_MINUTES) {
       actualWorkMinutes = actualWorkMinutes - BREAK_TIME_MINUTES;
-      console.log(`After break deduction: ${actualWorkMinutes}min`);
     }
 
-    // Calculate undertime
     const undertimeMinutes = Math.max(0, expectedMinutes - actualWorkMinutes);
-    console.log(`Final undertime: ${undertimeMinutes}min`);
-    console.log("=== END UNDERTIME DEBUG ===");
-    
     return undertimeMinutes;
   };
 
-  // Core calculation functions
-  const calculateNightDifferentialHours = (onDutyTime, offDutyTime) => {
-    if (!onDutyTime || !offDutyTime) return 0;
-
-    const [onHours, onMinutes] = onDutyTime.split(":").map(Number);
-    const [offHours, offMinutes] = offDutyTime.split(":").map(Number);
-
-    let onDutyMinutes = onHours * 60 + onMinutes;
-    let offDutyMinutes = offHours * 60 + offMinutes;
-
-    // Handle overnight shifts
-    if (offDutyMinutes < onDutyMinutes) {
-      offDutyMinutes += 24 * 60;
-    }
-
-    const nightStartMinutes = NIGHT_SHIFT_START * 60;
-    const nightEndMinutes = NIGHT_SHIFT_END * 60;
-    const nextDayNightEndMinutes = nightEndMinutes + 24 * 60;
-
-    let nightHours = 0;
-
-    if (offDutyMinutes <= 24 * 60) {
-      // Same day shift
-      if (onDutyMinutes >= nightStartMinutes) {
-        nightHours = Math.min(offDutyMinutes, 24 * 60) - onDutyMinutes;
-      } else if (offDutyMinutes > nightStartMinutes) {
-        nightHours = Math.min(offDutyMinutes, 24 * 60) - nightStartMinutes;
-      }
-    } else {
-      // Overnight shift
-      if (onDutyMinutes >= nightStartMinutes) {
-        nightHours += 24 * 60 - onDutyMinutes;
-      } else {
-        nightHours += 24 * 60 - nightStartMinutes;
-      }
-
-      if (offDutyMinutes <= nextDayNightEndMinutes) {
-        nightHours += offDutyMinutes - 24 * 60;
-      } else {
-        nightHours += nightEndMinutes;
-      }
-    }
-
-    return Math.max(0, nightHours / 60);
-  };
-
-  // Helper function to convert minutes to hours and minutes object
   const minutesToHoursMinutes = (totalMinutes) => {
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
     return { hours, minutes, totalMinutes };
   };
 
-  // Helper function to convert hours/minutes back to decimal for display
   const hoursMinutesToDecimal = (hours, minutes) => {
     return hours + (minutes / 60);
   };
 
-  // 3. Fix the calculateWorkHoursBreakdown function - ensure it properly calls undertime calculation
   const calculateWorkHoursBreakdown = (onDutyTime, offDutyTime, isHoliday = false, isRestDay = false, detectedShift = null, scheduleList = []) => {
     if (!onDutyTime || !offDutyTime) {
       return {
@@ -256,27 +183,19 @@ const Attendance = () => {
 
     let totalMinutes = offDutyMinutes - onDutyMinutes;
     
-    // Deduct 1-hour (60 minutes) break for shifts longer than 6 hours (360 minutes)
     const BREAK_TIME_MINUTES = 60;
-    const BREAK_THRESHOLD_MINUTES = 360; // 6 hours
+    const BREAK_THRESHOLD_MINUTES = 360;
     
     if (totalMinutes > BREAK_THRESHOLD_MINUTES) {
       totalMinutes = totalMinutes - BREAK_TIME_MINUTES;
     }
 
-    // Calculate night differential in minutes (precise)
     const nightDifferentialMinutes = calculateNightDifferentialMinutes(onDutyTime, offDutyTime);
-    
-    // Get expected hours for shift
     const expectedHours = getExpectedHoursForShift(detectedShift, scheduleList);
-    
-    // FIXED: Use the dedicated undertime calculation function
     const undertimeMinutes = calculateUndertimeMinutes(onDutyTime, offDutyTime, detectedShift, scheduleList);
     
-    // Base working minutes (for regular/overtime calculation)
     let baseMinutes = Math.max(0, totalMinutes);
-    
-    const REGULAR_HOURS_LIMIT_MINUTES = 8 * 60; // 480 minutes = 8 hours
+    const REGULAR_HOURS_LIMIT_MINUTES = 8 * 60;
 
     let breakdown = {
       totalMinutes: Math.max(0, totalMinutes),
@@ -295,12 +214,11 @@ const Attendance = () => {
       restDayHours: 0,
       restDayOvertimeMinutes: 0,
       restDayOvertimeHours: 0,
-      undertimeMinutes: undertimeMinutes, // FIXED: Use calculated undertime
+      undertimeMinutes: undertimeMinutes,
       undertimeHours: hoursMinutesToDecimal(Math.floor(undertimeMinutes / 60), undertimeMinutes % 60),
       expectedHours: expectedHours,
     };
 
-    // Rest of the breakdown logic for regular/overtime/holiday/rest day calculations...
     if (totalMinutes > 0) {
       if (isHoliday) {
         if (baseMinutes <= REGULAR_HOURS_LIMIT_MINUTES) {
@@ -329,7 +247,6 @@ const Attendance = () => {
           );
         }
       } else {
-        // Regular working day
         if (baseMinutes <= REGULAR_HOURS_LIMIT_MINUTES) {
           breakdown.regularMinutes = baseMinutes;
           breakdown.regularHours = hoursMinutesToDecimal(Math.floor(baseMinutes / 60), baseMinutes % 60);
@@ -345,15 +262,9 @@ const Attendance = () => {
       }
     }
 
-    console.log("Final breakdown with undertime:", breakdown);
     return breakdown;
   };
 
-
-  
-
-
-  // Precise night differential calculation in minutes
   const calculateNightDifferentialMinutes = (onDutyTime, offDutyTime) => {
     if (!onDutyTime || !offDutyTime) return 0;
 
@@ -363,26 +274,23 @@ const Attendance = () => {
     let onDutyMinutes = onHours * 60 + onMinutes;
     let offDutyMinutes = offHours * 60 + offMinutes;
 
-    // Handle overnight shifts
     if (offDutyMinutes < onDutyMinutes) {
       offDutyMinutes += 24 * 60;
     }
 
-    const nightStartMinutes = 22 * 60; // 10:00 PM
-    const nightEndMinutes = 6 * 60;    // 6:00 AM
+    const nightStartMinutes = 22 * 60;
+    const nightEndMinutes = 6 * 60;
     const nextDayNightEndMinutes = nightEndMinutes + 24 * 60;
 
     let nightMinutes = 0;
 
     if (offDutyMinutes <= 24 * 60) {
-      // Same day shift
       if (onDutyMinutes >= nightStartMinutes) {
         nightMinutes = Math.min(offDutyMinutes, 24 * 60) - onDutyMinutes;
       } else if (offDutyMinutes > nightStartMinutes) {
         nightMinutes = Math.min(offDutyMinutes, 24 * 60) - nightStartMinutes;
       }
     } else {
-      // Overnight shift
       if (onDutyMinutes >= nightStartMinutes) {
         nightMinutes += 24 * 60 - onDutyMinutes;
       } else {
@@ -399,47 +307,28 @@ const Attendance = () => {
     return Math.max(0, nightMinutes);
   };
 
-  // Updated attendance status calculation using precise minutes
   const calculateAttendanceStatus = (onDutyTime, offDutyTime, detectedShift) => {
-    if (!offDutyTime) {
-      return "absent";
-    }
-
-    if (!detectedShift || detectedShift === "No Schedule Match" || detectedShift === "Unknown") {
-      return "absent";
-    }
+    if (!offDutyTime) return "absent";
+    if (!detectedShift || detectedShift === "No Schedule Match" || detectedShift === "Unknown") return "absent";
 
     const breakdown = calculateWorkHoursBreakdown(onDutyTime, offDutyTime, false, false, detectedShift, selectedSchedules);
     const regularMinutes = breakdown.regularMinutes;
 
-    if (regularMinutes >= 480) { // 8 hours = 480 minutes
-      return "present";
-    } else if (regularMinutes >= 240) { // 4 hours = 240 minutes
-      return "half-day";
-    }
-
+    if (regularMinutes >= 480) return "present";
+    else if (regularMinutes >= 240) return "half-day";
     return "absent";
   };
 
-  // Updated attendance value calculation using precise minutes
   const calculateAttendanceValue = (onDutyTime, offDutyTime, detectedShift) => {
     if (!offDutyTime) return 0;
-
-    if (!detectedShift || detectedShift === "No Schedule Match" || detectedShift === "Unknown") {
-      return 0;
-    }
+    if (!detectedShift || detectedShift === "No Schedule Match" || detectedShift === "Unknown") return 0;
 
     const breakdown = calculateWorkHoursBreakdown(onDutyTime, offDutyTime, false, false, detectedShift, selectedSchedules);
     const regularMinutes = breakdown.regularMinutes;
 
-    // Half-day if regular minutes >= 240 (4 hours), full day if >= 480 (8 hours)
-    if (regularMinutes >= 480) {
-      return 1; // Full day
-    } else if (regularMinutes >= 240) {
-      return 0.5; // Half day
-    }
-
-    return 0; // Absent (less than 4 hours)
+    if (regularMinutes >= 480) return 1;
+    else if (regularMinutes >= 240) return 0.5;
+    return 0;
   };
 
   const calculateWorkHours = (onDutyTime, offDutyTime) => {
@@ -472,12 +361,10 @@ const Attendance = () => {
       let tolerance = 1;
 
       if (schedule.end < schedule.start) {
-        // Overnight shift
         if (onDutyHour >= schedule.start - tolerance || onDutyHour <= schedule.end + tolerance) {
           isWithinRange = true;
         }
       } else {
-        // Regular shift
         if (onDutyHour >= schedule.start - tolerance && onDutyHour <= schedule.end + tolerance) {
           isWithinRange = true;
         }
@@ -488,9 +375,7 @@ const Attendance = () => {
       }
     }
 
-    if (matchingSchedules.length === 0) {
-      return "No Schedule Match";
-    }
+    if (matchingSchedules.length === 0) return "No Schedule Match";
 
     let bestMatch = matchingSchedules[0];
     if (matchingSchedules.length > 1) {
@@ -515,23 +400,16 @@ const Attendance = () => {
   };
 
   const convertExcelTimeToString = (excelTime) => {
-    if (!excelTime || excelTime === "" || isNaN(excelTime)) {
-      return null;
-    }
+    if (!excelTime || excelTime === "" || isNaN(excelTime)) return null;
 
     const numericValue = Number(excelTime);
-    
-    if (numericValue < 0 || numericValue >= 1) {
-      return null;
-    }
+    if (numericValue < 0 || numericValue >= 1) return null;
 
     const totalMinutes = Math.round(numericValue * 24 * 60);
     const hours = Math.floor(totalMinutes / 60) % 24;
     const minutes = totalMinutes % 60;
 
-    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-      return null;
-    }
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
 
     return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
   };
@@ -563,23 +441,16 @@ const Attendance = () => {
   };
 
   const formatMinutesToHoursMinutes = (totalMinutes) => {
-    if (totalMinutes === 0) {
-      return "0m";
-    }
+    if (totalMinutes === 0) return "0m";
 
     const hours = Math.floor(totalMinutes / 60);
     const minutes = Math.floor(totalMinutes % 60);
 
-    if (hours === 0) {
-      return `${minutes}m`;
-    } else if (minutes === 0) {
-      return `${hours}h`;
-    } else {
-      return `${hours}h ${minutes}m`;
-    }
+    if (hours === 0) return `${minutes}m`;
+    else if (minutes === 0) return `${hours}h`;
+    else return `${hours}h ${minutes}m`;
   };
 
-  // Enhanced column definitions with payroll breakdown and undertime
   const attendanceColumns = [
     {
       name: "E-Code",
@@ -684,6 +555,31 @@ const Attendance = () => {
       ),
     },
     {
+      name: "Holiday Type",
+      selector: (row) => row.holidayType || "-",
+      width: "120px",
+      cell: (row) => {
+        if (!row.isHoliday || !row.holidayType) {
+          return <span className="text-xs text-gray-400">-</span>;
+        }
+        
+        const getHolidayColor = (type) => {
+          if (type === "Regular") return "bg-red-100 text-red-800";
+          if (type === "Special") return "bg-orange-100 text-orange-800";
+          if (type === "Special Non-Working") return "bg-yellow-100 text-yellow-800";
+          return "bg-gray-100 text-gray-800";
+        };
+        
+        return (
+          <Tooltip title={row.holidayName || ""} arrow placement="top">
+            <span className={`px-2 py-1 rounded text-xs ${getHolidayColor(row.holidayType)}`}>
+              {row.holidayType}
+            </span>
+          </Tooltip>
+        );
+      },
+    },
+    {
       name: "Shift",
       selector: (row) => row.shift || "Unknown",
       width: "120px",
@@ -733,7 +629,6 @@ const Attendance = () => {
     },
   ];
 
-  // Enhanced summary columns with payroll breakdown and undertime
   const summaryColumns = [
     {
       name: "E-Code",
@@ -944,7 +839,12 @@ const Attendance = () => {
             const onDuty = convertExcelTimeToString(onDutyRaw);
             const offDuty = convertExcelTimeToString(offDutyRaw);
 
-            const isHoliday = Boolean(row.Holiday || row.holiday || false);
+            // Check if date is a holiday from the fetched holidays list
+            const holidayInfo = checkIfHoliday(formattedDate);
+            const isHoliday = holidayInfo !== null;
+            const holidayType = holidayInfo ? holidayInfo.type : null;
+            const holidayName = holidayInfo ? holidayInfo.name : null;
+            
             const isRestDay = Boolean(row.RestDay || row.restDay || row["Rest Day"] || false);
 
             const workHours = calculateWorkHours(onDuty, offDuty);
@@ -971,6 +871,8 @@ const Attendance = () => {
               isLate: late,
               lateMinutes: lateMinutes,
               isHoliday,
+              holidayType,
+              holidayName,
               isRestDay,
             };
 
@@ -979,9 +881,11 @@ const Attendance = () => {
             return record.date && record.ecode;
           });
 
+          console.log("Processed attendance data with holiday info:", processedData);
           setAttendanceData(processedData);
           generateSummary(processedData);
         } catch (error) {
+          console.error("Error reading Excel file:", error);
           toast.error("Error reading Excel file. Please check the format.");
         }
       };
@@ -989,25 +893,10 @@ const Attendance = () => {
     }
   };
 
-  // Enhanced summary generation that includes undertime tracking
   const generateSummary = (data) => {
-    console.log("=== generateSummary Debug (With Undertime) ===");
-    console.log("Total records:", data.length);
-
     const summary = {};
 
-    data.forEach((record, index) => {
-      console.log(`\n--- Processing record ${index + 1} ---`);
-      console.log("Record:", {
-        ecode: record.ecode,
-        status: record.status,
-        attendanceValue: record.attendanceValue,
-        shift: record.shift,
-        lateMinutes: record.lateMinutes,
-        isLate: record.isLate,
-        hoursBreakdown: record.hoursBreakdown,
-      });
-
+    data.forEach((record) => {
       const ecode = record.ecode;
 
       if (!summary[ecode]) {
@@ -1019,12 +908,11 @@ const Attendance = () => {
           absentDays: 0,
           lateDays: 0,
           totalLateMinutes: 0,
-          totalUndertimeMinutes: 0, // New field for undertime tracking
+          totalUndertimeMinutes: 0,
           dayShiftDays: 0,
           eveningShiftDays: 0,
           nightShiftDays: 0,
           totalWorkHours: 0,
-          // Payroll tracking (only for non-absent days)
           totalRegularHours: 0,
           totalOvertimeHours: 0,
           totalNightDifferentialHours: 0,
@@ -1032,27 +920,22 @@ const Attendance = () => {
           totalHolidayOvertimeHours: 0,
           totalRestDayHours: 0,
           totalRestDayOvertimeHours: 0,
+          regularHolidayHours: 0,
+          specialHolidayHours: 0,
+          specialNonWorkingHours: 0,
         };
-        console.log("Created new summary for:", ecode);
       }
 
-      // Count total days
       summary[ecode].totalDays++;
 
-      // Only add payroll hours for non-absent employees
       if (record.status !== "absent") {
-        // Add work hours
         summary[ecode].totalWorkHours += record.workHours || 0;
-        
-        // Add attendance value (0.5 for half-day, 1 for full day)
         summary[ecode].presentDays += record.attendanceValue || 0;
 
-        // Count half days
         if (record.status === "half-day") {
           summary[ecode].halfDays++;
         }
 
-        // Add payroll hours breakdown (only for non-absent)
         if (record.hoursBreakdown) {
           summary[ecode].totalRegularHours += record.hoursBreakdown.regularHours || 0;
           summary[ecode].totalOvertimeHours += record.hoursBreakdown.overtimeHours || 0;
@@ -1062,11 +945,22 @@ const Attendance = () => {
           summary[ecode].totalRestDayHours += record.hoursBreakdown.restDayHours || 0;
           summary[ecode].totalRestDayOvertimeHours += record.hoursBreakdown.restDayOvertimeHours || 0;
           
-          // Add undertime tracking
+          // Track holiday hours by type
+          if (record.isHoliday && record.holidayType) {
+            const holidayHours = record.hoursBreakdown.holidayHours || 0;
+            
+            if (record.holidayType === "Regular") {
+              summary[ecode].regularHolidayHours += holidayHours;
+            } else if (record.holidayType === "Special") {
+              summary[ecode].specialHolidayHours += holidayHours;
+            } else if (record.holidayType === "Special Non-Working") {
+              summary[ecode].specialNonWorkingHours += holidayHours;
+            }
+          }
+          
           summary[ecode].totalUndertimeMinutes += record.hoursBreakdown.undertimeMinutes || 0;
         }
 
-        // Count shift-specific days using attendance value
         if (record.attendanceValue > 0 && record.shift) {
           const shiftValue = record.attendanceValue;
 
@@ -1079,106 +973,38 @@ const Attendance = () => {
           }
         }
 
-        // Count late days and accumulate late minutes only for present/half-day employees
         if (record.isLate || record.lateMinutes > 0) {
           summary[ecode].lateDays++;
         }
-        // Add late minutes to total
         summary[ecode].totalLateMinutes += record.lateMinutes || 0;
       } else {
-        // For absent employees, still track undertime based on expected hours
         if (record.hoursBreakdown && record.hoursBreakdown.expectedHours > 0) {
           const expectedMinutes = record.hoursBreakdown.expectedHours * 60;
           summary[ecode].totalUndertimeMinutes += expectedMinutes;
         }
       }
-
-      console.log(`Updated summary for ${ecode}:`, {
-        totalDays: summary[ecode].totalDays,
-        presentDays: summary[ecode].presentDays,
-        halfDays: summary[ecode].halfDays,
-        totalLateMinutes: summary[ecode].totalLateMinutes,
-        totalUndertimeMinutes: summary[ecode].totalUndertimeMinutes,
-        totalRegularHours: summary[ecode].totalRegularHours,
-        totalOvertimeHours: summary[ecode].totalOvertimeHours,
-        status: record.status
-      });
     });
 
-    // Calculate absent days for each employee
     Object.values(summary).forEach((emp) => {
       emp.absentDays = emp.totalDays - emp.presentDays;
-
-      console.log(`\nFinal summary for ${emp.ecode}:`);
-      console.log("- Total days:", emp.totalDays);
-      console.log("- Present days:", emp.presentDays);
-      console.log("- Half days:", emp.halfDays);
-      console.log("- Absent days:", emp.absentDays);
-      console.log("- Late days:", emp.lateDays);
-      console.log("- Total late minutes:", emp.totalLateMinutes);
-      console.log("- Total undertime minutes:", emp.totalUndertimeMinutes);
-      console.log("- Total regular hours:", emp.totalRegularHours);
-      console.log("- Total overtime hours:", emp.totalOvertimeHours);
-      console.log("- Total night differential hours:", emp.totalNightDifferentialHours);
-      console.log("- Total holiday hours:", emp.totalHolidayHours);
-      console.log("- Total rest day hours:", emp.totalRestDayHours);
-      console.log("- Day shift days:", emp.dayShiftDays);
-      console.log("- Evening shift days:", emp.eveningShiftDays);
-      console.log("- Night shift days:", emp.nightShiftDays);
     });
 
     const finalSummary = Object.values(summary);
-    console.log("\n=== Final Summary Array (With Undertime) ===");
-    console.log(finalSummary);
-    console.log("=== End generateSummary Debug (With Undertime) ===");
-
     setSummaryData(finalSummary);
   };
 
-  // Refresh attendance data with new schedules
   const refreshAttendanceDataWithNewSchedules = () => {
     if (attendanceData.length > 0) {
-      console.log("Refreshing attendance data with new schedules...");
+      const currentActiveSchedules = selectedSchedules.length > 0 ? selectedSchedules : [];
 
-      // Get current active schedules
-      const currentActiveSchedules =
-        selectedSchedules.length > 0 ? selectedSchedules : [];
-
-      // Reprocess existing attendance data with new schedules
       const reprocessedData = attendanceData.map((record) => {
-        // Recalculate shift based on new schedules
-        const shift = determineShiftFromSchedules(
-          record.onDuty,
-          currentActiveSchedules
-        );
-
-        // Recalculate attendance value with schedule validation
-        const attendanceValue = calculateAttendanceValue(
-          record.onDuty,
-          record.offDuty,
-          shift
-        );
-
-        // Recalculate status with schedule validation
-        const status = calculateAttendanceStatus(
-          record.onDuty,
-          record.offDuty,
-          shift
-        );
-
-        // Recalculate late minutes with new schedules
-        const lateMinutes =
-          status !== "absent" && shift !== "No Schedule Match"
-            ? calculateLateMinutesWithSelectedSchedules(
-                record.onDuty,
-                shift,
-                currentActiveSchedules
-              )
-            : 0;
-
+        const shift = determineShiftFromSchedules(record.onDuty, currentActiveSchedules);
+        const attendanceValue = calculateAttendanceValue(record.onDuty, record.offDuty, shift);
+        const status = calculateAttendanceStatus(record.onDuty, record.offDuty, shift);
+        const lateMinutes = status !== "absent" && shift !== "No Schedule Match"
+          ? calculateLateMinutesWithSelectedSchedules(record.onDuty, shift, currentActiveSchedules)
+          : 0;
         const late = lateMinutes > 0;
-
-        // Recalculate hours breakdown with undertime
         const hoursBreakdown = calculateWorkHoursBreakdown(
           record.onDuty,
           record.offDuty,
@@ -1199,7 +1025,6 @@ const Attendance = () => {
         };
       });
 
-      console.log("Reprocessed data with new schedules:", reprocessedData);
       setAttendanceData(reprocessedData);
       generateSummary(reprocessedData);
     }
@@ -1227,7 +1052,6 @@ const Attendance = () => {
     setLoading(true);
 
     try {
-      // Get authentication token
       const token = localStorage.getItem("token");
       
       if (!token) {
@@ -1235,11 +1059,8 @@ const Attendance = () => {
         return;
       }
 
-      // Step 1: Upload attendance Excel file to backend
       const formData = new FormData();
       formData.append("attendanceFile", file);
-
-      console.log("Uploading file to:", `${import.meta.env.VITE_API_URL}/api/attendance/upload`);
 
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/attendance/upload`,
@@ -1247,13 +1068,10 @@ const Attendance = () => {
           method: "POST",
           headers: {
             'Authorization': `Bearer ${token}`,
-            // Don't set Content-Type for FormData, let browser set it with boundary
           },
           body: formData,
         }
       );
-
-      console.log("Upload response status:", response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -1262,12 +1080,10 @@ const Attendance = () => {
       }
 
       const result = await response.json();
-      console.log("Upload result:", result);
 
       if (result.success) {
         toast.success("Attendance data uploaded successfully!");
 
-        // Step 2: Send enhanced attendance summary with payroll breakdown and undertime
         const summaryPayload = summaryData.map((row) => ({
           ecode: row.ecode,
           presentDays: row.presentDays,
@@ -1276,12 +1092,11 @@ const Attendance = () => {
           absentDays: row.absentDays,
           lateDays: row.lateDays || 0,
           totalLateMinutes: row.totalLateMinutes || 0,
-          totalUndertimeMinutes: row.totalUndertimeMinutes || 0, // Include undertime
+          totalUndertimeMinutes: row.totalUndertimeMinutes || 0,
           dayShiftDays: row.dayShiftDays || 0,
           eveningShiftDays: row.eveningShiftDays || 0,
           nightShiftDays: row.nightShiftDays || 0,
           totalWorkHours: row.totalWorkHours || 0,
-          // Enhanced payroll data
           totalRegularHours: row.totalRegularHours || 0,
           totalOvertimeHours: row.totalOvertimeHours || 0,
           totalNightDifferentialHours: row.totalNightDifferentialHours || 0,
@@ -1289,9 +1104,10 @@ const Attendance = () => {
           totalHolidayOvertimeHours: row.totalHolidayOvertimeHours || 0,
           totalRestDayHours: row.totalRestDayHours || 0,
           totalRestDayOvertimeHours: row.totalRestDayOvertimeHours || 0,
+          regularHolidayHours: row.regularHolidayHours || 0,
+          specialHolidayHours: row.specialHolidayHours || 0,
+          specialNonWorkingHours: row.specialNonWorkingHours || 0,
         }));
-
-        console.log("Sending enhanced summary payload with undertime:", summaryPayload);
 
         const summaryResponse = await fetch(
           `${import.meta.env.VITE_API_URL}/api/attendance/add-attendance-summary`,
@@ -1305,8 +1121,6 @@ const Attendance = () => {
           }
         );
 
-        console.log("Summary response status:", summaryResponse.status);
-
         if (!summaryResponse.ok) {
           const errorText = await summaryResponse.text();
           console.error("Summary save failed:", errorText);
@@ -1314,7 +1128,6 @@ const Attendance = () => {
         }
 
         const summaryResult = await summaryResponse.json();
-        console.log("Summary result:", summaryResult);
 
         if (summaryResult.success) {
           toast.success(
@@ -1322,17 +1135,12 @@ const Attendance = () => {
           );
           setShowModal(true);
           
-          // Clear the form
           setSelectedFile(null);
           setAttendanceData([]);
           setSummaryData([]);
           fileInput.value = "";
-          
-          // Optionally fetch updated data
-          // fetchAttendanceData();
         } else {
           toast.error(summaryResult.message || "Failed to save attendance summary");
-          console.error("Summary save error:", summaryResult);
         }
       } else {
         toast.error(result.message || "Failed to save attendance data");
@@ -1345,11 +1153,8 @@ const Attendance = () => {
     } catch (error) {
       console.error("Error submitting data:", error);
       
-      // More specific error messages
       if (error.message.includes('401')) {
         toast.error("Authentication failed. Please log in again.");
-        // Optionally redirect to login
-        // navigate('/login');
       } else if (error.message.includes('413')) {
         toast.error("File too large. Please use a smaller file.");
       } else if (error.message.includes('422')) {
@@ -1369,7 +1174,6 @@ const Attendance = () => {
       setShowWarningModal(true);
       return;
     }
-    // Trigger file input click
     document.querySelector('input[type="file"]').click();
   };
 
@@ -1404,6 +1208,23 @@ const Attendance = () => {
     fetchAttendanceData();
   }, []);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   return (
     <div className="right-0 bottom-0 min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <div className="">
@@ -1425,7 +1246,7 @@ const Attendance = () => {
               </Modal.Title>
             </Modal.Header>
             <Modal.Body as="h6" className="text-sm p-2 text-justify ml-2 -mb-0">
-              Attendance with payroll breakdown and undertime tracking saved successfully!
+              Attendance with payroll breakdown, undertime tracking, and holiday classification saved successfully!
             </Modal.Body>
             <Modal.Footer>
               <button
@@ -1447,7 +1268,7 @@ const Attendance = () => {
         <div className="p-2 -mt-3 rounded border bg-white shadow-sm border-neutralDGray">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm text-neutralDGray">
-              Upload Attendance File (with Philippine Payroll Classifications & Undertime Tracking)
+              Upload Attendance File (with Holiday Detection & Classification)
             </h2>
             <div className="flex items-center gap-2">
               {selectedSchedules.length > 0 && (
@@ -1456,7 +1277,7 @@ const Attendance = () => {
                     Active Schedules:
                   </span>
                   <div className="flex gap-1">
-                    {selectedSchedules.slice(0, 2).map((schedule, index) => (
+                    {selectedSchedules.slice(0, 2).map((schedule) => (
                       <span
                         key={schedule.id}
                         className="px-2 py-1 bg-green-100 h-6 flex justify-center items-center text-green-800 rounded text-xs"
@@ -1512,6 +1333,7 @@ const Attendance = () => {
           </div>
         </div>
 
+
         <ScheduleSelectionModal
           show={showScheduleModal}
           onClose={() => setShowScheduleModal(false)}
@@ -1530,10 +1352,9 @@ const Attendance = () => {
         <WarningModal />
 
         <div className="grid mt-2 grid-cols-2 gap-2">
-          {/* Enhanced Attendance Table with Payroll Details and Undertime */}
           <div className="overflow-auto h-full rounded border bg-white shadow-sm p-2">
             <h2 className="text-sm italic text-neutralDGray mb-2">
-              Detailed Attendance with Payroll Classifications & Undertime Tracking
+              Detailed Attendance with Holiday Classification
             </h2>
 
             {attendanceData.length > 0 ? (
@@ -1550,7 +1371,7 @@ const Attendance = () => {
               />
             ) : (
               <p className="text-center text-xs italic text-gray-500">
-                No attendance data available. Upload a file to see payroll breakdown with undertime tracking.
+                No attendance data available. Upload a file to see payroll breakdown with holiday detection.
               </p>
             )}
           </div>
@@ -1558,7 +1379,7 @@ const Attendance = () => {
           {/* Enhanced Summary Table with Payroll Totals and Undertime */}
           <div className="overflow-auto h-full rounded border bg-white shadow-sm p-2">
             <h2 className="text-sm italic text-neutralDGray mb-2">
-              Payroll Summary with Undertime Tracking
+              Payroll Summary with Holiday Breakdown
             </h2>
 
             {summaryData.length > 0 ? (
@@ -1573,7 +1394,7 @@ const Attendance = () => {
               />
             ) : (
               <p className="text-center text-xs italic text-gray-500">
-                No payroll summary available. Upload a file to see detailed breakdown with undertime calculations.
+                No payroll summary available. Upload a file to see detailed breakdown with holiday hours by type.
               </p>
             )}
           </div>

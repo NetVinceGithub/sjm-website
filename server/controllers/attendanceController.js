@@ -359,7 +359,8 @@ export const saveAttendance = async (req, res) => {
   }
 };
 
-// FIXED: Enhanced saveAttendanceSummary with proper validation
+
+// FIXED: Enhanced saveAttendanceSummary with holiday hours breakdown
 export const saveAttendanceSummary = async (req, res) => {
   try {
     console.log("=== SAVE ATTENDANCE SUMMARY DEBUG ===");
@@ -403,7 +404,7 @@ export const saveAttendanceSummary = async (req, res) => {
         lateDays: Number(record.lateDays) || 0,
         totalLateMinutes: Number(record.totalLateMinutes) || 0,
         
-        // FIXED: Proper undertime tracking
+        // Undertime tracking
         totalUndertimeMinutes: Number(record.totalUndertimeMinutes) || 0,
         
         // Shift tracking
@@ -414,7 +415,7 @@ export const saveAttendanceSummary = async (req, res) => {
         // Work hours
         totalWorkHours: Number(record.totalWorkHours) || 0,
         
-        // FIXED: Enhanced payroll breakdown with validation
+        // Enhanced payroll breakdown with validation
         totalRegularHours: Number(record.totalRegularHours) || 0,
         totalOvertimeHours: Number(record.totalOvertimeHours) || 0,
         totalNightDifferentialHours: Number(record.totalNightDifferentialHours) || 0,
@@ -423,13 +424,18 @@ export const saveAttendanceSummary = async (req, res) => {
         totalRestDayHours: Number(record.totalRestDayHours) || 0,
         totalRestDayOvertimeHours: Number(record.totalRestDayOvertimeHours) || 0,
         
+        // NEW: Holiday hours breakdown by type
+        regularHolidayHours: Number(record.regularHolidayHours) || 0,
+        specialHolidayHours: Number(record.specialHolidayHours) || 0,
+        specialNonWorkingHours: Number(record.specialNonWorkingHours) || 0,
+        
         // Legacy fields
         regularHoursDays: Number(record.regularHoursDays) || 0,
         attendanceRate: Number(attendanceRate.toFixed(2)) || 0,
       };
     });
 
-    // FIXED: Use transaction for data consistency
+    // Use transaction for data consistency
     const transaction = await AttendanceSummary.sequelize.transaction();
     
     try {
@@ -472,7 +478,7 @@ export const saveAttendanceSummary = async (req, res) => {
 
       res.status(201).json({
         success: true,
-        message: "Enhanced attendance summary with payroll breakdown and undertime tracking saved successfully",
+        message: "Attendance summary with holiday breakdown saved successfully",
         created: createdCount,
         updated: updatedCount,
         total: createdCount + updatedCount,
@@ -485,7 +491,7 @@ export const saveAttendanceSummary = async (req, res) => {
     }
 
   } catch (error) {
-    console.error("Error saving enhanced attendance summary:", error);
+    console.error("Error saving attendance summary:", error);
     res.status(500).json({ 
       success: false,
       message: "Server error", 

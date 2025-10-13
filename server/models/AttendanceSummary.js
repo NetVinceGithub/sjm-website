@@ -17,22 +17,22 @@ const AttendanceSummary = sequelize.define(
     
     // Basic attendance tracking with fractional support
     presentDays: {
-      type: DataTypes.DECIMAL(10, 2), // Supports up to 99999999.99 with 2 decimal places
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       defaultValue: 0,
     },
     totalDays: {
-      type: DataTypes.DECIMAL(10, 2), // Also support fractional total days
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       defaultValue: 0,
     },
     absentDays: {
-      type: DataTypes.DECIMAL(10, 2), // Support fractional absent days
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       defaultValue: 0,
     },
     halfDays: {
-      type: DataTypes.DECIMAL(10, 2), // NEW: Track half days separately
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       defaultValue: 0,
     },
@@ -49,7 +49,7 @@ const AttendanceSummary = sequelize.define(
       defaultValue: 0,
     },
     
-    // NEW: Undertime tracking
+    // Undertime tracking
     totalUndertimeMinutes: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -75,7 +75,7 @@ const AttendanceSummary = sequelize.define(
     
     // Work hours summary
     totalWorkHours: {
-      type: DataTypes.DECIMAL(12, 2), // Allow for larger totals
+      type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
       defaultValue: 0,
     },
@@ -117,6 +117,26 @@ const AttendanceSummary = sequelize.define(
       defaultValue: 0,
     },
     
+    // NEW: Holiday hours breakdown by type
+    regularHolidayHours: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0,
+      comment: 'Hours worked on Regular holidays'
+    },
+    specialHolidayHours: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0,
+      comment: 'Hours worked on Special holidays'
+    },
+    specialNonWorkingHours: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0,
+      comment: 'Hours worked on Special Non-Working holidays'
+    },
+    
     // Legacy/calculated fields
     regularHoursDays: {
       type: DataTypes.DECIMAL(10, 2),
@@ -124,7 +144,7 @@ const AttendanceSummary = sequelize.define(
       defaultValue: 0,
     },
     attendanceRate: {
-      type: DataTypes.DECIMAL(5, 2), // Up to 999.99%
+      type: DataTypes.DECIMAL(5, 2),
       allowNull: false,
       defaultValue: 0.0,
     },
@@ -132,9 +152,9 @@ const AttendanceSummary = sequelize.define(
 
   {
     tableName: "attendancesummary",
-    timestamps: true, // Enable timestamps for tracking when records are created/updated
-    createdAt: "created_at", // 👈 map Sequelize -> DB
-    updatedAt: "updated_at", // 👈 map Sequelize -> DB
+    timestamps: true,
+    createdAt: "created_at",
+    updatedAt: "updated_at",
 
     indexes: [
       {
