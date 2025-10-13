@@ -1193,6 +1193,26 @@ export const deleteAllPayslips = async (req, res) => {
   }
 };
 
+export const deletePayslip = async (req, res) => {
+
+  const {employeeId} = req.params;
+
+  console.log("Incoming id to cancel", employeeId);
+  try {
+    const response = await Payslip.findOne({where: {employeeId}});
+
+    console.log("Payslip that will be deleted", employeeId);
+
+    await response.destroy();
+
+    console.log("Payslip deleted");
+
+    return res.status(200).json({success:true, message:"Success in deleting:", employeeId});
+  }catch (error) {
+    return res.status(500).json({success:false, message: error.message});
+  }
+}
+
 export const releasePayrollByProject = async (req, res) => {
   const { project } = req.body;
 

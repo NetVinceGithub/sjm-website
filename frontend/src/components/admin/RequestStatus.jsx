@@ -5,6 +5,7 @@ import DataTable from "react-data-table-component";
 import axios from "axios";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
+import PayslipModal from "../dashboard/payroll/PayslipModal";
 
 dayjs.extend(duration);
 
@@ -12,8 +13,14 @@ const RequestStatus = () => {
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(dayjs());
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [cancelId, setCancelId] = useState(null);
 
-  // Update current time every second for countdown
+
+
+  // Update current time every second for coun tdown
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(dayjs());
@@ -23,7 +30,10 @@ const RequestStatus = () => {
   }, []);
 
   useEffect(() => {
-    const fetchPayslips = async () => {
+    fetchPayslips();
+  }, []);
+
+   const fetchPayslips = async () => {
       try {
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
         const approvedPayslips = response.data.filter(
@@ -64,9 +74,6 @@ const RequestStatus = () => {
       }
     };
 
-    fetchPayslips();
-  }, []);
-
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredData = useMemo(() => {
@@ -102,6 +109,7 @@ const RequestStatus = () => {
     const hours = duration.hours();
     const minutes = duration.minutes();
     const seconds = duration.seconds();
+    
     
     if (days > 0) {
       return (
@@ -154,6 +162,25 @@ const RequestStatus = () => {
     }
   };
 
+  const handleOpenModal = (employeeId) => {
+    setSelectedEmployee(employeeId);
+    setModalOpen(true);
+  };
+
+
+  const handleCancelPayslip = async(employeeId) => {
+
+    console.log("Deleting the id", employeeId);
+    try {
+      const response = await axios.delete(`${import.meta.env.VITE_API_URL}/api/payslip/${employeeId}`);
+      console.log("Successfully cancelled the payslip", response);
+    }catch (err) {
+      console.log("Error cancelling Payslip", employeeId);
+    }
+
+    fetchPayslips();
+
+  }
   const columns = [
     { name: "Request ID", selector: (row) => row.batchId, sortable: true, width: "120px" },
     { name: "Request Type", selector: (row) => row.payrollType, sortable: true, width: "130px" },
@@ -178,7 +205,10 @@ const RequestStatus = () => {
       cell: (row) => (
         <div className="flex gap-1">
           <button
-            onClick={() => handleViewDetails(row)}
+            onClick={() => {
+              console.log('Details button clicked for:', row);
+              handleOpenModal(row.employeeId);
+            }}
             className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition-all duration-200 font-medium"
             title="View Details"
           >
@@ -186,7 +216,10 @@ const RequestStatus = () => {
             Details
           </button>
           <button
-            onClick={() => handleCancelRequest(row)}
+            onClick={() => {
+              setCancelId(row.employeeId);   // store ID to delete
+              setShowConfirmModal(true);     // show modal
+            }}
             className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-red-50 text-red-600 border border-red-200 rounded hover:bg-red-100 transition-all duration-200 font-medium"
             title="Cancel Request"
           >
@@ -202,7 +235,39 @@ const RequestStatus = () => {
     },
   ];
 
+  const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm }) => {
+  if (!isOpen) return null;
   return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-white p-6 rounded-md shadow-lg w-80">
+        <h2 className="text-lg font-semibold text-gray-800 mb-3">
+          Confirm Deletion
+        </h2>
+        <p className="text-gray-600 mb-6">
+          Are you sure you want to delete this payslip? This action cannot be undone.
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+  return (
+
+    
     <div className="p-4">
       <div className="flex justify-between items-center mt-2 mb-2">
         <div className="text-left">
@@ -227,6 +292,12 @@ const RequestStatus = () => {
           Showing {filteredData.length} of {payslips.length} results for "{searchTerm}"
         </div>
       )}
+
+        <PayslipModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          employeeId={selectedEmployee}
+        />
 
       <div className="-mt-1 overflow-auto rounded-md border border-gray-200">
         <DataTable
@@ -277,8 +348,23 @@ const RequestStatus = () => {
           dense
         />
       </div>
+      <ConfirmDeleteModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={() => {
+          handleCancelPayslip(cancelId);
+          setShowConfirmModal(false);
+        }}
+      />
+
+      
+
     </div>
+
   );
+
+
+
 };
 
 export default RequestStatus;

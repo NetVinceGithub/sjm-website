@@ -12,7 +12,8 @@ import {
   getAvailableBatches,
   getContributions,
   getPayslipHistoryById, 
-  approveBatch
+  approveBatch,
+  deletePayslip
 } from "../controllers/payslipController.js";
 import { sequelize } from "../db/db.js"; // Ensure correct path
 import { QueryTypes } from "sequelize";
@@ -42,6 +43,8 @@ router.get("/:id", getPayslipById);
 
 
 router.delete("/", deleteAllPayslips); // Add this line
+router.delete("/:employeeId", deletePayslip);
+
 router.post("/release-payroll/project", releasePayrollByProject);
 
 
