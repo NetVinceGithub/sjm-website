@@ -1370,14 +1370,60 @@ export const releasePayrollByProject = async (req, res) => {
   }
 };
 
-
-// export const getContributions = async (req, res) =. {
-//   try {
+export const getContributions = async (req, res) => {
+  try {
+    const response = await PayslipHistory.findAll({});
     
-//   }catch (error) {
+    return res.status(200).json({success:true, data: response});
+  }catch (error) {
+    return res.status(500).json({success:false, message:error.message});
+  }
+}
 
+
+
+//the api response is the summation of the contributions, it cannot be used for filters
+// export const getContributions = async (req, res) => {
+//   try {
+//     // 1️⃣ Get Sum Contribution Per Employee
+//     const historyData = await PayslipHistory.findAll({
+//       attributes: [
+//         "ecode",
+//         "name",
+//         [fn("SUM", col("sss")), "total_sss"],
+//         [fn("SUM", col("phic")), "total_phic"],
+//         [fn("SUM", col("hdmf")), "total_hdmf"],
+//       ],
+//       group: ["ecode", "name"],
+//       raw: true,
+//     });
+
+//     // 2️⃣ Extract Unique Ecode List
+//     const ecodes = historyData.map((item) => item.ecode);
+
+//     // 3️⃣ Get Employee Static Government IDs
+//     const employeeData = await Employee.findAll({
+//       attributes: ["ecode", "sss", "phil_health", "pag_ibig"],
+//       where: { ecode: ecodes },
+//       raw: true,
+//     });
+
+//     // 4️⃣ Merge Result Without Associations
+//     const finalResult = historyData.map((item) => {
+//       const emp = employeeData.find((e) => e.ecode === item.ecode) || {};
+//       return {
+//         ...item,
+//         employee_sss: emp.sss || null,
+//         employee_phil_health: emp.phil_health || null,
+//         employee_pag_ibig: emp.pag_ibig || null,
+//       };
+//     });
+
+//     return res.status(200).json({ success: true, data: finalResult });
+//   } catch (error) {
+//     return res.status(500).json({ success: false, message: error.message });
 //   }
-// }
+// };
 
 // Alternative version if you want to get contributions for a specific employee
 export const getEmployeeContributions = async (req, res) => {
