@@ -11,11 +11,13 @@ import {
   releasePayrollByProject,
   getAvailableBatches,
   getContributions,
-  getPayslipHistoryById 
+  getPayslipHistoryById, 
+  approveBatch,
+  deletePayslip
 } from "../controllers/payslipController.js";
 import { sequelize } from "../db/db.js"; // Ensure correct path
 import { QueryTypes } from "sequelize";
-import PayrollInformation from "../models/PayrollInformation.js";
+import { PayrollInformation } from "../models/Employee.js";
 import Payslip from "../models/Payslip.js";
 
 const router = express.Router();
@@ -32,6 +34,7 @@ router.get("/pending-requests", pendingRequests);
 router.post("/release-payroll", releasePayroll);
 router.post("/send-payslip", sendPayslips);
 router.post("/", addPayslip);
+router.post("/approve-batch", approveBatch);
 
 
 router.get("/batches", getAvailableBatches); // <-- Add this
@@ -40,6 +43,8 @@ router.get("/:id", getPayslipById);
 
 
 router.delete("/", deleteAllPayslips); // Add this line
+router.delete("/:employeeId", deletePayslip);
+
 router.post("/release-payroll/project", releasePayrollByProject);
 
 

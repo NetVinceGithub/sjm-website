@@ -24,7 +24,8 @@ import {
   bulkRequestPayrollChange,
   rejectBatchChange,
   getBatchDetails,
-  createEmployee, 
+  createEmployee,
+  editEmployeeSchedule, 
 
 } from "../controllers/employeeController.js";
 
@@ -96,6 +97,8 @@ router.get('/batch-details/:batchId', getBatchDetails);
 
 // Employee creation
 router.post('/employees', createEmployee);
+router.put('/edit-schedule/:id', editEmployeeSchedule);
+
 
 // GENERIC ROUTES LAST
 router.get("/", getEmployees); // This should be after specific routes

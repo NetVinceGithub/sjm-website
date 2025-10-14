@@ -198,7 +198,7 @@ const ClientList = () => {
             ? "Active"
             : "Inactive",
         avatar: client.name ? client.name.substring(0, 2).toUpperCase() : "CL",
-        remarks: client.remarks || "No remarks available for this client.",
+        remarks: client.project || "No remarks available for this client.",
         contact_person: client.contactPerson || "No contact person",
         billing_frequency: client.billingFrequency,
         client_code: client.clientCode,

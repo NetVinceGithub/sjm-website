@@ -1,12 +1,27 @@
+// Corrected Attendance Controller - Fixed data extraction and validation
 import Attendance from "../models/Attendance.js";
 import moment from "moment";
 import AttendanceSummary from "../models/AttendanceSummary.js";
 import AttendanceHistory from "../models/AttendanceHistory.js";
-
 import multer from 'multer';
 import XLSX from 'xlsx';
 
-
+// Configure multer for file upload handling
+const storage = multer.memoryStorage();
+export const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+        file.mimetype === 'application/vnd.ms-excel') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only Excel files (.xlsx, .xls) are allowed'), false);
+    }
+  }
+});
 
 const excelSerialToDate = (serial) => {
   const excelEpoch = new Date(1899, 11, 30);
@@ -15,10 +30,8 @@ const excelSerialToDate = (serial) => {
 };
 
 const parseTimeToHHMMSS = (timeValue) => {
-  // Null or empty check
   if (timeValue == null || timeValue === '' || timeValue === 'null') return null;
 
-  // Handle Excel numeric time (e.g., 0.333333 for 08:00 AM)
   if (typeof timeValue === 'number') {
     const totalSeconds = Math.round(24 * 60 * 60 * timeValue);
     const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
@@ -27,15 +40,14 @@ const parseTimeToHHMMSS = (timeValue) => {
     return `${hours}:${minutes}:${seconds}`;
   }
 
-  // Handle common string formats
   const m = moment(timeValue, ['HH:mm:ss', 'HH:mm', 'H:mm', 'h:mm A'], true);
   return m.isValid() ? m.format('HH:mm:ss') : null;
 };
 
-
+// FIXED: Enhanced file upload handler
 export const uploadAttendanceFile = async (req, res) => {
   try {
-    console.log('REQ.FILE:', req.file);
+    console.log('=== FILE UPLOAD DEBUG ===');
 
     if (!req.file) {
       return res.status(400).json({ success: false, message: "No file uploaded" });
@@ -45,10 +57,8 @@ export const uploadAttendanceFile = async (req, res) => {
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(worksheet);
 
-    console.log('Raw Excel rows sample:', rows.slice(0, 2));
-
     const formattedData = rows
-      .map(row => {
+      .map((row, index) => {
         // Convert Date
         const dateRaw = row.Date || row.date || '';
         let date = '';
@@ -58,32 +68,47 @@ export const uploadAttendanceFile = async (req, res) => {
           date = moment(dateRaw).isValid() ? moment(dateRaw).format('YYYY-MM-DD') : null;
         }
 
-        // Get ecode from Name column
         const ecode = String(row.Name || row.name || '').trim();
+        
+        // FIXED: Consistent field name handling
+        const onDuty = parseTimeToHHMMSS(
+          row['ON Duty'] || row['on duty'] || row['onDuty'] || row['On Duty']
+        );
+        const offDuty = parseTimeToHHMMSS(
+          row['OFF Duty'] || row['off duty'] || row['offDuty'] || row['Off Duty']
+        );
 
-        // Get onDuty and offDuty times directly from columns
-        const onDuty = parseTimeToHHMMSS(row['ON Duty'] || row['on duty'] || row['onDuty']);
-        const offDuty = parseTimeToHHMMSS(row['OFF Duty'] || row['off duty'] || row['offDuty']);
-
-        // Determine status based on offDuty
-        let status = 'absent';
-        if (offDuty && offDuty !== 'N/A' && offDuty.trim() !== '') {
-          status = 'present';
-        }
-
-        // Return object matching the Attendance model structure
-        return {
-          ecode,        // from Name column
-          date,         // formatted date
-          onDuty,       // from ON Duty column
-          offDuty,      // from OFF Duty column
-          status        // present or absent based on offDuty
+        const record = {
+          ecode,
+          date,
+          onDuty,
+          offDuty,
+          workHours: 0,
+          status: 'absent',
+          shift: 'Unknown',
+          attendanceValue: 0,
+          isLate: false,
+          lateMinutes: 0,
+          isHoliday: Boolean(row.Holiday || row.holiday || false),
+          isRestDay: Boolean(row.RestDay || row.restDay || row['Rest Day'] || false),
+          
+          // Initialize payroll fields
+          regularHours: 0,
+          overtimeHours: 0,
+          nightDifferentialHours: 0,
+          holidayHours: 0,
+          holidayOvertimeHours: 0,
+          restDayHours: 0,
+          restDayOvertimeHours: 0,
+          undertimeHours: 0,
+          undertimeMinutes: 0,
+          expectedHours: 8,
+          ea_txndte: date
         };
-      })
-      .filter(record => record.date && record.ecode); // Only filter out completely invalid records
 
-    console.log('Formatted attendance data sample:', formattedData.slice(0, 3));
-    console.log('Total records to insert:', formattedData.length);
+        return record;
+      })
+      .filter(record => record.date && record.ecode);
 
     if (formattedData.length === 0) {
       return res.status(400).json({ 
@@ -92,188 +117,253 @@ export const uploadAttendanceFile = async (req, res) => {
       });
     }
 
-    // Prepare data for Attendance table
-    const attendanceData = formattedData.map(record => ({
-      ecode: record.ecode,
-      date: record.date,
-      onDuty: record.onDuty,
-      offDuty: record.offDuty,
-      status: record.status
-    }));
-
-    // Insert data into Attendance table only
+    // Use transaction for better error handling
+    const transaction = await Attendance.sequelize.transaction();
+    
     try {
-      // Insert into Attendance table
-      const result = await Attendance.bulkCreate(attendanceData, {
+      const result = await Attendance.bulkCreate(formattedData, {
         validate: true,
-        returning: true
+        returning: true,
+        ignoreDuplicates: true,
+        updateOnDuplicate: ['onDuty', 'offDuty', 'isHoliday', 'isRestDay', 'updated_at'],
+        transaction
       });
-      console.log('✅ Attendance bulk create successful. Inserted records:', result.length);
 
-      // Verify insertion
-      const totalRecordsInDB = await Attendance.count();
-      console.log('Total records in Attendance table:', totalRecordsInDB);
-
+      await transaction.commit();
+      
       res.status(200).json({ 
         success: true, 
-        message: `Attendance data uploaded successfully. ${result.length} records inserted.`,
+        message: `Attendance data uploaded successfully. ${result.length} records processed.`,
         details: {
-          recordsInserted: result.length,
-          totalInAttendance: totalRecordsInDB
+          recordsProcessed: result.length,
+          totalUploaded: formattedData.length
         }
       });
 
     } catch (bulkError) {
-      console.error('Bulk create error:', bulkError);
+      await transaction.rollback();
       
-      // If bulk create fails, try individual inserts
-      console.log('Attempting individual record insertion...');
-      
+      // Fallback to individual insertion
       let successCount = 0;
-      let errorCount = 0;
       const errors = [];
 
-      for (const record of attendanceData) {
+      for (const record of formattedData) {
         try {
-          await Attendance.create(record);
+          await Attendance.upsert(record);
           successCount++;
         } catch (error) {
-          errorCount++;
           errors.push({
-            record: record,
+            record: { ecode: record.ecode, date: record.date },
             error: error.message
           });
-          console.error(`Failed to insert record for ${record.ecode} on ${record.date}:`, error.message);
         }
       }
 
-      console.log(`Individual insertion complete. Success: ${successCount}, Errors: ${errorCount}`);
-
-      if (errors.length > 0) {
-        console.log('First few errors:', errors.slice(0, 3));
-      }
-
-      const totalRecordsInDB = await Attendance.count();
-
       res.status(200).json({ 
-        success: true, 
-        message: `Attendance upload completed. ${successCount} records inserted successfully.`,
+        success: successCount > 0, 
+        message: `Upload completed. ${successCount} records processed successfully.`,
         details: {
-          recordsInserted: successCount,
-          recordsFailed: errorCount,
-          totalInAttendance: totalRecordsInDB,
-          errors: errorCount > 0 ? errors.slice(0, 5) : []
+          recordsProcessed: successCount,
+          recordsFailed: errors.length,
+          errors: errors.slice(0, 5)
         }
       });
     }
 
   } catch (err) {
-    console.error('Error saving attendance:', err);
+    console.error('Error in uploadAttendanceFile:', err);
     res.status(500).json({ 
       success: false, 
-      message: 'Error saving attendance data',
+      message: 'Error processing attendance file',
       error: err.message 
     });
   }
 };
 
-
-
+// FIXED: Corrected saveAttendance with proper data extraction
 export const saveAttendance = async (req, res) => {
   try {
-    console.log("Received attendance data:", req.body);
+    console.log("=== SAVE ATTENDANCE DEBUG ===");
 
     const attendanceRecords = req.body.attendanceData;
 
     if (!attendanceRecords || !Array.isArray(attendanceRecords)) {
-      return res.status(400).json({ message: "Invalid data format. Expecting an array." });
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid data format. Expecting an array in attendanceData field." 
+      });
     }
 
-    // Your existing formatting logic...
-    const formattedRecords = [];
-    for (const record of attendanceRecords) {
-      if (record.ea_txndte) {
-        let formattedDate = record.ea_txndte;
+    console.log("Sample record received:", JSON.stringify(attendanceRecords[0], null, 2));
 
-        // Check if date is Excel serial number (number > 0)
+    const formattedRecords = [];
+    const errorDetails = [];
+
+    for (let i = 0; i < attendanceRecords.length; i++) {
+      const record = attendanceRecords[i];
+      
+      try {
+        // Handle date field
+        let formattedDate = record.date || record.ea_txndte;
+        
+        if (!formattedDate) {
+          errorDetails.push({
+            record: { ecode: record.ecode },
+            error: "Missing date field"
+          });
+          continue;
+        }
+
         if (!isNaN(formattedDate) && Number(formattedDate) > 0) {
           formattedDate = excelSerialToDate(Number(formattedDate));
         } else {
-          // Try multiple formats, allow fallback
           const parsedDate = moment(formattedDate, ["DD-MMM-YY", "YYYY-MM-DD", "MM/DD/YYYY"], true);
           if (!parsedDate.isValid()) {
-            return res.status(400).json({ message: `Invalid date format: ${formattedDate}. Expected format: DD-MMM-YY or YYYY-MM-DD.` });
+            errorDetails.push({
+              record: { ecode: record.ecode },
+              error: `Invalid date format: ${formattedDate}`
+            });
+            continue;
           }
           formattedDate = parsedDate.format("YYYY-MM-DD");
         }
 
-        // Clone and update record - EXACTLY as you had it
-        const formattedRecord = { ...record, ea_txndte: formattedDate };
+        // FIXED: Proper extraction of hoursBreakdown
+        const hoursBreakdown = record.hoursBreakdown || {};
+        
+        // Validate that we have breakdown data
+        const hasBreakdownData = hoursBreakdown && typeof hoursBreakdown === 'object';
+        
+        if (!hasBreakdownData) {
+          console.warn(`No hoursBreakdown data for ${record.ecode} on ${formattedDate}`);
+        }
+
+        const formattedRecord = {
+          ecode: String(record.ecode || '').trim(),
+          date: formattedDate,
+          onDuty: record.onDuty || null,
+          offDuty: record.offDuty || null,
+          workHours: Number(record.workHours) || 0,
+          status: record.status || 'absent',
+          shift: record.shift || 'Unknown',
+          attendanceValue: Number(record.attendanceValue) || 0,
+          isLate: Boolean(record.isLate),
+          lateMinutes: Number(record.lateMinutes) || 0,
+          isHoliday: Boolean(record.isHoliday),
+          isRestDay: Boolean(record.isRestDay),
+          
+          // FIXED: Safe extraction with fallbacks
+          regularHours: hasBreakdownData ? (Number(hoursBreakdown.regularHours) || 0) : 0,
+          overtimeHours: hasBreakdownData ? (Number(hoursBreakdown.overtimeHours) || 0) : 0,
+          nightDifferentialHours: hasBreakdownData ? (Number(hoursBreakdown.nightDifferentialHours) || 0) : 0,
+          holidayHours: hasBreakdownData ? (Number(hoursBreakdown.holidayHours) || 0) : 0,
+          holidayOvertimeHours: hasBreakdownData ? (Number(hoursBreakdown.holidayOvertimeHours) || 0) : 0,
+          restDayHours: hasBreakdownData ? (Number(hoursBreakdown.restDayHours) || 0) : 0,
+          restDayOvertimeHours: hasBreakdownData ? (Number(hoursBreakdown.restDayOvertimeHours) || 0) : 0,
+          
+          // FIXED: Proper undertime extraction
+          undertimeHours: hasBreakdownData ? (Number(hoursBreakdown.undertimeHours) || 0) : 0,
+          undertimeMinutes: hasBreakdownData ? (Number(hoursBreakdown.undertimeMinutes) || 0) : 0,
+          expectedHours: hasBreakdownData ? (Number(hoursBreakdown.expectedHours) || 8) : 8,
+          
+          ea_txndte: formattedDate
+        };
+
+        if (!formattedRecord.ecode) {
+          errorDetails.push({
+            record: record,
+            error: "Missing employee code (ecode)"
+          });
+          continue;
+        }
+
         formattedRecords.push(formattedRecord);
-      } else {
-        return res.status(400).json({ message: "Missing date field (ea_txndte) in one or more records." });
+      } catch (error) {
+        errorDetails.push({
+          record: { ecode: record.ecode },
+          error: error.message
+        });
       }
     }
 
-    console.log("=== DEBUGGING INFO ===");
-    console.log("Sample formatted record:", JSON.stringify(formattedRecords[0], null, 2));
-    console.log("Total records:", formattedRecords.length);
-    
-    // Test AttendanceHistory model directly
-    console.log("Testing AttendanceHistory model...");
-    console.log("AttendanceHistory table name:", AttendanceHistory.tableName);
-    console.log("AttendanceHistory attributes:", Object.keys(AttendanceHistory.rawAttributes));
+    if (formattedRecords.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid records to process",
+        details: { errors: errorDetails }
+      });
+    }
 
-    // Insert into Attendance table
-    const result1 = await Attendance.bulkCreate(formattedRecords, { validate: true });
-    console.log("✅ Attendance records inserted:", result1.length);
+    console.log("Sample processed record:", JSON.stringify(formattedRecords[0], null, 2));
 
-    // Insert into AttendanceHistory table with detailed logging
-    console.log("Attempting AttendanceHistory insertion...");
+    // FIXED: Use transaction for data consistency
+    const transaction = await Attendance.sequelize.transaction();
     
     try {
-      const result2 = await AttendanceHistory.bulkCreate(formattedRecords, { 
-        validate: true,
-        returning: true,
-        ignoreDuplicates: false
-      });
-      console.log("✅ AttendanceHistory records inserted:", result2.length);
-      console.log("Sample inserted record:", result2[0] ? result2[0].toJSON() : "No records returned");
-      
-      res.status(201).json({
-        message: "Attendance data saved successfully",
-        insertedRowsAttendance: result1.length,
-        insertedRowsHistory: result2.length,
-      });
-    } catch (historyError) {
-      console.error("❌ AttendanceHistory ERROR:");
-      console.error("Error name:", historyError.name);
-      console.error("Error message:", historyError.message);
-      console.error("Error stack:", historyError.stack);
-      
-      if (historyError.errors) {
-        console.error("Validation errors:", historyError.errors);
+      let attendanceUpsertCount = 0;
+      let historyInsertCount = 0;
+
+      // Process attendance records with upsert
+      for (const record of formattedRecords) {
+        try {
+          const [instance, created] = await Attendance.upsert(record, {
+            returning: true,
+            transaction
+          });
+          attendanceUpsertCount++;
+        } catch (attendanceError) {
+          console.error(`Failed to upsert attendance for ${record.ecode}:`, attendanceError.message);
+          errorDetails.push({
+            record: { ecode: record.ecode, date: record.date },
+            error: attendanceError.message
+          });
+        }
       }
-      
-      // Return the error details
-      res.status(500).json({
-        message: "AttendanceHistory insertion failed",
-        error: historyError.message,
-        errorName: historyError.name,
-        insertedRowsAttendance: result1.length,
-        insertedRowsHistory: 0
+
+      // Insert into AttendanceHistory
+      try {
+        const historyResult = await AttendanceHistory.bulkCreate(formattedRecords, { 
+          validate: true,
+          returning: true,
+          transaction
+        });
+        historyInsertCount = historyResult.length;
+      } catch (historyError) {
+        console.error("AttendanceHistory ERROR:", historyError.message);
+        // Don't fail the entire transaction for history errors
+      }
+
+      await transaction.commit();
+
+      res.status(201).json({
+        success: true,
+        message: "Enhanced attendance data with payroll breakdown saved successfully",
+        processed: attendanceUpsertCount,
+        historySaved: historyInsertCount,
+        totalRecords: formattedRecords.length,
+        errors: errorDetails.length > 0 ? errorDetails : undefined
       });
+
+    } catch (transactionError) {
+      await transaction.rollback();
+      throw transactionError;
     }
 
   } catch (error) {
-    console.error("General error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("General error in saveAttendance:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error", 
+      error: error.message 
+    });
   }
 };
 
+
+// FIXED: Enhanced saveAttendanceSummary with holiday hours breakdown
 export const saveAttendanceSummary = async (req, res) => {
   try {
-    console.log("Received attendance summary data: it oyung save attendance sumary", req.body);
+    console.log("=== SAVE ATTENDANCE SUMMARY DEBUG ===");
 
     const attendanceSummaryRecords = req.body.summaryData;
 
@@ -284,7 +374,7 @@ export const saveAttendanceSummary = async (req, res) => {
       });
     }
 
-    // Validate that each record has required fields
+    // Validate required fields
     for (let i = 0; i < attendanceSummaryRecords.length; i++) {
       const record = attendanceSummaryRecords[i];
       if (!record.ecode) {
@@ -295,61 +385,110 @@ export const saveAttendanceSummary = async (req, res) => {
       }
     }
 
-    // Format data to match the model fields
+    console.log("Sample summary record:", JSON.stringify(attendanceSummaryRecords[0], null, 2));
+
     const formattedData = attendanceSummaryRecords.map(record => {
       const attendanceRate = record.totalDays > 0 ? 
         (record.presentDays / record.totalDays) * 100 : 0;
 
       return {
         ecode: String(record.ecode).trim(),
+        
+        // Basic attendance tracking
         presentDays: Number(record.presentDays) || 0,
         totalDays: Number(record.totalDays) || 0,
         absentDays: Number(record.absentDays) || 0,
+        halfDays: Number(record.halfDays) || 0,
+        
+        // Tardiness tracking
         lateDays: Number(record.lateDays) || 0,
         totalLateMinutes: Number(record.totalLateMinutes) || 0,
+        
+        // Undertime tracking
+        totalUndertimeMinutes: Number(record.totalUndertimeMinutes) || 0,
+        
+        // Shift tracking
         dayShiftDays: Number(record.dayShiftDays) || 0,
         eveningShiftDays: Number(record.eveningShiftDays) || 0,
         nightShiftDays: Number(record.nightShiftDays) || 0,
+        
+        // Work hours
+        totalWorkHours: Number(record.totalWorkHours) || 0,
+        
+        // Enhanced payroll breakdown with validation
+        totalRegularHours: Number(record.totalRegularHours) || 0,
+        totalOvertimeHours: Number(record.totalOvertimeHours) || 0,
+        totalNightDifferentialHours: Number(record.totalNightDifferentialHours) || 0,
+        totalHolidayHours: Number(record.totalHolidayHours) || 0,
+        totalHolidayOvertimeHours: Number(record.totalHolidayOvertimeHours) || 0,
+        totalRestDayHours: Number(record.totalRestDayHours) || 0,
+        totalRestDayOvertimeHours: Number(record.totalRestDayOvertimeHours) || 0,
+        
+        // NEW: Holiday hours breakdown by type
+        regularHolidayHours: Number(record.regularHolidayHours) || 0,
+        specialHolidayHours: Number(record.specialHolidayHours) || 0,
+        specialNonWorkingHours: Number(record.specialNonWorkingHours) || 0,
+        
+        // Legacy fields
         regularHoursDays: Number(record.regularHoursDays) || 0,
         attendanceRate: Number(attendanceRate.toFixed(2)) || 0,
       };
     });
 
-    // Use upsert to handle existing records
-    const results = [];
-    let createdCount = 0;
-    let updatedCount = 0;
+    // Use transaction for data consistency
+    const transaction = await AttendanceSummary.sequelize.transaction();
+    
+    try {
+      let createdCount = 0;
+      let updatedCount = 0;
+      const errors = [];
 
-    for (const record of formattedData) {
-      try {
-        const [instance, created] = await AttendanceSummary.upsert(record, {
-          returning: true
-        });
-        
-        if (created) {
-          createdCount++;
-        } else {
-          updatedCount++;
+      for (const record of formattedData) {
+        try {
+          const [instance, created] = await AttendanceSummary.upsert(record, {
+            returning: true,
+            transaction
+          });
+          
+          if (created) {
+            createdCount++;
+          } else {
+            updatedCount++;
+          }
+          
+        } catch (error) {
+          console.error(`Error processing summary for ecode ${record.ecode}:`, error.message);
+          errors.push({
+            ecode: record.ecode,
+            error: error.message
+          });
         }
-        
-        results.push({ instance, created });
-      } catch (error) {
-        console.error(`Error processing record for ecode ${record.ecode}:`, error);
+      }
+
+      if (errors.length > 0 && (createdCount + updatedCount) === 0) {
+        await transaction.rollback();
         return res.status(500).json({
           success: false,
-          message: `Error processing record for ecode ${record.ecode}: ${error.message}`
+          message: "Failed to process any summary records",
+          details: { errors }
         });
       }
-    }
 
-    res.status(201).json({
-      success: true,
-      message: "Attendance Summary data saved successfully",
-      created: createdCount,
-      updated: updatedCount,
-      total: results.length,
-      data: results.map(r => r.instance)
-    });
+      await transaction.commit();
+
+      res.status(201).json({
+        success: true,
+        message: "Attendance summary with holiday breakdown saved successfully",
+        created: createdCount,
+        updated: updatedCount,
+        total: createdCount + updatedCount,
+        errors: errors.length > 0 ? errors.slice(0, 5) : undefined
+      });
+
+    } catch (transactionError) {
+      await transaction.rollback();
+      throw transactionError;
+    }
 
   } catch (error) {
     console.error("Error saving attendance summary:", error);
@@ -361,46 +500,97 @@ export const saveAttendanceSummary = async (req, res) => {
   }
 };
 
-
-
-
+// Get functions remain the same but with better error handling
 export const getAttendance = async (req, res) => {
   try {
-    const attendance = await Attendance.findAll();
-    res.status(200).json({ attendance });
+    const attendance = await Attendance.findAll({
+      order: [['date', 'DESC'], ['ecode', 'ASC']]
+    });
+    res.status(200).json({ success: true, attendance });
   } catch (error) {
-    res.status(500).json({ success: false, error: "Error in attendanceController" });
+    console.error("Error fetching attendance:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error fetching attendance data",
+      error: error.message 
+    });
   }
 };
 
 export const getAttendanceHistory = async (req, res) => {
   try {
-    const attendance = await AttendanceHistory.findAll();
-    res.status(200).json({ attendance });
+    const attendance = await AttendanceHistory.findAll({
+      order: [['created_at', 'DESC']]
+    });
+    res.status(200).json({ success: true, attendance });
   } catch (error) {
-    res.status(500).json({ success: false, error: "Error in attendanceController" });
+    console.error("Error fetching attendance history:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error fetching attendance history",
+      error: error.message 
+    });
   }
 };
 
 export const getAttendanceSummary = async (req, res) => {
   try {
-    const summary = await AttendanceSummary.findAll();
-    res.status(200).json({ summary });
+    const summary = await AttendanceSummary.findAll({
+      order: [['ecode', 'ASC']]
+    });
+    res.status(200).json({ success: true, summary });
   } catch (error) {
-    res.status(500).json({ success: false, error: "Error in attendanceController" });
+    console.error("Error fetching attendance summary:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error fetching attendance summary",
+      error: error.message 
+    });
   }
 };
 
 export const deleteAllAttendance = async (req, res) => {
   try {
-    // Delete all records from Attendance, AttendanceHistory and AttendanceSummary
-    await Attendance.destroy({ where: {}, truncate: true });
-    await AttendanceHistory.destroy({ where: {}, truncate: true });
-    await AttendanceSummary.destroy({ where: {}, truncate: true });
+    const transaction = await Attendance.sequelize.transaction();
+    
+    try {
+      const attendanceDeleted = await Attendance.destroy({ 
+        where: {}, 
+        truncate: true, 
+        transaction 
+      });
+      const historyDeleted = await AttendanceHistory.destroy({ 
+        where: {}, 
+        truncate: true, 
+        transaction 
+      });
+      const summaryDeleted = await AttendanceSummary.destroy({ 
+        where: {}, 
+        truncate: true, 
+        transaction 
+      });
 
-    res.status(200).json({ message: "All attendance records deleted successfully" });
+      await transaction.commit();
+
+      res.status(200).json({ 
+        success: true,
+        message: "All enhanced attendance records deleted successfully",
+        details: {
+          attendanceRecords: attendanceDeleted,
+          historyRecords: historyDeleted,
+          summaryRecords: summaryDeleted
+        }
+      });
+    } catch (deleteError) {
+      await transaction.rollback();
+      throw deleteError;
+    }
   } catch (error) {
     console.error("Error deleting all attendance records:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: "Server error", 
+      error: error.message 
+    });
   }
 };

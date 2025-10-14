@@ -102,6 +102,14 @@ const PayrollInformation = sequelize.define(
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,
     },
+    sss_loan: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0,
+    },
+    pagibig_loan: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0,
+    },
     otherDeductions: {
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,
@@ -118,7 +126,6 @@ const PayrollInformation = sequelize.define(
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 16224,
     },
-    
   },
   { timestamps: false }
 );
@@ -158,6 +165,10 @@ const Employee = sequelize.define(
       type: DataTypes.STRING(100),
       allowNull: true,
     },
+    suffix: {
+      type: DataTypes.STRING(10),
+      allowNull: true,
+    },
     
     name: {
       type: DataTypes.STRING(255),
@@ -195,7 +206,7 @@ const Employee = sequelize.define(
     
     // Personal information (consolidated)
     civil_status: {
-      type: DataTypes.ENUM('single', 'married', 'divorced', 'widowed'),
+      type: DataTypes.ENUM('single', 'married', 'divorced', 'widowed', 'separated'),
       allowNull: false,
     },
     gender: {
@@ -258,6 +269,18 @@ const Employee = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    emergency_contact_birthplace: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    emergency_contact_relationship: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    emergency_contact_religion: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
     
     // Salary information (consolidated)
     daily_rate: {
@@ -298,6 +321,10 @@ const Employee = sequelize.define(
       type: DataTypes.DATEONLY,
       allowNull: true,
     },
+    haccp_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
     
     // Government numbers (consolidated)
     sss: {
@@ -317,6 +344,12 @@ const Employee = sequelize.define(
       allowNull: true,
     },
     
+    // Update the schedule field in your Employee model
+    schedule: {
+      type: DataTypes.JSON,  // Changed from TEXT to JSON
+      allowNull: true,
+      defaultValue: null,
+    },
     // Separation
     date_of_separation: {
       type: DataTypes.DATEONLY,

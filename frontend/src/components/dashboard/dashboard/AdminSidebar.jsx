@@ -294,6 +294,30 @@ const AdminSidebar = () => {
                     <span>Add Employee</span>
                   </button>
                 )}
+                {isHr || isApprover ? (
+                  <>
+                    <NavLink
+                      to="/admin-dashboard/employees/employee-schedule"
+                      className={({ isActive }) =>
+                        `flex text-sm items-center space-x-4 py-2.5 text-white no-underline px-4 rounded-md ${
+                          isActive
+                            ? "font-bold  translate-x-7 transition-all duration-300"
+                            : "hover:bg-[#924F64]"
+                        }`
+                      }
+                      end
+                    >
+                      <span>Schedule</span>
+                    </NavLink>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleRestrictedAccess}
+                    className="text-sm flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
+                  >
+                    <span>Schedule</span>
+                  </button>
+                )}
               </div>
             )}
           </div>

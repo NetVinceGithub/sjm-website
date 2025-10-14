@@ -12,7 +12,7 @@ import { fileURLToPath } from "url";
 import axios from "axios";
 import sequelize from "./db/db.js";
 import Employee from "./models/Employee.js";
-import PayrollInformation from "./models/PayrollInformation.js";
+import { PayrollInformation } from "./models/Employee.js";
 import setupAssociations from "./models/associations.js";
 import { userRegister } from "./userSeed.js";
 

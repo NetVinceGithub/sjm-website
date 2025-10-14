@@ -61,20 +61,39 @@ const Holidays = () => {
   };
 
   const addHoliday = async () => {
-    try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/holidays/add`, {
-        name,
-        date,
-        type,
-      }, getAuthHeaders());
-      fetchHolidays();
-      setName("");
-      setDate("");
-      setType("");
-    } catch (error) {
-      console.error("Error adding holiday:", error);
-    }
-  };
+      // Validation
+      if (!name.trim()) {
+        alert("Please enter a holiday name");
+        return;
+      }
+      if (!date) {
+        alert("Please select a date");
+        return;
+      }
+      if (!type) {
+        alert("Please select a holiday type");
+        return;
+      }
+
+      try {
+        const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/holidays/add`, {
+          name: name.trim(),
+          date,
+          type,
+        });
+        
+        if (response.data.success) {
+          alert("Holiday added successfully!");
+          fetchHolidays();
+          setName("");
+          setDate("");
+          setType("");
+        }
+      } catch (error) {
+        console.error("Error adding holiday:", error);
+        alert(error.response?.data?.message || "Failed to add holiday");
+      }
+    };
 
   const columns = [
     {

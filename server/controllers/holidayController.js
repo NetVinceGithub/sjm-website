@@ -4,7 +4,7 @@ import HolidayRates from "../models/HolidayRates.js";
 
 export const getHolidays = async (req, res) => {
   try {
-    const holidays = await Holidays.findAll({ raw: true });
+    const holidays = await Holidays.findAll();
     res.status(200).json({ success: true, holidays });
   } catch (error) {
     console.error("Error fetching holidays:", error.message);
@@ -27,6 +27,9 @@ export const addHoliday = async (req, res) => {
     }
 
     const newHoliday = await Holidays.create({ name, date, type });
+
+    console.log("New holiday", newHoliday);
+    console.log("Na add na yung bagong holiday");
     res.status(201).json({ success: true, message: "Holiday added successfully", newHoliday });
   } catch (error) {
     console.error("Detailed error adding holiday:", {

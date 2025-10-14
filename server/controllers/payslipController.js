@@ -5,7 +5,7 @@ import Employee from "../models/Employee.js";
 import PayslipHistory from "../models/PayslipHistory.js";
 import { Op } from "sequelize"; // Ensure you have Sequelize operators
 import Attendance from "../models/Attendance.js";
-import PayrollInformation from "../models/PayrollInformation.js";
+import { PayrollInformation } from "../models/Employee.js";
 import axios from "axios";
 import AttendanceSummary from "../models/AttendanceSummary.js";
 import { QueryTypes } from "sequelize";
@@ -23,11 +23,10 @@ import { Sequelize } from "sequelize";
 import puppeteer from "puppeteer"; // Make sure puppeteer is installed
 
 import { execSync } from "child_process";
-import {
-  calculateSSSContribution,
-  calculateSSSWithCutoff,
-  updatePayrollWithSSS,
-} from "../utils/sssCalculator.js";
+import { calculateSSSWithCutoff, isSecondCutoffPeriod } from "../utils/sssCalculator.js";
+import { calculatePagIBIGContribution, calculatePagIBIGSemiMonthly } from "../utils/pagibigCalculator.js";
+import { calculatePhilHealthContribution, calculatePhilHealthSemiMonthly } from "../utils/philhealthCalculator.js";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1038,6 +1037,7 @@ export const getAvailableBatches = async (req, res) => {
             "ecode",
             "date",
             "payroll_type",
+            "noOfDays"
           ],
           order: [["name", "ASC"]],
           raw: true,
@@ -1186,13 +1186,132 @@ export const getPayslipHistoryById = async (req, res) => {
 
 export const deleteAllPayslips = async (req, res) => {
   try {
-    await Payslip.destroy({ where: {}, truncate: true }); // Deletes all rows
-    res.status(200).json({ message: "All payslips deleted successfully." });
+    const { batchId } = req.query;
+
+    // Get all payslips with email and name information
+    const payslips = await Payslip.findAll({
+      where: batchId ? { batchId } : {},
+      attributes: ['requestedByName', 'requestedBy']
+    });
+
+    // Extract unique emails (filter out null/empty emails)
+    const uniqueEmails = [...new Set(
+      payslips
+        .map(p => p.requestedBy) // requestedBy is the email
+        .filter(requestedBy => requestedBy && requestedBy.trim() !== '')
+    )];
+
+    console.log(`Found ${uniqueEmails.length} unique email(s) to notify`);
+
+    // Delete the payslips
+    const deletedCount = batchId 
+      ? await Payslip.destroy({ where: { batchId } })
+      : await Payslip.destroy({ where: {}, truncate: true });
+
+    console.log(`Deleted ${deletedCount} payslip(s)`);
+
+    // Send emails to all affected users
+    let successfulEmails = [];
+    let failedEmails = [];
+
+    for (const email of uniqueEmails) {
+      try {
+        // Find the name associated with this email from the payslips
+        const payslip = payslips.find(p => p.requestedBy === email); // Fix: use requestedBy instead of email
+        const userName = payslip?.requestedByName || 'User'; // Fix: use requestedByName instead of name
+
+        let mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: email,
+          subject: `Payslip Deletion Notification`,
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <title>Payslip Deletion Notice</title>
+            </head>
+            <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
+              <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
+                <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
+                
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                  <h2 style="color: #333;">Payslip Deletion Notification</h2>
+                  <p style="color: #333; font-size: 15px;">
+                    Dear ${userName},
+                  </p>
+                  <p style="color: #333; font-size: 15px;">
+                    This is to inform you that your payslip request${batchId ? ` for batch <strong>${batchId}</strong>` : 's'} 
+                    has been rejected.
+                  </p>
+                  <p style="color: #333; font-size: 15px;">
+                    If you have any questions or concerns, please contact your approver.
+                  </p>
+                  <p style="color: #333; font-size: 15px;">
+                    You can access the payroll system at: 
+                    <a href="https://payroll.stjohnmajore.com/">https://payroll.stjohnmajore.com/</a>
+                  </p>
+                </div>
+
+                <p style="color: #333; font-size: 15px;">Best regards,<br />SJM Payroll System</p>
+                <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
+                  <strong>This is an automated email—please do not reply.</strong><br />
+                  Keep this message for your records.
+                </div>
+                <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
+              </div>
+            </body>
+            </html>
+          `
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log(`✓ Notification sent to ${email}`);
+        successfulEmails.push(email);
+      } catch (emailError) {
+        console.error(`✗ Failed to send email to ${email}:`, emailError.message);
+        failedEmails.push(email);
+      }
+    }
+
+    res.status(200).json({
+      message: "Payslips deleted successfully.",
+      deletedCount,
+      emailsSent: successfulEmails.length,
+      emailsFailed: failedEmails.length,
+      successfulEmails,
+      failedEmails
+    });
+
   } catch (error) {
     console.error("Error deleting all payslips:", error);
-    res.status(500).json({ message: "Internal server error." });
+    res.status(500).json({ 
+      message: "Internal server error.",
+      error: error.message 
+    });
   }
 };
+
+export const deletePayslip = async (req, res) => {
+
+  const {employeeId} = req.params;
+
+  console.log("Incoming id to cancel", employeeId);
+  try {
+    const response = await Payslip.findOne({where: {employeeId}});
+
+    console.log("Payslip that will be deleted", employeeId);
+
+    await response.destroy();
+
+    console.log("Payslip deleted");
+
+    return res.status(200).json({success:true, message:"Success in deleting:", employeeId});
+  }catch (error) {
+    return res.status(500).json({success:false, message: error.message});
+  }
+}
 
 export const releasePayrollByProject = async (req, res) => {
   const { project } = req.body;
@@ -1251,153 +1370,14 @@ export const releasePayrollByProject = async (req, res) => {
   }
 };
 
-export const getContributions = async (req, res) => {
-  try {
-    const { employeeId, startDate, endDate, year, month } = req.query;
 
-    // Build WHERE conditions for filtering
-    let whereConditions = [];
-    let replacements = {};
+// export const getContributions = async (req, res) =. {
+//   try {
+    
+//   }catch (error) {
 
-    if (employeeId) {
-      whereConditions.push("e.id = :employeeId");
-      replacements.employeeId = employeeId;
-    }
-
-    // Fix date filtering - use 'date' column from PayslipHistory
-    if (startDate && endDate) {
-      whereConditions.push("ph.date BETWEEN :startDate AND :endDate");
-      replacements.startDate = startDate;
-      replacements.endDate = endDate;
-    } else if (year) {
-      whereConditions.push("YEAR(ph.date) = :year");
-      replacements.year = year;
-
-      if (month) {
-        whereConditions.push("MONTH(ph.date) = :month");
-        replacements.month = month;
-      }
-    }
-
-    const whereClause =
-      whereConditions.length > 0
-        ? `WHERE ${whereConditions.join(" AND ")}`
-        : "";
-
-    // Fixed SQL query with correct column names
-    const query = `
-    SELECT
-        e.id as employeeId,
-        e.name,
-        e.ecode as employeeCode,
-        e.sss as employeeSSS,
-        e.philhealth as employeePhilhealth,
-        e.\`pag-ibig\` as employeePagibig,
-        e.employmentstatus as employeeStatus,
-        COUNT(ph.id) as payslipCount,
-        COALESCE(SUM(CAST(ph.sss AS DECIMAL(10,2))), 0) as totalSSS,
-        COALESCE(SUM(CAST(ph.phic AS DECIMAL(10,2))), 0) as totalPhilhealth,
-        COALESCE(SUM(CAST(ph.hdmf AS DECIMAL(10,2))), 0) as totalPagibig,
-        COALESCE(SUM(
-            CAST(ph.sss AS DECIMAL(10,2)) +
-            CAST(ph.phic AS DECIMAL(10,2)) +
-            CAST(ph.hdmf AS DECIMAL(10,2))
-        ), 0) as grandTotal,
-        COUNT(CASE WHEN CAST(ph.sss AS DECIMAL(10,2)) > 0 THEN 1 END) as sssCount,
-        COUNT(CASE WHEN CAST(ph.phic AS DECIMAL(10,2)) > 0 THEN 1 END) as philhealthCount,
-        COUNT(CASE WHEN CAST(ph.hdmf AS DECIMAL(10,2)) > 0 THEN 1 END) as pagibigCount
-    FROM Employees e
-    LEFT JOIN paysliphistories ph ON e.id = ph.employee_id
-    ${whereClause}
-    GROUP BY e.id, e.name, e.ecode, e.sss, e.philhealth, e.\`pag-ibig\`, e.employmentstatus
-    ORDER BY e.name
-    `;
-
-    const results = await sequelize.query(query, {
-      replacements,
-      type: QueryTypes.SELECT,
-    });
-
-    // Format the results
-    const contributionsData = results.map((row) => ({
-      employeeId: row.employeeId,
-      employeeCode: row.employeeCode,
-      name: row.name,
-      status: row.employeeStatus,
-      employeeSSS: row.employeeSSS,
-      employeePhilhealth: row.employeePhilhealth,
-      employeePagibig: row.employeePagibig,
-      employerSSSshare: 100,
-      employerPagibigShare: 100,
-      contributions: {
-        sss: {
-          total: parseFloat(row.totalSSS || 0),
-          count: parseInt(row.sssCount || 0),
-        },
-        philhealth: {
-          total: parseFloat(row.totalPhilhealth || 0),
-          count: parseInt(row.philhealthCount || 0),
-        },
-        pagibig: {
-          total: parseFloat(row.totalPagibig || 0),
-          count: parseInt(row.pagibigCount || 0),
-        },
-      },
-      grandTotal: parseFloat(row.grandTotal || 0),
-      payslipCount: parseInt(row.payslipCount || 0),
-    }));
-
-    // Calculate overall summary
-    const overallSummary = contributionsData.reduce(
-      (acc, employee) => {
-        acc.totalEmployees++;
-        acc.totalSSS += employee.contributions.sss.total;
-        acc.totalPhilhealth += employee.contributions.philhealth.total;
-        acc.totalPagibig += employee.contributions.pagibig.total;
-        acc.grandTotal += employee.grandTotal;
-        return acc;
-      },
-      {
-        totalEmployees: 0,
-        totalSSS: 0,
-        totalPhilhealth: 0,
-        totalPagibig: 0,
-        grandTotal: 0,
-      }
-    );
-
-    // Format summary numbers
-    Object.keys(overallSummary).forEach((key) => {
-      if (key !== "totalEmployees") {
-        overallSummary[key] = parseFloat(overallSummary[key].toFixed(2));
-      }
-    });
-
-    // Return success response
-    res.status(200).json({
-      success: true,
-      message: "Contributions retrieved successfully",
-      data: {
-        summary: overallSummary,
-        employees: contributionsData,
-        filters: {
-          employeeId: employeeId || null,
-          startDate: startDate || null,
-          endDate: endDate || null,
-          year: year || null,
-          month: month || null,
-        },
-      },
-    });
-  } catch (error) {
-    console.error("Error fetching contributions:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
-    });
-  }
-};
+//   }
+// }
 
 // Alternative version if you want to get contributions for a specific employee
 export const getEmployeeContributions = async (req, res) => {
@@ -1580,9 +1560,10 @@ export const generatePayroll = async (req, res) => {
     overtimeApprovals,
     maxOvertime = 0,
     requestedBy,
+    requestedByName,
   } = req.body;
 
-  console.log("🔍 Incoming request:", {
+  console.log("Incoming request sa generate payroll", {
     cutoffDate,
     payrollType,
     selectedEmployees,
@@ -1594,6 +1575,7 @@ export const generatePayroll = async (req, res) => {
     overtimeApprovals,
     maxOvertime,
     requestedBy,
+    requestedByName
   });
 
   try {
@@ -1612,38 +1594,31 @@ export const generatePayroll = async (req, res) => {
       holidays,
       attendanceSummary;
 
-    if (employees.length > 0 && attendanceData.length > 0) {
-      console.log("📦 Using data provided by frontend");
-      employeesData = employees;
-      attendanceRecords = attendanceData;
-      holidays = holidaysData;
-    } else {
-      console.log("📦 Fetching data from database");
-      employeesData = await Employee.findAll({
-        where: { status: { [Op.ne]: "Inactive" } },
-      }).catch(async (error) => {
-        console.error("❌ Error fetching employees:", error);
-        let allEmployees = await Employee.findAll();
-        return allEmployees.filter((emp) => emp.status !== "Inactive");
-      });
+    console.log("📦 Fetching data from database");
+    employeesData = await Employee.findAll({
+      where: { status: { [Op.ne]: "Inactive" } },
+    }).catch(async (error) => {
+      console.error("❌ Error fetching employees:", error);
+      let allEmployees = await Employee.findAll();
+      return allEmployees.filter((emp) => emp.status !== "Inactive");
+    });
 
-      attendanceRecords = await Attendance.findAll().catch((error) => {
-        console.error("❌ Error fetching attendance records:", error);
-        return [];
-      });
+    attendanceRecords = await Attendance.findAll().catch((error) => {
+      console.error("❌ Error fetching attendance records:", error);
+      return [];
+    });
 
-      console.log(`✅ Fetched ${attendanceRecords.length} attendance records`);
+    console.log(`✅ Fetched ${attendanceRecords.length} attendance records`);
 
-      holidays = await Holidays.findAll().catch((error) => {
-        console.error("❌ Error fetching holidays:", error);
-        return [];
-      });
+    holidays = await Holidays.findAll().catch((error) => {
+      console.error("❌ Error fetching holidays:", error);
+      return [];
+    });
 
-      attendanceSummary = await AttendanceSummary.findAll().catch((error) => {
-        console.error("❌ Error fetching attendance summary:", error);
-        return [];
-      });
-    }
+    attendanceSummary = await AttendanceSummary.findAll().catch((error) => {
+      console.error("❌ Error fetching attendance summary:", error);
+      return [];
+    });
 
     employeesData = employeesData.filter(
       (employee) => employee.status !== "Inactive"
@@ -1675,8 +1650,7 @@ export const generatePayroll = async (req, res) => {
           })`
         );
 
-        const isRankAndFile =
-          employee.employmentrank === "RANK-AND-FILE EMPLOYEE";
+        const isRankAndFile = employee.employmentrank === "RANK-AND-FILE EMPLOYEE";
         const isOnCall = employee.employmentstatus === "ON-CALL";
         console.log(
           `👤 Employee ${employee.name} - Employment Rank: ${employee.employmentrank}, Is Rank-and-File: ${isRankAndFile}`
@@ -1696,9 +1670,8 @@ export const generatePayroll = async (req, res) => {
           continue;
         }
 
-        const employeePayrollInfo =
-          payrollInformations.find((info) => info.ecode === employee.ecode) ||
-          {};
+        const employeePayrollInfo = payrollInformations.find((info) => info.ecode === employee.ecode) || {};
+
         const attendanceSummaryRecord = attendanceSummary
           ? attendanceSummary.find((info) => info.ecode === employee.ecode)
           : null;
@@ -1711,6 +1684,8 @@ export const generatePayroll = async (req, res) => {
 
         // Calculate basic attendance metrics from attendance records
         const daysPresent = employeeAttendance.length;
+
+        console.log("Day present:", daysPresent);
         const totalLateMinutes = employeeAttendance.reduce((total, record) => {
           return total + (record.lateMinutes || 0);
         }, 0);
@@ -2029,41 +2004,79 @@ export const generatePayroll = async (req, res) => {
         // RANK-AND-FILE LOGIC: Apply different deduction rules
         // Replace the existing deductions object with this updated version:
 
+    const projectedMonthlyBasicSalary = rates.dailyRate * 26; // 26 working days per month
+
+    // Determine if this is the first or second cutoff
+    const isFirstCutoff = new Date(cutoffDate).getDate() <= 15;
+    const isSecondCutoff = isSecondCutoffPeriod(new Date(cutoffDate));
+
+    // Calculate government contributions
+    let sssContribution = { employeeContribution: 0, employerContribution: 0, ecContribution: 0 };
+    let pagibigContribution = { employeeContribution: 0, employerContribution: 0 };
+    let philhealthContribution = { employeeContribution: 0, employerContribution: 0 };
+
+    if (!isOnCall) {
+      // SSS Contribution - based on gross pay
+      sssContribution = calculateSSSWithCutoff(safeGrossPay, new Date(cutoffDate));
+      
+      // Pag-IBIG Contribution - based on monthly basic salary, split semi-monthly
+      pagibigContribution = calculatePagIBIGSemiMonthly(
+        projectedMonthlyBasicSalary, 
+        isFirstCutoff
+      );
+      
+      // PhilHealth Contribution - based on monthly basic salary
+      // Default: deduct full amount in 2nd cutoff (common practice)
+      philhealthContribution = calculatePhilHealthSemiMonthly(
+        projectedMonthlyBasicSalary,
+        "full_second", // Options: "full_first", "full_second", or "split"
+        isFirstCutoff
+      );
+    }
+
+        console.log(`💳 Government Contributions for ${employee.name}:`, {
+          isOnCall: isOnCall,
+          isFirstCutoff: isFirstCutoff,
+          isSecondCutoff: isSecondCutoff,
+          projectedMonthlyBasicSalary: projectedMonthlyBasicSalary.toFixed(2),
+          sss: {
+            employee: sssContribution.employeeContribution,
+            employer: sssContribution.employerContribution,
+            ec: sssContribution.ecContribution,
+            total: sssContribution.totalContribution
+          },
+          pagibig: {
+            employee: pagibigContribution.employeeContribution,
+            employer: pagibigContribution.employerContribution,
+            total: pagibigContribution.totalContribution,
+            isCapped: pagibigContribution.isCapped || false
+          },
+          philhealth: {
+            employee: philhealthContribution.employeeContribution,
+            employer: philhealthContribution.employerContribution,
+            total: philhealthContribution.totalContribution,
+            isMinimum: philhealthContribution.isMinimum || false,
+            deductionSchedule: philhealthContribution.deductionSchedule
+          }
+        });
+
         const deductions = {
-          sss: !isOnCall
-            ? calculateSSSWithCutoff(safeGrossPay, new Date(cutoffDate))
-                .employeeContribution 
-            : 0,
-          
-          // FIXED: PhilHealth calculation - 2.5% of basic pay
-          phic: !isOnCall
-            ? basicPay * 0.025  // 2.5% of basic pay
-            : 0,
-            
-          hdmf: !isOnCall
-            ? Number(employeePayrollInfo.pagibig_contribution) || 50
-            : 0,
+          sss: parseFloat(sssContribution.employeeContribution.toFixed(2)),
+          phic: parseFloat(philhealthContribution.employeeContribution.toFixed(2)),
+          hdmf: parseFloat(pagibigContribution.employeeContribution.toFixed(2)),
           loan: Number(employeePayrollInfo.loan) || 0,
-          otherDeductions: !isOnCall
-            ? Number(employeePayrollInfo.otherDeductions) || 0
-            : 0,
-          taxDeduction: !isOnCall
-            ? Number(employeePayrollInfo.tax_deduction) || 0
-            : 0,
+          otherDeductions: !isOnCall ? Number(employeePayrollInfo.otherDeductions) || 0 : 0,
+          taxDeduction: !isOnCall ? Number(employeePayrollInfo.tax_deduction) || 0 : 0,
           tardiness: finalTotalLateMinutes * rates.tardinessRate,
         };
 
-// Add PhilHealth calculation logging
-console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
-  basicPay: basicPay,
-  phicRate: '2.5%',
-  phicAmount: (basicPay * 0.025).toFixed(2),
-  isOnCall: isOnCall
-});
-
-
-
-
+        // Add PhilHealth calculation logging
+        console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
+          basicPay: basicPay,
+          phicRate: '2.5%',
+          phicAmount: (basicPay * 0.025).toFixed(2),
+          isOnCall: isOnCall
+        });
         console.log(
           `💳 Deductions for ${employee.name} (Is on call: ${isOnCall}):`,
           {
@@ -2131,25 +2144,16 @@ console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
           totalHours: totalHours,
         });
 
-        let sssBreakdown = {
-          employeeContribution: 0,
-          employerContribution: 0,
-          ecContribution: 0,
-          totalContribution: 0,
-        };
-        if (!isOnCall) {
-          sssBreakdown = calculateSSSWithCutoff(
-            safeGrossPay,
-            new Date(cutoffDate)
-          );
-          console.log(`🏛️ SSS Breakdown for ${employee.name}:`, {
-            employeeContribution: sssBreakdown.employeeContribution,
-            employerContribution: sssBreakdown.employerContribution,
-            ecContribution: sssBreakdown.ecContribution,
-            totalContribution: sssBreakdown.totalContribution,
-            isSecondCutoff: new Date(cutoffDate).getDate() >= 16,
-          });
-        }
+        const sssBreakdown = sssContribution;
+
+        console.log(`🏛️ SSS Breakdown for ${employee.name}:`, {
+          employeeContribution: sssBreakdown.employeeContribution,
+          employerContribution: sssBreakdown.employerContribution,
+          ecContribution: sssBreakdown.ecContribution,
+          totalContribution: sssBreakdown.totalContribution,
+          isSecondCutoff: isSecondCutoff,
+          salaryBracket: sssBreakdown.salaryRange || 'N/A'
+        });
 
         // CRITICAL: Ensure all values are valid numbers before database insertion
         const payslipData = {
@@ -2158,7 +2162,7 @@ console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
           employeeId: employee.id,
           name: employee.name,
           project: employee.project || "N/A",
-          position: employee.positiontitle || employee.position || "N/A",
+          position: employee.positiontitle || employee.position || employee.position_title || "N/A",
           department: employee.department || "N/A",
           schedule: employee.schedule || "N/A",
           cutoffDate,
@@ -2204,14 +2208,20 @@ console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
 
           // Government contributions (0 for rank-and-file)
           sss: parseFloat(sssBreakdown.employeeContribution.toFixed(2)),
-          sssEmployerShare: parseFloat(
-            sssBreakdown.employerContribution.toFixed(2)
-          ),
+          sssEmployerShare: parseFloat(sssBreakdown.employerContribution.toFixed(2)),
           sssEC: parseFloat(sssBreakdown.ecContribution.toFixed(2)),
-          sssTotalContribution: parseFloat(sssBreakdown.totalContribution),
+          sssTotalContribution: parseFloat(sssBreakdown.totalContribution.toFixed(2)),
+          
+          phic: parseFloat(philhealthContribution.employeeContribution.toFixed(2)),
+          phicEmployerShare: parseFloat(philhealthContribution.employerContribution.toFixed(2)),
+          phicTotalContribution: parseFloat(philhealthContribution.totalContribution.toFixed(2)),
+          phicIsMinimum: philhealthContribution.isMinimum || false,
+          
+          hdmf: parseFloat(pagibigContribution.employeeContribution.toFixed(2)),
+          hdmfEmployerShare: parseFloat(pagibigContribution.employerContribution.toFixed(2)),
+          hdmfTotalContribution: parseFloat(pagibigContribution.totalContribution.toFixed(2)),
+          hdmfIsCapped: pagibigContribution.isCapped || false,
 
-          phic: parseFloat(deductions.phic.toFixed(2)),
-          hdmf: parseFloat(deductions.hdmf.toFixed(2)),
 
           // Loans - separate SSS and Pag-IBIG loans
           loan: parseFloat(deductions.loan.toFixed(2)),
@@ -2237,6 +2247,7 @@ console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
 
           // System fields
           requestedBy: requestedBy,
+          requestedByName: requestedByName,
           status: "pending",
           batchId,
 
@@ -2247,6 +2258,41 @@ console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
         };
 
         console.log("ito yung na save sa data base",payslipData);
+        console.log(`💰 Complete Payslip Summary for ${employee.name}:`, {
+          // Basic Info
+          ecode: payslipData.ecode,
+          cutoffDate: payslipData.cutoffDate,
+          isFirstCutoff: isFirstCutoff,
+          isSecondCutoff: isSecondCutoff,
+          
+          // Earnings
+          basicPay: payslipData.basicPay,
+          holidayPay: payslipData.holidayPay,
+          overtimePay: payslipData.overtimePay,
+          allowance: payslipData.allowance,
+          grossPay: payslipData.gross_pay,
+          
+          // Government Contributions (Employee Share)
+          sss: payslipData.sss,
+          phic: payslipData.phic,
+          hdmf: payslipData.hdmf,
+          
+          // Government Contributions (Employer Share) - for reference
+          sssEmployer: payslipData.sssEmployerShare,
+          sssEC: payslipData.sssEC,
+          phicEmployer: payslipData.phicEmployerShare,
+          hdmfEmployer: payslipData.hdmfEmployerShare,
+          
+          // Other Deductions
+          tardiness: payslipData.totalTardiness,
+          loan: payslipData.loan,
+          otherDeductions: payslipData.otherDeductions,
+          taxDeduction: payslipData.taxDeduction,
+          
+          // Totals
+          totalDeductions: payslipData.totalDeductions,
+          netPay: payslipData.netPay,
+        });
 
         // Final validation: Check for any remaining NaN values
         const nanFields = [];
@@ -2417,6 +2463,243 @@ console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
           ? error.message
           : "Internal server error",
       details: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+};
+
+
+
+// Add this to your payslipController.js
+export const approveBatch = async (req, res) => {
+  try {
+    const { batchId } = req.body;
+    const approverEmail = req.user?.email; // Get approver's email from authenticated user
+    const approverName = req.user?.name || 'Admin'; // Get approver's name
+
+    // Validation: Check if batchId is provided
+    if (!batchId) {
+      return res.status(400).json({
+        success: false,
+        message: "Batch ID is required",
+        error: "Missing batchId parameter"
+      });
+    }
+
+    // Check if batch exists and get payslips
+    const payslips = await Payslip.findAll({
+      where: { 
+        batchId: batchId,
+        status: 'pending' // Only update pending payslips
+      },
+      attributes: ['id', 'ecode', 'name', 'status', 'batchId', 'netPay', 'requestedBy', 'requestedByName']
+    });
+
+    if (payslips.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No pending payslips found for this batch",
+        error: "Batch not found or already processed"
+      });
+    }
+
+    // Extract unique requesters before updating
+    const uniqueRequesters = [...new Set(
+      payslips
+        .map(p => p.requestedBy)
+        .filter(email => email && email.trim() !== '')
+    )];
+
+    // Update all payslips in the batch to approved status
+    const [updatedCount] = await Payslip.update(
+      { 
+        status: 'approved'
+      },
+      {
+        where: { 
+          batchId: batchId,
+          status: 'pending'
+        }
+      }
+    );
+
+    if (updatedCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No payslips were updated",
+        error: "All payslips in batch may already be processed"
+      });
+    }
+
+    // Get updated payslips for response
+    const updatedPayslips = await Payslip.findAll({
+      where: { 
+        batchId: batchId,
+        status: 'approved'
+      },
+      attributes: ['id', 'ecode', 'name', 'status', 'batchId', 'netPay']
+    });
+
+    // Send email notifications to all requesters
+    let successfulEmails = [];
+    let failedEmails = [];
+
+    for (const email of uniqueRequesters) {
+      try {
+        // Find the name associated with this email
+        const payslip = payslips.find(p => p.requestedBy === email);
+        const requesterName = payslip?.requestedByName || 'User';
+
+        let mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: email,
+          subject: `Payroll Request Approved - Batch ${batchId}`,
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <title>Payroll Approved</title>
+            </head>
+            <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
+              <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
+                <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
+                
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                  <h2 style="color: #28a745;">Payroll Request Approved ✓</h2>
+                  <p style="color: #333; font-size: 15px;">
+                    Dear ${requesterName},
+                  </p>
+                  <p style="color: #333; font-size: 15px;">
+                    Your generated payroll request for batch <strong>${batchId}</strong> has been reviewed and approved.
+                  </p>
+                  <p style="color: #333; font-size: 15px;">
+                    For more information, you can directly contact the approver: <strong>${approverName}</strong>
+                    ${approverEmail ? ` (${approverEmail})` : ''}
+                  </p>
+                  <p style="color: #333; font-size: 15px;">
+                    You can view the approved payroll at: 
+                    <a href="https://payroll.stjohnmajore.com/">https://payroll.stjohnmajore.com/</a>
+                  </p>
+                </div>
+
+                <p style="color: #333; font-size: 15px;">Best regards,<br />SJM Payroll System</p>
+                <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
+                  <strong>This is an automated email—please do not reply.</strong><br />
+                  Keep this message for your records.
+                </div>
+                <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
+              </div>
+            </body>
+            </html>
+          `
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log(`✓ Approval notification sent to ${email}`);
+        successfulEmails.push(email);
+      } catch (emailError) {
+        console.error(`✗ Failed to send approval email to ${email}:`, emailError.message);
+        failedEmails.push(email);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Batch ${batchId} approved successfully`,
+      data: {
+        batchId: batchId,
+        updatedCount: updatedCount,
+        payslips: updatedPayslips,
+        totalNetPay: updatedPayslips.reduce((sum, payslip) => 
+          sum + parseFloat(payslip.netPay || 0), 0
+        ).toFixed(2)
+      },
+      notifications: {
+        emailsSent: successfulEmails.length,
+        emailsFailed: failedEmails.length,
+        successfulEmails,
+        failedEmails
+      }
+    });
+
+  } catch (error) {
+    console.error("Error approving batch:", error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while approving batch",
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Server error'
+    });
+  }
+};
+
+// Alternative: Approve multiple batches at once
+export const approveMultipleBatches = async (req, res) => {
+  try {
+    const { batchIds } = req.body;
+
+    // Validation: Check if batchIds array is provided
+    if (!batchIds || !Array.isArray(batchIds) || batchIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Batch IDs array is required",
+        error: "Missing or invalid batchIds parameter"
+      });
+    }
+
+    // Update all payslips in the specified batches
+    const [updatedCount] = await Payslip.update(
+      { 
+        status: 'approved'
+      },
+      {
+        where: { 
+          batchId: batchIds,
+          status: 'pending'
+        }
+      }
+    );
+
+    if (updatedCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No payslips were updated",
+        error: "All payslips in specified batches may already be processed"
+      });
+    }
+
+    // Get summary of updated batches
+    const batchSummary = await sequelize.query(`
+      SELECT 
+        batchId,
+        COUNT(*) as payslipCount,
+        SUM(netPay) as totalNetPay
+      FROM payslips 
+      WHERE batchId IN (:batchIds) AND status = 'approved'
+      GROUP BY batchId
+    `, {
+      replacements: { batchIds },
+      type: QueryTypes.SELECT
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `${batchIds.length} batch(es) approved successfully`,
+      data: {
+        approvedBatches: batchIds,
+        updatedCount: updatedCount,
+        batchSummary: batchSummary
+      }
+    });
+
+  } catch (error) {
+    console.error("Error approving multiple batches:", error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while approving batches",
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Server error'
     });
   }
 };
