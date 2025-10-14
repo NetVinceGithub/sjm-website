@@ -252,17 +252,39 @@ const Contributions = () => {
   const fetchContributions = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/payslip/contribution`
-      );
-      setContributions(response.data);
-      console.log("data of contributions", response.data);
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/contribution`);
+
+      // response.data = { success: true, data: [...] }
+      const rawData = response.data.data || [];
+
+      const employees = rawData.map(item => ({
+        name: item.name,
+        status: "ACTIVE",
+        employeeSSS: item.sss,
+        employeePhilhealth: item.phic,
+        employeePagibig: item.hdmf,
+        contributions: {
+          sss: { total: parseFloat(item.sss) || 0 },
+          philhealth: { total: parseFloat(item.phic) || 0 },
+          pagibig: { total: parseFloat(item.hdmf) || 0 }
+        },
+        grandTotal:
+          (parseFloat(item.sss) || 0) +
+          (parseFloat(item.phic) || 0) +
+          (parseFloat(item.hdmf) || 0)
+      }));
+
+      setContributions({
+        data: { employees }
+      });
     } catch (error) {
       console.error("Error fetching contributions:", error);
     } finally {
       setLoading(false);
     }
   };
+
+
 
   // If no data loaded yet, show loading
   if (!contributions) {
