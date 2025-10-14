@@ -143,7 +143,13 @@ const List = () => {
         setEmployees(classifiedEmployees);
         setOriginalEmployees(classifiedEmployees);
         notifyBirthdays(classifiedEmployees);
-        notifyTrainingExpiring(classifiedEmployees);
+        notifyGMPExpiring(classifiedEmployees);
+        notifyPRPExpiring(classifiedEmployees);
+        notifyHOUSEKEEPINGExpiring(classifiedEmployees);
+        notifySAFETYExpiring(classifiedEmployees);
+        notifyCRRExpiring(classifiedEmployees);
+        notifyHACCPExpiring(classifiedEmployees);
+        notifyHealthExpiring(classifiedEmployees);
         notifyMedicalExpiring(classifiedEmployees);
         setFilteredEmployees(classifiedEmployees);
       }
@@ -1593,20 +1599,23 @@ const List = () => {
             padding: "6px 12px",
             width: "auto",
             minHeight: "10px",
+            background: "#cfe2ff", // light blue background
+            color: "#084298", // dark blue text
+            border: "1px solid #b6d4fe",
           },
         }
       );
     }
   };
 
-  const notifyTrainingExpiring = (people) => {
+  const notifyGMPExpiring = (people) => {
     const count = people.filter((p) =>
-      isTrainingExpiringSoon(p.attendedtrainingandseminar)
+      isTrainingExpiringSoon(p.gmp_date)
     ).length;
     if (count > 0) {
       toast(
         <div style={{ fontSize: "0.8rem" }}>
-          {count} training{count > 1 ? "s are" : " is"} expiring soon.
+          {count} GMP training{count > 1 ? "s are" : " is"} expiring soon.
         </div>,
         {
           position: "top-right",
@@ -1620,6 +1629,190 @@ const List = () => {
             padding: "6px 12px",
             width: "auto",
             minHeight: "10px",
+            background: "#f8d7da", // light red background
+            color: "#842029", // dark red text for contrast
+            border: "1px solid #f5c2c7",
+          },
+        }
+      );
+    }
+  };
+
+  const notifyPRPExpiring = (people) => {
+    const count = people.filter((p) =>
+      isTrainingExpiringSoon(p.prp_date)
+    ).length;
+    if (count > 0) {
+      toast(
+        <div style={{ fontSize: "0.8rem" }}>
+          {count} PRP training{count > 1 ? "s are" : " is"} expiring soon.
+        </div>,
+        {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>ℹ️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+            background: "#f8d7da", // light red background
+            color: "#842029", // dark red text for contrast
+            border: "1px solid #f5c2c7",
+          },
+        }
+      );
+    }
+  };
+
+  const notifyHOUSEKEEPINGExpiring = (people) => {
+    const count = people.filter((p) =>
+      isTrainingExpiringSoon(p.housekeeping_date)
+    ).length;
+    if (count > 0) {
+      toast(
+        <div style={{ fontSize: "0.8rem" }}>
+          {count} Housekeeping training{count > 1 ? "s are" : " is"} expiring
+          soon.
+        </div>,
+        {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>ℹ️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+            background: "#f8d7da", // light red background
+            color: "#842029", // dark red text for contrast
+            border: "1px solid #f5c2c7",
+          },
+        }
+      );
+    }
+  };
+
+  const notifySAFETYExpiring = (people) => {
+    const count = people.filter((p) =>
+      isTrainingExpiringSoon(p.safety_date)
+    ).length;
+    if (count > 0) {
+      toast(
+        <div style={{ fontSize: "0.8rem" }}>
+          {count} Safety training{count > 1 ? "s are" : " is"} expiring soon.
+        </div>,
+        {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>ℹ️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+            background: "#f8d7da", // light red background
+            color: "#842029", // dark red text for contrast
+            border: "1px solid #f5c2c7",
+          },
+        }
+      );
+    }
+  };
+
+  const notifyCRRExpiring = (people) => {
+    const count = people.filter((p) =>
+      isTrainingExpiringSoon(p.crr_date)
+    ).length;
+    if (count > 0) {
+      toast(
+        <div style={{ fontSize: "0.8rem" }}>
+          {count} CRR training{count > 1 ? "s are" : " is"} expiring soon.
+        </div>,
+        {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>ℹ️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+            background: "#f8d7da", // light red background
+            color: "#842029", // dark red text for contrast
+            border: "1px solid #f5c2c7",
+          },
+        }
+      );
+    }
+  };
+
+  const notifyHACCPExpiring = (people) => {
+    const count = people.filter((p) =>
+      isTrainingExpiringSoon(p.haccp_date)
+    ).length;
+    if (count > 0) {
+      toast(
+        <div style={{ fontSize: "0.8rem" }}>
+          {count} HACCP training{count > 1 ? "s are" : " is"} expiring soon.
+        </div>,
+        {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>ℹ️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+            background: "#f8d7da", // light red background
+            color: "#842029", // dark red text for contrast
+            border: "1px solid #f5c2c7",
+          },
+        }
+      );
+    }
+  };
+
+  const notifyHealthExpiring = (people) => {
+    const count = people.filter((p) =>
+      isMedicalExpiringSoon(p.health_card_date)
+    ).length;
+    if (count > 0) {
+      toast(
+        <div style={{ fontSize: "0.8rem" }}>
+          {count} healthcard{count > 1 ? "s are" : " is"} expiring soon.
+        </div>,
+        {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>ℹ️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+            background: "#d1e7dd", // light green background
+            color: "#0f5132", // dark green text
+            border: "1px solid #badbcc",
           },
         }
       );
@@ -1645,6 +1838,9 @@ const List = () => {
             padding: "6px 12px",
             width: "auto",
             minHeight: "10px",
+            background: "#d1e7dd", // light green background
+            color: "#0f5132", // dark green text
+            border: "1px solid #badbcc",
           },
         }
       );

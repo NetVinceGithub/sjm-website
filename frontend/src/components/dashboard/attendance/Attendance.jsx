@@ -10,7 +10,7 @@ import { BsFilter } from "react-icons/bs";
 import Tooltip from "@mui/material/Tooltip";
 import { toast } from "react-toastify";
 import ScheduleSelectionModal from "./ScheduleSelectionModal";
-import axios from 'axios';
+import axios from "axios";
 
 const Attendance = () => {
   // State variables
@@ -26,8 +26,8 @@ const Attendance = () => {
   // Philippine Labor Law Constants
   const REGULAR_HOURS_LIMIT = 8;
   const NIGHT_SHIFT_START = 22; // 10:00 PM
-  const NIGHT_SHIFT_END = 6;    // 6:00 AM
-  const NIGHT_DIFFERENTIAL_RATE = 0.10; // 10% night differential
+  const NIGHT_SHIFT_END = 6; // 6:00 AM
+  const NIGHT_DIFFERENTIAL_RATE = 0.1; // 10% night differential
 
   const defaultScheduleOptions = [
     {
@@ -58,7 +58,7 @@ const Attendance = () => {
       isDefault: true,
     },
   ];
-  
+
   const [holidays, setHolidays] = useState([]);
   const [selectedSchedules, setSelectedSchedules] = useState([]);
   const [allSchedules, setAllSchedules] = useState(defaultScheduleOptions);
@@ -69,7 +69,9 @@ const Attendance = () => {
 
   const fetchHolidays = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/holidays`);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/holidays`
+      );
       if (!response) {
         console.log("No api response");
       } else {
@@ -84,21 +86,31 @@ const Attendance = () => {
   // Helper function to check if a date is a holiday
   const checkIfHoliday = (dateString) => {
     if (!dateString || holidays.length === 0) return null;
-    
-    const holiday = holidays.find(h => h.date === dateString);
+
+    const holiday = holidays.find((h) => h.date === dateString);
     return holiday || null;
   };
 
   const getExpectedHoursForShift = (detectedShift, scheduleList) => {
-    if (!detectedShift || detectedShift === "No Schedule Match" || detectedShift === "Unknown") {
+    if (
+      !detectedShift ||
+      detectedShift === "No Schedule Match" ||
+      detectedShift === "Unknown"
+    ) {
       return 8;
     }
 
     const matchingSchedule = scheduleList.find((schedule) => {
       if (detectedShift === schedule.label) return true;
-      if (detectedShift.includes("Day") && schedule.label.includes("Day")) return true;
-      if (detectedShift.includes("Evening") && schedule.label.includes("Evening")) return true;
-      if (detectedShift.includes("Night") && schedule.label.includes("Night")) return true;
+      if (detectedShift.includes("Day") && schedule.label.includes("Day"))
+        return true;
+      if (
+        detectedShift.includes("Evening") &&
+        schedule.label.includes("Evening")
+      )
+        return true;
+      if (detectedShift.includes("Night") && schedule.label.includes("Night"))
+        return true;
       if (schedule.value && detectedShift.includes(schedule.value)) return true;
       return false;
     });
@@ -106,9 +118,19 @@ const Attendance = () => {
     return matchingSchedule ? matchingSchedule.expectedHours : 8;
   };
 
-  const calculateUndertimeMinutes = (onDutyTime, offDutyTime, detectedShift, scheduleList) => {
+  const calculateUndertimeMinutes = (
+    onDutyTime,
+    offDutyTime,
+    detectedShift,
+    scheduleList
+  ) => {
     if (!onDutyTime || !offDutyTime) return 0;
-    if (!detectedShift || detectedShift === "No Schedule Match" || detectedShift === "Unknown") return 0;
+    if (
+      !detectedShift ||
+      detectedShift === "No Schedule Match" ||
+      detectedShift === "Unknown"
+    )
+      return 0;
 
     const expectedHours = getExpectedHoursForShift(detectedShift, scheduleList);
     const expectedMinutes = expectedHours * 60;
@@ -124,10 +146,10 @@ const Attendance = () => {
     }
 
     let actualWorkMinutes = offDutyMinutes - onDutyMinutes;
-    
+
     const BREAK_TIME_MINUTES = 60;
     const BREAK_THRESHOLD_MINUTES = 360;
-    
+
     if (actualWorkMinutes > BREAK_THRESHOLD_MINUTES) {
       actualWorkMinutes = actualWorkMinutes - BREAK_TIME_MINUTES;
     }
@@ -143,10 +165,17 @@ const Attendance = () => {
   };
 
   const hoursMinutesToDecimal = (hours, minutes) => {
-    return hours + (minutes / 60);
+    return hours + minutes / 60;
   };
 
-  const calculateWorkHoursBreakdown = (onDutyTime, offDutyTime, isHoliday = false, isRestDay = false, detectedShift = null, scheduleList = []) => {
+  const calculateWorkHoursBreakdown = (
+    onDutyTime,
+    offDutyTime,
+    isHoliday = false,
+    isRestDay = false,
+    detectedShift = null,
+    scheduleList = []
+  ) => {
     if (!onDutyTime || !offDutyTime) {
       return {
         totalMinutes: 0,
@@ -182,30 +211,44 @@ const Attendance = () => {
     }
 
     let totalMinutes = offDutyMinutes - onDutyMinutes;
-    
+
     const BREAK_TIME_MINUTES = 60;
     const BREAK_THRESHOLD_MINUTES = 360;
-    
+
     if (totalMinutes > BREAK_THRESHOLD_MINUTES) {
       totalMinutes = totalMinutes - BREAK_TIME_MINUTES;
     }
 
-    const nightDifferentialMinutes = calculateNightDifferentialMinutes(onDutyTime, offDutyTime);
+    const nightDifferentialMinutes = calculateNightDifferentialMinutes(
+      onDutyTime,
+      offDutyTime
+    );
     const expectedHours = getExpectedHoursForShift(detectedShift, scheduleList);
-    const undertimeMinutes = calculateUndertimeMinutes(onDutyTime, offDutyTime, detectedShift, scheduleList);
-    
+    const undertimeMinutes = calculateUndertimeMinutes(
+      onDutyTime,
+      offDutyTime,
+      detectedShift,
+      scheduleList
+    );
+
     let baseMinutes = Math.max(0, totalMinutes);
     const REGULAR_HOURS_LIMIT_MINUTES = 8 * 60;
 
     let breakdown = {
       totalMinutes: Math.max(0, totalMinutes),
-      totalHours: hoursMinutesToDecimal(Math.floor(totalMinutes / 60), totalMinutes % 60),
+      totalHours: hoursMinutesToDecimal(
+        Math.floor(totalMinutes / 60),
+        totalMinutes % 60
+      ),
       regularMinutes: 0,
       regularHours: 0,
       overtimeMinutes: 0,
       overtimeHours: 0,
       nightDifferentialMinutes: nightDifferentialMinutes,
-      nightDifferentialHours: hoursMinutesToDecimal(Math.floor(nightDifferentialMinutes / 60), nightDifferentialMinutes % 60),
+      nightDifferentialHours: hoursMinutesToDecimal(
+        Math.floor(nightDifferentialMinutes / 60),
+        nightDifferentialMinutes % 60
+      ),
       holidayMinutes: 0,
       holidayHours: 0,
       holidayOvertimeMinutes: 0,
@@ -215,7 +258,10 @@ const Attendance = () => {
       restDayOvertimeMinutes: 0,
       restDayOvertimeHours: 0,
       undertimeMinutes: undertimeMinutes,
-      undertimeHours: hoursMinutesToDecimal(Math.floor(undertimeMinutes / 60), undertimeMinutes % 60),
+      undertimeHours: hoursMinutesToDecimal(
+        Math.floor(undertimeMinutes / 60),
+        undertimeMinutes % 60
+      ),
       expectedHours: expectedHours,
     };
 
@@ -223,39 +269,50 @@ const Attendance = () => {
       if (isHoliday) {
         if (baseMinutes <= REGULAR_HOURS_LIMIT_MINUTES) {
           breakdown.holidayMinutes = baseMinutes;
-          breakdown.holidayHours = hoursMinutesToDecimal(Math.floor(baseMinutes / 60), baseMinutes % 60);
+          breakdown.holidayHours = hoursMinutesToDecimal(
+            Math.floor(baseMinutes / 60),
+            baseMinutes % 60
+          );
         } else {
           breakdown.holidayMinutes = REGULAR_HOURS_LIMIT_MINUTES;
           breakdown.holidayHours = 8;
-          breakdown.holidayOvertimeMinutes = baseMinutes - REGULAR_HOURS_LIMIT_MINUTES;
+          breakdown.holidayOvertimeMinutes =
+            baseMinutes - REGULAR_HOURS_LIMIT_MINUTES;
           breakdown.holidayOvertimeHours = hoursMinutesToDecimal(
-            Math.floor((baseMinutes - REGULAR_HOURS_LIMIT_MINUTES) / 60), 
+            Math.floor((baseMinutes - REGULAR_HOURS_LIMIT_MINUTES) / 60),
             (baseMinutes - REGULAR_HOURS_LIMIT_MINUTES) % 60
           );
         }
       } else if (isRestDay) {
         if (baseMinutes <= REGULAR_HOURS_LIMIT_MINUTES) {
           breakdown.restDayMinutes = baseMinutes;
-          breakdown.restDayHours = hoursMinutesToDecimal(Math.floor(baseMinutes / 60), baseMinutes % 60);
+          breakdown.restDayHours = hoursMinutesToDecimal(
+            Math.floor(baseMinutes / 60),
+            baseMinutes % 60
+          );
         } else {
           breakdown.restDayMinutes = REGULAR_HOURS_LIMIT_MINUTES;
           breakdown.restDayHours = 8;
-          breakdown.restDayOvertimeMinutes = baseMinutes - REGULAR_HOURS_LIMIT_MINUTES;
+          breakdown.restDayOvertimeMinutes =
+            baseMinutes - REGULAR_HOURS_LIMIT_MINUTES;
           breakdown.restDayOvertimeHours = hoursMinutesToDecimal(
-            Math.floor((baseMinutes - REGULAR_HOURS_LIMIT_MINUTES) / 60), 
+            Math.floor((baseMinutes - REGULAR_HOURS_LIMIT_MINUTES) / 60),
             (baseMinutes - REGULAR_HOURS_LIMIT_MINUTES) % 60
           );
         }
       } else {
         if (baseMinutes <= REGULAR_HOURS_LIMIT_MINUTES) {
           breakdown.regularMinutes = baseMinutes;
-          breakdown.regularHours = hoursMinutesToDecimal(Math.floor(baseMinutes / 60), baseMinutes % 60);
+          breakdown.regularHours = hoursMinutesToDecimal(
+            Math.floor(baseMinutes / 60),
+            baseMinutes % 60
+          );
         } else {
           breakdown.regularMinutes = REGULAR_HOURS_LIMIT_MINUTES;
           breakdown.regularHours = 8;
           breakdown.overtimeMinutes = baseMinutes - REGULAR_HOURS_LIMIT_MINUTES;
           breakdown.overtimeHours = hoursMinutesToDecimal(
-            Math.floor((baseMinutes - REGULAR_HOURS_LIMIT_MINUTES) / 60), 
+            Math.floor((baseMinutes - REGULAR_HOURS_LIMIT_MINUTES) / 60),
             (baseMinutes - REGULAR_HOURS_LIMIT_MINUTES) % 60
           );
         }
@@ -307,11 +364,27 @@ const Attendance = () => {
     return Math.max(0, nightMinutes);
   };
 
-  const calculateAttendanceStatus = (onDutyTime, offDutyTime, detectedShift) => {
+  const calculateAttendanceStatus = (
+    onDutyTime,
+    offDutyTime,
+    detectedShift
+  ) => {
     if (!offDutyTime) return "absent";
-    if (!detectedShift || detectedShift === "No Schedule Match" || detectedShift === "Unknown") return "absent";
+    if (
+      !detectedShift ||
+      detectedShift === "No Schedule Match" ||
+      detectedShift === "Unknown"
+    )
+      return "absent";
 
-    const breakdown = calculateWorkHoursBreakdown(onDutyTime, offDutyTime, false, false, detectedShift, selectedSchedules);
+    const breakdown = calculateWorkHoursBreakdown(
+      onDutyTime,
+      offDutyTime,
+      false,
+      false,
+      detectedShift,
+      selectedSchedules
+    );
     const regularMinutes = breakdown.regularMinutes;
 
     if (regularMinutes >= 480) return "present";
@@ -321,9 +394,21 @@ const Attendance = () => {
 
   const calculateAttendanceValue = (onDutyTime, offDutyTime, detectedShift) => {
     if (!offDutyTime) return 0;
-    if (!detectedShift || detectedShift === "No Schedule Match" || detectedShift === "Unknown") return 0;
+    if (
+      !detectedShift ||
+      detectedShift === "No Schedule Match" ||
+      detectedShift === "Unknown"
+    )
+      return 0;
 
-    const breakdown = calculateWorkHoursBreakdown(onDutyTime, offDutyTime, false, false, detectedShift, selectedSchedules);
+    const breakdown = calculateWorkHoursBreakdown(
+      onDutyTime,
+      offDutyTime,
+      false,
+      false,
+      detectedShift,
+      selectedSchedules
+    );
     const regularMinutes = breakdown.regularMinutes;
 
     if (regularMinutes >= 480) return 1;
@@ -349,7 +434,8 @@ const Attendance = () => {
   };
 
   const determineShiftFromSchedules = (onDutyTime, selectedScheduleList) => {
-    if (!onDutyTime || selectedScheduleList.length === 0) return "No Schedule Match";
+    if (!onDutyTime || selectedScheduleList.length === 0)
+      return "No Schedule Match";
 
     const [hours, minutes] = onDutyTime.split(":").map(Number);
     const onDutyHour = hours + minutes / 60;
@@ -361,11 +447,17 @@ const Attendance = () => {
       let tolerance = 1;
 
       if (schedule.end < schedule.start) {
-        if (onDutyHour >= schedule.start - tolerance || onDutyHour <= schedule.end + tolerance) {
+        if (
+          onDutyHour >= schedule.start - tolerance ||
+          onDutyHour <= schedule.end + tolerance
+        ) {
           isWithinRange = true;
         }
       } else {
-        if (onDutyHour >= schedule.start - tolerance && onDutyHour <= schedule.end + tolerance) {
+        if (
+          onDutyHour >= schedule.start - tolerance &&
+          onDutyHour <= schedule.end + tolerance
+        ) {
           isWithinRange = true;
         }
       }
@@ -411,14 +503,23 @@ const Attendance = () => {
 
     if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
 
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}`;
   };
 
-  const calculateLateMinutesWithSelectedSchedules = (onDutyTime, detectedShift, selectedScheduleList) => {
-    if (!onDutyTime || !detectedShift || selectedScheduleList.length === 0) return 0;
+  const calculateLateMinutesWithSelectedSchedules = (
+    onDutyTime,
+    detectedShift,
+    selectedScheduleList
+  ) => {
+    if (!onDutyTime || !detectedShift || selectedScheduleList.length === 0)
+      return 0;
 
     const matchingSchedule = selectedScheduleList.find(
-      (schedule) => detectedShift.includes(schedule.label) || schedule.label.includes(detectedShift.split(" ")[0])
+      (schedule) =>
+        detectedShift.includes(schedule.label) ||
+        schedule.label.includes(detectedShift.split(" ")[0])
     );
 
     if (!matchingSchedule) return 0;
@@ -427,7 +528,10 @@ const Attendance = () => {
     const onDutyMinutes = hours * 60 + minutes;
     const shiftStartMinutes = matchingSchedule.start * 60;
 
-    if (matchingSchedule.value === "21-6" || matchingSchedule.end < matchingSchedule.start) {
+    if (
+      matchingSchedule.value === "21-6" ||
+      matchingSchedule.end < matchingSchedule.start
+    ) {
       if (onDutyMinutes >= shiftStartMinutes) {
         return Math.max(0, onDutyMinutes - shiftStartMinutes);
       } else if (onDutyMinutes <= matchingSchedule.end * 60) {
@@ -475,7 +579,7 @@ const Attendance = () => {
       width: "80px",
     },
     {
-      name: "Total Hours",
+      name: "Total Hrs",
       selector: (row) => row.workHours?.toFixed(1) || "0.0",
       width: "90px",
       cell: (row) => (
@@ -493,9 +597,9 @@ const Attendance = () => {
       ),
     },
     {
-      name: "Expected Hours",
+      name: "Expected Hrs",
       selector: (row) => row.hoursBreakdown?.expectedHours || "8.0",
-      width: "100px",
+      width: "120px",
       cell: (row) => (
         <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
           {row.hoursBreakdown?.expectedHours || "8.0"}h
@@ -503,40 +607,52 @@ const Attendance = () => {
       ),
     },
     {
-      name: "Regular Hours",
+      name: "Regular Hrs",
       selector: (row) => row.hoursBreakdown?.regularHours?.toFixed(1) || "0.0",
       width: "100px",
       cell: (row) => (
         <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
-          {(row.status === "absent" ? "0.0" : row.hoursBreakdown?.regularHours?.toFixed(1)) || "0.0"}h
+          {(row.status === "absent"
+            ? "0.0"
+            : row.hoursBreakdown?.regularHours?.toFixed(1)) || "0.0"}
+          h
         </span>
       ),
     },
     {
-      name: "OT Hours",
+      name: "OT Hrs",
       selector: (row) => row.hoursBreakdown?.overtimeHours?.toFixed(1) || "0.0",
       width: "85px",
       cell: (row) => (
         <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-800">
-          {(row.status === "absent" ? "0.0" : row.hoursBreakdown?.overtimeHours?.toFixed(1)) || "0.0"}h
+          {(row.status === "absent"
+            ? "0.0"
+            : row.hoursBreakdown?.overtimeHours?.toFixed(1)) || "0.0"}
+          h
         </span>
       ),
     },
     {
       name: "Undertime",
-      selector: (row) => row.hoursBreakdown?.undertimeHours?.toFixed(1) || "0.0",
+      selector: (row) =>
+        row.hoursBreakdown?.undertimeHours?.toFixed(1) || "0.0",
       width: "90px",
       cell: (row) => (
-        <span className={`px-2 py-1 rounded text-xs ${
-          row.hoursBreakdown?.undertimeHours > 0 ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"
-        }`}>
+        <span
+          className={`px-2 py-1 rounded text-xs ${
+            row.hoursBreakdown?.undertimeHours > 0
+              ? "bg-red-100 text-red-800"
+              : "bg-green-100 text-green-800"
+          }`}
+        >
           {row.hoursBreakdown?.undertimeHours?.toFixed(1) || "0.0"}h
         </span>
       ),
     },
     {
       name: "Night Diff",
-      selector: (row) => row.hoursBreakdown?.nightDifferentialHours?.toFixed(1) || "0.0",
+      selector: (row) =>
+        row.hoursBreakdown?.nightDifferentialHours?.toFixed(1) || "0.0",
       width: "85px",
       cell: (row) => (
         <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
@@ -545,7 +661,7 @@ const Attendance = () => {
       ),
     },
     {
-      name: "Holiday Hours",
+      name: "Holiday Hrs",
       selector: (row) => row.hoursBreakdown?.holidayHours?.toFixed(1) || "0.0",
       width: "100px",
       cell: (row) => (
@@ -562,17 +678,22 @@ const Attendance = () => {
         if (!row.isHoliday || !row.holidayType) {
           return <span className="text-xs text-gray-400">-</span>;
         }
-        
+
         const getHolidayColor = (type) => {
           if (type === "Regular") return "bg-red-100 text-red-800";
           if (type === "Special") return "bg-orange-100 text-orange-800";
-          if (type === "Special Non-Working") return "bg-yellow-100 text-yellow-800";
+          if (type === "Special Non-Working")
+            return "bg-yellow-100 text-yellow-800";
           return "bg-gray-100 text-gray-800";
         };
-        
+
         return (
           <Tooltip title={row.holidayName || ""} arrow placement="top">
-            <span className={`px-2 py-1 rounded text-xs ${getHolidayColor(row.holidayType)}`}>
+            <span
+              className={`px-2 py-1 rounded text-xs ${getHolidayColor(
+                row.holidayType
+              )}`}
+            >
               {row.holidayType}
             </span>
           </Tooltip>
@@ -584,7 +705,11 @@ const Attendance = () => {
       selector: (row) => row.shift || "Unknown",
       width: "120px",
       cell: (row) => (
-        <span className={`px-2 py-1 rounded text-xs ${getShiftBadgeColor(row.shift || "Unknown")}`}>
+        <span
+          className={`px-2 py-1 rounded text-xs ${getShiftBadgeColor(
+            row.shift || "Unknown"
+          )}`}
+        >
           {(row.shift || "Unknown").split(" (")[0]}
         </span>
       ),
@@ -614,7 +739,7 @@ const Attendance = () => {
     {
       name: "Late (min)",
       selector: (row) => row.lateMinutes,
-      width: "80px",
+      width: "100px",
       cell: (row) => (
         <span
           className={`px-2 py-1 rounded text-xs ${
@@ -634,7 +759,7 @@ const Attendance = () => {
       name: "E-Code",
       selector: (row) => row.ecode,
       sortable: true,
-      width: "80px",
+      width: "100px",
     },
     {
       name: "Total Days",
@@ -652,7 +777,7 @@ const Attendance = () => {
       ),
     },
     {
-      name: "Regular Hours",
+      name: "Regular Hrs",
       selector: (row) => row.totalRegularHours?.toFixed(1) || "0.0",
       width: "110px",
       cell: (row) => (
@@ -662,7 +787,7 @@ const Attendance = () => {
       ),
     },
     {
-      name: "OT Hours",
+      name: "OT Hrs",
       selector: (row) => row.totalOvertimeHours?.toFixed(1) || "0.0",
       width: "90px",
       cell: (row) => (
@@ -674,7 +799,7 @@ const Attendance = () => {
     {
       name: "Undertime (h:m)",
       selector: (row) => formatMinutesToHoursMinutes(row.totalUndertimeMinutes),
-      width: "110px",
+      width: "130px",
       cell: (row) => (
         <span
           className={`px-2 py-1 rounded text-xs ${
@@ -688,7 +813,7 @@ const Attendance = () => {
       ),
     },
     {
-      name: "Night Diff Hours",
+      name: "Night Diff Hrs",
       selector: (row) => row.totalNightDifferentialHours?.toFixed(1) || "0.0",
       width: "125px",
       cell: (row) => (
@@ -698,7 +823,7 @@ const Attendance = () => {
       ),
     },
     {
-      name: "Holiday Hours",
+      name: "Holiday Hrs",
       selector: (row) => row.totalHolidayHours?.toFixed(1) || "0.0",
       width: "105px",
       cell: (row) => (
@@ -708,7 +833,7 @@ const Attendance = () => {
       ),
     },
     {
-      name: "Rest Day Hours",
+      name: "Rest Day Hrs",
       selector: (row) => row.totalRestDayHours?.toFixed(1) || "0.0",
       width: "115px",
       cell: (row) => (
@@ -741,7 +866,7 @@ const Attendance = () => {
             ? ((row.presentDays / row.totalDays) * 100).toFixed(1)
             : "0.0"
         }%`,
-      width: "100px",
+      width: "120px",
     },
   ];
 
@@ -753,19 +878,43 @@ const Attendance = () => {
       refreshAttendanceDataWithNewSchedules();
     }
 
-    toast.success(`${selectedScheduleList.length} schedules selected`);
+    toast(`${selectedScheduleList.length} schedules selected`, {
+      position: "top-right",
+      autoClose: 2000,
+      closeButton: false,
+      closeOnClick: true,
+      hideProgressBar: true,
+      icon: <span style={{ fontSize: "13px" }}>✅</span>,
+      style: {
+        fontSize: "13px",
+        padding: "6px 12px",
+        width: "auto",
+        minHeight: "10px",
+      },
+    });
   };
 
   const WarningModal = () => (
-    <Modal show={showWarningModal} onHide={() => setShowWarningModal(false)} backdrop="static" keyboard={false} centered size="md">
+    <Modal
+      show={showWarningModal}
+      onHide={() => setShowWarningModal(false)}
+      backdrop="static"
+      keyboard={false}
+      centered
+      size="md"
+    >
       <Modal.Header className="py-3 px-4 border-b">
-        <Modal.Title as="h6" className="text-base text-orange-600 flex items-center gap-2">
+        <Modal.Title
+          as="h6"
+          className="text-base text-orange-600 flex items-center gap-2"
+        >
           Oops!
         </Modal.Title>
       </Modal.Header>
       <Modal.Body className="p-3">
         <p className="text-sm text-neutralDGray text-center flex items-center justify-center">
-          Include attendance filter or select schedule first before uploading attendance file.
+          Include attendance filter or select schedule first before uploading
+          attendance file.
         </p>
       </Modal.Body>
       <Modal.Footer className="p-3">
@@ -808,85 +957,145 @@ const Attendance = () => {
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-          const currentActiveSchedules = selectedSchedules.length > 0 ? selectedSchedules : [];
+          const currentActiveSchedules =
+            selectedSchedules.length > 0 ? selectedSchedules : [];
 
           if (currentActiveSchedules.length === 0) {
-            toast.error("Please select schedules first before uploading attendance file");
+            toast(
+              "Please select schedules first before uploading attendance file",
+              {
+                position: "top-right",
+                autoClose: 2000,
+                closeButton: false,
+                closeOnClick: true,
+                hideProgressBar: true,
+                icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+                style: {
+                  fontSize: "13px",
+                  padding: "6px 12px",
+                  width: "auto",
+                  minHeight: "10px",
+                },
+              }
+            );
             setSelectedFile(null);
             event.target.value = "";
             return;
           }
 
-          const processedData = jsonData.map((row, index) => {
-            let formattedDate = "";
-            const dateRaw = row.Date || row.date || "";
+          const processedData = jsonData
+            .map((row, index) => {
+              let formattedDate = "";
+              const dateRaw = row.Date || row.date || "";
 
-            if (!isNaN(dateRaw) && Number(dateRaw) > 0) {
-              const excelDate = new Date((Number(dateRaw) - 25569) * 86400 * 1000);
-              formattedDate = excelDate.toISOString().split("T")[0];
-            } else if (dateRaw) {
-              const parsedDate = new Date(dateRaw);
-              if (!isNaN(parsedDate)) {
-                formattedDate = parsedDate.toISOString().split("T")[0];
+              if (!isNaN(dateRaw) && Number(dateRaw) > 0) {
+                const excelDate = new Date(
+                  (Number(dateRaw) - 25569) * 86400 * 1000
+                );
+                formattedDate = excelDate.toISOString().split("T")[0];
+              } else if (dateRaw) {
+                const parsedDate = new Date(dateRaw);
+                if (!isNaN(parsedDate)) {
+                  formattedDate = parsedDate.toISOString().split("T")[0];
+                }
               }
-            }
 
-            const ecode = String(row.Name || row.name || "").trim();
+              const ecode = String(row.Name || row.name || "").trim();
 
-            const onDutyRaw = row["ON Duty"] || row["on duty"] || row["onDuty"] || null;
-            const offDutyRaw = row["OFF Duty"] || row["off duty"] || row["offDuty"] || null;
+              const onDutyRaw =
+                row["ON Duty"] || row["on duty"] || row["onDuty"] || null;
+              const offDutyRaw =
+                row["OFF Duty"] || row["off duty"] || row["offDuty"] || null;
 
-            const onDuty = convertExcelTimeToString(onDutyRaw);
-            const offDuty = convertExcelTimeToString(offDutyRaw);
+              const onDuty = convertExcelTimeToString(onDutyRaw);
+              const offDuty = convertExcelTimeToString(offDutyRaw);
 
-            // Check if date is a holiday from the fetched holidays list
-            const holidayInfo = checkIfHoliday(formattedDate);
-            const isHoliday = holidayInfo !== null;
-            const holidayType = holidayInfo ? holidayInfo.type : null;
-            const holidayName = holidayInfo ? holidayInfo.name : null;
-            
-            const isRestDay = Boolean(row.RestDay || row.restDay || row["Rest Day"] || false);
+              // Check if date is a holiday from the fetched holidays list
+              const holidayInfo = checkIfHoliday(formattedDate);
+              const isHoliday = holidayInfo !== null;
+              const holidayType = holidayInfo ? holidayInfo.type : null;
+              const holidayName = holidayInfo ? holidayInfo.name : null;
 
-            const workHours = calculateWorkHours(onDuty, offDuty);
-            const shift = determineShiftFromSchedules(onDuty, currentActiveSchedules);
-            const hoursBreakdown = calculateWorkHoursBreakdown(onDuty, offDuty, isHoliday, isRestDay, shift, currentActiveSchedules);
-            const attendanceValue = calculateAttendanceValue(onDuty, offDuty, shift);
-            const status = calculateAttendanceStatus(onDuty, offDuty, shift);
-            const lateMinutes = status !== "absent" && shift !== "No Schedule Match" 
-              ? calculateLateMinutesWithSelectedSchedules(onDuty, shift, currentActiveSchedules) 
-              : 0;
-            const late = lateMinutes > 0;
+              const isRestDay = Boolean(
+                row.RestDay || row.restDay || row["Rest Day"] || false
+              );
 
-            const processedRecord = {
-              id: index + 1,
-              ecode,
-              date: formattedDate,
-              onDuty,
-              offDuty,
-              workHours,
-              hoursBreakdown,
-              attendanceValue,
-              shift,
-              status,
-              isLate: late,
-              lateMinutes: lateMinutes,
-              isHoliday,
-              holidayType,
-              holidayName,
-              isRestDay,
-            };
+              const workHours = calculateWorkHours(onDuty, offDuty);
+              const shift = determineShiftFromSchedules(
+                onDuty,
+                currentActiveSchedules
+              );
+              const hoursBreakdown = calculateWorkHoursBreakdown(
+                onDuty,
+                offDuty,
+                isHoliday,
+                isRestDay,
+                shift,
+                currentActiveSchedules
+              );
+              const attendanceValue = calculateAttendanceValue(
+                onDuty,
+                offDuty,
+                shift
+              );
+              const status = calculateAttendanceStatus(onDuty, offDuty, shift);
+              const lateMinutes =
+                status !== "absent" && shift !== "No Schedule Match"
+                  ? calculateLateMinutesWithSelectedSchedules(
+                      onDuty,
+                      shift,
+                      currentActiveSchedules
+                    )
+                  : 0;
+              const late = lateMinutes > 0;
 
-            return processedRecord;
-          }).filter((record) => {
-            return record.date && record.ecode;
-          });
+              const processedRecord = {
+                id: index + 1,
+                ecode,
+                date: formattedDate,
+                onDuty,
+                offDuty,
+                workHours,
+                hoursBreakdown,
+                attendanceValue,
+                shift,
+                status,
+                isLate: late,
+                lateMinutes: lateMinutes,
+                isHoliday,
+                holidayType,
+                holidayName,
+                isRestDay,
+              };
 
-          console.log("Processed attendance data with holiday info:", processedData);
+              return processedRecord;
+            })
+            .filter((record) => {
+              return record.date && record.ecode;
+            });
+
+          console.log(
+            "Processed attendance data with holiday info:",
+            processedData
+          );
           setAttendanceData(processedData);
           generateSummary(processedData);
         } catch (error) {
           console.error("Error reading Excel file:", error);
-          toast.error("Error reading Excel file. Please check the format.");
+          toast("Error reading Excel file. Please check the format.", {
+            position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
+          });
         }
       };
       reader.readAsArrayBuffer(file);
@@ -937,18 +1146,25 @@ const Attendance = () => {
         }
 
         if (record.hoursBreakdown) {
-          summary[ecode].totalRegularHours += record.hoursBreakdown.regularHours || 0;
-          summary[ecode].totalOvertimeHours += record.hoursBreakdown.overtimeHours || 0;
-          summary[ecode].totalNightDifferentialHours += record.hoursBreakdown.nightDifferentialHours || 0;
-          summary[ecode].totalHolidayHours += record.hoursBreakdown.holidayHours || 0;
-          summary[ecode].totalHolidayOvertimeHours += record.hoursBreakdown.holidayOvertimeHours || 0;
-          summary[ecode].totalRestDayHours += record.hoursBreakdown.restDayHours || 0;
-          summary[ecode].totalRestDayOvertimeHours += record.hoursBreakdown.restDayOvertimeHours || 0;
-          
+          summary[ecode].totalRegularHours +=
+            record.hoursBreakdown.regularHours || 0;
+          summary[ecode].totalOvertimeHours +=
+            record.hoursBreakdown.overtimeHours || 0;
+          summary[ecode].totalNightDifferentialHours +=
+            record.hoursBreakdown.nightDifferentialHours || 0;
+          summary[ecode].totalHolidayHours +=
+            record.hoursBreakdown.holidayHours || 0;
+          summary[ecode].totalHolidayOvertimeHours +=
+            record.hoursBreakdown.holidayOvertimeHours || 0;
+          summary[ecode].totalRestDayHours +=
+            record.hoursBreakdown.restDayHours || 0;
+          summary[ecode].totalRestDayOvertimeHours +=
+            record.hoursBreakdown.restDayOvertimeHours || 0;
+
           // Track holiday hours by type
           if (record.isHoliday && record.holidayType) {
             const holidayHours = record.hoursBreakdown.holidayHours || 0;
-            
+
             if (record.holidayType === "Regular") {
               summary[ecode].regularHolidayHours += holidayHours;
             } else if (record.holidayType === "Special") {
@@ -957,18 +1173,28 @@ const Attendance = () => {
               summary[ecode].specialNonWorkingHours += holidayHours;
             }
           }
-          
-          summary[ecode].totalUndertimeMinutes += record.hoursBreakdown.undertimeMinutes || 0;
+
+          summary[ecode].totalUndertimeMinutes +=
+            record.hoursBreakdown.undertimeMinutes || 0;
         }
 
         if (record.attendanceValue > 0 && record.shift) {
           const shiftValue = record.attendanceValue;
 
-          if (record.shift.includes("Day Shift") || record.shift.includes("Day")) {
+          if (
+            record.shift.includes("Day Shift") ||
+            record.shift.includes("Day")
+          ) {
             summary[ecode].dayShiftDays += shiftValue;
-          } else if (record.shift.includes("Evening Shift") || record.shift.includes("Evening")) {
+          } else if (
+            record.shift.includes("Evening Shift") ||
+            record.shift.includes("Evening")
+          ) {
             summary[ecode].eveningShiftDays += shiftValue;
-          } else if (record.shift.includes("Night Shift") || record.shift.includes("Night")) {
+          } else if (
+            record.shift.includes("Night Shift") ||
+            record.shift.includes("Night")
+          ) {
             summary[ecode].nightShiftDays += shiftValue;
           }
         }
@@ -995,15 +1221,32 @@ const Attendance = () => {
 
   const refreshAttendanceDataWithNewSchedules = () => {
     if (attendanceData.length > 0) {
-      const currentActiveSchedules = selectedSchedules.length > 0 ? selectedSchedules : [];
+      const currentActiveSchedules =
+        selectedSchedules.length > 0 ? selectedSchedules : [];
 
       const reprocessedData = attendanceData.map((record) => {
-        const shift = determineShiftFromSchedules(record.onDuty, currentActiveSchedules);
-        const attendanceValue = calculateAttendanceValue(record.onDuty, record.offDuty, shift);
-        const status = calculateAttendanceStatus(record.onDuty, record.offDuty, shift);
-        const lateMinutes = status !== "absent" && shift !== "No Schedule Match"
-          ? calculateLateMinutesWithSelectedSchedules(record.onDuty, shift, currentActiveSchedules)
-          : 0;
+        const shift = determineShiftFromSchedules(
+          record.onDuty,
+          currentActiveSchedules
+        );
+        const attendanceValue = calculateAttendanceValue(
+          record.onDuty,
+          record.offDuty,
+          shift
+        );
+        const status = calculateAttendanceStatus(
+          record.onDuty,
+          record.offDuty,
+          shift
+        );
+        const lateMinutes =
+          status !== "absent" && shift !== "No Schedule Match"
+            ? calculateLateMinutesWithSelectedSchedules(
+                record.onDuty,
+                shift,
+                currentActiveSchedules
+              )
+            : 0;
         const late = lateMinutes > 0;
         const hoursBreakdown = calculateWorkHoursBreakdown(
           record.onDuty,
@@ -1032,7 +1275,20 @@ const Attendance = () => {
 
   const handleSubmit = async () => {
     if (!selectedFile) {
-      toast.error("Please select a file first");
+      toast("Please select a file first.", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
       return;
     }
 
@@ -1040,12 +1296,38 @@ const Attendance = () => {
     const file = fileInput.files[0];
 
     if (!file) {
-      toast.error("No file selected");
+      toast("No file selected!", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
       return;
     }
 
     if (selectedSchedules.length === 0) {
-      toast.error("Please select schedules first");
+      toast("Please select schedule first.", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
       return;
     }
 
@@ -1053,9 +1335,22 @@ const Attendance = () => {
 
     try {
       const token = localStorage.getItem("token");
-      
+
       if (!token) {
-        toast.error("Authentication token not found. Please log in again.");
+        toast("Authentication token not found. Please log in again.", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
         return;
       }
 
@@ -1067,7 +1362,7 @@ const Attendance = () => {
         {
           method: "POST",
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
           body: formData,
         }
@@ -1082,7 +1377,20 @@ const Attendance = () => {
       const result = await response.json();
 
       if (result.success) {
-        toast.success("Attendance data uploaded successfully!");
+        toast("Attendance data uploaded successfully!", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>✅</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
 
         const summaryPayload = summaryData.map((row) => ({
           ecode: row.ecode,
@@ -1110,12 +1418,14 @@ const Attendance = () => {
         }));
 
         const summaryResponse = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/attendance/add-attendance-summary`,
+          `${
+            import.meta.env.VITE_API_URL
+          }/api/attendance/add-attendance-summary`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              'Authorization': `Bearer ${token}`,
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ summaryData: summaryPayload }),
           }
@@ -1124,45 +1434,167 @@ const Attendance = () => {
         if (!summaryResponse.ok) {
           const errorText = await summaryResponse.text();
           console.error("Summary save failed:", errorText);
-          throw new Error(`Summary save failed! status: ${summaryResponse.status}`);
+          throw new Error(
+            `Summary save failed! status: ${summaryResponse.status}`
+          );
         }
 
         const summaryResult = await summaryResponse.json();
 
         if (summaryResult.success) {
-          toast.success(
-            `Summary saved successfully! Created: ${summaryResult.created}, Updated: ${summaryResult.updated}`
-          );
+          toast("Summary saved successfully!!", {
+            position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>✅</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
+          });
           setShowModal(true);
-          
+
           setSelectedFile(null);
           setAttendanceData([]);
           setSummaryData([]);
           fileInput.value = "";
         } else {
-          toast.error(summaryResult.message || "Failed to save attendance summary");
+          toast("Failed to save attendance summary.", {
+            position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
+          });
         }
       } else {
-        toast.error(result.message || "Failed to save attendance data");
+        toast("Failed to save attendance data.", {
+          position: "top-right",
+          autoClose: 2000,
+          closeButton: false,
+          closeOnClick: true,
+          hideProgressBar: true,
+          icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+          style: {
+            fontSize: "13px",
+            padding: "6px 12px",
+            width: "auto",
+            minHeight: "10px",
+          },
+        });
         if (result.details?.errors) {
           result.details.errors.forEach((error) =>
-            toast.error(`${error.record?.ecode}: ${error.error}`)
+            toast(`${error.record?.ecode}: ${error.error}`, {
+              position: "top-right",
+              autoClose: 2000,
+              closeButton: false,
+              closeOnClick: true,
+              hideProgressBar: true,
+              icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+              style: {
+                fontSize: "13px",
+                padding: "6px 12px",
+                width: "auto",
+                minHeight: "10px",
+              },
+            })
           );
         }
       }
     } catch (error) {
       console.error("Error submitting data:", error);
-      
-      if (error.message.includes('401')) {
-        toast.error("Authentication failed. Please log in again.");
-      } else if (error.message.includes('413')) {
-        toast.error("File too large. Please use a smaller file.");
-      } else if (error.message.includes('422')) {
-        toast.error("Invalid file format. Please use .xlsx or .xls files.");
-      } else if (error.message.includes('500')) {
-        toast.error("Server error. Please try again later.");
+
+      if (error.message.includes("401")) {
+        toast("Authentication failed. Please log in again."),
+          {
+            position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
+          };
+      } else if (error.message.includes("413")) {
+        toast("File too large. Please use a smaller file."),
+          {
+            position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
+          };
+      } else if (error.message.includes("422")) {
+        toast("Invalid file format. Please use .xlsx or .xls files."),
+          {
+            position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
+          };
+      } else if (error.message.includes("500")) {
+        toast("Server error. Please try again later."),
+          {
+            position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
+          };
       } else {
-        toast.error("An error occurred while saving attendance: " + error.message);
+        toast("An error occurred while saving attendance: " + error.message),
+          {
+            position: "top-right",
+            autoClose: 2000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
+          };
       }
     } finally {
       setLoading(false);
@@ -1199,7 +1631,20 @@ const Attendance = () => {
       }
     } catch (error) {
       console.error("Error fetching attendance data:", error);
-      toast.error("Failed to fetch attendance data");
+      toast("Failed to fetch attendance data", {
+        position: "top-right",
+        autoClose: 2000,
+        closeButton: false,
+        closeOnClick: true,
+        hideProgressBar: true,
+        icon: <span style={{ fontSize: "13px" }}>⚠️</span>,
+        style: {
+          fontSize: "13px",
+          padding: "6px 12px",
+          width: "auto",
+          minHeight: "10px",
+        },
+      });
     }
   };
 
@@ -1207,23 +1652,6 @@ const Attendance = () => {
   useEffect(() => {
     fetchAttendanceData();
   }, []);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   return (
     <div className="right-0 bottom-0 min-h-screen w-full bg-neutralSilver p-3 pt-16">
@@ -1246,7 +1674,8 @@ const Attendance = () => {
               </Modal.Title>
             </Modal.Header>
             <Modal.Body as="h6" className="text-sm p-2 text-justify ml-2 -mb-0">
-              Attendance with payroll breakdown, undertime tracking, and holiday classification saved successfully!
+              Attendance with payroll breakdown, undertime tracking, and holiday
+              classification saved successfully!
             </Modal.Body>
             <Modal.Footer>
               <button
@@ -1268,7 +1697,7 @@ const Attendance = () => {
         <div className="p-2 -mt-3 rounded border bg-white shadow-sm border-neutralDGray">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm text-neutralDGray">
-              Upload Attendance File (with Holiday Detection & Classification)
+              Upload Attendance File
             </h2>
             <div className="flex items-center gap-2">
               {selectedSchedules.length > 0 && (
@@ -1333,7 +1762,6 @@ const Attendance = () => {
           </div>
         </div>
 
-
         <ScheduleSelectionModal
           show={showScheduleModal}
           onClose={() => setShowScheduleModal(false)}
@@ -1371,7 +1799,8 @@ const Attendance = () => {
               />
             ) : (
               <p className="text-center text-xs italic text-gray-500">
-                No attendance data available. Upload a file to see payroll breakdown with holiday detection.
+                No attendance data available. Upload a file to see payroll
+                breakdown with holiday detection.
               </p>
             )}
           </div>
@@ -1394,7 +1823,8 @@ const Attendance = () => {
               />
             ) : (
               <p className="text-center text-xs italic text-gray-500">
-                No payroll summary available. Upload a file to see detailed breakdown with holiday hours by type.
+                No payroll summary available. Upload a file to see detailed
+                breakdown with holiday hours by type.
               </p>
             )}
           </div>

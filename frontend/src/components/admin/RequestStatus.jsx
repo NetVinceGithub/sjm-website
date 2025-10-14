@@ -14,19 +14,18 @@ const RequestStatus = () => {
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(dayjs());
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [cancelId, setCancelId] = useState(null);
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [showBatchModal, setShowBatchModal] = useState(false);
 
-const handleBatchDetails = (batch) => {
-  setSelectedBatch(batch);
-  setShowBatchModal(true);
-};
+  const handleBatchDetails = (batch) => {
+    setSelectedBatch(batch);
+    setShowBatchModal(true);
+  };
 
-
-  // Update current time every second for coun tdown
+  // Update current time every second for countdown
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(dayjs());
@@ -41,18 +40,32 @@ const handleBatchDetails = (batch) => {
 
   const fetchPayslips = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/batches`);
-      const approvedBatches = response.data.filter(
-        (batch) => batch.uniqueStatuses?.includes("approved")
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/payslip/batches`
+      );
+      const approvedBatches = response.data.filter((batch) =>
+        batch.uniqueStatuses?.includes("approved")
       );
 
       const monthNames = {
-        January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
-        July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
+        January: 0,
+        February: 1,
+        March: 2,
+        April: 3,
+        May: 4,
+        June: 5,
+        July: 6,
+        August: 7,
+        September: 8,
+        October: 9,
+        November: 10,
+        December: 11,
       };
 
       const batchesWithRelease = approvedBatches.map((batch) => {
-        const match = batch.cutoffDate.match(/^([A-Za-z]+)\s+(\d+)-(\d+),\s*(\d+)$/);
+        const match = batch.cutoffDate.match(
+          /^([A-Za-z]+)\s+(\d+)-(\d+),\s*(\d+)$/
+        );
 
         if (!match) return { ...batch, releaseDate: null };
 
@@ -84,8 +97,6 @@ const handleBatchDetails = (batch) => {
     }
   };
 
-
-
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredData = useMemo(() => {
@@ -102,54 +113,52 @@ const handleBatchDetails = (batch) => {
   // Format countdown display
   const formatCountdown = (releaseDate) => {
     if (!releaseDate) return <span className="text-gray-400">-</span>;
-    
+
     const now = currentTime;
     const diff = releaseDate.diff(now);
-    
+
     if (diff <= 0) {
       return (
-        <div className="text-center">
-          <span className="inline-block bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-semibold">
-            Released!
-          </span>
-        </div>
+        <span className="inline-block bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-semibold">
+          Released!
+        </span>
       );
     }
-    
+
     const duration = dayjs.duration(diff);
     const days = Math.floor(duration.asDays());
     const hours = duration.hours();
     const minutes = duration.minutes();
     const seconds = duration.seconds();
-    
+
+    const dateStr = releaseDate.format("MMM DD, YYYY");
+
     if (days > 0) {
+      const timerStr = `${days}d ${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
       return (
-        <div className="text-center">
-          <div className="text-blue-600 font-mono text-sm font-semibold">
-            {days}d {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            {releaseDate.format("MMM DD, YYYY")}
-          </div>
-        </div>
+        <span className="text-neutralDGray font-mono text-xs font-semibold whitespace-nowrap">
+          {timerStr} || {dateStr}
+        </span>
       );
     } else if (hours > 0) {
+      const timerStr = `${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
       return (
-        <div className="text-center">
-          <div className="text-orange-600 font-mono text-sm font-semibold">
-            {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
-          </div>
-          <div className="text-xs text-gray-500 mt-1">Today</div>
-        </div>
+        <span className="text-orange-600 font-mono text-xs font-semibold whitespace-nowrap">
+          {timerStr} || Today
+        </span>
       );
     } else {
+      const timerStr = `${minutes.toString().padStart(2, "0")}:${seconds
+        .toString()
+        .padStart(2, "0")}`;
       return (
-        <div className="text-center">
-          <div className="text-red-600 font-mono text-sm font-semibold animate-pulse">
-            {minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
-          </div>
-          <div className="text-xs text-red-500 mt-1">Releasing soon!</div>
-        </div>
+        <span className="text-red-600 font-mono text-xs font-semibold animate-pulse whitespace-nowrap">
+          {timerStr} || Soon!
+        </span>
       );
     }
   };
@@ -162,79 +171,110 @@ const handleBatchDetails = (batch) => {
     alert(`Details for Request ID: ${row.batchId}`);
   };
 
-
-
   const handleOpenModal = (batch) => {
-    setSelectedEmployee(batch);  // rename selectedEmployee to selectedBatch
+    setSelectedEmployee(batch); // rename selectedEmployee to selectedBatch
     setModalOpen(true);
   };
 
-
-  const handleCancelPayslip = async(employeeId) => {
+  const handleCancelPayslip = async (employeeId) => {
     console.log("Deleting the id", employeeId);
     try {
-      const response = await axios.delete(`${import.meta.env.VITE_API_URL}/api/payslip/${employeeId}`);
+      const response = await axios.delete(
+        `${import.meta.env.VITE_API_URL}/api/payslip/${employeeId}`
+      );
       console.log("Successfully cancelled the payslip", response);
-    }catch (err) {
+    } catch (err) {
       console.log("Error cancelling Payslip", employeeId);
     }
     fetchPayslips();
-  }
+  };
+
   const columns = [
-    { name: "Request ID", selector: (row) => row.batchId, sortable: true, width: "120px" },
-    { name: "Date Created", selector: (row) => row.date, sortable: true, width: "120px" },
-    { name: "Cut off Date", selector: (row) => row.cutoffDate, sortable: true, width: "150px" },
-    { name: "Requestor", selector: (row) => row.requestedBy, sortable: true, width: "130px" },
-    { name: "Status", selector: (row) => row.uniqueStatuses, sortable: true, width: "100px" },
+    {
+      name: "Request ID",
+      selector: (row) => row.batchId,
+      sortable: true,
+      width: "320px",
+    },
+    {
+      name: "Date Created",
+      selector: (row) => new Date(row.date).toLocaleDateString("en-CA"),
+      sortable: true,
+      width: "130px",
+    },
+    {
+      name: "Cut off Date",
+      selector: (row) => row.cutoffDate,
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "Requestor",
+      selector: (row) => row.requestedBy,
+      sortable: true,
+      width: "220px",
+    },
+    {
+      name: "Status",
+      selector: (row) => {
+        if (!row.uniqueStatuses) return "";
+        const text = Array.isArray(row.uniqueStatuses)
+          ? row.uniqueStatuses.join(", ")
+          : row.uniqueStatuses;
+        return text.charAt(0).toUpperCase() + text.slice(1);
+      },
+      sortable: true,
+      width: "130px",
+    },
     {
       name: "Release Countdown",
       cell: (row) => formatCountdown(row.releaseDate),
       sortable: true,
-      width: "180px",
+      width: "300px",
     },
     {
       name: "Actions",
       cell: (row) => (
         <button
-          className="px-3 py-1 bg-blue-600 text-white rounded"
+          className="px-2 text-xs text-neutralDGray rounded w-fit items-center hover:bg-green-400 hover:text-white flex justify-between h-8 py-0.5 border"
           onClick={() => handleBatchDetails(row)}
         >
           Details
         </button>
       ),
-    }
-
+    },
   ];
 
   const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-md shadow-lg w-80">
-        <h2 className="text-lg font-semibold text-gray-800 mb-3">
-          Confirm Deletion
-        </h2>
-        <p className="text-gray-600 mb-6">
-          Are you sure you want to delete this payslip? This action cannot be undone.
-        </p>
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Delete
-          </button>
+    if (!isOpen) return null;
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div className="bg-white p-6 rounded-md shadow-lg w-80">
+          <h2 className="text-lg font-semibold text-gray-800 mb-3">
+            Confirm Deletion
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Are you sure you want to delete this payslip? This action cannot be
+            undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   return (
     <div className="p-4">
@@ -258,10 +298,10 @@ const handleBatchDetails = (batch) => {
 
       {searchTerm && (
         <div className="-mt-4 text-sm text-gray-600 mb-2">
-          Showing {filteredData.length} of {payslips.length} results for "{searchTerm}"
+          Showing {filteredData.length} of {payslips.length} results for "
+          {searchTerm}"
         </div>
       )}
-
 
       <div className="-mt-1 overflow-auto rounded-md border border-gray-200">
         <DataTable
@@ -312,11 +352,13 @@ const handleBatchDetails = (batch) => {
           dense
         />
         {showBatchModal && (
-        <BatchPayslipsModal
-          batch={selectedBatch}
-          onClose={() => setShowBatchModal(false)}
-        />
-      )}
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <BatchPayslipsModal
+              batch={selectedBatch}
+              onClose={() => setShowBatchModal(false)}
+            />
+          </div>
+        )}
       </div>
       <ConfirmDeleteModal
         isOpen={showConfirmModal}
@@ -327,7 +369,6 @@ const handleBatchDetails = (batch) => {
         }}
       />
     </div>
-
   );
 };
 

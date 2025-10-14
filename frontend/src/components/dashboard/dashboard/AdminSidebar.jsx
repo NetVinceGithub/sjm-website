@@ -72,7 +72,7 @@ const AdminSidebar = () => {
     const checkUserRole = async () => {
       const token = localStorage.getItem("token");
       console.log("Token from localStorage:", token); // Debug line
-      
+
       if (!token) {
         setIsAuthorized(false);
         setLoading(false);
@@ -80,20 +80,23 @@ const AdminSidebar = () => {
       }
 
       try {
-        console.log("Making request to:", `${import.meta.env.VITE_API_URL}/api/users/current`); // Debug line
-        
+        console.log(
+          "Making request to:",
+          `${import.meta.env.VITE_API_URL}/api/users/current`
+        ); // Debug line
+
         const userResponse = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/users/current`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
-              Accept: 'application/json',
+              Accept: "application/json",
             },
           }
         );
 
         console.log("Response:", userResponse.data); // Debug line
-        
+
         const currentUserRole = userResponse.data.user.role;
         setUserRole(currentUserRole);
         setIsAuthorized(["admin", "approver", "hr"].includes(currentUserRole));
@@ -307,7 +310,7 @@ const AdminSidebar = () => {
                       }
                       end
                     >
-                      <span>Schedule</span>
+                      <span>Employee Schedule</span>
                     </NavLink>
                   </>
                 ) : (
@@ -315,7 +318,7 @@ const AdminSidebar = () => {
                     onClick={handleRestrictedAccess}
                     className="text-sm flex items-center space-x-4 w-full text-left py-2.5 px-4 bg-red-900/80 hover:cursor-not-allowed text-gray-300 rounded-md"
                   >
-                    <span>Schedule</span>
+                    <span>Employee Schedule</span>
                   </button>
                 )}
               </div>

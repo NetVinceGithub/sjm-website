@@ -40,18 +40,17 @@ const Holidays = () => {
     const token = localStorage.getItem("token");
     return {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     };
   };
-
- 
 
   const fetchHolidays = async () => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/holidays`, getAuthHeaders()
+        `${import.meta.env.VITE_API_URL}/api/holidays`,
+        getAuthHeaders()
       );
       setHolidays(response.data.holidays || []);
     } catch (error) {
@@ -61,39 +60,42 @@ const Holidays = () => {
   };
 
   const addHoliday = async () => {
-      // Validation
-      if (!name.trim()) {
-        alert("Please enter a holiday name");
-        return;
-      }
-      if (!date) {
-        alert("Please select a date");
-        return;
-      }
-      if (!type) {
-        alert("Please select a holiday type");
-        return;
-      }
+    // Validation
+    if (!name.trim()) {
+      alert("Please enter a holiday name");
+      return;
+    }
+    if (!date) {
+      alert("Please select a date");
+      return;
+    }
+    if (!type) {
+      alert("Please select a holiday type");
+      return;
+    }
 
-      try {
-        const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/holidays/add`, {
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/holidays/add`,
+        {
           name: name.trim(),
           date,
           type,
-        });
-        
-        if (response.data.success) {
-          alert("Holiday added successfully!");
-          fetchHolidays();
-          setName("");
-          setDate("");
-          setType("");
         }
-      } catch (error) {
-        console.error("Error adding holiday:", error);
-        alert(error.response?.data?.message || "Failed to add holiday");
+      );
+
+      if (response.data.success) {
+        alert("Holiday added successfully!");
+        fetchHolidays();
+        setName("");
+        setDate("");
+        setType("");
       }
-    };
+    } catch (error) {
+      console.error("Error adding holiday:", error);
+      alert(error.response?.data?.message || "Failed to add holiday");
+    }
+  };
 
   const columns = [
     {
@@ -130,7 +132,8 @@ const Holidays = () => {
   const deleteHoliday = async (id) => {
     try {
       await axios.delete(
-        `${import.meta.env.VITE_API_URL}/api/holidays/delete/${id}`, getAuthHeaders()
+        `${import.meta.env.VITE_API_URL}/api/holidays/delete/${id}`,
+        getAuthHeaders()
       );
       fetchHolidays();
     } catch (error) {
@@ -220,7 +223,8 @@ const Holidays = () => {
     setLoadingRates(true);
     try {
       const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/holidays/holiday-rates`, getAuthHeaders()
+        `${import.meta.env.VITE_API_URL}/api/holidays/holiday-rates`,
+        getAuthHeaders()
       );
       if (res.data && res.data.rates) {
         setHolidayRates({
@@ -264,7 +268,8 @@ const Holidays = () => {
     try {
       await axios.post(
         `${import.meta.env.VITE_API_URL}/api/holidays/holiday-rates`,
-        holidayRates, getAuthHeaders()
+        holidayRates,
+        getAuthHeaders()
       );
       alert("Holiday rates saved successfully!");
       closeRateModal();
@@ -437,7 +442,7 @@ const Holidays = () => {
 
               <button
                 onClick={addHoliday}
-                className="p-2 text-xs h-8 w-full text-neutralDGray border hover:text-white hover:bg-green-400 rounded flex items-center justify-center transition duration-200"
+                className="p-2 text-xs mt-2 h-8 w-full text-neutralDGray border hover:text-white hover:bg-green-400 rounded flex items-center justify-center transition duration-200"
               >
                 Add Holiday
               </button>
@@ -493,18 +498,18 @@ const Holidays = () => {
         {/* Date Selection Modal */}
         {showDateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <div className="bg-white p-3 rounded-lg max-w-md w-full mx-4">
               <h3 className="text-base mb-3">Date Information</h3>
-              <div className="p-4 h-fit bg-blue-50 rounded-lg">
+              <div className="p-2 border h-16 rounded-lg">
                 <p className="text-sm font-medium text-gray-700 mb-1">
                   Selected Date:
                 </p>
-                <p className="text-lg italic text-blue-800">
+                <p className="text-lg italic text-center text-blue-800">
                   {selectedDate?.toDateString()}
                 </p>
               </div>
 
-              <div className="p-4 bg-gray-50 mt-2 rounded-lg">
+              <div className="p-2 border h-16 mt-2 rounded-lg">
                 <p className="text-sm  font-medium text-gray-700 mb-1">
                   Holiday Status:
                 </p>
