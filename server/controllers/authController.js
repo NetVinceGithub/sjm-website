@@ -3,11 +3,13 @@ import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import LoginHistory from '../models/LoginHistory.js';
 
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // 🔍 Find user
     const user = await User.findOne({ where: { email } });
 
     if (!user) {
@@ -18,30 +20,61 @@ const login = async (req, res) => {
       return res.status(403).json({ success: false, error: 'Your account has been blocked.' });
     }
 
+    // 🔑 Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ success: false, error: 'Wrong password' });
     }
 
+    // 🎫 Generate JWT
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      { id: user.id, role: user.role, email: user.email, name: user.name },
       process.env.JWT_KEY,
       { expiresIn: '10d' }
     );
 
- 
+    // 🧾 Record Login History (No association needed)
+    try {
+      const ipAddress =
+        req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+        req.headers['x-real-ip'] ||
+        req.connection?.remoteAddress ||
+        req.socket?.remoteAddress ||
+        req.ip ||
+        'Unknown';
 
+      const userAgent = req.headers['user-agent'] || 'Unknown';
+
+      await LoginHistory.create({
+        userId: user.id,
+        loginTime: new Date(),
+        ipAddress,
+        userAgent,
+      });
+
+      console.log(`✓ Login history recorded for user: ${user.email}`);
+    } catch (historyError) {
+      console.error('⚠ Failed to record login history:', historyError.message);
+    }
+
+    // ✅ Final Response
     res.status(200).json({
       success: true,
       token,
-      user: { id: user.id, name: user.name, role: user.role },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
 
   } catch (error) {
-    console.error('Login Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('❌ Login Error:', error);
+    res.status(500).json({ success: false, error: 'Server Error' });
   }
 };
+
 
 const verify = (req, res) => {
   return res.status(200).json({ success: true, user: req.user });

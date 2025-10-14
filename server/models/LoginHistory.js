@@ -1,10 +1,14 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../db/db.js';
-import User from './User.js';
 
 const LoginHistory = sequelize.define('LoginHistory', {
+  id: {
+    type: DataTypes.INTEGER.UNSIGNED,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   userId: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.INTEGER.UNSIGNED,
     allowNull: false,
   },
   loginTime: {
@@ -12,18 +16,20 @@ const LoginHistory = sequelize.define('LoginHistory', {
     defaultValue: DataTypes.NOW,
   },
   ipAddress: {
-    type: DataTypes.STRING,
+    type: DataTypes.STRING(255),
     allowNull: true,
   },
   userAgent: {
-    type: DataTypes.STRING,
+    type: DataTypes.STRING(255),
     allowNull: true,
   },
 }, {
   tableName: 'login_histories',
   timestamps: false,
+  indexes: [
+    { fields: ['userId'] },
+    { fields: ['loginTime'] },
+  ],
 });
-
-
 
 export default LoginHistory;

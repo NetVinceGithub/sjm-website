@@ -265,6 +265,10 @@ const Payslip = db.define(
       type: DataTypes.STRING(100),
       allowNull: false,
     },
+    requestedByName: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+    },
     date: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,

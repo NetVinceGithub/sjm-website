@@ -5,7 +5,7 @@ import DataTable from "react-data-table-component";
 import axios from "axios";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
-import PayslipModal from "../dashboard/payroll/PayslipModal";
+import BatchPayslipsModal from "./BatchPayslipsModal";
 
 dayjs.extend(duration);
 
@@ -17,7 +17,13 @@ const RequestStatus = () => {
   const [modalOpen, setModalOpen] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [cancelId, setCancelId] = useState(null);
+  const [selectedBatch, setSelectedBatch] = useState(null);
+  const [showBatchModal, setShowBatchModal] = useState(false);
 
+const handleBatchDetails = (batch) => {
+  setSelectedBatch(batch);
+  setShowBatchModal(true);
+};
 
 
   // Update current time every second for coun tdown
@@ -33,46 +39,52 @@ const RequestStatus = () => {
     fetchPayslips();
   }, []);
 
-   const fetchPayslips = async () => {
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip`);
-        const approvedPayslips = response.data.filter(
-          (p) => p.status?.toLowerCase() === "approved"
-        );
+  const fetchPayslips = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/payslip/batches`);
+      const approvedBatches = response.data.filter(
+        (batch) => batch.uniqueStatuses?.includes("approved")
+      );
 
-        // Compute releaseDate for each payslip
-        const payslipsWithRelease = approvedPayslips.map((p) => {
-          const match = p.cutoffDate.match(/^([A-Za-z]+)\s+(\d+)-\d+,\s*(\d+)$/);
-          if (!match) return { ...p, releaseDate: null };
+      const monthNames = {
+        January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
+        July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
+      };
 
-          const [, monthName, startDayStr, yearStr] = match;
-          const startDay = parseInt(startDayStr, 10);
-          const year = parseInt(yearStr, 10);
-          const releaseDay = startDay <= 15 ? 4 : 19;
+      const batchesWithRelease = approvedBatches.map((batch) => {
+        const match = batch.cutoffDate.match(/^([A-Za-z]+)\s+(\d+)-(\d+),\s*(\d+)$/);
 
-          const monthNames = {
-            January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
-            July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
-          };
+        if (!match) return { ...batch, releaseDate: null };
 
-          const monthIndex = monthNames[monthName]; // 0-indexed month
+        const [, monthName, startDayStr, endDayStr, yearStr] = match;
+        const startDay = parseInt(startDayStr, 10);
+        const year = parseInt(yearStr, 10);
 
-          const releaseDate = dayjs()
-            .year(year)
-            .month(monthIndex)
-            .date(releaseDay)
-            .startOf("day");
+        const monthIndex = monthNames[monthName.trim()];
+        if (monthIndex === undefined) return { ...batch, releaseDate: null };
 
-          return { ...p, releaseDate };
-        });
+        // Release day rule
+        const releaseDay = startDay <= 15 ? 4 : 19;
 
-        setPayslips(payslipsWithRelease);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching payslips:", error);
-        setLoading(false);
-      }
-    };
+        const releaseDate = dayjs()
+          .year(year)
+          .month(monthIndex)
+          .date(releaseDay)
+          .startOf("day");
+
+        return { ...batch, releaseDate };
+      });
+
+      setPayslips(batchesWithRelease);
+      console.log("Payslips with release", batchesWithRelease);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching payslips:", error);
+      setLoading(false);
+    }
+  };
+
+
 
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -109,7 +121,6 @@ const RequestStatus = () => {
     const hours = duration.hours();
     const minutes = duration.minutes();
     const seconds = duration.seconds();
-    
     
     if (days > 0) {
       return (
@@ -151,25 +162,15 @@ const RequestStatus = () => {
     alert(`Details for Request ID: ${row.batchId}`);
   };
 
-  const handleCancelRequest = (row) => {
-    // Implement cancel logic
-    console.log("Cancel request:", row);
-    // You can show confirmation dialog and make API call
-    if (window.confirm(`Are you sure you want to cancel request ${row.batchId}?`)) {
-      // Make API call to cancel
-      console.log("Request cancelled");
-      // Refresh data after cancellation
-    }
-  };
 
-  const handleOpenModal = (employeeId) => {
-    setSelectedEmployee(employeeId);
+
+  const handleOpenModal = (batch) => {
+    setSelectedEmployee(batch);  // rename selectedEmployee to selectedBatch
     setModalOpen(true);
   };
 
 
   const handleCancelPayslip = async(employeeId) => {
-
     console.log("Deleting the id", employeeId);
     try {
       const response = await axios.delete(`${import.meta.env.VITE_API_URL}/api/payslip/${employeeId}`);
@@ -177,23 +178,14 @@ const RequestStatus = () => {
     }catch (err) {
       console.log("Error cancelling Payslip", employeeId);
     }
-
     fetchPayslips();
-
   }
   const columns = [
     { name: "Request ID", selector: (row) => row.batchId, sortable: true, width: "120px" },
-    { name: "Request Type", selector: (row) => row.payrollType, sortable: true, width: "130px" },
     { name: "Date Created", selector: (row) => row.date, sortable: true, width: "120px" },
     { name: "Cut off Date", selector: (row) => row.cutoffDate, sortable: true, width: "150px" },
     { name: "Requestor", selector: (row) => row.requestedBy, sortable: true, width: "130px" },
-    { name: "Status", selector: (row) => row.status, sortable: true, width: "100px" },
-    {
-      name: "Release Countdown",
-      cell: (row) => formatCountdown(row.releaseDate),
-      sortable: true,
-      width: "180px",
-    },
+    { name: "Status", selector: (row) => row.uniqueStatuses, sortable: true, width: "100px" },
     {
       name: "Release Countdown",
       cell: (row) => formatCountdown(row.releaseDate),
@@ -203,36 +195,15 @@ const RequestStatus = () => {
     {
       name: "Actions",
       cell: (row) => (
-        <div className="flex gap-1">
-          <button
-            onClick={() => {
-              console.log('Details button clicked for:', row);
-              handleOpenModal(row.employeeId);
-            }}
-            className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition-all duration-200 font-medium"
-            title="View Details"
-          >
-            <Eye size={12} />
-            Details
-          </button>
-          <button
-            onClick={() => {
-              setCancelId(row.employeeId);   // store ID to delete
-              setShowConfirmModal(true);     // show modal
-            }}
-            className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-red-50 text-red-600 border border-red-200 rounded hover:bg-red-100 transition-all duration-200 font-medium"
-            title="Cancel Request"
-          >
-            <X size={12} />
-            Cancel
-          </button>
-        </div>
+        <button
+          className="px-3 py-1 bg-blue-600 text-white rounded"
+          onClick={() => handleBatchDetails(row)}
+        >
+          Details
+        </button>
       ),
-      ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
-      width: "150px",
-    },
+    }
+
   ];
 
   const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm }) => {
@@ -266,8 +237,6 @@ const RequestStatus = () => {
 };
 
   return (
-
-    
     <div className="p-4">
       <div className="flex justify-between items-center mt-2 mb-2">
         <div className="text-left">
@@ -293,11 +262,6 @@ const RequestStatus = () => {
         </div>
       )}
 
-        <PayslipModal
-          isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
-          employeeId={selectedEmployee}
-        />
 
       <div className="-mt-1 overflow-auto rounded-md border border-gray-200">
         <DataTable
@@ -347,6 +311,12 @@ const RequestStatus = () => {
           striped
           dense
         />
+        {showBatchModal && (
+        <BatchPayslipsModal
+          batch={selectedBatch}
+          onClose={() => setShowBatchModal(false)}
+        />
+      )}
       </div>
       <ConfirmDeleteModal
         isOpen={showConfirmModal}
@@ -356,15 +326,9 @@ const RequestStatus = () => {
           setShowConfirmModal(false);
         }}
       />
-
-      
-
     </div>
 
   );
-
-
-
 };
 
 export default RequestStatus;

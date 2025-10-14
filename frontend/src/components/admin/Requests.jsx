@@ -44,6 +44,8 @@ const Requests = () => {
     };
   };
 
+  
+
   useEffect(() => {
     const checkUserRole = async () => {
       const token = localStorage.getItem("token");
@@ -784,6 +786,8 @@ const Requests = () => {
   };
 
   const handleDeleteAll = async () => {
+
+    console.log("Ito yung ginamit na pang delete");
     try {
       // Updated to include batchId parameter for deletion
       await axios.delete(
@@ -1351,7 +1355,7 @@ const Requests = () => {
                 ).length > 0 && (
                   <div className="flex gap-2 -mt-3">
                     <button
-                      onClick={() => handleApprove()} // Approve all pending
+                      onClick={() => handleApproveAllBatches()} // Approve all pending
                       className="hover:bg-green-400 border text-neutralDGray text-xs w-32 h-8 px-3 py-1 rounded hover:text-white disabled:opacity-50"
                     >
                       Approve All
@@ -1904,10 +1908,7 @@ const Requests = () => {
                                 <span className="font-medium">
                                   {payslip.name} →
                                 </span>{" "}
-                                {/* ₱{" "}
-                                {parseFloat(payslip.netPay).toLocaleString(undefined, {
-                                  minimumFractionDigits: 2,
-                                })} */}
+                                
                               </div>
                               <div className="text-gray-500 text-[10px] ml-4">
                                 <div>Employee ID: {payslip.ecode}</div>
@@ -1946,33 +1947,17 @@ const Requests = () => {
                                     { minimumFractionDigits: 2 }
                                   )}
                                 </div>
-                                <div>Regular Days: {payslip.regularDays}</div>
+                                <div>Regular Days: {payslip.noOfDays}</div>
+
+
                               </div>
                             </li>
                           )
                         )}
                       </ol>
-                      {/* 
-                      original design */}
 
-                      {/* <ol className="list-decimal list-inside text-xs">
-                        {selectedPayrollRequest.payslips.map(
-                          (payslip, index) => (
-                            <li key={index} className="leading-tight mb-1">
-                              <span className="font-medium">
-                                {payslip.name} →
-                              </span>{" "}
-                              ₱{" "}
-                              {parseFloat(payslip.netPay).toLocaleString(
-                                undefined,
-                                {
-                                  minimumFractionDigits: 2,
-                                }
-                              )}
-                            </li>
-                          )
-                        )}
-                      </ol> */}
+
+                      
                     </div>
                   </div>
                   {selectedPayrollRequest.payslips.map((payslip, index) => (
@@ -1999,7 +1984,7 @@ const Requests = () => {
                     <>
                       <button
                         onClick={() =>
-                          handleApprove(selectedPayrollRequest.batchId)
+                          handleApproveBatch(selectedPayrollRequest.batchId)
                         }
                         className="px-4 py-2 h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
                       >

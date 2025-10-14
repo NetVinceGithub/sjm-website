@@ -546,7 +546,8 @@ const PayrollSummary = () => {
       const payrollRequest = {
         cutoffDate: cutoffDate.trim(),
         payrollType: payrollType, // ← add this line
-        requestedBy: user?.name || "Unknown User",
+        requestedBy: user?.email || "Unknown User",
+        requestedByName: user?.name || "Unknown User",
         selectedEmployees: selectedEmployees,
         employees: selectedEmployeesData,
         attendanceData: attendanceData,
@@ -568,6 +569,8 @@ const PayrollSummary = () => {
           generatedAt: new Date().toISOString(),
         },
       };
+
+      console.log("Payroll request data", payrollRequest);
 
       console.log("📤 Final payroll request payload:");
       console.log("Payroll Type:", payrollRequest.payrollType);
