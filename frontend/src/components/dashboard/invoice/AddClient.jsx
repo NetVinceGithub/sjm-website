@@ -146,9 +146,7 @@ export default function AddClientForm() {
       newErrors.billingFrequency = "Billing frequency is required";
     }
 
-    if (!formData.tin.trim()) {
-      newErrors.tin = "TIN is required";
-    }
+
 
     return newErrors;
   };

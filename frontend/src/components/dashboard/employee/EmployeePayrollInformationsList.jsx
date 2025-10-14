@@ -463,7 +463,7 @@ const EmployeePayrollInformationsList = () => {
     },
     {
       name: "Employment Rank",
-      selector: (row) => row.designation,
+      selector: (row) => row.employment_rank,
       sortable: true,
       center: true,
       width: "200px",
