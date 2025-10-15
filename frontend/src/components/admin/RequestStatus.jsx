@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Search, Eye, X } from "lucide-react";
 import { ThreeDots } from "react-loader-spinner";
 import DataTable from "react-data-table-component";
@@ -19,6 +19,9 @@ const RequestStatus = () => {
   const [cancelId, setCancelId] = useState(null);
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [showBatchModal, setShowBatchModal] = useState(false);
+  
+  // Track which batches have been released to prevent duplicate API calls
+  const releasedBatches = useRef(new Set());
 
   const handleBatchDetails = (batch) => {
     setSelectedBatch(batch);
@@ -37,6 +40,48 @@ const RequestStatus = () => {
   useEffect(() => {
     fetchPayslips();
   }, []);
+
+  // Check for countdown completion and trigger release
+  useEffect(() => {
+    const checkForRelease = async () => {
+      for (const batch of payslips) {
+        if (!batch.releaseDate) continue;
+        
+        const diff = batch.releaseDate.diff(currentTime);
+        const batchKey = `${batch.batchId}_${batch.releaseDate.valueOf()}`;
+        
+        // If countdown reached zero and not already released
+        if (diff <= 0 && !releasedBatches.current.has(batchKey)) {
+          releasedBatches.current.add(batchKey);
+          
+          try {
+            console.log(`⏰ Timer reached zero for batch: ${batch.batchId}`);
+            
+            // Extract payslip IDs from the batch
+            const payslipIds = batch.payslips?.map(p => p.id) || [];
+            
+            await axios.post(
+              `${import.meta.env.VITE_API_URL}/api/payslip/release`,
+              {
+                batchId: batch.batchId,
+                payslipIds: payslipIds,
+                releaseDate: batch.releaseDate.toISOString(),
+                payrollType: batch.payslips?.[0]?.payrollType
+              }
+            );
+            console.log(`✅ Successfully triggered release for batch: ${batch.batchId}`);
+            console.log(`📦 Released ${payslipIds.length} payslips:`, payslipIds);
+          } catch (error) {
+            console.error(`❌ Error releasing batch ${batch.batchId}:`, error);
+            // Remove from released set if failed, so it can retry
+            releasedBatches.current.delete(batchKey);
+          }
+        }
+      }
+    };
+
+    checkForRelease();
+  }, [currentTime, payslips]);
 
   const fetchPayslips = async () => {
     try {
@@ -63,11 +108,47 @@ const RequestStatus = () => {
       };
 
       const batchesWithRelease = approvedBatches.map((batch) => {
+        // Get payroll type from the first payslip in the batch
+        const firstPayslip = batch.payslips?.[0];
+        const payrollTypeValue = (firstPayslip?.payrollType || firstPayslip?.payroll_type || '').toLowerCase();
+        
+        console.log(`Batch ${batch.batchId} - payrollType:`, payrollTypeValue);
+        
+        const isWeekly = payrollTypeValue === 'weekly';
+
+        if (isWeekly) {
+          // For weekly payroll ONLY: release 1 hour after creation/approval
+          const createdAt = dayjs(batch.date);
+          const releaseDate = createdAt.add(1, 'hour');
+          
+          console.log(`Weekly payroll detected for batch ${batch.batchId}:`, {
+            createdAt: createdAt.format(),
+            releaseDate: releaseDate.format(),
+            payrollType: payrollTypeValue
+          });
+          
+          return { 
+            ...batch, 
+            releaseDate,
+            isWeekly: true,
+            payrollLabel: 'Weekly'
+          };
+        }
+
+        // Original logic for non-weekly payrolls
+        if (!batch.cutoffDate) {
+          console.warn(`No cutoffDate for batch ${batch.batchId}`);
+          return { ...batch, releaseDate: null };
+        }
+
         const match = batch.cutoffDate.match(
           /^([A-Za-z]+)\s+(\d+)-(\d+),\s*(\d+)$/
         );
 
-        if (!match) return { ...batch, releaseDate: null };
+        if (!match) {
+          console.warn(`Invalid cutoffDate format for batch ${batch.batchId}:`, batch.cutoffDate);
+          return { ...batch, releaseDate: null };
+        }
 
         const [, monthName, startDayStr, endDayStr, yearStr] = match;
         const startDay = parseInt(startDayStr, 10);
@@ -111,8 +192,11 @@ const RequestStatus = () => {
   const handleFilter = (e) => setSearchTerm(e.target.value);
 
   // Format countdown display
-  const formatCountdown = (releaseDate) => {
-    if (!releaseDate) return <span className="text-gray-400">-</span>;
+  const formatCountdown = (releaseDate, isWeekly = false, row = null) => {
+    if (!releaseDate) {
+      console.warn('No releaseDate provided to formatCountdown');
+      return <span className="text-gray-400">-</span>;
+    }
 
     const now = currentTime;
     const diff = releaseDate.diff(now);
@@ -131,6 +215,40 @@ const RequestStatus = () => {
     const minutes = duration.minutes();
     const seconds = duration.seconds();
 
+    // For weekly payroll ONLY, show simpler format with badge
+    if (isWeekly) {
+      if (hours > 0) {
+        const timerStr = `${hours.toString().padStart(2, "0")}:${minutes
+          .toString()
+          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+        return (
+          <span className="inline-flex items-center gap-2">
+            <span className="text-blue-600 font-mono text-xs font-semibold whitespace-nowrap">
+              {timerStr}
+            </span>
+            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-semibold">
+              Weekly
+            </span>
+          </span>
+        );
+      } else {
+        const timerStr = `${minutes.toString().padStart(2, "0")}:${seconds
+          .toString()
+          .padStart(2, "0")}`;
+        return (
+          <span className="inline-flex items-center gap-2">
+            <span className="text-black font-mono text-xs font-semibold animate-pulse whitespace-nowrap">
+              {timerStr}
+            </span>
+            {/* <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-semibold">
+              Weekly
+            </span> */}
+          </span>
+        );
+      }
+    }
+
+    // Original logic for non-weekly payrolls
     const dateStr = releaseDate.format("MMM DD, YYYY");
 
     if (days > 0) {
@@ -228,7 +346,7 @@ const RequestStatus = () => {
     },
     {
       name: "Release Countdown",
-      cell: (row) => formatCountdown(row.releaseDate),
+      cell: (row) => formatCountdown(row.releaseDate, row.isWeekly, row),
       sortable: true,
       width: "300px",
     },

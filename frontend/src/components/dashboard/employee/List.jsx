@@ -1082,10 +1082,11 @@ const List = () => {
     },
     {
       name: "Full Name",
-      selector: (row) => row.name,
+      selector: (row) => `${row.last_name || ""}, ${row.first_name || ""} ${row.middle_name || ""}`,
       sortable: true,
       width: "230px",
     },
+    
     {
       name: "Position",
       selector: (row) => row.position_title,
@@ -1235,10 +1236,10 @@ const List = () => {
     },
     {
       name: "Government ID Number",
-      selector: (row) => row.government_id_number || "N/A",
+      selector: (row) =>` ${row.government_id_type} - ${row.government_id_number}` || "N/A",
 
       sortable: true,
-      width: "200px",
+      width: "300px",
     },
     {
       name: "Emergency Contact Name",

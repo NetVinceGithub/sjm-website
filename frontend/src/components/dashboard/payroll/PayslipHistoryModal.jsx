@@ -297,7 +297,7 @@ const PayslipHistoryModal = ({ isOpen, onClose, employeeId }) => {
                         Total OT Hours
                       </td>
                       <td className="border border-black h-5 text-center border-l-white border-t-0 border-b-0">
-                        wala
+                        {formatNumber(payslip?.totalOvertime)}
                       </td>
                       <td className="border border-t-0 border-b-0 border-black h-5">
                         SSS
@@ -311,7 +311,7 @@ const PayslipHistoryModal = ({ isOpen, onClose, employeeId }) => {
                         <li className="ml-3 text-[10px]">Reg. OT Pay</li>
                       </td>
                       <td className="border border-black h-5 text-center border-l-white border-t-0 border-b-0">
-                        wala
+                        {formatNumber(payslip?.totalOvertime)}
                       </td>
                       <td className="border border-black h-5 border-t-0 border-b-0">
                         PhilHealth
@@ -325,7 +325,7 @@ const PayslipHistoryModal = ({ isOpen, onClose, employeeId }) => {
                         NSD Hours
                       </td>
                       <td className="border border-l border-black border-r h-5 text-center border-l-white border-t-0 border-b-0">
-                        wala
+                        {formatNumber(payslip?.nightDifferential)}
                       </td>
                       <td className="border border-black h-5 border-t-0 border-b-0">
                         Pag-IBIG
@@ -339,13 +339,15 @@ const PayslipHistoryModal = ({ isOpen, onClose, employeeId }) => {
                         <li className="ml-3 text-[10px]">NSD Pay</li>
                       </td>
                       <td className="border border-black h-5 text-center border-l-white border-t-0 border-b-0">
-                        wala
+                      {formatNumber(payslip?.nightDifferential)}
+
                       </td>
                       <td className="border border-black h-5 border-b-0">
                         SSS Loan
                       </td>
                       <td className="border border-black h-5 border-b-0 text-right border-r">
-                        wala
+                      {formatNumber(payslip?.nightDifferential)}
+
                       </td>
                     </tr>
                     <tr>
@@ -353,13 +355,15 @@ const PayslipHistoryModal = ({ isOpen, onClose, employeeId }) => {
                         ND OT
                       </td>
                       <td className="border border-black h-5 text-center border-l-white border-t-0 border-b-0">
-                        wala
+                      {formatNumber(payslip?.nightDifferential)}
+
                       </td>
                       <td className="border border-black h-5 border-t-0 border-b-0">
                         Pag-IBIG Loan
                       </td>
                       <td className="border border-black h-5 border-t-0 border-b-0 text-right border-r">
-                        wala
+                      {formatNumber(payslip?.nightDifferential)}
+
                       </td>
                     </tr>
                     <tr>
@@ -367,7 +371,8 @@ const PayslipHistoryModal = ({ isOpen, onClose, employeeId }) => {
                         <div className="border-b-2 border-black">RD Pay</div>
                       </td>
                       <td className="border border-black h-5 text-center border-l-white border-t-0 border-b-0">
-                        wala
+                      {formatNumber(payslip?.nightDifferential)}
+
                       </td>
                       <td className="border border-black h-5 border-t-0 border-b-0">
                         Tardiness

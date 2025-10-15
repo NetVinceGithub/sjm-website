@@ -138,8 +138,7 @@ const AddNew = () => {
 
   const fetchNextEcode = async () => {
     try {
-      const response = await apiClient.get("/employees/next-ecode");
-
+      const response = await apiClient.get(`${import.meta.env.VITE_API_URL}/api/employee/next-ecode`);
       if (response.data.success) {
         setFormData((prev) => ({
           ...prev,

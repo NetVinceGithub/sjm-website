@@ -136,9 +136,8 @@ const Overview = () => {
   const handleConfirm = () => {
     const filtered = applyFilters(payslips, month, year);
     setFilteredPayslips(filtered);
-
     setShowFilterModal(false);
-
+  
     const filterText = [];
     if (month)
       filterText.push(
@@ -147,7 +146,7 @@ const Overview = () => {
         })}`
       );
     if (year) filterText.push(`Year: ${year}`);
-
+  
     if (filterText.length > 0) {
       toast("Filters applied successfully!", {
         position: "top-right",
@@ -187,22 +186,26 @@ const Overview = () => {
     });
   };
 
-  // All useEffect hooks at the component level
+  // Fix the fetchPayslips useEffect
   useEffect(() => {
     const fetchPayslips = async () => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/payslip`
+          `${import.meta.env.VITE_API_URL}/api/payslip/contribution`
         );
-        const payslipsData = Array.isArray(response.data) ? response.data : [];
-        setPayslips(payslipsData);
+        
+        // Fix: Handle the correct response structure
+        const payslipsData = response.data?.data || response.data || [];
+        const normalizedData = Array.isArray(payslipsData) ? payslipsData : [];
+        
+        setPayslips(normalizedData);
 
         // Apply current filters to new data if filters are active
         if (month || year) {
-          const filtered = applyFilters(payslipsData, month, year);
+          const filtered = applyFilters(normalizedData, month, year);
           setFilteredPayslips(filtered);
         } else {
-          setFilteredPayslips(payslipsData);
+          setFilteredPayslips(normalizedData);
         }
       } catch (error) {
         console.error("Error fetching payslips:", error);
@@ -221,7 +224,7 @@ const Overview = () => {
     } else {
       setFilteredPayslips(payslips);
     }
-  }, [month, year, payslips, employees]);
+  }, [month, year, payslips]); // Remove 'employees' from dependencies
 
   useEffect(() => {
     const checkUserRole = async () => {

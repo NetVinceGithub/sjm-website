@@ -672,7 +672,7 @@ const InvoiceList = () => {
                           <div className="flex mr-5 gap-2 mt-3 p-2 justify-between items-center">
                             <div>
                               <div className="flex flex-row gap-2 justify-center items center">
-                                <img src="{Logo}" className="w-20 h-20" />
+                                <img src={Logo} className="w-20 h-20" />
                                 <div>
                                   <p className="font-semibold text-[#9D426E] text-[10px]">
                                     ST. JOHN MAJORE SERVICES COMPANY, INC.
@@ -848,8 +848,8 @@ const InvoiceList = () => {
                             </div>
 
                             <img
-                              src="{LongLogo}"
-                              className="w-36 h-24 ml-7 mt-5"
+                              src={LongLogo}
+                              className="w-1/4 h-24 ml-7 mt-3"
                             />
                           </div>
                         </div>

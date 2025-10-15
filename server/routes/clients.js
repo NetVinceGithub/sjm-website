@@ -1,9 +1,9 @@
 import express from 'express';
-import { addClient, getClients, getNextClientCode, getClientById, updateClient } from '../controllers/clientsController.js';
+import { addClient, getClients, getClientById, updateClient, nextClientCode } from '../controllers/clientsController.js';
 
 const router = express.Router();
 
-router.get("/next-code", getNextClientCode);
+router.get("/next-code", nextClientCode);
 router.post("/add", addClient);
 router.get("/", getClients);
 router.get("/:id", getClientById);  // Get specific client by ID

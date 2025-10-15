@@ -1091,118 +1091,275 @@ export const unblockEmployee = async (req, res) => {
   }
 };
 
-
-
 export const rejectPayrollChange = async (req, res) => {
-  const { id } = req.params;
-  const { reviewed_by, rejection_reason } = req.body;
-  console.log("in rehectPayrollChange function", reviewed_by);
+  console.log("In rejectPayrollChange function");
+  const transaction = await sequelize.transaction();
 
   try {
+    const { id } = req.params;
+    const { reviewed_by, rejection_reason } = req.body;
+    const reviewedBy = reviewed_by || req.user?.name || 'System';
+
     console.log(`💡 Rejecting payroll change request ${id}`);
     console.log("Request body:", req.body);
 
     // Find the change request
-    const changeRequest = await PayrollChangeRequest.findByPk(id);
-    if (!changeRequest) {
-      console.log(`❌ Change request ${id} not found`);
-      return res
-        .status(404)
-        .json({ success: false, message: "Change request not found" });
-    }
-
-    // Check if already processed
-    if (changeRequest.status !== "Pending") {
-      console.log(
-        `❌ Change request ${id} already processed with status: ${changeRequest.status}`
-      );
-      return res
-        .status(400)
-        .json({ success: false, message: "Change request already processed" });
-    }
-
-    // Simulated employee details from the changeRequest
-    const employeeName = changeRequest.employee_name || "Unknown Employee";
-    const employeeEmail = changeRequest.employee_email || "noemail@domain.com";
-
-    const subject = "Payroll Change Request Rejected";
-    const message = `Dear ${employeeName},<br><br>Your payroll change request has been reviewed and <strong>rejected</strong>.<br><br><em>The request has been rejected.</em>`;
-    const sentBy = changeRequest.requested_by || "Admin";
-    const sentAt = new Date();
-    const attachments = []; // Add attachments if needed
-
-    // Update the change request status
-    await changeRequest.update({
-      status: "Rejected",
-      reviewed_by: sentBy,
-      reviewed_at: sentAt,
-      rejection_reason: rejection_reason || "No reason provided",
+    const changeRequest = await PayrollChangeRequest.findOne({
+      where: { id, status: 'Pending' },
+      transaction
     });
 
-    console.log(`✅ Payroll change request ${id} rejected`);
+    if (!changeRequest) {
+      await transaction.rollback();
+      console.log(`❌ Change request ${id} not found or already processed`);
+      return res.status(404).json({ 
+        success: false, 
+        message: "No pending change request found" 
+      });
+    }
 
-    // Email content setup
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: employeeEmail,
-      subject: subject,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <title>${subject}</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
-          <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
-            <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
-            <p style="color: #333; font-size: 16px;">Dear ${sentBy},</p>
-            <p style="color: #333; font-size: 15px;">Your payroll change request for ${employeeName} has been reviewed and <strong style="color:red;">rejected</strong>.</p>
-            <p style="color: #555; font-size: 14px;">The request has been rejected.</p>
-            <p style="margin-top: 20px; color: #333;">Best regards,<br><strong>${sentBy}</strong></p>
-            <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
-            <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
-              <strong>This is an automated email—please do not reply.</strong><br />
-              Keep this message for your records.
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
-      text: `
-        Dear ${sentBy},
+    console.log('Found change request:', changeRequest.toJSON());
 
-        Your payroll change request has been reviewed and rejected.
+    // Check if this is a batch request
+    const isBatchRequest = changeRequest.batch_affected_employee_ids && 
+                          Array.isArray(changeRequest.batch_affected_employee_ids) && 
+                          changeRequest.batch_affected_employee_ids.length > 0;
 
-        The request has been rejected.
+    let result;
 
-        Best regards,
-        ${sentBy}
+    if (isBatchRequest) {
+      result = await processBatchRejection(changeRequest, reviewedBy, rejection_reason, transaction);
+    } else {
+      result = await processSingleRejection(changeRequest, reviewedBy, rejection_reason, transaction);
+    }
 
-        Sent at: ${new Date(sentAt).toLocaleString()}
-      `,
-      attachments: attachments.map((file) => ({
-        filename: file.filename,
-        content: file.content,
-        contentType: file.contentType,
-      })),
+    // Commit the transaction after successful processing
+    await transaction.commit();
+    console.log('✅ Transaction committed successfully');
+
+    // ✅ Now send email notifications
+    const { batchId, uniqueRequesters, payslips, reviewerName } = result;
+
+    if (uniqueRequesters && uniqueRequesters.length > 0) {
+      let successfulEmails = [];
+      let failedEmails = [];
+
+      for (const email of uniqueRequesters) {
+        try {
+          // Find the name associated with this email
+          const payslip = payslips?.find(p => p.requestedBy === email);
+          const requesterName = payslip?.requested_by || 'User';
+
+          let mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: `Payroll Request Rejected - ${batchId ? `Batch ${batchId}` : 'Request'}`,
+            html: `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="UTF-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <title>Payroll Request Rejected</title>
+              </head>
+              <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
+                <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
+                  <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
+                  
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #dc3545;">Payroll Request Rejected ✗</h2>
+                    <p style="color: #333; font-size: 15px;">
+                      Dear ${requesterName},
+                    </p>
+                    <p style="color: #333; font-size: 15px;">
+                      Your payroll change request ${batchId ? `for batch <strong>${batchId}</strong>` : ''} has been reviewed and <strong style="color: #dc3545;">rejected</strong>.
+                    </p>
+                    ${rejection_reason ? `
+                    <div style="background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 12px; margin: 20px 0;">
+                      <p style="margin: 0; color: #721c24; font-size: 14px;">
+                        <strong>Reason for rejection:</strong><br/>
+                        ${rejection_reason}
+                      </p>
+                    </div>
+                    ` : ''}
+                    <p style="color: #333; font-size: 15px;">
+                      For more information, you can directly contact the reviewer: <strong>${reviewerName}</strong>
+                    </p>
+                    <p style="color: #333; font-size: 15px;">
+                      You can view your payroll requests at: 
+                      <a href="https://payroll.stjohnmajore.com/">https://payroll.stjohnmajore.com/</a>
+                    </p>
+                  </div>
+
+                  <p style="color: #333; font-size: 15px;">Best regards,<br />SJM Payroll System</p>
+                  <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
+                    <strong>This is an automated email—please do not reply.</strong><br />
+                    Keep this message for your records.
+                  </div>
+                  <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
+                </div>
+              </body>
+              </html>
+            `,
+            text: `
+              Dear ${requesterName},
+
+              Your payroll change request ${batchId ? `for batch ${batchId}` : ''} has been reviewed and rejected.
+
+              ${rejection_reason ? `Reason for rejection:\n${rejection_reason}\n` : ''}
+
+              For more information, contact: ${reviewerName}
+
+              Best regards,
+              SJM Payroll System
+            `
+          };
+
+          await transporter.sendMail(mailOptions);
+          console.log(`✓ Rejection notification sent to ${email}`);
+          successfulEmails.push(email);
+        } catch (emailError) {
+          console.error(`✗ Failed to send rejection email to ${email}:`, emailError.message);
+          failedEmails.push(email);
+        }
+      }
+
+      console.log(`📧 Email summary: ${successfulEmails.length} successful, ${failedEmails.length} failed`);
+    }
+
+    // Send success response
+    return res.status(200).json({
+      success: true,
+      message: result.message || 'Payroll change request rejected successfully.',
+      data: result.data || result,
+      emailsSent: result.uniqueRequesters?.length || 0
+    });
+
+  } catch (error) {
+    // Only rollback if transaction is still active
+    if (!transaction.finished) {
+      await transaction.rollback();
+      console.log('🔄 Transaction rolled back due to error');
+    }
+    
+    console.error("❌ Error rejecting payroll change:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to reject change request.",
+      error: error.message
+    });
+  }
+};
+
+// Helper function for single rejection
+const processSingleRejection = async (changeRequest, reviewedBy, rejectionReason, transaction) => {
+  try {
+    console.log(`📝 Processing single rejection for request ${changeRequest.id}`);
+
+    // Mark the change request as rejected
+    await changeRequest.update(
+      { 
+        status: 'Rejected',
+        reviewed_by: reviewedBy,
+        reviewed_at: new Date(),
+        rejection_reason: rejectionReason || 'No reason provided'
+      },
+      { transaction }
+    );
+
+    console.log(`✅ Request ${changeRequest.id} marked as rejected`);
+
+    // Return data for email notification
+    return {
+      success: true,
+      message: 'Payroll change request rejected successfully.',
+      data: {
+        changeRequest: changeRequest.toJSON(),
+        rejectionReason: rejectionReason || 'No reason provided'
+      },
+      // Email notification data
+      batchId: changeRequest.batch_id || `request_${changeRequest.id}`,
+      uniqueRequesters: [changeRequest.employee_email].filter(Boolean),
+      payslips: [{
+        requestedBy: changeRequest.employee_email,
+        requestedByName: changeRequest.employee_name
+      }],
+      reviewerName: reviewedBy
     };
 
-    console.log("📧 Sending rejection email...");
-    const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email sent:", employeeEmail);
-    console.log("✅ Email Name:", sentBy);
-    console.log("✅ Email Content name:", employeeName);
-
-    res
-      .status(200)
-      .json({ success: true, message: "Change request rejected successfully" });
   } catch (error) {
-    console.error("❌ Error rejecting payroll change:", error);
-    res
-      .status(500)
-      .json({ success: false, message: error.message, error: error.stack });
+    console.error('❌ Error in processSingleRejection:', error);
+    throw error;
+  }
+};
+
+// Helper function for batch rejection
+const processBatchRejection = async (changeRequest, reviewedBy, rejectionReason, transaction) => {
+  try {
+    const batchId = changeRequest.batch_id;
+    console.log(`🔄 Processing batch rejection: ${batchId}`);
+
+    // Get all related change requests in this batch
+    const allBatchRequests = await PayrollChangeRequest.findAll({
+      where: {
+        batch_id: batchId,
+        status: 'Pending'
+      },
+      transaction
+    });
+
+    console.log(`📝 Found ${allBatchRequests.length} pending requests in batch`);
+
+    // Mark all batch requests as rejected
+    await PayrollChangeRequest.update(
+      { 
+        status: 'Rejected',
+        reviewed_by: reviewedBy,
+        reviewed_at: new Date(),
+        rejection_reason: rejectionReason || 'No reason provided'
+      },
+      {
+        where: {
+          batch_id: batchId,
+          status: 'Pending'
+        },
+        transaction
+      }
+    );
+
+    console.log(`✅ Marked ${allBatchRequests.length} requests as rejected`);
+
+    // Collect unique requesters for email notifications
+    const uniqueRequesters = [...new Set(
+      allBatchRequests
+        .map(req => req.employee_email)
+        .filter(Boolean)
+    )];
+
+    const payslips = allBatchRequests.map(req => ({
+      requestedBy: req.employee_email,
+      requestedByName: req.employee_name
+    }));
+
+    // Return data for email notification
+    return {
+      success: true,
+      message: `Batch rejection completed: ${allBatchRequests.length} requests rejected.`,
+      data: {
+        batchId,
+        totalRequests: allBatchRequests.length,
+        rejectionReason: rejectionReason || 'No reason provided'
+      },
+      // Email notification data
+      batchId,
+      uniqueRequesters,
+      payslips,
+      reviewerName: reviewedBy
+    };
+
+  } catch (error) {
+    console.error('❌ Error in processBatchRejection:', error);
+    throw error;
   }
 };
 
@@ -2353,7 +2510,10 @@ export const approvePayrollChange = async (req, res) => {
 
     if (!changeRequest) {
       await transaction.rollback();
-      return res.status(404).json({ success: false, message: 'No pending change request found' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No pending change request found' 
+      });
     }
 
     console.log('Found change request:', changeRequest.toJSON());
@@ -2363,16 +2523,104 @@ export const approvePayrollChange = async (req, res) => {
                           Array.isArray(changeRequest.batch_affected_employee_ids) && 
                           changeRequest.batch_affected_employee_ids.length > 0;
 
+    let result;
+
     if (isBatchRequest) {
-      console.log(`🔄 Processing as BATCH request for ${changeRequest.batch_affected_employee_ids.length} employees`);
-      return await processBatchRequest(changeRequest, approvedBy, transaction, res);
+      result = await processBatchRequest(changeRequest, approvedBy, transaction);
     } else {
-      console.log(`🔄 Processing as SINGLE request for employee ${changeRequest.payroll_info_id}`);
-      return await processSingleRequest(changeRequest, approvedBy, transaction, res);
+      result = await processSingleRequest(changeRequest, approvedBy, transaction);
+    }
+    
+    // Commit the transaction after successful processing
+    await transaction.commit();
+    console.log('✅ Transaction committed successfully');
+
+    // ✅ Now send email notifications
+    const { batchId, uniqueRequesters, payslips, approverName, approverEmail } = result;
+
+    if (uniqueRequesters && uniqueRequesters.length > 0) {
+      let successfulEmails = [];
+      let failedEmails = [];
+
+      for (const email of uniqueRequesters) {
+        try {
+          // Find the name associated with this email
+          const payslip = payslips?.find(p => p.requestedBy === email);
+          const requesterName = payslip?.requested_by || 'User';
+
+          let mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: `Payroll Request Approved - ${batchId ? `Batch ${batchId}` : 'Request'}`,
+            html: `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="UTF-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <title>Payroll Approved</title>
+              </head>
+              <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
+                <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
+                  <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
+                  
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #28a745;">Payroll Request Approved ✓</h2>
+                    <p style="color: #333; font-size: 15px;">
+                      Dear ${requesterName},
+                    </p>
+                    <p style="color: #333; font-size: 15px;">
+                      Your generated payroll request ${batchId ? `for batch <strong>${batchId}</strong>` : ''} has been reviewed and approved.
+                    </p>
+                    <p style="color: #333; font-size: 15px;">
+                      For more information, you can directly contact the approver: <strong>${approverName || approvedBy}</strong>
+                      ${approverEmail ? ` (${approverEmail})` : ''}
+                    </p>
+                    <p style="color: #333; font-size: 15px;">
+                      You can view the approved payroll at: 
+                      <a href="https://payroll.stjohnmajore.com/">https://payroll.stjohnmajore.com/</a>
+                    </p>
+                  </div>
+
+                  <p style="color: #333; font-size: 15px;">Best regards,<br />SJM Payroll System</p>
+                  <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
+                    <strong>This is an automated email—please do not reply.</strong><br />
+                    Keep this message for your records.
+                  </div>
+                  <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
+                </div>
+              </body>
+              </html>
+            `
+          };
+
+          await transporter.sendMail(mailOptions);
+          console.log(`✓ Approval notification sent to ${email}`);
+          successfulEmails.push(email);
+        } catch (emailError) {
+          console.error(`✗ Failed to send approval email to ${email}:`, emailError.message);
+          failedEmails.push(email);
+        }
+      }
+
+      console.log(`📧 Email summary: ${successfulEmails.length} successful, ${failedEmails.length} failed`);
     }
 
+    // Send success response
+    return res.status(200).json({
+      success: true,
+      message: result.message || 'Payroll change request approved successfully.',
+      data: result.data || result,
+      emailsSent: result.uniqueRequesters?.length || 0
+    });
+
   } catch (error) {
-    await transaction.rollback();
+    // Only rollback if transaction is still active
+    if (!transaction.finished) {
+      await transaction.rollback();
+      console.log('🔄 Transaction rolled back due to error');
+    }
+    
     console.error('❌ Error approving change request:', error);
     return res.status(500).json({
       success: false,
@@ -2382,185 +2630,168 @@ export const approvePayrollChange = async (req, res) => {
   }
 };
 
-// Helper function for batch processing
-const processBatchRequest = async (changeRequest, approvedBy, transaction, res) => {
-  const changes = changeRequest.changes;
-  const employeeIds = changeRequest.batch_affected_employee_ids;
 
-  // Fetch payroll records for all employeeIds
-  const payrollRecords = await PayrollInformation.findAll({
-    where: { employee_id: employeeIds },
-    transaction,
-  });
 
-  if (payrollRecords.length === 0) {
-    await transaction.rollback();
-    return res.status(404).json({ success: false, message: 'No payroll records found for employees' });
-  }
-
-  const foundEmployeeIds = payrollRecords.map(r => r.employee_id);
-  const missingEmployeeIds = employeeIds.filter(id => !foundEmployeeIds.includes(id));
-  
-  if (missingEmployeeIds.length > 0) {
-    console.log(`⚠️  Warning: Some employees not found in payroll records:`, missingEmployeeIds);
-  }
-  
-  console.log(`📊 Found ${payrollRecords.length} payroll records for employees:`, foundEmployeeIds);
-
-  // Process changes
-  const fieldsToUpdate = processChanges(changes);
-  
-  if (Object.keys(fieldsToUpdate).length === 0) {
-    await transaction.rollback();
-    return res.status(400).json({ 
-      success: false, 
-      message: 'No valid fields to update found in request' 
-    });
-  }
-
-  console.log(`🔧 Fields to update for all employees:`, fieldsToUpdate);
-
-  // Apply changes to all employees
-  let updatedCount = 0;
-  const updateResults = [];
-  
-  for (const record of payrollRecords) {
-    try {
-      console.log(`🔄 Updating employee ${record.employee_id} (${record.name || 'Unknown'})`);
-      
-      const [updateCount] = await PayrollInformation.update(fieldsToUpdate, {
-        where: { employee_id: record.employee_id },
-        transaction,
-      });
-      
-      if (updateCount > 0) {
-        updatedCount++;
-        updateResults.push({
-          employee_id: record.employee_id,
-          name: record.name || 'Unknown',
-          status: 'success'
-        });
-        console.log(`✅ Successfully updated employee ${record.employee_id}`);
-      } else {
-        updateResults.push({
-          employee_id: record.employee_id,
-          name: record.name || 'Unknown',
-          status: 'no_change'
-        });
-        console.log(`⚠️  No update applied for employee ${record.employee_id}`);
-      }
-    } catch (updateError) {
-      console.error(`❌ Error updating employee ${record.employee_id}:`, updateError.message);
-      throw updateError;
-    }
-  }
-
-  // Mark ALL requests in the batch as approved
-  const batchUpdateResult = await PayrollChangeRequest.update({
-    status: 'Approved',
-    approved_by: approvedBy,
-    approved_at: new Date(),
-  }, {
-    where: { 
-      batch_id: changeRequest.batch_id,
-      status: 'Pending'
-    },
-    transaction,
-  });
-
-  console.log(`✅ Marked ${batchUpdateResult[0]} batch requests as approved`);
-
-  await transaction.commit();
-
-  return res.json({
-    success: true,
-    message: `Successfully applied batch changes to ${updatedCount} out of ${payrollRecords.length} payroll records.`,
-    data: {
-      requestId: changeRequest.id,
-      batchId: changeRequest.batch_id,
-      totalEmployeesInBatch: employeeIds.length,
-      employeesFound: foundEmployeeIds.length,
-      employeesUpdated: updatedCount,
-      missingEmployees: missingEmployeeIds,
-      appliedChanges: fieldsToUpdate,
-      updateResults
-    }
-  });
-};
-
-// Helper function for single processing
-const processSingleRequest = async (changeRequest, approvedBy, transaction, res) => {
+// Fixed processSingleRequest - returns data instead of calling res.json()
+const processSingleRequest = async (changeRequest, approvedBy, transaction) => {
   try {
-    // Parse the changes JSON string properly
-    let parsedChanges;
-    try {
-      // If changes is already an object, use it directly
-      if (typeof changeRequest.changes === 'object' && changeRequest.changes !== null) {
-        parsedChanges = changeRequest.changes;
-      } else {
-        // If it's a string, parse it
-        parsedChanges = JSON.parse(changeRequest.changes);
-      }
-    } catch (parseError) {
-      console.error('❌ Error parsing changes JSON:', parseError);
-      console.log('Raw changes value:', changeRequest.changes);
-      await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid changes format in request',
-        error: parseError.message,
-      });
-    }
+    const parsedChanges = JSON.parse(changeRequest.changes);
+    console.log('💡 Parsed changes for employee:', parsedChanges);
 
-    console.log('🔧 Parsed changes for employee:', parsedChanges);
-
-    // Find the payroll info record
-    const payrollInfo = await PayrollInformation.findByPk(changeRequest.payroll_info_id, {
+    // Update the payroll info
+    await PayrollInformation.update(parsedChanges, {
+      where: { id: changeRequest.payroll_info_id },
       transaction,
     });
 
-    if (!payrollInfo) {
-      await transaction.rollback();
-      return res.status(404).json({
-        success: false,
-        message: 'Payroll information not found',
-      });
-    }
-
-    // Store original values for audit
-    const originalValues = {};
-    Object.keys(parsedChanges).forEach(field => {
-      originalValues[field] = payrollInfo[field];
-    });
-
-    // Apply changes to payroll info
-    await payrollInfo.update(parsedChanges, { transaction });
-
-    // Update the change request status
-    await changeRequest.update({
-      status: 'Approved',
-      approved_by: approvedBy,
-      approved_at: new Date(),
-      original_values: JSON.stringify(originalValues),
-    }, { transaction });
-
-    // Log the successful update
     console.log(`✅ Successfully updated payroll info for employee ${changeRequest.payroll_info_id}`);
     console.log('Applied changes:', parsedChanges);
 
-    await transaction.commit();
+    // Mark the change request as approved
+    await changeRequest.update(
+      { 
+        status: 'Approved',
+        approved_by: approvedBy,
+        approved_at: new Date()
+      },
+      { transaction }
+    );
 
-    return res.json({
-      success: true,
-      message: 'Payroll change approved successfully',
-      changes_applied: parsedChanges,
-      employee_id: changeRequest.payroll_info_id,
+    // Get employee info for email
+    const payrollInfo = await PayrollInformation.findByPk(changeRequest.payroll_info_id, {
+      transaction
     });
+
+    // Return data for email notification
+    return {
+      success: true,
+      message: 'Payroll change request approved successfully.',
+      data: {
+        changeRequest: changeRequest.toJSON(),
+        appliedChanges: parsedChanges
+      },
+      // Email notification data
+      batchId: changeRequest.batch_id || `request_${changeRequest.id}`,
+      uniqueRequesters: [changeRequest.employee_email].filter(Boolean),
+      payslips: [{
+        requestedBy: changeRequest.employee_email,
+        requestedByName: changeRequest.employee_name
+      }],
+      approverName: approvedBy,
+      approverEmail: null // Can be populated if available
+    };
 
   } catch (error) {
     console.error('❌ Error in processSingleRequest:', error);
-    await transaction.rollback();
-    throw error;
+    throw error; // Let the parent function handle the error
+  }
+};
+
+// Fixed processBatchRequest - returns data instead of calling res.json()
+const processBatchRequest = async (changeRequest, approvedBy, transaction) => {
+  try {
+    const batchId = changeRequest.batch_id;
+    const parsedChanges = JSON.parse(changeRequest.changes);
+    
+    console.log(`🔄 Processing batch request: ${batchId}`);
+    console.log('💡 Parsed changes:', parsedChanges);
+
+    // Parse affected employee IDs
+    let affectedEmployeeIds;
+    if (typeof changeRequest.batch_affected_employee_ids === 'string') {
+      affectedEmployeeIds = JSON.parse(changeRequest.batch_affected_employee_ids);
+    } else {
+      affectedEmployeeIds = changeRequest.batch_affected_employee_ids;
+    }
+
+    console.log(`📋 Affected employees: ${affectedEmployeeIds.length}`);
+
+    // Get all related change requests in this batch
+    const allBatchRequests = await PayrollChangeRequest.findAll({
+      where: {
+        batch_id: batchId,
+        status: 'Pending'
+      },
+      transaction
+    });
+
+    console.log(`📝 Found ${allBatchRequests.length} pending requests in batch`);
+
+    // Update all affected payroll records
+    const updatePromises = affectedEmployeeIds.map(async (employeeId) => {
+      try {
+        await PayrollInformation.update(parsedChanges, {
+          where: { id: employeeId },
+          transaction,
+        });
+        console.log(`✅ Updated payroll info for employee ${employeeId}`);
+        return { employeeId, success: true };
+      } catch (error) {
+        console.error(`❌ Failed to update employee ${employeeId}:`, error.message);
+        return { employeeId, success: false, error: error.message };
+      }
+    });
+
+    const updateResults = await Promise.all(updatePromises);
+    const successCount = updateResults.filter(r => r.success).length;
+    const failCount = updateResults.filter(r => !r.success).length;
+
+    console.log(`📊 Batch update results: ${successCount} successful, ${failCount} failed`);
+
+    // Mark all batch requests as approved
+    await PayrollChangeRequest.update(
+      { 
+        status: 'Approved',
+        approved_by: approvedBy,
+        approved_at: new Date()
+      },
+      {
+        where: {
+          batch_id: batchId,
+          status: 'Pending'
+        },
+        transaction
+      }
+    );
+
+    console.log(`✅ Marked ${allBatchRequests.length} requests as approved`);
+
+    // Collect unique requesters for email notifications
+    const uniqueRequesters = [...new Set(
+      allBatchRequests
+        .map(req => req.employee_email)
+        .filter(Boolean)
+    )];
+
+    const payslips = allBatchRequests.map(req => ({
+      requestedBy: req.employee_email,
+      requestedByName: req.employee_name
+    }));
+
+    // Return data for email notification
+    return {
+      success: true,
+      message: `Batch approval completed: ${successCount} employees updated successfully${failCount > 0 ? `, ${failCount} failed` : ''}.`,
+      data: {
+        batchId,
+        totalRequests: allBatchRequests.length,
+        affectedEmployees: affectedEmployeeIds.length,
+        updateResults,
+        successCount,
+        failCount,
+        appliedChanges: parsedChanges
+      },
+      // Email notification data
+      batchId,
+      uniqueRequesters,
+      payslips,
+      approverName: approvedBy,
+      approverEmail: null // Can be populated if available
+    };
+
+  } catch (error) {
+    console.error('❌ Error in processBatchRequest:', error);
+    throw error; // Let the parent function handle the error
   }
 };
 
@@ -3083,3 +3314,132 @@ export const editEmployeeSchedule = async (req, res) => {
   }
 };
 
+export const nextEcode = async (req, res) => {
+  try {
+    console.log('📋 Fetching next employee code...');
+
+    // Find the latest employee by ecode (assuming ecode format: M00001, M00002, etc.)
+    const latestEmployee = await Employee.findOne({
+      where: {
+        ecode: {
+          [Op.like]: 'M%' // Only get ecodes starting with 'M'
+        }
+      },
+      order: [['ecode', 'DESC']], // Get the highest ecode
+      attributes: ['ecode']
+    });
+
+    let nextEcode;
+
+    if (latestEmployee && latestEmployee.ecode) {
+      // Extract the number from the ecode (e.g., "M00005" -> 5)
+      const currentNumber = parseInt(latestEmployee.ecode.substring(1), 10);
+      
+      if (isNaN(currentNumber)) {
+        console.warn('⚠️ Invalid ecode format found, using default starting number');
+        nextEcode = 'M00002'; // Fallback to starting number
+      } else {
+        // Increment and format with leading zeros
+        const nextNumber = currentNumber + 1;
+        nextEcode = 'M' + String(nextNumber).padStart(5, '0');
+      }
+
+      console.log(`✅ Latest ecode: ${latestEmployee.ecode}, Next ecode: ${nextEcode}`);
+    } else {
+      // No employees found, start with M00002
+      nextEcode = 'M00002';
+      console.log('ℹ️ No employees found, starting with:', nextEcode);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Next employee code generated successfully',
+      data: {
+        ecode: nextEcode
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error generating next ecode:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to generate next employee code',
+      error: error.message,
+      data: {
+        ecode: 'M00002' // Fallback ecode
+      }
+    });
+  }
+};
+
+// Alternative implementation if you want to ensure no duplicates
+export const nextEcodeWithDuplicateCheck = async (req, res) => {
+  try {
+    console.log('📋 Fetching next employee code with duplicate check...');
+
+    // Get all ecodes that start with 'M'
+    const employees = await Employee.findAll({
+      where: {
+        ecode: {
+          [Op.like]: 'M%'
+        }
+      },
+      attributes: ['ecode'],
+      order: [['ecode', 'DESC']]
+    });
+
+    let nextEcode;
+    let isUnique = false;
+    let attemptNumber = 2; // Starting number
+
+    if (employees.length > 0) {
+      // Extract numbers from all ecodes and find the maximum
+      const ecodeNumbers = employees
+        .map(emp => parseInt(emp.ecode.substring(1), 10))
+        .filter(num => !isNaN(num));
+
+      if (ecodeNumbers.length > 0) {
+        const maxNumber = Math.max(...ecodeNumbers);
+        attemptNumber = maxNumber + 1;
+      }
+    }
+
+    // Generate ecode and check for uniqueness (just in case)
+    while (!isUnique) {
+      nextEcode = 'M' + String(attemptNumber).padStart(5, '0');
+      
+      // Check if this ecode already exists
+      const existingEmployee = await Employee.findOne({
+        where: { ecode: nextEcode }
+      });
+
+      if (!existingEmployee) {
+        isUnique = true;
+      } else {
+        attemptNumber++;
+        console.warn(`⚠️ Ecode ${nextEcode} already exists, trying next number`);
+      }
+    }
+
+    console.log(`✅ Generated unique ecode: ${nextEcode}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Next employee code generated successfully',
+      data: {
+        ecode: nextEcode
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error generating next ecode:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to generate next employee code',
+      error: error.message,
+      data: {
+        ecode: 'M00002' // Fallback ecode
+      }
+    });
+  }
+};

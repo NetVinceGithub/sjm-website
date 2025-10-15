@@ -37,6 +37,23 @@ export default function BatchPayslipsModal({ batch, onClose }) {
       width: "200px",
     },
     {
+      name: "Gross Pay",
+      selector: (row) =>
+        `₱${parseFloat(row.gross_pay).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`,
+      sortable: true,
+      width: "200px",
+    },
+    {
+      name: "No. of Days",
+      selector: (row) =>
+        `${parseFloat(row.noOfDays).toLocaleString("en-US")}`,
+      sortable: true,
+      width: "200px",
+    },
+    {
       name: "Status",
       selector: (row) =>
         row.status.charAt(0).toUpperCase() + row.status.slice(1),

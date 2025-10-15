@@ -1,25 +1,55 @@
 import Clients from '../models/Clients.js';
 import { Op } from 'sequelize';
 
-export const getNextClientCode = async (req, res) => {
+
+export const nextClientCode = async (req, res) => {
   try {
-    const lastClient = await Clients.findOne({
-      order: [["createdAt", "DESC"]],
+    console.log("📋 Fetching next client code...");
+
+    const latestClient = await Clients.findOne({
+      where: {
+        clientCode: {
+          [Op.like]: "MCL%", // Matches MCL00001, MCL00002, etc.
+        },
+      },
+      order: [["clientCode", "DESC"]], // Use camelCase, not client_code
+      attributes: ["clientCode"], // Use camelCase field name
     });
 
-    let nextCode = "MCL00001";
-    if (lastClient && lastClient.client_code) {
-      const lastNumber = parseInt(lastClient.client_code.replace("MCL", "")) || 0;
-      const newNumber = lastNumber + 1;
-      nextCode = "MCL" + String(newNumber).padStart(5, "0");
+    let nextClientCode;
+
+    if (latestClient && latestClient.clientCode) {
+      const currentNumber = parseInt(latestClient.clientCode.substring(3), 10);
+
+      if (isNaN(currentNumber)) {
+        console.warn("⚠️ Invalid format, resetting to MCL00001");
+        nextClientCode = "MCL00001";
+      } else {
+        const nextNumber = currentNumber + 1;
+        nextClientCode = "MCL" + String(nextNumber).padStart(5, "0");
+      }
+
+      console.log(`✅ Latest: ${latestClient.clientCode}, Next: ${nextClientCode}`);
+    } else {
+      nextClientCode = "MCL00001";
+      console.log("ℹ️ No existing clients, starting fresh:", nextClientCode);
     }
 
-    res.json({ success: true, data: { client_code: nextCode } });
+    return res.status(200).json({
+      success: true,
+      message: "Next client code generated successfully",
+      data: { clientCode: nextClientCode },
+    });
   } catch (error) {
-    console.error("Error generating client code:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("❌ Error generating client code:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to generate next client code",
+      data: { clientCode: "MCL00001" }, // Fallback
+    });
   }
 };
+
 
 // Helper function to generate next client code
 const generateClientCode = async () => {

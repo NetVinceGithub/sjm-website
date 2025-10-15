@@ -142,8 +142,13 @@ const PayslipHistory = () => {
             overtimePay: payslip.overtimePay,
             holidayPay: payslip.holidayPay,
             totalDeductions: payslip.totalDeductions,
+            grossPay: payslip.gross_pay,
             netPay: payslip.netPay,
             allowance: payslip.allowance,
+            sss: payslip.sss,
+            phic: payslip.phic,
+            hdmf: payslip.hdmf,
+            tardiness: payslip.tardiness,
             cutoffDate: payslip.cutoffDate,
           }));
 
@@ -211,7 +216,7 @@ const PayslipHistory = () => {
     },
     {
       name: "Gross Pay",
-      selector: (row) => `₱${(row.holidayPay ?? 0).toLocaleString()}`,
+      selector: (row) => `₱${(row.grossPay ?? 0).toLocaleString()}`,
       sortable: true,
       center: true,
       width: "130px",
@@ -219,6 +224,34 @@ const PayslipHistory = () => {
     {
       name: "Allowance",
       selector: (row) => `₱${(row.allowance ?? 0).toLocaleString()}`,
+      sortable: true,
+      center: true,
+      width: "130px",
+    },
+    {
+      name: "SSS",
+      selector: (row) => `₱${(row.sss ?? 0).toLocaleString()}`,
+      sortable: true,
+      center: true,
+      width: "130px",
+    },
+    {
+      name: "PHIC",
+      selector: (row) => `₱${(row.phic ?? 0).toLocaleString()}`,
+      sortable: true,
+      center: true,
+      width: "130px",
+    },
+    {
+      name: "HDMF",
+      selector: (row) => `₱${(row.hdmf ?? 0).toLocaleString()}`,
+      sortable: true,
+      center: true,
+      width: "130px",
+    },
+    {
+      name: "Tardiness",
+      selector: (row) => `₱${(row.tardiness ?? 0).toLocaleString()}`,
       sortable: true,
       center: true,
       width: "130px",

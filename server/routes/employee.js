@@ -25,7 +25,8 @@ import {
   rejectBatchChange,
   getBatchDetails,
   createEmployee,
-  editEmployeeSchedule, 
+  editEmployeeSchedule,
+  nextEcode, 
 
 } from "../controllers/employeeController.js";
 
@@ -55,6 +56,9 @@ const createBulkMessagingUpload = (maxFiles = 10) => {
 };
 
 // SPECIFIC ROUTES FIRST (most specific to least specific)
+
+router.get("/next-ecode", nextEcode);
+
 
 // Import and basic employee routes
 router.get("/import", importEmployeesFromGoogleSheet);
@@ -103,6 +107,7 @@ router.put('/edit-schedule/:id', editEmployeeSchedule);
 // GENERIC ROUTES LAST
 router.get("/", getEmployees); // This should be after specific routes
 router.get("/:id", getEmployee); // This MUST be the very last route
+
 
 
 

@@ -311,12 +311,12 @@ export default function AddClientForm() {
           },
         }
       );
-
+  
       if (response.ok) {
         const data = await response.json();
         setFormData((prev) => ({
           ...prev,
-          clientCode: data.data.client_code,
+          clientCode: data.data.clientCode, // ✅ Correct key
         }));
       }
     } catch (error) {
@@ -329,6 +329,7 @@ export default function AddClientForm() {
       setIsLoadingClientCode(false);
     }
   };
+  
 
   useEffect(() => {
     if (isEditMode && id) {

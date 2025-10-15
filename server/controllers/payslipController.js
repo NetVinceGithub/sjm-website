@@ -1037,7 +1037,8 @@ export const getAvailableBatches = async (req, res) => {
             "ecode",
             "date",
             "payroll_type",
-            "noOfDays"
+            "noOfDays",
+            "payrollType"
           ],
           order: [["name", "ASC"]],
           raw: true,
