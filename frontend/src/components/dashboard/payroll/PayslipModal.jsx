@@ -354,7 +354,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                         ND OT
                       </td>
                       <td className="border border-black h-5 text-center border-l-white border-t-0 border-b-0">
-                        to be followed
+                        {payslip.nightDifferential}
                       </td>
                       <td className="border border-black h-5 border-t-0 border-b-0">
                         Pag-IBIG Loan
@@ -368,7 +368,7 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                         <div className="border-b-2 border-black">RD Pay</div>
                       </td>
                       <td className="border border-black h-5 text-center border-l-white border-t-0 border-b-0">
-                        wala
+                        {payslip.nightDifferential}
                       </td>
                       <td className="border border-black h-5 border-t-0 border-b-0">
                         Tardiness
