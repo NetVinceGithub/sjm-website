@@ -223,6 +223,14 @@ const Payslip = db.define(
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0.00,
     },
+    underTime: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    cashAdvance: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
 
     // Totals
     totalEarnings: {

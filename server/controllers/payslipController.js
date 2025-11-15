@@ -1551,970 +1551,6 @@ export const getEmployeeContributions = async (req, res) => {
   }
 };
 
-///////////////////////payroll generation/////////////////////////
-
-// Function to calculate attendance metrics per employee
-
-// Helper functions for holiday detection and calculation
-const isHoliday = (date, holidays) => {
-  const dateStr = new Date(date).toISOString().split("T")[0]; // Format: YYYY-MM-DD
-  return holidays.find((holiday) => {
-    const holidayDateStr = new Date(holiday.date).toISOString().split("T")[0];
-    return holidayDateStr === dateStr;
-  });
-};
-
-const calculateHolidayPay = (holidayType, dailyRate) => {
-  switch (holidayType) {
-    case "Regular":
-      return dailyRate; // 200% for regular holidays
-    case "Special":
-      return dailyRate * 1.3; // 130% for special holidays
-    case "Special Non-Working":
-      return dailyRate * 1.3; // 130% for special non-working holidays
-    default:
-      return dailyRate;
-  }
-};
-
-const determineCutoffPeriod = (cutoffDate) => {
-  const date = new Date(cutoffDate);
-  const dayOfMonth = date.getDate();
-  const isSecondCutoff = dayOfMonth >= 16;
-
-  console.log(`📅 Cut-off period analysis for ${cutoffDate}:`, {
-    dayOfMonth,
-    isSecondCutoff,
-    cutoffType: isSecondCutoff
-      ? "Second Cut-off (EC included)"
-      : "First Cut-off (No EC)",
-  });
-
-  return isSecondCutoff;
-};
-
-export const generatePayroll = async (req, res) => {
-  const {
-    cutoffDate,
-    payrollType,
-    selectedEmployees = [],
-    selectedSchedules = [],
-    employees = [],
-    attendanceData = [],
-    holidaysData = [],
-    individualOvertime = {},
-    overtimeApprovals,
-    maxOvertime = 0,
-    requestedBy,
-    requestedByName,
-  } = req.body;
-
-  console.log("Incoming request sa generate payroll", {
-    cutoffDate,
-    payrollType,
-    selectedEmployees,
-    selectedSchedules,
-    employeesCount: employees.length,
-    attendanceCount: attendanceData.length,
-    holidaysCount: holidaysData.length,
-    individualOvertime,
-    overtimeApprovals,
-    maxOvertime,
-    requestedBy,
-    requestedByName
-  });
-
-  try {
-    const now = new Date();
-    const batchId = `SJM-PayrollBatch-${now.getFullYear()}${(now.getMonth() + 1)
-      .toString()
-      .padStart(2, "0")}${now
-      .getDate()
-      .toString()
-      .padStart(2, "0")}-${now.getTime()}`;
-    console.log(`🔗 Generated batchId: ${batchId}`);
-
-    let employeesData,
-      attendanceRecords,
-      payrollInformations,
-      holidays,
-      attendanceSummary;
-
-    console.log("📦 Fetching data from database");
-    employeesData = await Employee.findAll({
-      where: { status: { [Op.ne]: "Inactive" } },
-    }).catch(async (error) => {
-      console.error("❌ Error fetching employees:", error);
-      let allEmployees = await Employee.findAll();
-      return allEmployees.filter((emp) => emp.status !== "Inactive");
-    });
-
-    attendanceRecords = await Attendance.findAll().catch((error) => {
-      console.error("❌ Error fetching attendance records:", error);
-      return [];
-    });
-
-    console.log(`✅ Fetched ${attendanceRecords.length} attendance records`);
-
-    holidays = await Holidays.findAll().catch((error) => {
-      console.error("❌ Error fetching holidays:", error);
-      return [];
-    });
-
-    attendanceSummary = await AttendanceSummary.findAll().catch((error) => {
-      console.error("❌ Error fetching attendance summary:", error);
-      return [];
-    });
-
-    employeesData = employeesData.filter(
-      (employee) => employee.status !== "Inactive"
-    );
-    console.log(`✅ Processing ${employeesData.length} active employees`);
-
-    payrollInformations = await PayrollInformation.findAll().catch((error) => {
-      console.error("❌ Error fetching payroll information:", error);
-      return [];
-    });
-
-    if (!employeesData || employeesData.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No active employees found!",
-      });
-    }
-
-    const generatedPayslips = [];
-    const errors = [];
-
-    for (let i = 0; i < employeesData.length; i++) {
-      const employee = employeesData[i];
-
-      try {
-        console.log(
-          `📝 Processing ${i + 1}/${employeesData.length}: ${employee.name} (${
-            employee.ecode
-          })`
-        );
-
-        const isRankAndFile = employee.employmentrank === "RANK-AND-FILE EMPLOYEE";
-        const isOnCall = employee.employmentstatus === "ON-CALL";
-        console.log(
-          `👤 Employee ${employee.name} - Employment Rank: ${employee.employmentrank}, Is Rank-and-File: ${isRankAndFile}`
-        );
-        console.log(
-          `👤 Employee ${employee.name} - Employment Status: ${employee.employmentstatus}, ON-CALL: ${isOnCall}`
-        );
-
-        const employeeAttendance = attendanceRecords.filter(
-          (record) => record.ecode === employee.ecode
-        );
-
-        if (!employeeAttendance || employeeAttendance.length === 0) {
-          console.log(
-            `⏭️ Skipping ${employee.name} (${employee.ecode}) - No attendance data found`
-          );
-          continue;
-        }
-
-        const employeePayrollInfo = payrollInformations.find((info) => info.ecode === employee.ecode) || {};
-
-        const attendanceSummaryRecord = attendanceSummary
-          ? attendanceSummary.find((info) => info.ecode === employee.ecode)
-          : null;
-
-        // Get employee's shift hours (default to 4.5 for day shift, but allow customization)
-        const shiftHours = parseFloat(
-          employee.shift_hours || employee.shiftHours || 4.5
-        );
-        console.log(`⏰ Employee ${employee.name} shift hours: ${shiftHours}`);
-
-        // Calculate basic attendance metrics from attendance records
-        const daysPresent = employeeAttendance.length;
-
-        console.log("Day present:", daysPresent);
-        const totalLateMinutes = employeeAttendance.reduce((total, record) => {
-          return total + (record.lateMinutes || 0);
-        }, 0);
-
-        // Update or create attendance summary record
-        try {
-            await AttendanceSummary.upsert(
-              {
-                ecode: employee.ecode,
-                presentDays: parseFloat(daysPresent.toFixed(2)), // Preserve decimals
-                totalDays: parseFloat(daysPresent.toFixed(2)),
-                absentDays: 0.0,
-                lateDays: employeeAttendance.filter(
-                  (record) => (record.lateMinutes || 0) > 0
-                ).length,
-                totalLateMinutes: totalLateMinutes,
-                attendanceRate: daysPresent > 0 ? 100.0 : 0.0,
-              },
-              {
-                where: { ecode: employee.ecode },
-              }
-            );
-
-          console.log(
-            `📊 Attendance summary updated for ${employee.ecode} - Days Present: ${daysPresent}`
-          );
-        } catch (summaryError) {
-          console.error(
-            `❌ Failed to update attendance summary for ${employee.ecode}:`,
-            summaryError
-          );
-        }
-
-        // Use attendance summary data if available, with proper field names and NaN checking
-        let finalDaysPresent = attendanceSummaryRecord
-          ? Number(attendanceSummaryRecord.presentDays)
-          : daysPresent;
-
-        let finalTotalLateMinutes = attendanceSummaryRecord
-          ? Number(attendanceSummaryRecord.totalLateMinutes)
-          : totalLateMinutes;
-
-        // CRITICAL FIX: Ensure no NaN values
-        finalDaysPresent = isNaN(finalDaysPresent)
-          ? daysPresent
-          : finalDaysPresent;
-        finalTotalLateMinutes = isNaN(finalTotalLateMinutes)
-          ? totalLateMinutes
-          : finalTotalLateMinutes;
-
-        // Ensure we have valid numbers
-        finalDaysPresent = Math.max(0.0, parseFloat(finalDaysPresent) || 0.0);
-        finalTotalLateMinutes = Math.max(0, finalTotalLateMinutes || 0);
-
-        const rates = {
-          dailyRate: Number(employeePayrollInfo.daily_rate) || 500,
-          hourlyRate:
-            Number(employeePayrollInfo.hourly_rate) ||
-            (Number(employeePayrollInfo.daily_rate) || 500) / shiftHours,
-          otHourlyRate:
-            ((Number(employeePayrollInfo.daily_rate) || 500) / shiftHours) *
-            1.25, // 125% of regular hourly rate
-          tardinessRate:
-            (Number(employeePayrollInfo.daily_rate) || 500) / 8 / 60, // per minute rate
-        };
-
-        console.log(`💰 Calculated rates for ${employee.name}:`, {
-          dailyRate: rates.dailyRate,
-          hourlyRate: rates.hourlyRate.toFixed(2),
-          otHourlyRate: rates.otHourlyRate.toFixed(2),
-          tardinessRate: rates.tardinessRate.toFixed(4),
-          shiftHours: shiftHours,
-        });
-
-        // Safer salary package calculation with NaN protection
-        const salaryPackage =
-          Number(employee.salaryPackage) ||
-          Number(employee.salary_package) ||
-          0;
-
-        // DEBUG: Add debugging for attendance data structure
-        console.log(`🔍 DEBUG for ${employee.name} (${employee.ecode}):`);
-        console.log(
-          `   📊 employeeAttendance.length: ${employeeAttendance.length}`
-        );
-        console.log(`   📊 finalDaysPresent: ${finalDaysPresent}`);
-        console.log(
-          `   📋 Sample attendance records:`,
-          employeeAttendance.slice(0, 3).map((record) => ({
-            date: record.date,
-            ecode: record.ecode,
-            present: record.present || "undefined",
-            status: record.status || "undefined",
-          }))
-        );
-
-        // Initialize counters
-        let regularHolidayDays = 0;
-        let specialHolidayDays = 0;
-        let specialNonWorkingHolidayDays = 0;
-        let regularDaysWorked = 0.0;
-
-        let specialHolidayPay = 0;
-        let regularHolidayPay = 0;
-
-        console.log(
-          `   🎯 Starting counters - regularDaysWorked: ${regularDaysWorked}`
-        );
-
-        // Categorize attendance days based on actual attendance records only
-          employeeAttendance.forEach((record) => {
-            const isPresent =
-              record.present === true ||
-              record.present === 1 ||
-              record.present === "1" ||
-              record.status === "present" ||
-              record.status === "Present";
-
-            if (!isPresent) {
-              console.log(
-                `   ⏭️ Skipping ${record.date} for ${employee.name} - Employee was absent`
-              );
-              return;
-            }
-
-            // Get the fractional day value (1.0 for full day, 0.5 for half day, etc.)
-            const dayValue = parseFloat(record.dayValue || record.day_value || 1.0);
-
-            const holiday = isHoliday(record.date, holidays);
-
-            if (holiday) {
-              console.log(
-                `    Holiday found (Present): ${record.date} - ${holiday.type} - Day Value: ${dayValue}`
-              );
-              switch (holiday.type) {
-                case "Regular":
-                  regularHolidayDays += dayValue; // Use fractional value
-                  regularHolidayPay += calculateHolidayPay("Regular", rates.dailyRate) * dayValue;
-                  break;
-                case "Special":
-                  specialHolidayDays += dayValue;
-                  specialHolidayPay += calculateHolidayPay("Special", rates.dailyRate) * dayValue;
-                  break;
-                case "Special Non-Working":
-                  specialNonWorkingHolidayDays += dayValue;
-                  specialHolidayPay += calculateHolidayPay("Special Non-Working", rates.dailyRate) * dayValue;
-                  break;
-              }
-            } else {
-              regularDaysWorked += dayValue; // Use fractional value
-              console.log(
-                `   📅 Regular day (Present): ${record.date} - Day Value: ${dayValue} - Total regular days now: ${regularDaysWorked}`
-              );
-            }
-          });
-
-        // DEBUG: Final counts
-        console.log(`    FINAL COUNTS for ${employee.name}:`);
-        console.log(`      regularDaysWorked: ${regularDaysWorked}`);
-        console.log(`      regularHolidayDays: ${regularHolidayDays}`);
-        console.log(`      specialHolidayDays: ${specialHolidayDays}`);
-        console.log(
-          `      specialNonWorkingHolidayDays: ${specialNonWorkingHolidayDays}`
-        );
-        console.log(
-          `      Total holiday days: ${
-            regularHolidayDays +
-            specialHolidayDays +
-            specialNonWorkingHolidayDays
-          }`
-        );
-        console.log(
-          `      Sum should equal employeeAttendance.length: ${
-            regularDaysWorked +
-            regularHolidayDays +
-            specialHolidayDays +
-            specialNonWorkingHolidayDays
-          } = ${employeeAttendance.length}`
-        );
-
-        // Total holiday days and pay
-        const totalHolidayDays =
-          regularHolidayDays +
-          specialHolidayDays +
-          specialNonWorkingHolidayDays;
-        const totalHolidayPay = specialHolidayPay + regularHolidayPay;
-        const totalSpecialHolidayPay = specialHolidayPay;
-        const actualDaysPresent = regularDaysWorked + totalHolidayDays;
-
-        const basicPay = finalDaysPresent * rates.dailyRate; // This will now work with decimals
-
-        console.log(`💰 Basic Pay Calculation for ${employee.name}:`);
-        console.log(`   📊 finalDaysPresent: ${finalDaysPresent}`);
-        console.log(`   💵 dailyRate: ${rates.dailyRate}`);
-        console.log(
-          `   🧮 basicPay: ${finalDaysPresent} × ${rates.dailyRate} = ${basicPay}`
-        );
-
-        // Verify the calculation
-        console.log(`📊 Days breakdown for ${employee.name}:`, {
-          totalAttendanceDays: employeeAttendance.length,
-          regularDaysWorked: regularDaysWorked,
-          totalHolidayDays: totalHolidayDays,
-          finalDaysPresent: finalDaysPresent,
-          shouldEqual: regularDaysWorked + totalHolidayDays,
-          regularHolidayDays: regularHolidayDays,
-          specialHolidayDays: specialHolidayDays,
-          specialNonWorkingHolidayDays: specialNonWorkingHolidayDays,
-        });
-
-        // Verify the math
-        const calculatedTotal = parseFloat((regularDaysWorked + totalHolidayDays).toFixed(2));
-        const expectedTotal = employeeAttendance.reduce((sum, record) => {
-          return sum + parseFloat(record.dayValue || record.day_value || 1.0);
-        }, 0);
-
-        if (Math.abs(calculatedTotal - expectedTotal) > 0.01) { // Allow small floating point differences
-          console.warn(`⚠️ Days calculation mismatch for ${employee.name}:`, {
-            regularDaysWorked: regularDaysWorked.toFixed(2),
-            totalHolidayDays: totalHolidayDays.toFixed(2),
-            calculatedTotal: calculatedTotal.toFixed(2),
-            expectedTotal: expectedTotal.toFixed(2),
-            attendanceRecords: employeeAttendance.length,
-          });
-        }
-
-        // RANK-AND-FILE LOGIC: Skip allowance for rank-and-file employees
-        let allowance = 0;
-        if (!isRankAndFile && salaryPackage > 0 && finalDaysPresent > 0) {
-          const allowancePerDay = (salaryPackage - rates.dailyRate * 26) / 26;
-          allowance = allowancePerDay * finalDaysPresent;
-          // Ensure allowance is not NaN
-          allowance = isNaN(allowance) ? 0 : Math.max(0, allowance);
-        }
-
-        // Add debugging with NaN protection
-        console.log("Salary package debug:", {
-          ecode: employee.ecode,
-          name: employee.name,
-          isRankAndFile: isRankAndFile,
-          salaryPackage: employee.salaryPackage,
-          salary_package: employee.salary_package,
-          parsedSalaryPackage: salaryPackage,
-          dailyRate: rates.dailyRate,
-          finalDaysPresent: finalDaysPresent,
-          calculatedAllowance: allowance,
-          finalTotalLateMinutes: finalTotalLateMinutes,
-          regularDaysWorked: regularDaysWorked,
-          totalHolidayDays: totalHolidayDays,
-          regularHolidayDays: regularHolidayDays,
-        });
-
-        // UPDATED: Proper overtime calculation using overtimeApprovals
-        let totalRegularOvertime = 0;
-        let totalHolidayOvertime = 0;
-        let specialHolidayOvertime = 0;
-        let regularHolidayOvertime = 0;
-
-        // Find approved overtime for this employee
-        const employeeOvertimeApproval = overtimeApprovals?.find(
-          (approval) => approval.ecode === employee.ecode && approval.isApproved
-        );
-
-        if (employeeOvertimeApproval) {
-          const approvedOvertimeHours =
-            Number(employeeOvertimeApproval.approvedOvertimeHours) || 0;
-
-          console.log(
-            `⏰ Processing overtime for ${employee.name} (${employee.ecode}):`,
-            {
-              approvedOvertimeHours,
-              isApproved: employeeOvertimeApproval.isApproved,
-            }
-          );
-
-          // Categorize overtime hours based on when they were worked
-          // For now, we'll assume all overtime is regular overtime
-          // You can enhance this logic to distribute overtime across different day types
-          totalRegularOvertime = approvedOvertimeHours;
-        }
-
-        // Calculate overtime pay
-        const regularOvertimePay = totalRegularOvertime * rates.otHourlyRate;
-
-        // Holiday overtime rates are typically higher
-        const specialHolidayOTRate = rates.otHourlyRate * 1.3; // 130% of regular OT rate
-        const regularHolidayOTRate = rates.otHourlyRate * 1.6; // 160% of regular OT rate
-
-        const specialHolidayOTPay =
-          specialHolidayOvertime * specialHolidayOTRate;
-        const regularHolidayOTPay =
-          regularHolidayOvertime * regularHolidayOTRate;
-
-        const totalOvertimePay =
-          regularOvertimePay + specialHolidayOTPay + regularHolidayOTPay;
-
-        console.log(`⏰ Overtime calculation for ${employee.name}:`, {
-          totalRegularOvertime: totalRegularOvertime.toFixed(2),
-          specialHolidayOvertime: specialHolidayOvertime.toFixed(2),
-          regularHolidayOvertime: regularHolidayOvertime.toFixed(2),
-          regularOvertimePay: regularOvertimePay.toFixed(2),
-          specialHolidayOTPay: specialHolidayOTPay.toFixed(2),
-          regularHolidayOTPay: regularHolidayOTPay.toFixed(2),
-          totalOvertimePay: totalOvertimePay.toFixed(2),
-        });
-
-        const nightDifferentialPay = 0;
-
-        // Calculate gross pay with proper basic pay, holiday pay, and overtime pay
-        const grossPay =
-          basicPay + totalHolidayPay + allowance + totalOvertimePay;
-
-        // Ensure gross pay is valid number
-        const safeGrossPay = isNaN(grossPay) ? basicPay : grossPay;
-
-        // RANK-AND-FILE LOGIC: Apply different deduction rules
-        // Replace the existing deductions object with this updated version:
-
-    const projectedMonthlyBasicSalary = rates.dailyRate * 26; // 26 working days per month
-
-    // Determine if this is the first or second cutoff
-    const isFirstCutoff = new Date(cutoffDate).getDate() <= 15;
-    const isSecondCutoff = isSecondCutoffPeriod(new Date(cutoffDate));
-
-    // Calculate government contributions
-    let sssContribution = { employeeContribution: 0, employerContribution: 0, ecContribution: 0 };
-    let pagibigContribution = { employeeContribution: 0, employerContribution: 0 };
-    let philhealthContribution = { employeeContribution: 0, employerContribution: 0 };
-
-    if (!isOnCall) {
-      // SSS Contribution - based on gross pay
-      sssContribution = calculateSSSWithCutoff(safeGrossPay, new Date(cutoffDate));
-      
-      // Pag-IBIG Contribution - based on monthly basic salary, split semi-monthly
-      pagibigContribution = calculatePagIBIGSemiMonthly(
-        projectedMonthlyBasicSalary, 
-        isFirstCutoff
-      );
-      
-      // PhilHealth Contribution - based on monthly basic salary
-      // Default: deduct full amount in 2nd cutoff (common practice)
-      philhealthContribution = calculatePhilHealthSemiMonthly(
-        projectedMonthlyBasicSalary,
-        "full_second", // Options: "full_first", "full_second", or "split"
-        isFirstCutoff
-      );
-    }
-
-        console.log(`💳 Government Contributions for ${employee.name}:`, {
-          isOnCall: isOnCall,
-          isFirstCutoff: isFirstCutoff,
-          isSecondCutoff: isSecondCutoff,
-          projectedMonthlyBasicSalary: projectedMonthlyBasicSalary.toFixed(2),
-          sss: {
-            employee: sssContribution.employeeContribution,
-            employer: sssContribution.employerContribution,
-            ec: sssContribution.ecContribution,
-            total: sssContribution.totalContribution
-          },
-          pagibig: {
-            employee: pagibigContribution.employeeContribution,
-            employer: pagibigContribution.employerContribution,
-            total: pagibigContribution.totalContribution,
-            isCapped: pagibigContribution.isCapped || false
-          },
-          philhealth: {
-            employee: philhealthContribution.employeeContribution,
-            employer: philhealthContribution.employerContribution,
-            total: philhealthContribution.totalContribution,
-            isMinimum: philhealthContribution.isMinimum || false,
-            deductionSchedule: philhealthContribution.deductionSchedule
-          }
-        });
-
-        const deductions = {
-          sss: parseFloat(sssContribution.employeeContribution.toFixed(2)),
-          phic: parseFloat(philhealthContribution.employeeContribution.toFixed(2)),
-          hdmf: parseFloat(pagibigContribution.employeeContribution.toFixed(2)),
-          loan: Number(employeePayrollInfo.loan) || 0,
-          otherDeductions: !isOnCall ? Number(employeePayrollInfo.otherDeductions) || 0 : 0,
-          taxDeduction: !isOnCall ? Number(employeePayrollInfo.tax_deduction) || 0 : 0,
-          tardiness: finalTotalLateMinutes * rates.tardinessRate,
-        };
-
-        // Add PhilHealth calculation logging
-        console.log(`💳 PhilHealth calculation for ${employee.name}:`, {
-          basicPay: basicPay,
-          phicRate: '2.5%',
-          phicAmount: (basicPay * 0.025).toFixed(2),
-          isOnCall: isOnCall
-        });
-        console.log(
-          `💳 Deductions for ${employee.name} (Is on call: ${isOnCall}):`,
-          {
-            sss: deductions.sss,
-            phic: deductions.phic,
-            hdmf: deductions.hdmf,
-            loan: deductions.loan,
-            otherDeductions: deductions.otherDeductions,
-            taxDeduction: deductions.taxDeduction,
-            tardiness: deductions.tardiness.toFixed(2),
-          }
-        );
-
-        // Ensure all deductions are valid numbers
-        Object.keys(deductions).forEach((key) => {
-          if (isNaN(deductions[key])) {
-            deductions[key] = 0;
-          }
-        });
-
-        const adjustment = Number(employeePayrollInfo.adjustment) || 0;
-        const safeAdjustment = isNaN(adjustment) ? 0 : adjustment;
-
-        const totalEarnings = safeGrossPay + safeAdjustment;
-        const totalDeductions =
-          deductions.sss +
-          deductions.phic +
-          deductions.hdmf +
-          deductions.loan +
-          deductions.otherDeductions +
-          deductions.taxDeduction +
-          deductions.tardiness;
-        const netPay = grossPay - totalDeductions;
-
-        // Calculate total hours using decimal shift hours
-        const totalRegularHours = parseFloat(
-          (regularDaysWorked * shiftHours).toFixed(2)
-        );
-        const totalHolidayHours = parseFloat(
-          (totalHolidayDays * shiftHours).toFixed(2)
-        );
-        const specialHolidayHours = parseFloat(
-          (specialHolidayDays * shiftHours).toFixed(2)
-        );
-        const regularHolidayHours = parseFloat(
-          (regularHolidayDays * shiftHours).toFixed(2)
-        );
-        const totalHours = parseFloat(
-          (
-            finalDaysPresent * shiftHours +
-            totalRegularOvertime +
-            totalHolidayOvertime
-          ).toFixed(2)
-        );
-
-        console.log(`⏰ Hours breakdown for ${employee.name}:`, {
-          shiftHours: shiftHours,
-          totalRegularHours: totalRegularHours,
-          totalHolidayHours: totalHolidayHours,
-          specialHolidayHours: specialHolidayHours,
-          regularHolidayHours: regularHolidayHours,
-          overtimeHours: (totalRegularOvertime + totalHolidayOvertime).toFixed(
-            2
-          ),
-          totalHours: totalHours,
-        });
-
-        const sssBreakdown = sssContribution;
-
-        console.log(`🏛️ SSS Breakdown for ${employee.name}:`, {
-          employeeContribution: sssBreakdown.employeeContribution,
-          employerContribution: sssBreakdown.employerContribution,
-          ecContribution: sssBreakdown.ecContribution,
-          totalContribution: sssBreakdown.totalContribution,
-          isSecondCutoff: isSecondCutoff,
-          salaryBracket: sssBreakdown.salaryRange || 'N/A'
-        });
-
-        // CRITICAL: Ensure all values are valid numbers before database insertion
-        const payslipData = {
-          ecode: employee.ecode,
-          email: employee.email_address || employee.email || "",
-          employeeId: employee.id,
-          name: employee.name,
-          project: employee.project || "N/A",
-          position: employee.positiontitle || employee.position || employee.position_title || "N/A",
-          department: employee.department || "N/A",
-          schedule: employee.schedule || "N/A",
-          cutoffDate,
-          payrollType,
-          dailyrate: parseFloat(rates.dailyRate.toFixed(2)),
-          basicPay: parseFloat(basicPay.toFixed(2)),
-          noOfDays: parseFloat(finalDaysPresent.toFixed(2)) || 0,
-
-          // Holiday fields
-          holidayDays: parseFloat(totalHolidayDays.toFixed(2)),
-          regularDays: parseFloat(regularDaysWorked.toFixed(2)),
-          specialHolidayDays: parseFloat(specialHolidayDays.toFixed(2)),
-          regularHolidayDays: parseFloat(regularHolidayDays.toFixed(2)),
-          specialNonWorkingHolidayDays: parseFloat(specialNonWorkingHolidayDays.toFixed(2)),
-
-          // UPDATED: Overtime fields with proper calculation
-          overtimePay: parseFloat(totalOvertimePay.toFixed(2)),
-          totalOvertime: parseFloat(
-            (totalRegularOvertime + totalHolidayOvertime).toFixed(2)
-          ),
-          regularOvertime: parseFloat(totalRegularOvertime.toFixed(2)),
-          holidayOvertime: parseFloat(totalHolidayOvertime.toFixed(2)),
-
-          // Updated hours fields to use decimal shift hours
-          totalRegularHours: parseFloat((regularDaysWorked * shiftHours).toFixed(2)),
-          totalHolidayHours: parseFloat((totalHolidayDays * shiftHours).toFixed(2)),
-          specialHolidayHours: parseFloat((specialHolidayDays * shiftHours).toFixed(2)),
-          regularHolidayHours: parseFloat((regularHolidayDays * shiftHours).toFixed(2)),
-
-          // Holiday pay fields
-          holidayPay: parseFloat(totalHolidayPay.toFixed(2)),
-          specialHolidayPay: parseFloat(specialHolidayPay.toFixed(2)),
-          regularHolidayPay: parseFloat(regularHolidayPay.toFixed(2)),
-          specialHolidayOTPay: parseFloat(specialHolidayOTPay.toFixed(2)),
-          regularHolidayOTPay: parseFloat(regularHolidayOTPay.toFixed(2)),
-
-          // Night shift
-          nightDifferential: parseFloat(nightDifferentialPay.toFixed(2)),
-          nightShiftHours: parseFloat("0.00"),
-
-          // Allowances (0 for rank-and-file)
-          allowance: parseFloat(allowance.toFixed(2)),
-
-          // Government contributions (0 for rank-and-file)
-          sss: parseFloat(sssBreakdown.employeeContribution.toFixed(2)),
-          sssEmployerShare: parseFloat(sssBreakdown.employerContribution.toFixed(2)),
-          sssEC: parseFloat(sssBreakdown.ecContribution.toFixed(2)),
-          sssTotalContribution: parseFloat(sssBreakdown.totalContribution.toFixed(2)),
-          
-          phic: parseFloat(philhealthContribution.employeeContribution.toFixed(2)),
-          phicEmployerShare: parseFloat(philhealthContribution.employerContribution.toFixed(2)),
-          phicTotalContribution: parseFloat(philhealthContribution.totalContribution.toFixed(2)),
-          phicIsMinimum: philhealthContribution.isMinimum || false,
-          
-          hdmf: parseFloat(pagibigContribution.employeeContribution.toFixed(2)),
-          hdmfEmployerShare: parseFloat(pagibigContribution.employerContribution.toFixed(2)),
-          hdmfTotalContribution: parseFloat(pagibigContribution.totalContribution.toFixed(2)),
-          hdmfIsCapped: pagibigContribution.isCapped || false,
-
-
-          // Loans - separate SSS and Pag-IBIG loans
-          loan: parseFloat(deductions.loan.toFixed(2)),
-          sssLoan: parseFloat(
-            (Number(employeePayrollInfo.sss_loan) || 0).toFixed(2)
-          ),
-          pagibigLoan: parseFloat(
-            (Number(employeePayrollInfo.pagibig_loan) || 0).toFixed(2)
-          ),
-
-          // Other deductions - updated tardiness calculation
-          totalTardiness: parseFloat(deductions.tardiness.toFixed(2)),
-          totalHours: totalHours, // Now includes overtime hours
-          otherDeductions: parseFloat(deductions.otherDeductions.toFixed(2)),
-          taxDeduction: parseFloat(deductions.taxDeduction.toFixed(2)),
-
-          // Totals
-          totalEarnings: parseFloat(totalEarnings.toFixed(2)),
-          totalDeductions: parseFloat(totalDeductions.toFixed(2)),
-          adjustment: parseFloat(safeAdjustment.toFixed(2)),
-          gross_pay: parseFloat(safeGrossPay.toFixed(2)),
-          netPay: parseFloat(netPay.toFixed(2)),
-
-          // System fields
-          requestedBy: requestedBy,
-          requestedByName: requestedByName,
-          status: "pending",
-          batchId,
-
-          // Add shift hours and employment rank to payslip data for reference
-          shiftHours: parseFloat(shiftHours.toFixed(2)),
-          employmentRank: employee.employmentrank || "N/A",
-          isRankAndFile: isRankAndFile,
-        };
-
-        console.log("ito yung na save sa data base",payslipData);
-        console.log(`💰 Complete Payslip Summary for ${employee.name}:`, {
-          // Basic Info
-          ecode: payslipData.ecode,
-          cutoffDate: payslipData.cutoffDate,
-          isFirstCutoff: isFirstCutoff,
-          isSecondCutoff: isSecondCutoff,
-          
-          // Earnings
-          basicPay: payslipData.basicPay,
-          holidayPay: payslipData.holidayPay,
-          overtimePay: payslipData.overtimePay,
-          allowance: payslipData.allowance,
-          grossPay: payslipData.gross_pay,
-          
-          // Government Contributions (Employee Share)
-          sss: payslipData.sss,
-          phic: payslipData.phic,
-          hdmf: payslipData.hdmf,
-          
-          // Government Contributions (Employer Share) - for reference
-          sssEmployer: payslipData.sssEmployerShare,
-          sssEC: payslipData.sssEC,
-          phicEmployer: payslipData.phicEmployerShare,
-          hdmfEmployer: payslipData.hdmfEmployerShare,
-          
-          // Other Deductions
-          tardiness: payslipData.totalTardiness,
-          loan: payslipData.loan,
-          otherDeductions: payslipData.otherDeductions,
-          taxDeduction: payslipData.taxDeduction,
-          
-          // Totals
-          totalDeductions: payslipData.totalDeductions,
-          netPay: payslipData.netPay,
-        });
-
-        // Final validation: Check for any remaining NaN values
-        const nanFields = [];
-        Object.keys(payslipData).forEach((key) => {
-          if (typeof payslipData[key] === "number" && isNaN(payslipData[key])) {
-            nanFields.push(key);
-            payslipData[key] = 0; // Set to 0 as fallback
-          }
-        });
-
-        if (nanFields.length > 0) {
-          console.warn(
-            `⚠️ NaN values found and corrected for ${employee.name}:`,
-            nanFields
-          );
-        }
-
-        // Add logging for holiday information
-        console.log(`🎉 Holiday breakdown for ${employee.name}:`, {
-          totalHolidayDays,
-          regularHolidayDays,
-          specialHolidayDays,
-          specialNonWorkingHolidayDays,
-          regularDaysWorked,
-          totalHolidayPay: totalHolidayPay.toFixed(2),
-          regularHolidayPay: regularHolidayPay.toFixed(2),
-          specialHolidayPay: specialHolidayPay.toFixed(2),
-        });
-
-        console.log(
-          `💰 Payslip calculated for ${employee.name} (Rank-and-File: ${isRankAndFile}):`,
-          {
-            basicPay: payslipData.basicPay,
-            holidayPay: payslipData.holidayPay,
-            overtimePay: payslipData.overtimePay,
-            allowance: payslipData.allowance,
-            totalOvertimeHours: payslipData.totalOvertime,
-            daysPresent: payslipData.noOfDays,
-            holidayDays: payslipData.holidayDays,
-            regularDays: payslipData.regularDays,
-            netPay: payslipData.netPay,
-            grossPay: payslipData.gross_pay,
-            shiftHours: payslipData.shiftHours,
-            totalHours: payslipData.totalHours,
-            tardinessDeduction: payslipData.totalTardiness,
-            totalDeductions: payslipData.totalDeductions,
-            // ADD THESE NEW LINES:
-            sssEmployee: payslipData.sss,
-            sssEmployer: payslipData.sssEmployerShare,
-            sssEC: payslipData.sssEC,
-            isSecondCutoff: new Date(cutoffDate).getDate() >= 16,
-          }
-        );
-
-        const newPayslip = await Payslip.create(payslipData);
-        generatedPayslips.push(newPayslip);
-      } catch (employeeError) {
-        console.error(
-          `❌ Error processing employee ${employee.name}:`,
-          employeeError
-        );
-        errors.push({
-          employee: employee.name,
-          ecode: employee.ecode,
-          error: employeeError.message,
-        });
-      }
-    }
-
-    // Clean up attendance data after all employees are processed
-    try {
-      await AttendanceSummary.destroy({ where: {}, truncate: true });
-      await Attendance.destroy({ where: {}, truncate: true });
-      console.log("🧹 Cleaned up attendance data and summary tables");
-    } catch (error) {
-      console.log("❌ Error cleaning up attendance data:", error);
-    }
-
-    // Email notification logic
-    const approvers = await User.findAll({
-      where: { role: "approver", isBlocked: false },
-    });
-    const successfulEmails = [];
-
-    for (const approver of approvers) {
-      const scheduleInfo =
-        selectedSchedules.length > 0
-          ? ` (using schedules: ${selectedSchedules.join(
-              ", "
-            )} for tardiness calculation)`
-          : "";
-
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: approver.email,
-        subject: `Payroll Generated: ${cutoffDate} (Batch: ${batchId})`,
-        html: `
-      <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Payroll Request</title>
-      </head>
-
-      <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
-        <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
-          <img src="https://stjohnmajore.com/images/HEADER.png" alt="Header" style="width: 100%; height: auto;" />
-
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h3>Hello ${approver.name},</h3>
-            <p>Payroll has been successfully generated for the cutoff date <strong>${cutoffDate}</strong>${scheduleInfo}.</p>
-            <p>Batch ID: <strong>${batchId}</strong></p>
-            <p>Total Payslips Generated: <strong>${generatedPayslips.length}</strong></p>
-            <p>Please review the payslips in the payroll system.</p>
-            <br />
-            <p>Best regards,<br />SJM Payroll System</p>
-          </div>
-            <p style="color: #333; font-size: 15px;">Please login to <a href="https://payroll.stjohnmajore.com/">https://payroll.stjohnmajore.com/</a> to review and take appropriate action.</p>
-            
-            <p style="color: #333; font-size: 15px;">Best regards,<br />SJM Payroll System</p>
-          <div style="font-size: 12px; color: #777; margin-top: 20px; text-align: center;">
-            <strong>This is an automated email—please do not reply.</strong><br />
-            Keep this message for your records.
-          </div>
-          <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
-        </div>
-      `,
-      };
-
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-        tls: {
-          rejectUnauthorized: false,
-        },
-      });
-
-      try {
-        await transporter.sendMail(mailOptions);
-        successfulEmails.push(approver.email);
-        console.log(`✅ Email sent to ${approver.email}`);
-      } catch (emailError) {
-        console.error(
-          `❌ Failed to send email to ${approver.email}:`,
-          emailError
-        );
-      }
-    }
-
-    res.status(201).json({
-      success: true,
-      message: `Payroll generated for ${generatedPayslips.length} employees!`,
-      batchId,
-      payslips: generatedPayslips,
-      notified: successfulEmails,
-      schedulesUsedForTardiness: selectedSchedules,
-      errors: errors.length > 0 ? errors : undefined,
-    });
-  } catch (error) {
-    console.error("❌ Payroll Generation Critical Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error during payroll generation.",
-      error:
-        process.env.NODE_ENV === "development"
-          ? error.message
-          : "Internal server error",
-      details: process.env.NODE_ENV === "development" ? error.stack : undefined,
-    });
-  }
-};
-
-
-
 // Add this to your payslipController.js
 export const approveBatch = async (req, res) => {
   try {
@@ -2746,6 +1782,594 @@ export const approveMultipleBatches = async (req, res) => {
       success: false,
       message: "Internal server error while approving batches",
       error: process.env.NODE_ENV === 'development' ? error.message : 'Server error'
+    });
+  }
+};
+
+
+///////////////////////payroll generation/////////////////////////
+
+const calculateHolidayPay = (holidayType, dailyRate) => {
+  switch (holidayType) {
+    case "Regular":
+      return dailyRate * 2; // 200% total = 100% base (already in basicPay) + 100% premium (this return value)
+    case "Special":
+      return dailyRate * 0.3; // 130% total = 100% base (already in basicPay) + 30% premium (this return value)
+    case "Special Non-Working":
+      return dailyRate * 0.3; // 130% total = 100% base (already in basicPay) + 30% premium (this return value)
+    default:
+      return 0;
+  }
+};
+
+export const generatePayroll = async (req, res) => {
+  const {
+    cutoffDate,
+    payrollType,
+    selectedEmployees = [],
+    selectedSchedules = [],
+    individualOvertime = {},
+    overtimeApprovals,
+    maxOvertime = 0,
+    requestedBy,
+    requestedByName,
+  } = req.body;
+
+  console.log("Incoming request to generate payroll", {
+    cutoffDate,
+    payrollType,
+    selectedEmployees,
+    selectedSchedules,
+    maxOvertime,
+    requestedBy,
+    requestedByName
+  });
+
+  try {
+    const now = new Date();
+    const batchId = `SJM-PayrollBatch-${now.getFullYear()}${(now.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}${now
+      .getDate()
+      .toString()
+      .padStart(2, "0")}-${now.getTime()}`;
+    console.log(`🔗 Generated batchId: ${batchId}`);
+
+    // Fetch data from database
+    console.log("📦 Fetching data from database");
+    
+    const employeesData = await Employee.findAll({
+      where: { status: { [Op.ne]: "Inactive" } },
+    }).catch(async (error) => {
+      console.error("❌ Error fetching employees:", error);
+      const allEmployees = await Employee.findAll();
+      return allEmployees.filter((emp) => emp.status !== "Inactive");
+    });
+
+    const holidays = await Holidays.findAll().catch((error) => {
+      console.error("❌ Error fetching holidays:", error);
+      return [];
+    });
+
+    const attendanceSummaries = await AttendanceSummary.findAll().catch((error) => {
+      console.error("❌ Error fetching attendance summaries:", error);
+      return [];
+    });
+
+    const payrollInformations = await PayrollInformation.findAll().catch((error) => {
+      console.error("❌ Error fetching payroll information:", error);
+      return [];
+    });
+
+    console.log(`✅ Processing ${employeesData.length} active employees`);
+    console.log(`✅ Found ${attendanceSummaries.length} attendance summaries`);
+
+    if (!employeesData || employeesData.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No active employees found!",
+      });
+    }
+
+    const generatedPayslips = [];
+    const errors = [];
+
+    for (let i = 0; i < employeesData.length; i++) {
+      const employee = employeesData[i];
+
+      try {
+        console.log(
+          `📝 Processing ${i + 1}/${employeesData.length}: ${employee.name} (${employee.ecode})`
+        );
+
+        const isRankAndFile = employee.employmentrank === "RANK-AND-FILE EMPLOYEE";
+        const isOnCall = employee.employmentstatus === "ON-CALL";
+        
+        console.log(`👤 Employee ${employee.name} - Rank: ${employee.employmentrank}, Is Rank-and-File: ${isRankAndFile}, ON-CALL: ${isOnCall}`);
+
+        // Get attendance summary for this employee
+        const attendanceSummary = attendanceSummaries.find(
+          (summary) => summary.ecode === employee.ecode
+        );
+
+        if (!attendanceSummary) {
+          console.log(
+            `⏭️ Skipping ${employee.name} (${employee.ecode}) - No attendance summary found`
+          );
+          continue;
+        }
+
+        const employeePayrollInfo = payrollInformations.find(
+          (info) => info.ecode === employee.ecode
+        ) || {};
+
+        // Get employee's shift hours (default to 4.5 for day shift)
+        const shiftHours = parseFloat(employee.shift_hours || employee.shiftHours || 4.5);
+        console.log(`⏰ Employee ${employee.name} shift hours: ${shiftHours}`);
+
+        // Extract attendance data from summary
+        const finalDaysPresent = parseFloat(attendanceSummary.presentDays) || 0;
+        const finalTotalLateMinutes = parseInt(attendanceSummary.totalLateMinutes) || 0;
+
+        // Get hours directly from attendance summary (NO division by shiftHours needed)
+        const totalRegularHours = parseFloat(attendanceSummary.totalRegularHours) || 0;
+        const regularHolidayHours = parseFloat(attendanceSummary.regularHolidayHours) || 0;
+        const specialHolidayHours = parseFloat(attendanceSummary.specialHolidayHours) || 0;
+        const specialNonWorkingHours = parseFloat(attendanceSummary.specialNonWorkingHours) || 0;
+        const totalHolidayHours = regularHolidayHours + specialHolidayHours + specialNonWorkingHours;
+
+        console.log(`📊 Raw Attendance Data from DB for ${employee.name}:`, {
+          presentDays: finalDaysPresent,
+          totalLateMinutes: finalTotalLateMinutes,
+          totalRegularHours: totalRegularHours,
+          regularHolidayHours: regularHolidayHours,
+          specialHolidayHours: specialHolidayHours,
+          specialNonWorkingHours: specialNonWorkingHours,
+          totalHolidayHours: totalHolidayHours,
+        });
+
+        // Calculate days worked from hours
+        const regularDaysWorked = totalRegularHours / shiftHours;
+        const regularHolidayDays = regularHolidayHours / shiftHours;
+        const specialHolidayDays = specialHolidayHours / shiftHours;
+        const specialNonWorkingHolidayDays = specialNonWorkingHours / shiftHours;
+        const totalHolidayDays = regularHolidayDays + specialHolidayDays + specialNonWorkingHolidayDays;
+
+        console.log(`📊 Days Calculation for ${employee.name} (Hours ÷ ${shiftHours}):`, {
+          regularDaysWorked: regularDaysWorked.toFixed(2),
+          regularHolidayDays: regularHolidayDays.toFixed(2),
+          specialHolidayDays: specialHolidayDays.toFixed(2),
+          specialNonWorkingHolidayDays: specialNonWorkingHolidayDays.toFixed(2),
+          totalHolidayDays: totalHolidayDays.toFixed(2),
+        });
+
+        // Calculate rates
+        const rates = {
+          dailyRate: Number(employeePayrollInfo.daily_rate) || 520,
+          hourlyRate:
+            Number(employeePayrollInfo.hourly_rate) ||
+            (Number(employeePayrollInfo.daily_rate) || 520) / shiftHours,
+          otHourlyRate:
+            ((Number(employeePayrollInfo.daily_rate) || 520) / shiftHours) * 1.25,
+          tardinessRate: (Number(employeePayrollInfo.daily_rate) || 520) / 8 / 60,
+        };
+
+        console.log(`💰 Calculated rates for ${employee.name}:`, {
+          dailyRate: rates.dailyRate,
+          hourlyRate: rates.hourlyRate.toFixed(2),
+          otHourlyRate: rates.otHourlyRate.toFixed(2),
+          tardinessRate: rates.tardinessRate.toFixed(4),
+        });
+
+        // Calculate holiday pay premiums using the days calculated from hours
+        console.log(`🎉 Starting Holiday Pay Calculation for ${employee.name}...`);
+
+        // Regular Holiday: 200% total (100% base in basicPay + 100% premium here)
+        const regularHolidayPremiumRate = calculateHolidayPay("Regular", rates.dailyRate);
+        const regularHolidayPay = regularHolidayDays * regularHolidayPremiumRate;
+
+        console.log(`🎉 Regular Holiday Premium:`, {
+          regularHolidayHours: regularHolidayHours,
+          regularHolidayDays: regularHolidayDays.toFixed(2),
+          dailyRate: rates.dailyRate,
+          premiumRate: regularHolidayPremiumRate.toFixed(2),
+          regularHolidayPay: regularHolidayPay.toFixed(2),
+          formula: `${regularHolidayDays.toFixed(2)} days × ₱${regularHolidayPremiumRate.toFixed(2)} = ₱${regularHolidayPay.toFixed(2)}`
+        });
+
+        // Special Holiday: 130% total (100% base in basicPay + 30% premium here)
+        const specialHolidayPremiumRate = calculateHolidayPay("Special", rates.dailyRate);
+        const specialHolidayPayAmount = specialHolidayDays * specialHolidayPremiumRate;
+
+        console.log(`🎉 Special Holiday Premium:`, {
+          specialHolidayHours: specialHolidayHours,
+          specialHolidayDays: specialHolidayDays.toFixed(2),
+          dailyRate: rates.dailyRate,
+          premiumRate: specialHolidayPremiumRate.toFixed(2),
+          specialHolidayPayAmount: specialHolidayPayAmount.toFixed(2),
+          formula: `${specialHolidayDays.toFixed(2)} days × ₱${specialHolidayPremiumRate.toFixed(2)} = ₱${specialHolidayPayAmount.toFixed(2)}`
+        });
+
+        // Special Non-Working Holiday: 130% total (100% base in basicPay + 30% premium here)
+        const specialNonWorkingPremiumRate = calculateHolidayPay("Special Non-Working", rates.dailyRate);
+        const specialNonWorkingPayAmount = specialNonWorkingHolidayDays * specialNonWorkingPremiumRate;
+
+        console.log(`🎉 Special Non-Working Holiday Premium:`, {
+          specialNonWorkingHours: specialNonWorkingHours,
+          specialNonWorkingHolidayDays: specialNonWorkingHolidayDays.toFixed(2),
+          dailyRate: rates.dailyRate,
+          premiumRate: specialNonWorkingPremiumRate.toFixed(2),
+          specialNonWorkingPayAmount: specialNonWorkingPayAmount.toFixed(2),
+          formula: `${specialNonWorkingHolidayDays.toFixed(2)} days × ₱${specialNonWorkingPremiumRate.toFixed(2)} = ₱${specialNonWorkingPayAmount.toFixed(2)}`
+        });
+
+        // Combine all special holiday premiums
+        const specialHolidayPay = specialHolidayPayAmount + specialNonWorkingPayAmount;
+        const totalHolidayPay = regularHolidayPay + specialHolidayPay;
+
+        console.log(`🎉 Total Holiday Premium Summary for ${employee.name}:`, {
+          regularHolidayPremium: `₱${regularHolidayPay.toFixed(2)}`,
+          specialHolidayPremium: `₱${specialHolidayPayAmount.toFixed(2)}`,
+          specialNonWorkingPremium: `₱${specialNonWorkingPayAmount.toFixed(2)}`,
+          totalSpecialPremium: `₱${specialHolidayPay.toFixed(2)}`,
+          totalHolidayPremium: `₱${totalHolidayPay.toFixed(2)}`,
+        });
+
+        // Calculate basic pay (includes 100% pay for ALL days present, including holidays)
+        const basicPay = finalDaysPresent * rates.dailyRate;
+
+        console.log(`💰 Basic Pay Calculation for ${employee.name}:`, {
+          finalDaysPresent,
+          dailyRate: rates.dailyRate,
+          basicPay: basicPay.toFixed(2),
+          note: 'This includes 100% pay for all days including holidays'
+        });
+
+        console.log(`💰 Complete Pay Breakdown for ${employee.name}:`, {
+          basicPay: `₱${basicPay.toFixed(2)} (100% for ${finalDaysPresent} days)`,
+          regularHolidayPremium: `₱${regularHolidayPay.toFixed(2)} (+100% for ${regularHolidayDays.toFixed(2)} regular holiday days)`,
+          specialHolidayPremium: `₱${specialHolidayPay.toFixed(2)} (+30% for ${(specialHolidayDays + specialNonWorkingHolidayDays).toFixed(2)} special holiday days)`,
+          totalHolidayPremium: `₱${totalHolidayPay.toFixed(2)}`,
+          subtotalBeforeOT: `₱${(basicPay + totalHolidayPay).toFixed(2)}`,
+        });
+
+        // Calculate allowance (skip for rank-and-file)
+        const salaryPackage = Number(employee.salaryPackage) || Number(employee.salary_package) || 0;
+        let allowance = 0;
+        
+        if (!isRankAndFile && salaryPackage > 0 && finalDaysPresent > 0) {
+          const allowancePerDay = (salaryPackage - rates.dailyRate * 26) / 26;
+          allowance = allowancePerDay * finalDaysPresent;
+          allowance = isNaN(allowance) ? 0 : Math.max(0, allowance);
+        }
+
+        console.log(`💵 Allowance Calculation for ${employee.name}:`, {
+          isRankAndFile,
+          salaryPackage,
+          allowance: allowance.toFixed(2),
+        });
+
+        // Calculate overtime
+        let totalRegularOvertime = 0;
+        let totalHolidayOvertime = 0;
+
+        const employeeOvertimeApproval = overtimeApprovals?.find(
+          (approval) => approval.ecode === employee.ecode && approval.isApproved
+        );
+
+        if (employeeOvertimeApproval) {
+          totalRegularOvertime = Number(employeeOvertimeApproval.approvedOvertimeHours) || 0;
+          console.log(`⏰ Approved overtime for ${employee.name}: ${totalRegularOvertime} hours`);
+        }
+
+        const regularOvertimePay = totalRegularOvertime * rates.otHourlyRate;
+        const specialHolidayOTRate = rates.otHourlyRate * 1.3;
+        const regularHolidayOTRate = rates.otHourlyRate * 1.6;
+        const specialHolidayOTPay = 0; // No holiday overtime in this version
+        const regularHolidayOTPay = 0;
+        const totalOvertimePay = regularOvertimePay + specialHolidayOTPay + regularHolidayOTPay;
+
+        console.log(`⏰ Overtime Pay Calculation for ${employee.name}:`, {
+          totalRegularOvertime: totalRegularOvertime.toFixed(2),
+          otHourlyRate: rates.otHourlyRate.toFixed(2),
+          regularOvertimePay: regularOvertimePay.toFixed(2),
+          totalOvertimePay: totalOvertimePay.toFixed(2),
+        });
+
+        // Calculate gross pay
+        const grossPay = basicPay + totalHolidayPay + allowance + totalOvertimePay;
+        const safeGrossPay = isNaN(grossPay) ? basicPay : grossPay;
+
+        console.log(`💰 Gross Pay Calculation for ${employee.name}:`, {
+          basicPay: basicPay.toFixed(2),
+          totalHolidayPay: totalHolidayPay.toFixed(2),
+          allowance: allowance.toFixed(2),
+          totalOvertimePay: totalOvertimePay.toFixed(2),
+          grossPay: safeGrossPay.toFixed(2),
+        });
+
+        // Calculate tardiness FIRST (before government contributions)
+        const tardinessDeduction = finalTotalLateMinutes * rates.tardinessRate;
+
+        // Calculate ADJUSTED gross pay for SSS basis
+        const adjustedGrossPayForSSS = Math.max(0, safeGrossPay - tardinessDeduction);
+
+        console.log(`⏱️ Tardiness Calculation for ${employee.name}:`, {
+          totalLateMinutes: finalTotalLateMinutes,
+          tardinessRate: rates.tardinessRate.toFixed(4),
+          tardinessDeduction: tardinessDeduction.toFixed(2),
+          grossPayBeforeTardiness: safeGrossPay.toFixed(2),
+          adjustedGrossPayForSSS: adjustedGrossPayForSSS.toFixed(2),
+        });
+
+        // Calculate government contributions based on ADJUSTED gross pay
+        const projectedMonthlyBasicSalary = rates.dailyRate * 26;
+        const isFirstCutoff = new Date(cutoffDate).getDate() <= 15;
+        const isSecondCutoff = isSecondCutoffPeriod(new Date(cutoffDate));
+
+        // Initialize contribution objects
+        let sssContribution = { 
+          employeeContribution: 0, 
+          employerContribution: 0, 
+          ecContribution: 0, 
+          totalContribution: 0 
+        };
+        let pagibigContribution = { 
+          employeeContribution: 0, 
+          employerContribution: 0, 
+          totalContribution: 0 
+        };
+        let philhealthContribution = { 
+          employeeContribution: 0, 
+          employerContribution: 0, 
+          totalContribution: 0 
+        };
+
+        if (!isOnCall) {
+          // Use adjustedGrossPayForSSS instead of safeGrossPay
+          sssContribution = calculateSSSWithCutoff(adjustedGrossPayForSSS, new Date(cutoffDate));
+          pagibigContribution = calculatePagIBIGSemiMonthly(projectedMonthlyBasicSalary, isFirstCutoff);
+          philhealthContribution = calculatePhilHealthSemiMonthly(
+            projectedMonthlyBasicSalary,
+            "full_second",
+            isFirstCutoff
+          );
+        }
+
+        console.log(`💳 Government Contributions for ${employee.name}:`, {
+          isOnCall,
+          isFirstCutoff,
+          isSecondCutoff,
+          projectedMonthlyBasicSalary: projectedMonthlyBasicSalary.toFixed(2),
+          grossPay: safeGrossPay.toFixed(2),
+          tardinessDeduction: tardinessDeduction.toFixed(2),
+          adjustedGrossPayForSSS: adjustedGrossPayForSSS.toFixed(2),
+          sss: sssContribution.employeeContribution,
+          phic: philhealthContribution.employeeContribution,
+          hdmf: pagibigContribution.employeeContribution,
+        });
+
+        // Calculate deductions using the pre-calculated tardiness
+        const deductions = {
+          sss: parseFloat(sssContribution.employeeContribution.toFixed(2)),
+          phic: parseFloat(philhealthContribution.employeeContribution.toFixed(2)/2),
+          hdmf: parseFloat(pagibigContribution.employeeContribution.toFixed(2)),
+          loan: Number(employeePayrollInfo.loan) || 0,
+          otherDeductions: !isOnCall ? Number(employeePayrollInfo.otherDeductions) || 0 : 0,
+          taxDeduction: !isOnCall ? Number(employeePayrollInfo.tax_deduction) || 0 : 0,
+          tardiness: parseFloat(tardinessDeduction.toFixed(2)),
+        };
+
+        // Ensure all deductions are valid numbers
+        Object.keys(deductions).forEach((key) => {
+          if (isNaN(deductions[key])) {
+            deductions[key] = 0;
+          }
+        });
+
+        console.log(`💸 Deductions for ${employee.name}:`, {
+          sss: deductions.sss.toFixed(2),
+          phic: deductions.phic.toFixed(2),
+          hdmf: deductions.hdmf.toFixed(2),
+          loan: deductions.loan.toFixed(2),
+          otherDeductions: deductions.otherDeductions.toFixed(2),
+          taxDeduction: deductions.taxDeduction.toFixed(2),
+          tardiness: deductions.tardiness.toFixed(2),
+        });
+
+        const adjustment = Number(employeePayrollInfo.adjustment) || 0;
+        const safeAdjustment = isNaN(adjustment) ? 0 : adjustment;
+
+        const totalEarnings = safeGrossPay + safeAdjustment;
+        const totalDeductions = Object.values(deductions).reduce((sum, val) => sum + val, 0);
+        const netPay = safeGrossPay - totalDeductions + safeAdjustment;
+
+        console.log(`💰 Final Calculation for ${employee.name}:`, {
+          grossPay: safeGrossPay.toFixed(2),
+          adjustment: safeAdjustment.toFixed(2),
+          totalEarnings: totalEarnings.toFixed(2),
+          totalDeductions: totalDeductions.toFixed(2),
+          netPay: netPay.toFixed(2),
+        });
+
+        // Calculate total hours
+        const totalRegularHoursForPayslip = parseFloat((regularDaysWorked * shiftHours).toFixed(2));
+        const totalHolidayHoursForPayslip = parseFloat(totalHolidayHours.toFixed(2));
+        const specialHolidayHoursForPayslip = parseFloat(specialHolidayHours.toFixed(2));
+        const regularHolidayHoursForPayslip = parseFloat(regularHolidayHours.toFixed(2));
+        const totalHours = parseFloat(
+          (finalDaysPresent * shiftHours + totalRegularOvertime + totalHolidayOvertime).toFixed(2)
+        );
+
+        // Create payslip data
+        const payslipData = {
+          ecode: employee.ecode,
+          email: employee.email_address || employee.email || "",
+          employeeId: employee.id,
+          name: employee.name,
+          project: employee.project || "N/A",
+          position: employee.positiontitle || employee.position || employee.position_title || "N/A",
+          department: employee.department || "N/A",
+          schedule: employee.schedule || "N/A",
+          cutoffDate,
+          payrollType,
+          dailyrate: parseFloat(rates.dailyRate.toFixed(2)),
+          basicPay: parseFloat(basicPay.toFixed(2)),
+          noOfDays: parseFloat(finalDaysPresent.toFixed(2)),
+
+          // Holiday fields
+          holidayDays: parseFloat(totalHolidayDays.toFixed(2)),
+          regularDays: parseFloat(regularDaysWorked.toFixed(2)),
+          specialHolidayDays: parseFloat(specialHolidayDays.toFixed(2)),
+          regularHolidayDays: parseFloat(regularHolidayDays.toFixed(2)),
+          specialNonWorkingHolidayDays: parseFloat(specialNonWorkingHolidayDays.toFixed(2)),
+
+          // Overtime fields
+          overtimePay: parseFloat(totalOvertimePay.toFixed(2)),
+          totalOvertime: parseFloat((totalRegularOvertime + totalHolidayOvertime).toFixed(2)),
+          regularOvertime: parseFloat(totalRegularOvertime.toFixed(2)),
+          holidayOvertime: parseFloat(totalHolidayOvertime.toFixed(2)),
+
+          // Hours fields
+          totalRegularHours: totalRegularHoursForPayslip,
+          totalHolidayHours: totalHolidayHoursForPayslip,
+          specialHolidayHours: specialHolidayHoursForPayslip,
+          regularHolidayHours: regularHolidayHoursForPayslip,
+
+          // Holiday pay fields
+          holidayPay: parseFloat(totalHolidayPay.toFixed(2)),
+          specialHolidayPay: parseFloat(specialHolidayPay.toFixed(2)),
+          regularHolidayPay: parseFloat(regularHolidayPay.toFixed(2)),
+          specialHolidayOTPay: parseFloat(specialHolidayOTPay.toFixed(2)),
+          regularHolidayOTPay: parseFloat(regularHolidayOTPay.toFixed(2)),
+
+          // Night shift
+          nightDifferential: 0,
+          nightShiftHours: 0,
+
+          // Allowances
+          allowance: parseFloat(allowance.toFixed(2)),
+
+          // Government contributions
+          sss: parseFloat(sssContribution.employeeContribution.toFixed(2)),
+          sssEmployerShare: parseFloat(sssContribution.employerContribution.toFixed(2)),
+          sssEC: parseFloat(sssContribution.ecContribution.toFixed(2)),
+          sssTotalContribution: parseFloat(sssContribution.totalContribution.toFixed(2)),
+          
+          phic: parseFloat(deductions.phic.toFixed(2)),
+          phicEmployerShare: parseFloat(philhealthContribution.employerContribution.toFixed(2)),
+          phicTotalContribution: parseFloat(philhealthContribution.totalContribution.toFixed(2)),
+          phicIsMinimum: philhealthContribution.isMinimum || false,
+          
+          hdmf: parseFloat(pagibigContribution.employeeContribution.toFixed(2)),
+          hdmfEmployerShare: parseFloat(pagibigContribution.employerContribution.toFixed(2)),
+          hdmfTotalContribution: parseFloat(pagibigContribution.totalContribution.toFixed(2)),
+          hdmfIsCapped: pagibigContribution.isCapped || false,
+
+          // Loans
+          loan: parseFloat(deductions.loan.toFixed(2)),
+          sssLoan: parseFloat((Number(employeePayrollInfo.sss_loan) || 0).toFixed(2)),
+          pagibigLoan: parseFloat((Number(employeePayrollInfo.pagibig_loan) || 0).toFixed(2)),
+
+          // Other deductions
+          totalTardiness: parseFloat(deductions.tardiness.toFixed(2)),
+          totalHours: totalHours,
+          otherDeductions: parseFloat(deductions.otherDeductions.toFixed(2)),
+          taxDeduction: parseFloat(deductions.taxDeduction.toFixed(2)),
+
+          // Totals
+          totalEarnings: parseFloat(totalEarnings.toFixed(2)),
+          totalDeductions: parseFloat(totalDeductions.toFixed(2)),
+          adjustment: parseFloat(safeAdjustment.toFixed(2)),
+          gross_pay: parseFloat(safeGrossPay.toFixed(2)),
+          netPay: parseFloat(netPay.toFixed(2)),
+
+          // System fields
+          requestedBy,
+          requestedByName,
+          status: "pending",
+          batchId,
+          shiftHours: parseFloat(shiftHours.toFixed(2)),
+          employmentRank: employee.employmentrank || "N/A",
+          isRankAndFile,
+        };
+
+        console.log(`✅ Payslip created for ${employee.name}:`, {
+          basicPay: payslipData.basicPay,
+          holidayPay: payslipData.holidayPay,
+          overtimePay: payslipData.overtimePay,
+          grossPay: payslipData.gross_pay,
+          totalDeductions: payslipData.totalDeductions,
+          netPay: payslipData.netPay,
+        });
+
+        const newPayslip = await Payslip.create(payslipData);
+        generatedPayslips.push(newPayslip);
+
+      } catch (employeeError) {
+        console.error(`❌ Error processing employee ${employee.name}:`, employeeError);
+        errors.push({
+          employee: employee.name,
+          ecode: employee.ecode,
+          error: employeeError.message,
+        });
+      }
+    }
+
+    // Send email notifications
+    const approvers = await User.findAll({
+      where: { role: "approver", isBlocked: false },
+    });
+    const successfulEmails = [];
+
+    for (const approver of approvers) {
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: approver.email,
+        subject: `Payroll Generated: ${cutoffDate} (Batch: ${batchId})`,
+        html: `
+          <body style="font-family: Arial, sans-serif; background-color: #f9f9f9;">
+            <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 20px; border-radius: 8px;">
+              <img src="https://stjohnmajore.com/images/FOOTER.png" alt="Footer" style="width: 100%; height: auto; margin-top: 20px;" />
+            </div>
+          </body>
+        `,
+      };
+
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+        tls: { rejectUnauthorized: false },
+      });
+
+      try {
+        await transporter.sendMail(mailOptions);
+        successfulEmails.push(approver.email);
+        console.log(`✅ Email sent to ${approver.email}`);
+      } catch (emailError) {
+        console.error(`❌ Failed to send email to ${approver.email}:`, emailError);
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `Payroll generated for ${generatedPayslips.length} employees!`,
+      batchId,
+      payslips: generatedPayslips,
+      notified: successfulEmails,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+
+  } catch (error) {
+    console.error("❌ Payroll Generation Critical Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during payroll generation.",
+      error: process.env.NODE_ENV === "development" ? error.message : "Internal server error",
+      details: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 };
