@@ -1788,18 +1788,15 @@ export const approveMultipleBatches = async (req, res) => {
 
 
 ///////////////////////payroll generation/////////////////////////
-
-const calculateHolidayPay = (holidayType, dailyRate) => {
-  switch (holidayType) {
-    case "Regular":
-      return dailyRate * 2; // 200% total = 100% base (already in basicPay) + 100% premium (this return value)
-    case "Special":
-      return dailyRate * 0.3; // 130% total = 100% base (already in basicPay) + 30% premium (this return value)
-    case "Special Non-Working":
-      return dailyRate * 0.3; // 130% total = 100% base (already in basicPay) + 30% premium (this return value)
-    default:
-      return 0;
-  }
+//di pa tpaoss
+const calculateRegularHolidayPay = ( dailyRate, regularHolidayHours) => {
+  return ((dailyRate/ 8) *2 )*(regularHolidayHours); // 200% total = 100% base (in basicPay) + 100% premium
+};
+const calculateSpecialHolidayPay = ( dailyRate, specialHolidayHours) => {
+  return ((dailyRate/ 8) *0.3 )*(specialHolidayHours); // 200% total = 100% base (in basicPay) + 100% premium
+};
+const calculateSpecialNonWorkingHolidayPay = (dailyRate, specialNonWorkingHours) => {
+  return ((dailyRate/ 8) *0.3 )*(specialHolidayHours); // 200% total = 100% base (in basicPay) + 100% premium
 };
 
 export const generatePayroll = async (req, res) => {
@@ -1844,11 +1841,6 @@ export const generatePayroll = async (req, res) => {
       console.error("❌ Error fetching employees:", error);
       const allEmployees = await Employee.findAll();
       return allEmployees.filter((emp) => emp.status !== "Inactive");
-    });
-
-    const holidays = await Holidays.findAll().catch((error) => {
-      console.error("❌ Error fetching holidays:", error);
-      return [];
     });
 
     const attendanceSummaries = await AttendanceSummary.findAll().catch((error) => {
@@ -1910,6 +1902,7 @@ export const generatePayroll = async (req, res) => {
         // Extract attendance data from summary
         const finalDaysPresent = parseFloat(attendanceSummary.presentDays) || 0;
         const finalTotalLateMinutes = parseInt(attendanceSummary.totalLateMinutes) || 0;
+        const hourlyRate = 0;
 
         // Get hours directly from attendance summary (NO division by shiftHours needed)
         const totalRegularHours = parseFloat(attendanceSummary.totalRegularHours) || 0;
@@ -1917,15 +1910,16 @@ export const generatePayroll = async (req, res) => {
         const specialHolidayHours = parseFloat(attendanceSummary.specialHolidayHours) || 0;
         const specialNonWorkingHours = parseFloat(attendanceSummary.specialNonWorkingHours) || 0;
         const totalHolidayHours = regularHolidayHours + specialHolidayHours + specialNonWorkingHours;
+        const totalHoursWorked = totalRegularHours + totalHolidayHours;
 
-        console.log(`📊 Raw Attendance Data from DB for ${employee.name}:`, {
-          presentDays: finalDaysPresent,
+        console.log(`📊 Raw Attendance Hours from DB for ${employee.name}:`, {
+          totalRegularHours: totalRegularHours.toFixed(2),
+          regularHolidayHours: regularHolidayHours.toFixed(2),
+          specialHolidayHours: specialHolidayHours.toFixed(2),
+          specialNonWorkingHours: specialNonWorkingHours.toFixed(2),
+          totalHolidayHours: totalHolidayHours.toFixed(2),
+          totalHoursWorked: totalHoursWorked.toFixed(2),
           totalLateMinutes: finalTotalLateMinutes,
-          totalRegularHours: totalRegularHours,
-          regularHolidayHours: regularHolidayHours,
-          specialHolidayHours: specialHolidayHours,
-          specialNonWorkingHours: specialNonWorkingHours,
-          totalHolidayHours: totalHolidayHours,
         });
 
         // Calculate days worked from hours
@@ -1934,6 +1928,7 @@ export const generatePayroll = async (req, res) => {
         const specialHolidayDays = specialHolidayHours / shiftHours;
         const specialNonWorkingHolidayDays = specialNonWorkingHours / shiftHours;
         const totalHolidayDays = regularHolidayDays + specialHolidayDays + specialNonWorkingHolidayDays;
+        
 
         console.log(`📊 Days Calculation for ${employee.name} (Hours ÷ ${shiftHours}):`, {
           regularDaysWorked: regularDaysWorked.toFixed(2),
@@ -1944,101 +1939,30 @@ export const generatePayroll = async (req, res) => {
         });
 
         // Calculate rates
-        const rates = {
-          dailyRate: Number(employeePayrollInfo.daily_rate) || 520,
-          hourlyRate:
-            Number(employeePayrollInfo.hourly_rate) ||
-            (Number(employeePayrollInfo.daily_rate) || 520) / shiftHours,
-          otHourlyRate:
-            ((Number(employeePayrollInfo.daily_rate) || 520) / shiftHours) * 1.25,
-          tardinessRate: (Number(employeePayrollInfo.daily_rate) || 520) / 8 / 60,
-        };
-
-        console.log(`💰 Calculated rates for ${employee.name}:`, {
-          dailyRate: rates.dailyRate,
-          hourlyRate: rates.hourlyRate.toFixed(2),
-          otHourlyRate: rates.otHourlyRate.toFixed(2),
-          tardinessRate: rates.tardinessRate.toFixed(4),
-        });
-
+        // ===== CALCULATE RATES (ALWAYS compute hourly from daily) =====
+        const dailyRate = Number(employeePayrollInfo.daily_rate) || 520;
         // Calculate holiday pay premiums using the days calculated from hours
         console.log(`🎉 Starting Holiday Pay Calculation for ${employee.name}...`);
 
-        // Regular Holiday: 200% total (100% base in basicPay + 100% premium here)
-        const regularHolidayPremiumRate = calculateHolidayPay("Regular", rates.dailyRate);
-        const regularHolidayPay = regularHolidayDays * regularHolidayPremiumRate;
+        //holidays
+        const regularHolidayPay = calculateRegularHolidayPay(dailyRate,regularHolidayHours)
+        const specialHolidayPayAmount = calculateSpecialHolidayPay(dailyRate, specialHolidayHours)
+        const specialNonWorkingHolidayPayAmount = calculateSpecialNonWorkingHolidayPay(dailyRate, specialNonWorkingHours);
 
-        console.log(`🎉 Regular Holiday Premium:`, {
-          regularHolidayHours: regularHolidayHours,
-          regularHolidayDays: regularHolidayDays.toFixed(2),
-          dailyRate: rates.dailyRate,
-          premiumRate: regularHolidayPremiumRate.toFixed(2),
-          regularHolidayPay: regularHolidayPay.toFixed(2),
-          formula: `${regularHolidayDays.toFixed(2)} days × ₱${regularHolidayPremiumRate.toFixed(2)} = ₱${regularHolidayPay.toFixed(2)}`
-        });
-
-        // Special Holiday: 130% total (100% base in basicPay + 30% premium here)
-        const specialHolidayPremiumRate = calculateHolidayPay("Special", rates.dailyRate);
-        const specialHolidayPayAmount = specialHolidayDays * specialHolidayPremiumRate;
-
-        console.log(`🎉 Special Holiday Premium:`, {
-          specialHolidayHours: specialHolidayHours,
-          specialHolidayDays: specialHolidayDays.toFixed(2),
-          dailyRate: rates.dailyRate,
-          premiumRate: specialHolidayPremiumRate.toFixed(2),
-          specialHolidayPayAmount: specialHolidayPayAmount.toFixed(2),
-          formula: `${specialHolidayDays.toFixed(2)} days × ₱${specialHolidayPremiumRate.toFixed(2)} = ₱${specialHolidayPayAmount.toFixed(2)}`
-        });
-
-        // Special Non-Working Holiday: 130% total (100% base in basicPay + 30% premium here)
-        const specialNonWorkingPremiumRate = calculateHolidayPay("Special Non-Working", rates.dailyRate);
-        const specialNonWorkingPayAmount = specialNonWorkingHolidayDays * specialNonWorkingPremiumRate;
-
-        console.log(`🎉 Special Non-Working Holiday Premium:`, {
-          specialNonWorkingHours: specialNonWorkingHours,
-          specialNonWorkingHolidayDays: specialNonWorkingHolidayDays.toFixed(2),
-          dailyRate: rates.dailyRate,
-          premiumRate: specialNonWorkingPremiumRate.toFixed(2),
-          specialNonWorkingPayAmount: specialNonWorkingPayAmount.toFixed(2),
-          formula: `${specialNonWorkingHolidayDays.toFixed(2)} days × ₱${specialNonWorkingPremiumRate.toFixed(2)} = ₱${specialNonWorkingPayAmount.toFixed(2)}`
-        });
-
-        // Combine all special holiday premiums
-        const specialHolidayPay = specialHolidayPayAmount + specialNonWorkingPayAmount;
-        const totalHolidayPay = regularHolidayPay + specialHolidayPay;
-
-        console.log(`🎉 Total Holiday Premium Summary for ${employee.name}:`, {
-          regularHolidayPremium: `₱${regularHolidayPay.toFixed(2)}`,
-          specialHolidayPremium: `₱${specialHolidayPayAmount.toFixed(2)}`,
-          specialNonWorkingPremium: `₱${specialNonWorkingPayAmount.toFixed(2)}`,
-          totalSpecialPremium: `₱${specialHolidayPay.toFixed(2)}`,
-          totalHolidayPremium: `₱${totalHolidayPay.toFixed(2)}`,
-        });
+        console.log("Holiday Computation");
+        console.log("Regular holiday Pay", regularHolidayPay);
+        console.log("Special Holiday Pay", specialHolidayPayAmount);
+        console.log("Special Non Working Holiday Pay", specialNonWorkingHolidayPayAmount);
 
         // Calculate basic pay (includes 100% pay for ALL days present, including holidays)
-        const basicPay = finalDaysPresent * rates.dailyRate;
-
-        console.log(`💰 Basic Pay Calculation for ${employee.name}:`, {
-          finalDaysPresent,
-          dailyRate: rates.dailyRate,
-          basicPay: basicPay.toFixed(2),
-          note: 'This includes 100% pay for all days including holidays'
-        });
-
-        console.log(`💰 Complete Pay Breakdown for ${employee.name}:`, {
-          basicPay: `₱${basicPay.toFixed(2)} (100% for ${finalDaysPresent} days)`,
-          regularHolidayPremium: `₱${regularHolidayPay.toFixed(2)} (+100% for ${regularHolidayDays.toFixed(2)} regular holiday days)`,
-          specialHolidayPremium: `₱${specialHolidayPay.toFixed(2)} (+30% for ${(specialHolidayDays + specialNonWorkingHolidayDays).toFixed(2)} special holiday days)`,
-          totalHolidayPremium: `₱${totalHolidayPay.toFixed(2)}`,
-          subtotalBeforeOT: `₱${(basicPay + totalHolidayPay).toFixed(2)}`,
-        });
+        const basicPay = finalDaysPresent * dailyRate;
 
         // Calculate allowance (skip for rank-and-file)
         const salaryPackage = Number(employee.salaryPackage) || Number(employee.salary_package) || 0;
         let allowance = 0;
         
         if (!isRankAndFile && salaryPackage > 0 && finalDaysPresent > 0) {
-          const allowancePerDay = (salaryPackage - rates.dailyRate * 26) / 26;
+          const allowancePerDay = (salaryPackage - dailyRate * 26) / 26;
           allowance = allowancePerDay * finalDaysPresent;
           allowance = isNaN(allowance) ? 0 : Math.max(0, allowance);
         }
@@ -2062,9 +1986,7 @@ export const generatePayroll = async (req, res) => {
           console.log(`⏰ Approved overtime for ${employee.name}: ${totalRegularOvertime} hours`);
         }
 
-        const regularOvertimePay = totalRegularOvertime * rates.otHourlyRate;
-        const specialHolidayOTRate = rates.otHourlyRate * 1.3;
-        const regularHolidayOTRate = rates.otHourlyRate * 1.6;
+        const regularOvertimePay = totalRegularOvertime;
         const specialHolidayOTPay = 0; // No holiday overtime in this version
         const regularHolidayOTPay = 0;
         const totalOvertimePay = regularOvertimePay + specialHolidayOTPay + regularHolidayOTPay;
@@ -2103,7 +2025,7 @@ export const generatePayroll = async (req, res) => {
         });
 
         // Calculate government contributions based on ADJUSTED gross pay
-        const projectedMonthlyBasicSalary = rates.dailyRate * 26;
+        const projectedMonthlyBasicSalary = dailyRate * 26;
         const isFirstCutoff = new Date(cutoffDate).getDate() <= 15;
         const isSecondCutoff = isSecondCutoffPeriod(new Date(cutoffDate));
 
@@ -2158,6 +2080,9 @@ export const generatePayroll = async (req, res) => {
           otherDeductions: !isOnCall ? Number(employeePayrollInfo.otherDeductions) || 0 : 0,
           taxDeduction: !isOnCall ? Number(employeePayrollInfo.tax_deduction) || 0 : 0,
           tardiness: parseFloat(tardinessDeduction.toFixed(2)),
+          // ADD THESE THREE NEW DEDUCTIONS
+          underTime: Number(employeePayrollInfo.underTime) || 0,
+          cashAdvance: Number(employeePayrollInfo.cashAdvance) || 0,
         };
 
         // Ensure all deductions are valid numbers
@@ -2175,6 +2100,8 @@ export const generatePayroll = async (req, res) => {
           otherDeductions: deductions.otherDeductions.toFixed(2),
           taxDeduction: deductions.taxDeduction.toFixed(2),
           tardiness: deductions.tardiness.toFixed(2),
+          underTime: deductions.underTime.toFixed(2),
+          cashAdvance: deductions.cashAdvance.toFixed(2),
         });
 
         const adjustment = Number(employeePayrollInfo.adjustment) || 0;
@@ -2184,9 +2111,12 @@ export const generatePayroll = async (req, res) => {
         const totalDeductions = Object.values(deductions).reduce((sum, val) => sum + val, 0);
         const netPay = safeGrossPay - totalDeductions + safeAdjustment;
 
+
         console.log(`💰 Final Calculation for ${employee.name}:`, {
           grossPay: safeGrossPay.toFixed(2),
           adjustment: safeAdjustment.toFixed(2),
+          underTime: deductions.underTime.toFixed(2),
+          cashAdvance: deductions.cashAdvance.toFixed(2),
           totalEarnings: totalEarnings.toFixed(2),
           totalDeductions: totalDeductions.toFixed(2),
           netPay: netPay.toFixed(2),
@@ -2213,7 +2143,7 @@ export const generatePayroll = async (req, res) => {
           schedule: employee.schedule || "N/A",
           cutoffDate,
           payrollType,
-          dailyrate: parseFloat(rates.dailyRate.toFixed(2)),
+          dailyrate: parseFloat(dailyRate.toFixed(2)),
           basicPay: parseFloat(basicPay.toFixed(2)),
           noOfDays: parseFloat(finalDaysPresent.toFixed(2)),
 
@@ -2276,6 +2206,8 @@ export const generatePayroll = async (req, res) => {
           totalHours: totalHours,
           otherDeductions: parseFloat(deductions.otherDeductions.toFixed(2)),
           taxDeduction: parseFloat(deductions.taxDeduction.toFixed(2)),
+          underTime: parseFloat(deductions.underTime.toFixed(2)),
+          cashAdvance: parseFloat(deductions.cashAdvance.toFixed(2)),
 
           // Totals
           totalEarnings: parseFloat(totalEarnings.toFixed(2)),
@@ -2305,6 +2237,26 @@ export const generatePayroll = async (req, res) => {
 
         const newPayslip = await Payslip.create(payslipData);
         generatedPayslips.push(newPayslip);
+
+        try {
+          await PayrollInformation.update(
+            {
+              adjustment: 0,
+              underTime: 0,
+              cashAdvance: 0,
+              sss_loan: 0,
+              pagibig_loan: 0
+
+            },
+            {
+              where: { ecode: employee.ecode }
+            }
+          );
+          console.log(`✅ Reset adjustment, underTime, and cashAdvance for ${employee.name}`);
+        } catch (resetError) {
+          console.error(`⚠️ Failed to reset fields for ${employee.name}:`, resetError.message);
+          // Don't fail the entire process if reset fails
+        }
 
       } catch (employeeError) {
         console.error(`❌ Error processing employee ${employee.name}:`, employeeError);

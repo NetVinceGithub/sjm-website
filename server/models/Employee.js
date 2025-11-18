@@ -42,65 +42,9 @@ const PayrollInformation = sequelize.define(
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 65,
     },
-    ot_hourly_rate: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 81.25,
-    },
-    ot_rate_sp_holiday: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 109.85,
-    },
-    ot_rate_reg_holiday: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 109.85,
-    },
-    special_hol_rate: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 156,
-    },
-    regular_hol_ot_rate: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 156,
-    },
-    overtime_pay: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 100,
-    },
-    holiday_pay: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 200,
-    },
-    night_differential: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 6.5,
-    },
     allowance: {
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 104,
-    },
-    tardiness: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 1.08,
-    },
-    tax_deduction: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 0,
-    },
-    sss_contribution: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 0,
-    },
-    pagibig_contribution: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 200,
-    },
-    philhealth_contribution: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 338,
-    },
-    loan: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 0,
     },
     sss_loan: {
       type: DataTypes.DECIMAL(10, 2),
@@ -110,13 +54,17 @@ const PayrollInformation = sequelize.define(
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,
     },
-    otherDeductions: {
-      type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 0,
-    },
     adjustment: {
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,
+    },
+    underTime: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    cashAdvance: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
     },
     employment_rank: {
       type: DataTypes.STRING(50),
@@ -408,25 +356,12 @@ Employee.afterCreate(async (employee) => {
       employment_rank: employee.employment_rank,
       salary_package: employee.salary_package,
       
-      // Add all the missing fields with their default values
-      hourly_rate: 65,
-      ot_hourly_rate: 81.25,
-      ot_rate_sp_holiday: 109.85,
-      ot_rate_reg_holiday: 109.85,
-      special_hol_rate: 156,
-      regular_hol_ot_rate: 156,
-      overtime_pay: 100,
-      holiday_pay: 200,
-      night_differential: 6.5,
-      allowance: 104,
-      tardiness: 1.08,
-      tax_deduction: 0,
-      sss_contribution: 0,
-      pagibig_contribution: 200,
-      philhealth_contribution: 338,
-      loan: 0,
-      otherDeductions: 0,
-      adjustment: 0
+      // Only include fields that exist in the model
+      sss_loan: 0,
+      pagibig_loan: 0,
+      adjustment: 0,
+      underTime: 0,
+      cashAdvance: 0,
     });
   } catch (error) {
     console.error('Error creating payroll information:', error);

@@ -484,58 +484,8 @@ const EmployeePayrollInformationsList = () => {
       width: "150px",
     },
     {
-      name: "Reg. OT Pay",
-      selector: (row) => `₱${parseFloat(row.regOTpay || 0).toLocaleString()}`,
-      sortable: true,
-      center: true,
-      width: "120px",
-    },
-    {
-      name: "NSD Pay",
-      selector: (row) => `₱${parseFloat(row.nsdPay || 0).toLocaleString()}`,
-      sortable: true,
-      center: true,
-      width: "150px",
-    },
-    {
-      name: "ND OT Pay",
-      selector: (row) => `₱${parseFloat(row.ndOTpay || 0).toLocaleString()}`,
-      sortable: true,
-      center: true,
-      width: "120px",
-    },
-    {
-      name: "RD Pay",
-      selector: (row) => `₱${parseFloat(row.rdPay || 0).toLocaleString()}`,
-      sortable: true,
-      center: true,
-      width: "150px",
-    },
-    {
       name: "Allowance",
       selector: (row) => `₱${parseFloat(row.allowance || 0).toLocaleString()}`,
-      sortable: true,
-      center: true,
-      width: "120px",
-    },
-    {
-      name: "SSS",
-      selector: (row) =>
-        `₱${parseFloat(row.sss_contribution || 0).toLocaleString()}`,
-      sortable: true,
-      center: true,
-    },
-    {
-      name: "Pagibig",
-      selector: (row) =>
-        `₱${parseFloat(row.pagibig_contribution || 0).toLocaleString()}`,
-      sortable: true,
-      center: true,
-    },
-    {
-      name: "PhilHealth",
-      selector: (row) =>
-        `₱${parseFloat(row.philhealth_contribution || 0).toLocaleString()}`,
       sortable: true,
       center: true,
       width: "120px",
@@ -547,13 +497,7 @@ const EmployeePayrollInformationsList = () => {
       center: true,
       width: "120px",
     },
-    {
-      name: "Tax",
-      selector: (row) =>
-        `₱${parseFloat(row.tax_deduction || 0).toLocaleString()}`,
-      sortable: true,
-      center: true,
-    },
+
     {
       name: "SSS Loan",
       selector: (row) => `₱${parseFloat(row.sssloan || 0).toLocaleString()}`,
