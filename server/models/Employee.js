@@ -44,7 +44,7 @@ const PayrollInformation = sequelize.define(
     },
     allowance: {
       type: DataTypes.DECIMAL(10, 2),
-      defaultValue: 104,
+      defaultValue: 0,
     },
     sss_loan: {
       type: DataTypes.DECIMAL(10, 2),

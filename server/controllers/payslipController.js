@@ -1786,17 +1786,23 @@ export const approveMultipleBatches = async (req, res) => {
   }
 };
 
-
 ///////////////////////payroll generation/////////////////////////
-//di pa tpaoss
-const calculateRegularHolidayPay = ( dailyRate, regularHolidayHours) => {
-  return ((dailyRate/ 8) *2 )*(regularHolidayHours); // 200% total = 100% base (in basicPay) + 100% premium
+const calculateRegularHolidayPay = (dailyRate, regularHolidayHours) => {
+  return ((dailyRate / 8) * 2) * regularHolidayHours; // 200% total = 100% base (in basicPay) + 100% premium
 };
-const calculateSpecialHolidayPay = ( dailyRate, specialHolidayHours) => {
-  return ((dailyRate/ 8) *0.3 )*(specialHolidayHours); // 200% total = 100% base (in basicPay) + 100% premium
+
+const calculateSpecialHolidayPay = (dailyRate, specialHolidayHours) => {
+  return ((dailyRate / 8) * 0.3) * specialHolidayHours; // 130% total = 100% base + 30% premium
 };
+
 const calculateSpecialNonWorkingHolidayPay = (dailyRate, specialNonWorkingHours) => {
-  return ((dailyRate/ 8) *0.3 )*(specialHolidayHours); // 200% total = 100% base (in basicPay) + 100% premium
+  // FIXED: Changed specialHolidayHours to specialNonWorkingHours
+  return ((dailyRate / 8) * 0.3) * specialNonWorkingHours; // 130% total = 100% base + 30% premium
+};
+
+const calculateRegularHours = (dailyRate, totalRegularHours) => {
+  // FIXED: Added return statement
+  return (dailyRate / 8) * totalRegularHours;
 };
 
 export const generatePayroll = async (req, res) => {
@@ -1895,6 +1901,11 @@ export const generatePayroll = async (req, res) => {
           (info) => info.ecode === employee.ecode
         ) || {};
 
+        if (!employeePayrollInfo) {
+          console.log(`⚠️ No payroll info found for ${employee.name}, skipping or using employee daily rate`);
+          // Either skip or use employee's daily_rate as fallback
+        }
+
         // Get employee's shift hours (default to 4.5 for day shift)
         const shiftHours = parseFloat(employee.shift_hours || employee.shiftHours || 4.5);
         console.log(`⏰ Employee ${employee.name} shift hours: ${shiftHours}`);
@@ -1902,7 +1913,6 @@ export const generatePayroll = async (req, res) => {
         // Extract attendance data from summary
         const finalDaysPresent = parseFloat(attendanceSummary.presentDays) || 0;
         const finalTotalLateMinutes = parseInt(attendanceSummary.totalLateMinutes) || 0;
-        const hourlyRate = 0;
 
         // Get hours directly from attendance summary (NO division by shiftHours needed)
         const totalRegularHours = parseFloat(attendanceSummary.totalRegularHours) || 0;
@@ -1929,7 +1939,6 @@ export const generatePayroll = async (req, res) => {
         const specialNonWorkingHolidayDays = specialNonWorkingHours / shiftHours;
         const totalHolidayDays = regularHolidayDays + specialHolidayDays + specialNonWorkingHolidayDays;
         
-
         console.log(`📊 Days Calculation for ${employee.name} (Hours ÷ ${shiftHours}):`, {
           regularDaysWorked: regularDaysWorked.toFixed(2),
           regularHolidayDays: regularHolidayDays.toFixed(2),
@@ -1939,23 +1948,37 @@ export const generatePayroll = async (req, res) => {
         });
 
         // Calculate rates
-        // ===== CALCULATE RATES (ALWAYS compute hourly from daily) =====
-        const dailyRate = Number(employeePayrollInfo.daily_rate) || 520;
-        // Calculate holiday pay premiums using the days calculated from hours
+        const dailyRate = Number(
+          employeePayrollInfo.daily_rate || 
+          employeePayrollInfo.dailyRate || 
+          employeePayrollInfo.dailyrate ||
+          employee.daily_rate ||
+          employee.dailyRate ||
+          employee.dailyrate ||
+          0  // Final fallback
+        );    
+
         console.log(`🎉 Starting Holiday Pay Calculation for ${employee.name}...`);
 
-        //holidays
-        const regularHolidayPay = calculateRegularHolidayPay(dailyRate,regularHolidayHours)
-        const specialHolidayPayAmount = calculateSpecialHolidayPay(dailyRate, specialHolidayHours)
+        // Calculate holidays
+        const regularHolidayPay = calculateRegularHolidayPay(dailyRate, regularHolidayHours);
+        const specialHolidayPayAmount = calculateSpecialHolidayPay(dailyRate, specialHolidayHours);
         const specialNonWorkingHolidayPayAmount = calculateSpecialNonWorkingHolidayPay(dailyRate, specialNonWorkingHours);
+        const totalHolidayPay = regularHolidayPay + specialHolidayPayAmount + specialNonWorkingHolidayPayAmount;
 
         console.log("Holiday Computation");
         console.log("Regular holiday Pay", regularHolidayPay);
         console.log("Special Holiday Pay", specialHolidayPayAmount);
         console.log("Special Non Working Holiday Pay", specialNonWorkingHolidayPayAmount);
+        console.log("Total Holiday Pay", totalHolidayPay);
 
         // Calculate basic pay (includes 100% pay for ALL days present, including holidays)
-        const basicPay = finalDaysPresent * dailyRate;
+        const totalRegularHoursForPayslip = parseFloat(calculateRegularHours(dailyRate, totalRegularHours));
+        const totalHolidayHoursForPayslip = parseFloat(totalHolidayHours.toFixed(2));
+        const specialHolidayHoursForPayslip = parseFloat(specialHolidayHours.toFixed(2));
+        const regularHolidayHoursForPayslip = parseFloat(regularHolidayHours.toFixed(2));
+
+        const basicPay = totalRegularHoursForPayslip;
 
         // Calculate allowance (skip for rank-and-file)
         const salaryPackage = Number(employee.salaryPackage) || Number(employee.salary_package) || 0;
@@ -1986,14 +2009,16 @@ export const generatePayroll = async (req, res) => {
           console.log(`⏰ Approved overtime for ${employee.name}: ${totalRegularOvertime} hours`);
         }
 
-        const regularOvertimePay = totalRegularOvertime;
+        // FIXED: Calculate OT hourly rate here
+        const otHourlyRate = (dailyRate / 8) * 1.25; // 125% of regular hourly rate
+        const regularOvertimePay = totalRegularOvertime * otHourlyRate;
         const specialHolidayOTPay = 0; // No holiday overtime in this version
         const regularHolidayOTPay = 0;
         const totalOvertimePay = regularOvertimePay + specialHolidayOTPay + regularHolidayOTPay;
 
         console.log(`⏰ Overtime Pay Calculation for ${employee.name}:`, {
           totalRegularOvertime: totalRegularOvertime.toFixed(2),
-          otHourlyRate: rates.otHourlyRate.toFixed(2),
+          otHourlyRate: otHourlyRate.toFixed(2),
           regularOvertimePay: regularOvertimePay.toFixed(2),
           totalOvertimePay: totalOvertimePay.toFixed(2),
         });
@@ -2010,15 +2035,16 @@ export const generatePayroll = async (req, res) => {
           grossPay: safeGrossPay.toFixed(2),
         });
 
-        // Calculate tardiness FIRST (before government contributions)
-        const tardinessDeduction = finalTotalLateMinutes * rates.tardinessRate;
+        // FIXED: Calculate tardiness rate here
+        const tardinessRate = (dailyRate / 8) / 60; // Per minute rate
+        const tardinessDeduction = finalTotalLateMinutes * tardinessRate;
 
         // Calculate ADJUSTED gross pay for SSS basis
         const adjustedGrossPayForSSS = Math.max(0, safeGrossPay - tardinessDeduction);
 
         console.log(`⏱️ Tardiness Calculation for ${employee.name}:`, {
           totalLateMinutes: finalTotalLateMinutes,
-          tardinessRate: rates.tardinessRate.toFixed(4),
+          tardinessRate: tardinessRate.toFixed(4),
           tardinessDeduction: tardinessDeduction.toFixed(2),
           grossPayBeforeTardiness: safeGrossPay.toFixed(2),
           adjustedGrossPayForSSS: adjustedGrossPayForSSS.toFixed(2),
@@ -2074,13 +2100,12 @@ export const generatePayroll = async (req, res) => {
         // Calculate deductions using the pre-calculated tardiness
         const deductions = {
           sss: parseFloat(sssContribution.employeeContribution.toFixed(2)),
-          phic: parseFloat(philhealthContribution.employeeContribution.toFixed(2)/2),
+          phic: parseFloat((philhealthContribution.employeeContribution / 2).toFixed(2)),
           hdmf: parseFloat(pagibigContribution.employeeContribution.toFixed(2)),
           loan: Number(employeePayrollInfo.loan) || 0,
           otherDeductions: !isOnCall ? Number(employeePayrollInfo.otherDeductions) || 0 : 0,
           taxDeduction: !isOnCall ? Number(employeePayrollInfo.tax_deduction) || 0 : 0,
           tardiness: parseFloat(tardinessDeduction.toFixed(2)),
-          // ADD THESE THREE NEW DEDUCTIONS
           underTime: Number(employeePayrollInfo.underTime) || 0,
           cashAdvance: Number(employeePayrollInfo.cashAdvance) || 0,
         };
@@ -2111,7 +2136,6 @@ export const generatePayroll = async (req, res) => {
         const totalDeductions = Object.values(deductions).reduce((sum, val) => sum + val, 0);
         const netPay = safeGrossPay - totalDeductions + safeAdjustment;
 
-
         console.log(`💰 Final Calculation for ${employee.name}:`, {
           grossPay: safeGrossPay.toFixed(2),
           adjustment: safeAdjustment.toFixed(2),
@@ -2122,11 +2146,6 @@ export const generatePayroll = async (req, res) => {
           netPay: netPay.toFixed(2),
         });
 
-        // Calculate total hours
-        const totalRegularHoursForPayslip = parseFloat((regularDaysWorked * shiftHours).toFixed(2));
-        const totalHolidayHoursForPayslip = parseFloat(totalHolidayHours.toFixed(2));
-        const specialHolidayHoursForPayslip = parseFloat(specialHolidayHours.toFixed(2));
-        const regularHolidayHoursForPayslip = parseFloat(regularHolidayHours.toFixed(2));
         const totalHours = parseFloat(
           (finalDaysPresent * shiftHours + totalRegularOvertime + totalHolidayOvertime).toFixed(2)
         );
@@ -2168,7 +2187,7 @@ export const generatePayroll = async (req, res) => {
 
           // Holiday pay fields
           holidayPay: parseFloat(totalHolidayPay.toFixed(2)),
-          specialHolidayPay: parseFloat(specialHolidayPay.toFixed(2)),
+          specialHolidayPay: parseFloat(specialHolidayPayAmount.toFixed(2)),
           regularHolidayPay: parseFloat(regularHolidayPay.toFixed(2)),
           specialHolidayOTPay: parseFloat(specialHolidayOTPay.toFixed(2)),
           regularHolidayOTPay: parseFloat(regularHolidayOTPay.toFixed(2)),
@@ -2233,6 +2252,7 @@ export const generatePayroll = async (req, res) => {
           grossPay: payslipData.gross_pay,
           totalDeductions: payslipData.totalDeductions,
           netPay: payslipData.netPay,
+          dailyRate: payslipData.dailyrate
         });
 
         const newPayslip = await Payslip.create(payslipData);
@@ -2246,7 +2266,6 @@ export const generatePayroll = async (req, res) => {
               cashAdvance: 0,
               sss_loan: 0,
               pagibig_loan: 0
-
             },
             {
               where: { ecode: employee.ecode }
@@ -2255,7 +2274,6 @@ export const generatePayroll = async (req, res) => {
           console.log(`✅ Reset adjustment, underTime, and cashAdvance for ${employee.name}`);
         } catch (resetError) {
           console.error(`⚠️ Failed to reset fields for ${employee.name}:`, resetError.message);
-          // Don't fail the entire process if reset fails
         }
 
       } catch (employeeError) {
