@@ -2,7 +2,6 @@ import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import Payslip from "../models/Payslip.js";
 import Employee from "../models/Employee.js";
-import PayslipHistory from "../models/PayslipHistory.js";
 import { Op } from "sequelize"; // Ensure you have Sequelize operators
 import Attendance from "../models/Attendance.js";
 import { PayrollInformation } from "../models/Employee.js";
@@ -26,6 +25,7 @@ import { execSync } from "child_process";
 import { calculateSSSWithCutoff, isSecondCutoffPeriod } from "../utils/sssCalculator.js";
 import { calculatePagIBIGContribution, calculatePagIBIGSemiMonthly } from "../utils/pagibigCalculator.js";
 import { calculatePhilHealthContribution, calculatePhilHealthSemiMonthly } from "../utils/philhealthCalculator.js";
+import PayslipHistory from "../models/PayslipHistory.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1805,13 +1805,7 @@ const calculateRegularHours = (dailyRate, totalRegularHours) => {
   return (dailyRate / 8) * totalRegularHours;
 };
 
-  //
-const checkSSSHistory = async (ecode) => {
-  const response = await PayslipHistory.findOne({where: {ecode:ecode}});
 
-  const employeeSSSHistory = response.sss;
-  return employeeSSSHistory;
-}
 
 
 
@@ -2085,10 +2079,53 @@ export const generatePayroll = async (req, res) => {
           totalContribution: 0 
         };
 
+        // Replace the SSS calculation section (around line 280-290) with this:
         if (!isOnCall) {
-          // MODIFIED: Only compute SSS if cutoffPeriod is 'secondCutoff'
-          if (cutoffPeriod === 'secondCutoff') {
-            sssContribution = calculateSSSWithCutoff(adjustedGrossPayForSSS, new Date(cutoffDate));
+          // MODIFIED: Only compute SSS if cutoffPeriod is 'secondCutoff' or 'secondCutOff'
+          if (cutoffPeriod === 'secondCutoff' || cutoffPeriod === 'secondCutOff') {
+            try {
+              // Find the first cutoff with the same cutoffDate and ecode
+              const firstCutoffPayslip = await PayslipHistory.findOne({
+                where: {
+                  ecode: employee.ecode,
+                  cutoffPeriod: ['firstCutoff', 'firstCutOff'], // Support both variations
+                  cutoffDate: cutoffDate
+                },
+                order: [['cutoff_date', 'DESC']], // Get the most recent first cutoff
+                limit: 1
+              });
+
+              if (firstCutoffPayslip) {
+                const firstCutoffGrossPay = parseFloat(firstCutoffPayslip.gross_pay) || 0;
+                const combinedGrossPay = firstCutoffGrossPay + safeGrossPay;
+                
+                console.log(`📊 SSS Calculation for ${employee.name} (Second Cutoff):`, {
+                  firstCutoffGrossPay: firstCutoffGrossPay.toFixed(2),
+                  currentGrossPay: safeGrossPay.toFixed(2),
+                  combinedGrossPay: combinedGrossPay.toFixed(2),
+                  firstCutoffDate: firstCutoffPayslip.cutoffDate,
+                  currentCutoffDate: cutoffDate
+                });
+
+                // Calculate SSS based on combined gross pay
+                sssContribution = calculateSSSWithCutoff(combinedGrossPay, new Date(cutoffDate));
+                
+                console.log(`💳 SSS Contribution (based on combined pay):`, {
+                  employeeContribution: sssContribution.employeeContribution.toFixed(2),
+                  employerContribution: sssContribution.employerContribution.toFixed(2),
+                  ecContribution: sssContribution.ecContribution.toFixed(2),
+                  totalContribution: sssContribution.totalContribution.toFixed(2)
+                });
+              } else {
+                console.log(`⚠️ No first cutoff found for ${employee.name}, using current gross pay only`);
+                // If no first cutoff found, calculate SSS based on current gross pay only
+                sssContribution = calculateSSSWithCutoff(safeGrossPay, new Date(cutoffDate));
+              }
+            } catch (sssError) {
+              console.error(`❌ Error calculating SSS for ${employee.name}:`, sssError);
+              // Fallback: use current gross pay if there's an error
+              sssContribution = calculateSSSWithCutoff(safeGrossPay, new Date(cutoffDate));
+            }
           } else {
             // For first cutoff or any other period, SSS remains zero (already initialized)
             console.log(`ℹ️ SSS set to 0 for ${employee.name} - cutoffPeriod is ${cutoffPeriod}`);
@@ -2253,6 +2290,7 @@ export const generatePayroll = async (req, res) => {
           adjustment: parseFloat(safeAdjustment.toFixed(2)),
           gross_pay: parseFloat(safeGrossPay.toFixed(2)),
           netPay: parseFloat(netPay.toFixed(2)),
+          cutoffPeriod: cutoffPeriod,
 
           // System fields
           requestedBy,

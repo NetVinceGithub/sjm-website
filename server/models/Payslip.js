@@ -267,6 +267,10 @@ const Payslip = db.define(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
+    cutoffPeriod: {
+      type: DataTypes.STRING,
+      defaultValue: "N/A",
+    },
 
     // System fields
     requestedBy: {

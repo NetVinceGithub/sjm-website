@@ -144,10 +144,12 @@ const PayslipHistory = db.define(
     specialHolidayOTPay: {
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0.00,
+      field: 'special_holiday_ot_pay' // Explicitly map to correct column name
     },
     regularHolidayOTPay: {
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0.00,
+      field: 'regular_holiday_ot_pay' // Explicitly map to correct column name
     },
 
     // Night shift
@@ -178,6 +180,7 @@ const PayslipHistory = db.define(
     sssEC: {
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0.00,
+      field: 'sss_ec'
     },
     sssTotalContribution: {
       type: DataTypes.DECIMAL(10, 2),
@@ -266,6 +269,10 @@ const PayslipHistory = db.define(
     isRankAndFile: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
+    },
+    cutoffPeriod: {
+      type: DataTypes.STRING,
+      defaultValue: "N/A",
     },
 
     // System fields
