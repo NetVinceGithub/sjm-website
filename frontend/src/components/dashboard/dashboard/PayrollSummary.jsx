@@ -542,10 +542,15 @@ const PayrollSummary = () => {
 
       console.log("⏰ Overtime approvals:", overtimeApprovals);
 
+      // Determine cutoff period based on the selected date
+      const cutoffPeriod = determineCutoffPeriod(cutoffDate);
+      console.log("📅 Cutoff Period:", cutoffPeriod);
+
       // Create the request payload - send all data without validation
       const payrollRequest = {
         cutoffDate: cutoffDate.trim(),
-        payrollType: payrollType, // ← add this line
+        cutoffPeriod: cutoffPeriod, // ← "firstCutOff" or "secondCutOff"
+        payrollType: payrollType,
         requestedBy: user?.email || "Unknown User",
         requestedByName: user?.name || "Unknown User",
         selectedEmployees: selectedEmployees,
@@ -574,6 +579,7 @@ const PayrollSummary = () => {
 
       console.log("📤 Final payroll request payload:");
       console.log("Payroll Type:", payrollRequest.payrollType);
+      console.log("Cutoff Period:", payrollRequest.cutoffPeriod);
       console.log("- Cutoff Date:", payrollRequest.cutoffDate);
       console.log(
         "- Selected Employees:",
@@ -778,6 +784,33 @@ const PayrollSummary = () => {
 
     return issues;
   };
+
+  // Helper function to determine cutoff period
+  const determineCutoffPeriod = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      const dayOfMonth = date.getDate();
+      
+      // First or second week (days 1-15)
+      if (dayOfMonth <= 15) {
+        return "firstCutOff";
+      }
+      // Third or fourth week (days 16-31)
+      else {
+        return "secondCutOff";
+      }
+    } catch (error) {
+      console.error("Error parsing cutoff date:", error);
+      return "firstCutOff"; // Default fallback
+    }
+  };
+
+
+
+  
+
+
+
 
   const handleClose = () => {
     setShow(false);

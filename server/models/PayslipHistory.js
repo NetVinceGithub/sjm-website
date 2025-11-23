@@ -1,7 +1,8 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../db/db.js"; // Ensure this points to your MySQL connection
+import db from "../db/db.js"; // Ensure this points to your MySQL connection
+import Employee from "./Employee.js";
 
-const PayslipHistory = sequelize.define(
+const PayslipHistory = db.define(
   "PayslipHistory",
   {
     id: {
@@ -9,56 +10,308 @@ const PayslipHistory = sequelize.define(
       autoIncrement: true,
       primaryKey: true,
     },
-    ecode: DataTypes.STRING,
-    email: DataTypes.STRING,
+    ecode: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     employeeId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       field: "employee_id",
     },
-    name: DataTypes.STRING,
-    project: DataTypes.STRING,
-    department: DataTypes.STRING,
-    position: DataTypes.STRING,
-    cutoffDate: DataTypes.STRING,
-    dailyrate: DataTypes.DECIMAL(10, 2),
-    basicPay: DataTypes.DECIMAL(10, 2),
-    noOfDays: DataTypes.DECIMAL(10, 2),
-    overtimePay: DataTypes.DECIMAL(10, 2),
-    totalOvertime: DataTypes.DECIMAL(10, 2),
-    holidayPay: DataTypes.DECIMAL(10, 2),
-    nightDifferential: DataTypes.DECIMAL(10, 2),
-    allowance: DataTypes.DECIMAL(10, 2),
-    sss: DataTypes.DECIMAL(10, 2),
-    sssEmployerShare: DataTypes.DECIMAL(10, 2),
-    sssEC: DataTypes.DECIMAL(10, 2),
-    sssTotalContribution: DataTypes.DECIMAL(10, 2),
-    phic: DataTypes.DECIMAL(10, 2),
-    hdmf: DataTypes.DECIMAL(10, 2),
-    loan: DataTypes.DECIMAL(10, 2),
-    totalTardiness: DataTypes.DECIMAL(10, 2),
-    totalHours: DataTypes.DECIMAL(10, 2),
-    otherDeductions: DataTypes.DECIMAL(10, 2),
-    totalEarnings: DataTypes.DECIMAL(10, 2),
-    totalDeductions: DataTypes.DECIMAL(10, 2),
-    adjustment: DataTypes.DECIMAL(10, 2),
-    gross_pay: DataTypes.DECIMAL(10, 2),
-    netPay: DataTypes.DECIMAL(10, 2),
-    billingSummary: DataTypes.INTEGER,
-    controlNumber: DataTypes.STRING,
-    date: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    project: {
+      type: DataTypes.STRING,
+      defaultValue: "N/A",
+    },
+    department: {
+      type: DataTypes.STRING,
+      defaultValue: "N/A",
+    },
+    position: {
+      type: DataTypes.STRING,
+      defaultValue: "N/A",
+    },
+    schedule: {
+      type: DataTypes.STRING,
+      defaultValue: "N/A",
+    },
+    cutoffDate: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    payrollType: {
+      type: DataTypes.STRING,
+      allowNull: false,
     },
     batchId: {
       type: DataTypes.STRING,
       allowNull: false,
     },
+
+    // Rates & base pay
+    dailyrate: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    basicPay: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    noOfDays: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+
+    // Holiday fields
+    holidayDays: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    regularDays: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    specialHolidayDays: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    regularHolidayDays: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    specialNonWorkingHolidayDays: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+
+    // Overtime fields
+    overtimePay: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    totalOvertime: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    regularOvertime: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    holidayOvertime: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+
+    // Hours
+    totalRegularHours: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    totalHolidayHours: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    specialHolidayHours: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    regularHolidayHours: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+
+    // Holiday pay
+    holidayPay: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    specialHolidayPay: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    regularHolidayPay: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    specialHolidayOTPay: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    regularHolidayOTPay: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+
+    // Night shift
+    nightDifferential: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    nightShiftHours: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+
+    // Allowances
+    allowance: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+
+    // Government contributions
+    sss: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    sssEmployerShare: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    sssEC: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    sssTotalContribution: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    phic: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    hdmf: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+
+    // Loans
+    loan: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    sssLoan: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    pagibigLoan: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+
+    // Deductions
+    totalTardiness: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    totalHours: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    otherDeductions: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    taxDeduction: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    underTime: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    cashAdvance: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+
+    // Totals
+    totalEarnings: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    totalDeductions: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    adjustment: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    gross_pay: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+    netPay: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+    },
+
+    // Extra fields for employee information
+    shiftHours: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 4.50,
+    },
+    employmentRank: {
+      type: DataTypes.STRING,
+      defaultValue: "N/A",
+    },
+    isRankAndFile: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
+
+    // System fields
+    requestedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+    },
+    requestedByName: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+    },
+    date: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    status: {
+      type: DataTypes.ENUM("approved", "pending", "released", "draft"),
+      defaultValue: "pending",
+    },
   },
   {
-    tableName: "paysliphistories", // Explicitly define table name
-    timestamps: false, // Disable timestamps if not needed
+    tableName: "payslip_histories",
+    underscored: true,
+    timestamps: false,
+    // Add indexes for better performance
+    indexes: [
+      {
+        fields: ['ecode']
+      },
+      {
+        fields: ['batch_id']
+      },
+      {
+        fields: ['cutoff_date']
+      },
+      {
+        fields: ['status']
+      }
+    ]
   }
 );
+
+// Define associations if needed
+PayslipHistory.belongsTo(Employee, {
+  foreignKey: 'employeeId',
+  as: 'employee'
+});
 
 export default PayslipHistory;

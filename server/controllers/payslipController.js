@@ -1805,9 +1805,20 @@ const calculateRegularHours = (dailyRate, totalRegularHours) => {
   return (dailyRate / 8) * totalRegularHours;
 };
 
+  //
+const checkSSSHistory = async (ecode) => {
+  const response = await PayslipHistory.findOne({where: {ecode:ecode}});
+
+  const employeeSSSHistory = response.sss;
+  return employeeSSSHistory;
+}
+
+
+
 export const generatePayroll = async (req, res) => {
   const {
     cutoffDate,
+    cutoffPeriod,
     payrollType,
     selectedEmployees = [],
     selectedSchedules = [],
@@ -1820,6 +1831,7 @@ export const generatePayroll = async (req, res) => {
 
   console.log("Incoming request to generate payroll", {
     cutoffDate,
+    cutoffPeriod,
     payrollType,
     selectedEmployees,
     selectedSchedules,
@@ -2074,8 +2086,14 @@ export const generatePayroll = async (req, res) => {
         };
 
         if (!isOnCall) {
-          // Use adjustedGrossPayForSSS instead of safeGrossPay
-          sssContribution = calculateSSSWithCutoff(adjustedGrossPayForSSS, new Date(cutoffDate));
+          // MODIFIED: Only compute SSS if cutoffPeriod is 'secondCutoff'
+          if (cutoffPeriod === 'secondCutoff') {
+            sssContribution = calculateSSSWithCutoff(adjustedGrossPayForSSS, new Date(cutoffDate));
+          } else {
+            // For first cutoff or any other period, SSS remains zero (already initialized)
+            console.log(`ℹ️ SSS set to 0 for ${employee.name} - cutoffPeriod is ${cutoffPeriod}`);
+          }
+          
           pagibigContribution = calculatePagIBIGSemiMonthly(projectedMonthlyBasicSalary, isFirstCutoff);
           philhealthContribution = calculatePhilHealthSemiMonthly(
             projectedMonthlyBasicSalary,
@@ -2086,6 +2104,7 @@ export const generatePayroll = async (req, res) => {
 
         console.log(`💳 Government Contributions for ${employee.name}:`, {
           isOnCall,
+          cutoffPeriod,
           isFirstCutoff,
           isSecondCutoff,
           projectedMonthlyBasicSalary: projectedMonthlyBasicSalary.toFixed(2),
