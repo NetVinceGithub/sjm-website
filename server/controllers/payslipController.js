@@ -1805,6 +1805,18 @@ const calculateRegularHours = (dailyRate, totalRegularHours) => {
   return (dailyRate / 8) * totalRegularHours;
 };
 
+const calculateNightDifferentialPay = (dailyRate, nightHours) => {
+  if (!dailyRate || !nightHours) return 0;
+  return (dailyRate / 8) * 0.10 * nightHours;
+};
+
+
+const calculateNightDifferentialOTPay = (dailyRate, nightOTHours) => {
+  if (!dailyRate || !nightOTHours) return 0;
+  return (dailyRate / 8) * 1.25 * 1.10 * nightOTHours;
+};
+
+
 export const generatePayroll = async (req, res) => {
   const {
     cutoffDate,
@@ -1934,6 +1946,14 @@ export const generatePayroll = async (req, res) => {
           totalLateMinutes: finalTotalLateMinutes,
         });
 
+        const nightDiffHours = parseFloat(attendanceSummary.totalNightDifferentialHours) || 0;
+        const nightDiffOTHours = parseFloat(attendanceSummary.totalNightDifferentialOTHours) || 0;
+
+        console.log(`🌙 Night Hours for ${employee.name}:`, {
+          nightDiffHours: nightDiffHours.toFixed(2),
+          nightDiffOTHours: nightDiffOTHours.toFixed(2),
+        });
+
         // Calculate days worked from hours
         const regularDaysWorked = totalRegularHours / shiftHours;
         const regularHolidayDays = regularHolidayHours / shiftHours;
@@ -2025,8 +2045,19 @@ export const generatePayroll = async (req, res) => {
           totalOvertimePay: totalOvertimePay.toFixed(2),
         });
 
+        // Night Differential Pay
+        const nightDifferentialPay = calculateNightDifferentialPay(dailyRate, nightDiffHours);
+
+        const nightDifferentialOTPay = calculateNightDifferentialOTPay(dailyRate, nightDiffOTHours);
+
+        console.log(`🌙 Night Differential Pay for ${employee.name}:`, {
+          nightDifferentialPay: nightDifferentialPay.toFixed(2),
+          nightDifferentialOTPay: nightDifferentialOTPay.toFixed(2),
+        });
+
         // Calculate gross pay
-        const grossPay = basicPay + totalHolidayPay + allowance + totalOvertimePay;
+        const grossPay = basicPay + totalHolidayPay + allowance + totalOvertimePay + nightDifferentialPay + nightDifferentialOTPay;
+
         const safeGrossPay = isNaN(grossPay) ? basicPay : grossPay;
 
         console.log(`💰 Gross Pay Calculation for ${employee.name}:`, {
@@ -2243,8 +2274,10 @@ export const generatePayroll = async (req, res) => {
           regularHolidayOTPay: parseFloat(regularHolidayOTPay.toFixed(2)),
 
           // Night shift
-          nightDifferential: 0,
-          nightShiftHours: 0,
+          nightDifferential: parseFloat(nightDifferentialPay.toFixed(2)),
+          nightDifferentialOT: parseFloat(nightDifferentialOTPay.toFixed(2)), 
+          nightShiftHours: parseFloat(nightDiffHours.toFixed(2)),
+          nightShiftOTHours: parseFloat(nightDiffOTHours.toFixed(2)),
 
           // Allowances
           allowance: parseFloat(allowance.toFixed(2)),

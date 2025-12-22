@@ -160,6 +160,18 @@ const Payslip = db.define(
       defaultValue: 0.00,
     },
 
+    nightDifferentialOT: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+      field: 'night_differential_ot',   
+    },
+
+    nightShiftOTHours: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+      field: 'night_shift_ot_hours',    
+    },
+
     // Allowances
     allowance: {
       type: DataTypes.DECIMAL(10, 2),

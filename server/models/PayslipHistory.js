@@ -157,9 +157,23 @@ const PayslipHistory = db.define(
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0.00,
     },
+
     nightShiftHours: {
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0.00,
+    },
+
+    // ✅ FIXED
+    nightDifferentialOT: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+      field: 'night_differential_ot',
+    },
+
+    nightShiftOTHours: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.00,
+      field: 'night_shift_ot_hours',
     },
 
     // Allowances
