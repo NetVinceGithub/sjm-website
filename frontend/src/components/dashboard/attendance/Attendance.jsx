@@ -50,9 +50,9 @@ const Attendance = () => {
     },
     {
       id: 3,
-      value: "21-6",
+      value: "22-6",
       label: "Night Shift (9PM-6AM)",
-      start: 21,
+      start: 22,
       end: 6,
       expectedHours: 8,
       isDefault: true,
@@ -184,8 +184,10 @@ const Attendance = () => {
         regularHours: 0,
         overtimeMinutes: 0,
         overtimeHours: 0,
-        nightDifferentialMinutes: 0,
-        nightDifferentialHours: 0,
+        nightDifferentialRegularMinutes: 0,
+        nightDifferentialRegularHours: 0,
+        nightDifferentialOTMinutes: 0,
+        nightDifferentialOTHours: 0,
         holidayMinutes: 0,
         holidayHours: 0,
         holidayOvertimeMinutes: 0,
@@ -200,11 +202,12 @@ const Attendance = () => {
       };
     }
 
-    const [onHours, onMinutes] = onDutyTime.split(":").map(Number);
-    const [offHours, offMinutes] = offDutyTime.split(":").map(Number);
+    /* ---------------- time parsing ---------------- */
+    const [onH, onM] = onDutyTime.split(":").map(Number);
+    const [offH, offM] = offDutyTime.split(":").map(Number);
 
-    const onDutyMinutes = onHours * 60 + onMinutes;
-    let offDutyMinutes = offHours * 60 + offMinutes;
+    let onDutyMinutes = onH * 60 + onM;
+    let offDutyMinutes = offH * 60 + offM;
 
     if (offDutyMinutes < onDutyMinutes) {
       offDutyMinutes += 24 * 60;
@@ -212,115 +215,189 @@ const Attendance = () => {
 
     let totalMinutes = offDutyMinutes - onDutyMinutes;
 
-    const BREAK_TIME_MINUTES = 60;
-    const BREAK_THRESHOLD_MINUTES = 360;
-
-    if (totalMinutes > BREAK_THRESHOLD_MINUTES) {
-      totalMinutes = totalMinutes - BREAK_TIME_MINUTES;
+    /* ---------------- break deduction ---------------- */
+    const BREAK_MINUTES = 60;
+    if (totalMinutes > 360) {
+      totalMinutes -= BREAK_MINUTES;
     }
 
+    totalMinutes = Math.max(0, totalMinutes);
+
+    /* ---------------- regular vs OT ---------------- */
+    const REGULAR_LIMIT = 8 * 60;
+    let regularMinutes = 0;
+    let overtimeMinutes = 0;
+
+    if (totalMinutes <= REGULAR_LIMIT) {
+      regularMinutes = totalMinutes;
+    } else {
+      regularMinutes = REGULAR_LIMIT;
+      overtimeMinutes = totalMinutes - REGULAR_LIMIT;
+    }
+
+    /* ---------------- night differential ---------------- */
     const nightDifferentialMinutes = calculateNightDifferentialMinutes(
       onDutyTime,
       offDutyTime
     );
-    const expectedHours = getExpectedHoursForShift(detectedShift, scheduleList);
-    const undertimeMinutes = calculateUndertimeMinutes(
-      onDutyTime,
-      offDutyTime,
+
+    
+    // ---------------- night diff split (CORRECT) ----------------
+    let nightDifferentialRegularMinutes = 0;
+    let nightDifferentialOTMinutes = 0;
+
+    // Night window
+    const nightStart = 22 * 60;
+    const nightEnd = 30 * 60; // 6AM next day
+
+    // Actual OT start on the clock (after break)
+    let otStartMinute = onDutyMinutes + regularMinutes;
+
+    // If break was applied, OT starts 1 hour later
+    if (offDutyMinutes - onDutyMinutes > 360) {
+      otStartMinute += 60;
+    }
+
+    // Night diff REGULAR = night overlap BEFORE OT starts
+    nightDifferentialRegularMinutes = Math.max(
+      0,
+      Math.min(otStartMinute, nightEnd) -
+        Math.max(onDutyMinutes, nightStart)
+    );
+
+    // Night diff OT = remaining night diff
+    nightDifferentialOTMinutes =
+      nightDifferentialMinutes - nightDifferentialRegularMinutes;
+
+    // Safety clamp
+    nightDifferentialRegularMinutes = Math.max(
+      0,
+      nightDifferentialRegularMinutes
+    );
+    nightDifferentialOTMinutes = Math.max(
+      0,
+      nightDifferentialOTMinutes
+    );
+
+    console.log("🌓 Night Differential Debug", {
+  onDutyTime,
+  offDutyTime,
+  onDutyMinutes,
+  offDutyMinutes,
+  totalMinutes,
+  regularMinutes,
+  overtimeMinutes,
+  nightDifferentialMinutes,
+  otStartMinute,
+  nightDifferentialRegularMinutes,
+  nightDifferentialOTMinutes,
+});
+
+
+    /* ---------------- undertime ---------------- */
+    const expectedHours = getExpectedHoursForShift(
       detectedShift,
       scheduleList
     );
+    const expectedMinutes = expectedHours * 60;
+    const undertimeMinutes = Math.max(
+      0,
+      expectedMinutes - totalMinutes
+    );
 
-    let baseMinutes = Math.max(0, totalMinutes);
-    const REGULAR_HOURS_LIMIT_MINUTES = 8 * 60;
+    /* ---------------- holiday / rest day ---------------- */
+    let holidayMinutes = 0;
+    let holidayOvertimeMinutes = 0;
+    let restDayMinutes = 0;
+    let restDayOvertimeMinutes = 0;
 
-    let breakdown = {
-      totalMinutes: Math.max(0, totalMinutes),
+    if (isHoliday) {
+      if (totalMinutes <= REGULAR_LIMIT) {
+        holidayMinutes = totalMinutes;
+      } else {
+        holidayMinutes = REGULAR_LIMIT;
+        holidayOvertimeMinutes = totalMinutes - REGULAR_LIMIT;
+      }
+    } else if (isRestDay) {
+      if (totalMinutes <= REGULAR_LIMIT) {
+        restDayMinutes = totalMinutes;
+      } else {
+        restDayMinutes = REGULAR_LIMIT;
+        restDayOvertimeMinutes = totalMinutes - REGULAR_LIMIT;
+      }
+    }
+
+    /* ---------------- final breakdown ---------------- */
+    return {
+      totalMinutes,
       totalHours: hoursMinutesToDecimal(
         Math.floor(totalMinutes / 60),
         totalMinutes % 60
       ),
-      regularMinutes: 0,
-      regularHours: 0,
-      overtimeMinutes: 0,
-      overtimeHours: 0,
-      nightDifferentialMinutes: nightDifferentialMinutes,
-      nightDifferentialHours: hoursMinutesToDecimal(
-        Math.floor(nightDifferentialMinutes / 60),
-        nightDifferentialMinutes % 60
+
+      regularMinutes,
+      regularHours: hoursMinutesToDecimal(
+        Math.floor(regularMinutes / 60),
+        regularMinutes % 60
       ),
-      holidayMinutes: 0,
-      holidayHours: 0,
-      holidayOvertimeMinutes: 0,
-      holidayOvertimeHours: 0,
-      restDayMinutes: 0,
-      restDayHours: 0,
-      restDayOvertimeMinutes: 0,
-      restDayOvertimeHours: 0,
-      undertimeMinutes: undertimeMinutes,
+
+      overtimeMinutes,
+      overtimeHours: hoursMinutesToDecimal(
+        Math.floor(overtimeMinutes / 60),
+        overtimeMinutes % 60
+      ),
+
+      nightDifferentialRegularMinutes,
+      nightDifferentialRegularHours: hoursMinutesToDecimal(
+        Math.floor(nightDifferentialRegularMinutes / 60),
+        nightDifferentialRegularMinutes % 60
+      ),
+
+      nightDifferentialOTMinutes,
+      nightDifferentialOTHours: hoursMinutesToDecimal(
+        Math.floor(nightDifferentialOTMinutes / 60),
+        nightDifferentialOTMinutes % 60
+      ),
+
+      holidayMinutes,
+      holidayHours: hoursMinutesToDecimal(
+        Math.floor(holidayMinutes / 60),
+        holidayMinutes % 60
+      ),
+
+      holidayOvertimeMinutes,
+      holidayOvertimeHours: hoursMinutesToDecimal(
+        Math.floor(holidayOvertimeMinutes / 60),
+        holidayOvertimeMinutes % 60
+      ),
+
+      restDayMinutes,
+      restDayHours: hoursMinutesToDecimal(
+        Math.floor(restDayMinutes / 60),
+        restDayMinutes % 60
+      ),
+
+      restDayOvertimeMinutes,
+      restDayOvertimeHours: hoursMinutesToDecimal(
+        Math.floor(restDayOvertimeMinutes / 60),
+        restDayOvertimeMinutes % 60
+      ),
+
+      undertimeMinutes,
       undertimeHours: hoursMinutesToDecimal(
         Math.floor(undertimeMinutes / 60),
         undertimeMinutes % 60
       ),
-      expectedHours: expectedHours,
+
+      expectedHours,
     };
 
-    if (totalMinutes > 0) {
-      if (isHoliday) {
-        if (baseMinutes <= REGULAR_HOURS_LIMIT_MINUTES) {
-          breakdown.holidayMinutes = baseMinutes;
-          breakdown.holidayHours = hoursMinutesToDecimal(
-            Math.floor(baseMinutes / 60),
-            baseMinutes % 60
-          );
-        } else {
-          breakdown.holidayMinutes = REGULAR_HOURS_LIMIT_MINUTES;
-          breakdown.holidayHours = 8;
-          breakdown.holidayOvertimeMinutes =
-            baseMinutes - REGULAR_HOURS_LIMIT_MINUTES;
-          breakdown.holidayOvertimeHours = hoursMinutesToDecimal(
-            Math.floor((baseMinutes - REGULAR_HOURS_LIMIT_MINUTES) / 60),
-            (baseMinutes - REGULAR_HOURS_LIMIT_MINUTES) % 60
-          );
-        }
-      } else if (isRestDay) {
-        if (baseMinutes <= REGULAR_HOURS_LIMIT_MINUTES) {
-          breakdown.restDayMinutes = baseMinutes;
-          breakdown.restDayHours = hoursMinutesToDecimal(
-            Math.floor(baseMinutes / 60),
-            baseMinutes % 60
-          );
-        } else {
-          breakdown.restDayMinutes = REGULAR_HOURS_LIMIT_MINUTES;
-          breakdown.restDayHours = 8;
-          breakdown.restDayOvertimeMinutes =
-            baseMinutes - REGULAR_HOURS_LIMIT_MINUTES;
-          breakdown.restDayOvertimeHours = hoursMinutesToDecimal(
-            Math.floor((baseMinutes - REGULAR_HOURS_LIMIT_MINUTES) / 60),
-            (baseMinutes - REGULAR_HOURS_LIMIT_MINUTES) % 60
-          );
-        }
-      } else {
-        if (baseMinutes <= REGULAR_HOURS_LIMIT_MINUTES) {
-          breakdown.regularMinutes = baseMinutes;
-          breakdown.regularHours = hoursMinutesToDecimal(
-            Math.floor(baseMinutes / 60),
-            baseMinutes % 60
-          );
-        } else {
-          breakdown.regularMinutes = REGULAR_HOURS_LIMIT_MINUTES;
-          breakdown.regularHours = 8;
-          breakdown.overtimeMinutes = baseMinutes - REGULAR_HOURS_LIMIT_MINUTES;
-          breakdown.overtimeHours = hoursMinutesToDecimal(
-            Math.floor((baseMinutes - REGULAR_HOURS_LIMIT_MINUTES) / 60),
-            (baseMinutes - REGULAR_HOURS_LIMIT_MINUTES) % 60
-          );
-        }
-      }
-    }
-
-    return breakdown;
+    
   };
+
+
+
+
 
   const calculateNightDifferentialMinutes = (onDutyTime, offDutyTime) => {
     if (!onDutyTime || !offDutyTime) return 0;
@@ -335,30 +412,32 @@ const Attendance = () => {
       offDutyMinutes += 24 * 60;
     }
 
-    const nightStartMinutes = 22 * 60;
-    const nightEndMinutes = 6 * 60;
-    const nextDayNightEndMinutes = nightEndMinutes + 24 * 60;
+    const nightStartMinutes = 22 * 60; // 10:00 PM
+    const nightEndMinutes = 6 * 60;    // 6:00 AM
+    const midnightMinutes = 24 * 60;
 
     let nightMinutes = 0;
 
-    if (offDutyMinutes <= 24 * 60) {
-      if (onDutyMinutes >= nightStartMinutes) {
-        nightMinutes = Math.min(offDutyMinutes, 24 * 60) - onDutyMinutes;
-      } else if (offDutyMinutes > nightStartMinutes) {
-        nightMinutes = Math.min(offDutyMinutes, 24 * 60) - nightStartMinutes;
-      }
-    } else {
-      if (onDutyMinutes >= nightStartMinutes) {
-        nightMinutes += 24 * 60 - onDutyMinutes;
-      } else {
-        nightMinutes += 24 * 60 - nightStartMinutes;
-      }
+    // Night period 1: 10 PM to midnight
+    const nightPeriod1Start = nightStartMinutes;
+    const nightPeriod1End = midnightMinutes;
+    
+    // Night period 2: midnight to 6 AM
+    const nightPeriod2Start = midnightMinutes;
+    const nightPeriod2End = midnightMinutes + nightEndMinutes;
 
-      if (offDutyMinutes <= nextDayNightEndMinutes) {
-        nightMinutes += offDutyMinutes - 24 * 60;
-      } else {
-        nightMinutes += nightEndMinutes;
-      }
+    // Check overlap with period 1
+    if (onDutyMinutes < nightPeriod1End && offDutyMinutes > nightPeriod1Start) {
+      const overlapStart = Math.max(onDutyMinutes, nightPeriod1Start);
+      const overlapEnd = Math.min(offDutyMinutes, nightPeriod1End);
+      nightMinutes += Math.max(0, overlapEnd - overlapStart);
+    }
+
+    // Check overlap with period 2
+    if (offDutyMinutes > nightPeriod2Start) {
+      const overlapStart = Math.max(onDutyMinutes, nightPeriod2Start);
+      const overlapEnd = Math.min(offDutyMinutes, nightPeriod2End);
+      nightMinutes += Math.max(0, overlapEnd - overlapStart);
     }
 
     return Math.max(0, nightMinutes);
@@ -652,14 +731,24 @@ const Attendance = () => {
     {
       name: "Night Diff",
       selector: (row) =>
-        row.hoursBreakdown?.nightDifferentialHours?.toFixed(1) || "0.0",
+        row.hoursBreakdown?.nightDifferentialRegularHours?.toFixed(1) || "0.0",
       width: "85px",
-      cell: (row) => (
+     cell: (row) => (
         <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
-          {row.hoursBreakdown?.nightDifferentialHours?.toFixed(1) || "0.0"}h
+          {row.hoursBreakdown?.nightDifferentialRegularHours?.toFixed(1) || "0.0"}h
         </span>
       ),
     },
+    {
+        name: "Night Diff OT",
+        selector: (row) => row.hoursBreakdown?.nightDifferentialOTHours?.toFixed(1) || "0.0",
+        width: "95px",
+        cell: (row) => (
+          <span className="px-2 py-1 rounded text-xs bg-indigo-100 text-indigo-800">
+            {row.hoursBreakdown?.nightDifferentialOTHours?.toFixed(1) || "0.0"}h
+          </span>
+        ),
+      },
     {
       name: "Holiday Hours",
       selector: (row) => row.hoursBreakdown?.holidayHours?.toFixed(1) || "0.0",
@@ -1150,8 +1239,10 @@ const Attendance = () => {
             record.hoursBreakdown.regularHours || 0;
           summary[ecode].totalOvertimeHours +=
             record.hoursBreakdown.overtimeHours || 0;
-          summary[ecode].totalNightDifferentialHours +=
-            record.hoursBreakdown.nightDifferentialHours || 0;
+         summary[ecode].totalNightDifferentialHours +=
+          (record.hoursBreakdown.nightDifferentialRegularHours || 0) +
+          (record.hoursBreakdown.nightDifferentialOTHours || 0);
+
           summary[ecode].totalHolidayHours +=
             record.hoursBreakdown.holidayHours || 0;
           summary[ecode].totalHolidayOvertimeHours +=

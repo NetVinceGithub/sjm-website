@@ -21,9 +21,9 @@ const defaultScheduleOptions = [
   },
   {
     id: 3,
-    value: "21-6",
+    value: "22-6",
     label: "Night Shift",
-    start: 21,
+    start: 22,
     end: 6,
     isDefault: true,
   },
