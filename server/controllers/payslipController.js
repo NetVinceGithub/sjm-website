@@ -1806,6 +1806,7 @@ const calculateRegularHours = (dailyRate, totalRegularHours) => {
 };
 
 const calculateNightDifferentialPay = (dailyRate, nightHours) => {
+
   if (!dailyRate || !nightHours) return 0;
   return (dailyRate / 8) * 0.10 * nightHours;
 };
@@ -1815,6 +1816,18 @@ const calculateNightDifferentialOTPay = (dailyRate, nightOTHours) => {
   if (!dailyRate || !nightOTHours) return 0;
   return (dailyRate / 8) * 1.25 * 1.10 * nightOTHours;
 };
+
+const normalizeNightHours = ({
+  totalNightHours = 0,
+  nightOTHours = 0,
+  unpaidBreakHours = 1
+}) => {
+  const netNightHours =
+    totalNightHours - nightOTHours - unpaidBreakHours;
+
+  return Math.max(0, netNightHours);
+};
+
 
 
 export const generatePayroll = async (req, res) => {
@@ -2045,14 +2058,22 @@ export const generatePayroll = async (req, res) => {
           totalOvertimePay: totalOvertimePay.toFixed(2),
         });
 
-        // Night Differential Pay
-        const nightDifferentialPay = calculateNightDifferentialPay(dailyRate, nightDiffHours);
+        // Normalize night hours
+        const cleanNightHours = normalizeNightHours({
+          totalNightHours: nightDiffHours,
+          nightOTHours: nightDiffOTHours,
+          unpaidBreakHours: 2
+        });
 
+        // ND regular
+        const nightDifferentialPay = calculateNightDifferentialPay(dailyRate, cleanNightHours);
+
+        // ND OT
         const nightDifferentialOTPay = calculateNightDifferentialOTPay(dailyRate, nightDiffOTHours);
-
         console.log(`🌙 Night Differential Pay for ${employee.name}:`, {
           nightDifferentialPay: nightDifferentialPay.toFixed(2),
           nightDifferentialOTPay: nightDifferentialOTPay.toFixed(2),
+          cleanNightHours: cleanNightHours,
         });
 
         // Calculate gross pay
