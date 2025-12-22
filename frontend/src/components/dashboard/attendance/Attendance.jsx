@@ -202,246 +202,182 @@ const Attendance = () => {
       };
     }
 
-    /* ---------------- time parsing ---------------- */
+    /* ---------------- Parse Time ---------------- */
     const [onH, onM] = onDutyTime.split(":").map(Number);
     const [offH, offM] = offDutyTime.split(":").map(Number);
 
-    let onDutyMinutes = onH * 60 + onM;
-    let offDutyMinutes = offH * 60 + offM;
+    let onMin = onH * 60 + onM;
+    let offMin = offH * 60 + offM;
 
-    if (offDutyMinutes < onDutyMinutes) {
-      offDutyMinutes += 24 * 60;
-    }
+    if (offMin < onMin) offMin += 1440;
 
-    let totalMinutes = offDutyMinutes - onDutyMinutes;
+    let totalMinutes = offMin - onMin;
 
-    /* ---------------- break deduction ---------------- */
-    const BREAK_MINUTES = 60;
-    if (totalMinutes > 360) {
-      totalMinutes -= BREAK_MINUTES;
-    }
+    /* ---------------- Break ---------------- */
+    const BREAK = 60;
+    if (totalMinutes > 360) totalMinutes -= BREAK;
 
     totalMinutes = Math.max(0, totalMinutes);
 
-    /* ---------------- regular vs OT ---------------- */
-    const REGULAR_LIMIT = 8 * 60;
-    let regularMinutes = 0;
-    let overtimeMinutes = 0;
+    /* ---------------- Regular vs OT ---------------- */
+    const REGULAR_LIMIT = 480;
+    const regularMinutes = Math.min(totalMinutes, REGULAR_LIMIT);
+    const rawOvertimeMinutes = Math.max(0, totalMinutes - REGULAR_LIMIT);
+    const otStartMinute = onMin + regularMinutes;
 
-    if (totalMinutes <= REGULAR_LIMIT) {
-      regularMinutes = totalMinutes;
-    } else {
-      regularMinutes = REGULAR_LIMIT;
-      overtimeMinutes = totalMinutes - REGULAR_LIMIT;
-    }
+    /* ---------------- Night Window Normalization ---------------- */
+    const getNightWindow = (minute) => {
+      let start = 22 * 60;
+      let end = 30 * 60;
 
-    /* ---------------- night differential ---------------- */
-    const nightDifferentialMinutes = calculateNightDifferentialMinutes(
-      onDutyTime,
-      offDutyTime
-    );
+      if (minute >= 1440) {
+        start += 1440;
+        end += 1440;
+      }
 
-    
-    // ---------------- night diff split (CORRECT) ----------------
-    let nightDifferentialRegularMinutes = 0;
-    let nightDifferentialOTMinutes = 0;
+      return { start, end };
+    };
 
-    // Night window
-    const nightStart = 22 * 60;
-    const nightEnd = 30 * 60; // 6AM next day
+    const { start: nightStart, end: nightEnd } = getNightWindow(onMin);
 
-    // Actual OT start on the clock (after break)
-    let otStartMinute = onDutyMinutes + regularMinutes;
-
-    // If break was applied, OT starts 1 hour later
-    if (offDutyMinutes - onDutyMinutes > 360) {
-      otStartMinute += 60;
-    }
-
-    // Night diff REGULAR = night overlap BEFORE OT starts
-    nightDifferentialRegularMinutes = Math.max(
+    /* ---------------- Night Differential ---------------- */
+    const nightDifferentialRegularMinutes = Math.max(
       0,
       Math.min(otStartMinute, nightEnd) -
-        Math.max(onDutyMinutes, nightStart)
+        Math.max(onMin, nightStart)
     );
 
-    // Night diff OT = remaining night diff
-    nightDifferentialOTMinutes =
-      nightDifferentialMinutes - nightDifferentialRegularMinutes;
-
-    // Safety clamp
-    nightDifferentialRegularMinutes = Math.max(
+    const nightDifferentialOTMinutes = Math.max(
       0,
-      nightDifferentialRegularMinutes
-    );
-    nightDifferentialOTMinutes = Math.max(
-      0,
-      nightDifferentialOTMinutes
+      Math.min(offMin, nightEnd) -
+        Math.max(otStartMinute, nightStart)
     );
 
-    console.log("🌓 Night Differential Debug", {
-  onDutyTime,
-  offDutyTime,
-  onDutyMinutes,
-  offDutyMinutes,
-  totalMinutes,
-  regularMinutes,
-  overtimeMinutes,
-  nightDifferentialMinutes,
-  otStartMinute,
-  nightDifferentialRegularMinutes,
-  nightDifferentialOTMinutes,
-});
+      let overtimeMinutes = 0;
+      let nightDifferentialOTMinutesFinal = nightDifferentialOTMinutes;
+
+      // ✅ If Night Shift → ALL OT is Night Diff OT
+      if (detectedShift?.includes("Night")) {
+        nightDifferentialOTMinutesFinal = rawOvertimeMinutes;
+        overtimeMinutes = 0;
+      } else {
+        overtimeMinutes = Math.max(
+          0,
+          rawOvertimeMinutes - nightDifferentialOTMinutes
+        );
+      }
 
 
-    /* ---------------- undertime ---------------- */
+    /* ---------------- Expected Hours / Undertime ---------------- */
     const expectedHours = getExpectedHoursForShift(
       detectedShift,
       scheduleList
     );
+
     const expectedMinutes = expectedHours * 60;
+
     const undertimeMinutes = Math.max(
       0,
       expectedMinutes - totalMinutes
     );
 
-    /* ---------------- holiday / rest day ---------------- */
+    /* ---------------- Holiday / Rest Day ---------------- */
     let holidayMinutes = 0;
     let holidayOvertimeMinutes = 0;
     let restDayMinutes = 0;
     let restDayOvertimeMinutes = 0;
 
     if (isHoliday) {
-      if (totalMinutes <= REGULAR_LIMIT) {
-        holidayMinutes = totalMinutes;
-      } else {
-        holidayMinutes = REGULAR_LIMIT;
-        holidayOvertimeMinutes = totalMinutes - REGULAR_LIMIT;
-      }
-    } else if (isRestDay) {
-      if (totalMinutes <= REGULAR_LIMIT) {
-        restDayMinutes = totalMinutes;
-      } else {
-        restDayMinutes = REGULAR_LIMIT;
-        restDayOvertimeMinutes = totalMinutes - REGULAR_LIMIT;
-      }
+      holidayMinutes = Math.min(totalMinutes, REGULAR_LIMIT);
+      holidayOvertimeMinutes = Math.max(
+        0,
+        totalMinutes - REGULAR_LIMIT
+      );
     }
 
-    /* ---------------- final breakdown ---------------- */
+    if (isRestDay) {
+      restDayMinutes = Math.min(totalMinutes, REGULAR_LIMIT);
+      restDayOvertimeMinutes = Math.max(
+        0,
+        totalMinutes - REGULAR_LIMIT
+      );
+    }
+
+    /* ---------------- Final ---------------- */
+    const toHours = (m) => +(m / 60).toFixed(2);
+
     return {
       totalMinutes,
-      totalHours: hoursMinutesToDecimal(
-        Math.floor(totalMinutes / 60),
-        totalMinutes % 60
-      ),
+      totalHours: toHours(totalMinutes),
 
       regularMinutes,
-      regularHours: hoursMinutesToDecimal(
-        Math.floor(regularMinutes / 60),
-        regularMinutes % 60
-      ),
+      regularHours: toHours(regularMinutes),
 
       overtimeMinutes,
-      overtimeHours: hoursMinutesToDecimal(
-        Math.floor(overtimeMinutes / 60),
-        overtimeMinutes % 60
-      ),
+      overtimeHours: toHours(overtimeMinutes),
 
       nightDifferentialRegularMinutes,
-      nightDifferentialRegularHours: hoursMinutesToDecimal(
-        Math.floor(nightDifferentialRegularMinutes / 60),
-        nightDifferentialRegularMinutes % 60
+      nightDifferentialRegularHours: toHours(
+        nightDifferentialRegularMinutes
       ),
 
-      nightDifferentialOTMinutes,
-      nightDifferentialOTHours: hoursMinutesToDecimal(
-        Math.floor(nightDifferentialOTMinutes / 60),
-        nightDifferentialOTMinutes % 60
-      ),
+      nightDifferentialOTMinutes: nightDifferentialOTMinutesFinal,
+      nightDifferentialOTHours: toHours(nightDifferentialOTMinutesFinal),
+
 
       holidayMinutes,
-      holidayHours: hoursMinutesToDecimal(
-        Math.floor(holidayMinutes / 60),
-        holidayMinutes % 60
-      ),
+      holidayHours: toHours(holidayMinutes),
 
       holidayOvertimeMinutes,
-      holidayOvertimeHours: hoursMinutesToDecimal(
-        Math.floor(holidayOvertimeMinutes / 60),
-        holidayOvertimeMinutes % 60
-      ),
+      holidayOvertimeHours: toHours(holidayOvertimeMinutes),
 
       restDayMinutes,
-      restDayHours: hoursMinutesToDecimal(
-        Math.floor(restDayMinutes / 60),
-        restDayMinutes % 60
-      ),
+      restDayHours: toHours(restDayMinutes),
 
       restDayOvertimeMinutes,
-      restDayOvertimeHours: hoursMinutesToDecimal(
-        Math.floor(restDayOvertimeMinutes / 60),
-        restDayOvertimeMinutes % 60
-      ),
+      restDayOvertimeHours: toHours(restDayOvertimeMinutes),
 
       undertimeMinutes,
-      undertimeHours: hoursMinutesToDecimal(
-        Math.floor(undertimeMinutes / 60),
-        undertimeMinutes % 60
-      ),
+      undertimeHours: toHours(undertimeMinutes),
 
       expectedHours,
     };
-
-    
   };
-
-
 
 
 
   const calculateNightDifferentialMinutes = (onDutyTime, offDutyTime) => {
     if (!onDutyTime || !offDutyTime) return 0;
 
-    const [onHours, onMinutes] = onDutyTime.split(":").map(Number);
-    const [offHours, offMinutes] = offDutyTime.split(":").map(Number);
+    const [onH, onM] = onDutyTime.split(":").map(Number);
+    const [offH, offM] = offDutyTime.split(":").map(Number);
 
-    let onDutyMinutes = onHours * 60 + onMinutes;
-    let offDutyMinutes = offHours * 60 + offMinutes;
+    let onMin = onH * 60 + onM;
+    let offMin = offH * 60 + offM;
 
-    if (offDutyMinutes < onDutyMinutes) {
-      offDutyMinutes += 24 * 60;
+    if (offMin < onMin) offMin += 1440;
+
+    const nightStart = 22 * 60;
+    const nightEnd = 30 * 60;
+
+    let total = 0;
+
+    total += Math.max(
+      0,
+      Math.min(offMin, nightEnd) - Math.max(onMin, nightStart)
+    );
+
+    if (offMin > 1440) {
+      total += Math.max(
+        0,
+        Math.min(offMin, nightEnd + 1440) -
+          Math.max(onMin, nightStart + 1440)
+      );
     }
 
-    const nightStartMinutes = 22 * 60; // 10:00 PM
-    const nightEndMinutes = 6 * 60;    // 6:00 AM
-    const midnightMinutes = 24 * 60;
-
-    let nightMinutes = 0;
-
-    // Night period 1: 10 PM to midnight
-    const nightPeriod1Start = nightStartMinutes;
-    const nightPeriod1End = midnightMinutes;
-    
-    // Night period 2: midnight to 6 AM
-    const nightPeriod2Start = midnightMinutes;
-    const nightPeriod2End = midnightMinutes + nightEndMinutes;
-
-    // Check overlap with period 1
-    if (onDutyMinutes < nightPeriod1End && offDutyMinutes > nightPeriod1Start) {
-      const overlapStart = Math.max(onDutyMinutes, nightPeriod1Start);
-      const overlapEnd = Math.min(offDutyMinutes, nightPeriod1End);
-      nightMinutes += Math.max(0, overlapEnd - overlapStart);
-    }
-
-    // Check overlap with period 2
-    if (offDutyMinutes > nightPeriod2Start) {
-      const overlapStart = Math.max(onDutyMinutes, nightPeriod2Start);
-      const overlapEnd = Math.min(offDutyMinutes, nightPeriod2End);
-      nightMinutes += Math.max(0, overlapEnd - overlapStart);
-    }
-
-    return Math.max(0, nightMinutes);
+    return total;
   };
+
 
   const calculateAttendanceStatus = (
     onDutyTime,
@@ -912,6 +848,18 @@ const Attendance = () => {
       ),
     },
     {
+      name: "Night Diff OT",
+      selector: (row) =>
+        row.totalNightDifferentialOTHours?.toFixed(1) || "0.0",
+      width: "135px",
+      cell: (row) => (
+        <span className="px-2 py-1 rounded text-xs bg-indigo-100 text-indigo-800">
+          {row.totalNightDifferentialOTHours?.toFixed(1) || "0.0"}h
+        </span>
+      ),
+    },
+
+    {
       name: "Holiday Hours",
       selector: (row) => row.totalHolidayHours?.toFixed(1) || "0.0",
       width: "105px",
@@ -1221,6 +1169,8 @@ const Attendance = () => {
           regularHolidayHours: 0,
           specialHolidayHours: 0,
           specialNonWorkingHours: 0,
+          totalNightDifferentialOTHours: 0,
+
         };
       }
 
@@ -1242,6 +1192,16 @@ const Attendance = () => {
          summary[ecode].totalNightDifferentialHours +=
           (record.hoursBreakdown.nightDifferentialRegularHours || 0) +
           (record.hoursBreakdown.nightDifferentialOTHours || 0);
+
+        // Night Shift Differential OT (summary-level)
+        if (
+          record.shift?.includes("Night") &&
+          record.hoursBreakdown.nightDifferentialOTHours > 0
+        ) {
+          summary[ecode].totalNightDifferentialOTHours +=
+            record.hoursBreakdown.nightDifferentialOTHours;
+        }
+
 
           summary[ecode].totalHolidayHours +=
             record.hoursBreakdown.holidayHours || 0;
@@ -1508,6 +1468,8 @@ const Attendance = () => {
           regularHolidayHours: row.regularHolidayHours || 0,
           specialHolidayHours: row.specialHolidayHours || 0,
           specialNonWorkingHours: row.specialNonWorkingHours || 0,
+          totalNightDifferentialOTHours:row.totalNightDifferentialOTHours || 0,
+
         }));
 
         const summaryResponse = await fetch(
