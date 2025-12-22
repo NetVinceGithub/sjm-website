@@ -1022,14 +1022,13 @@ const List = () => {
 
   const conditionalRowStyles = [
     {
-      when: (row) => row.employmentstatus === "RESIGNED",
+      when: (row) => row.status === "Inactive",
       style: {
         opacity: 0.5,
         backgroundColor: "#f5f5f5",
         "&:hover": {
           opacity: 0.7,
           backgroundColor: "#e5e5e5",
-          cursor: "not-allowed",
         },
       },
     },
@@ -1572,20 +1571,44 @@ const List = () => {
 
   // Toast notification functions
   const notifyBirthdays = (people) => {
-    const count = people.filter((p) =>
+    const approachingBirthdays = people.filter((p) =>
       isBirthdayApproaching(p.birthdate)
-    ).length;
-    if (count > 0) {
+    );
+
+    if (approachingBirthdays.length > 0) {
+      const count = approachingBirthdays.length;
+
       toast(
         <div style={{ fontSize: "0.8rem" }}>
-          {count} {count > 1 ? "people have" : "person has"} their birthday
-          {count > 1 ? "s" : ""} approaching soon.
+          <div>
+            {count} {count > 1 ? "people have" : "person has"} their birthday
+            {count > 1 ? "s" : ""} approaching soon.
+          </div>
+          <details style={{ marginTop: "8px", cursor: "pointer" }}>
+            <summary style={{ color: "#1976d2", fontWeight: "500" }}>
+              Read more
+            </summary>
+            <ul
+              style={{
+                marginTop: "6px",
+                paddingLeft: "20px",
+                listStyle: "none",
+              }}
+            >
+              {approachingBirthdays.map((person, index) => (
+                <li key={index} style={{ marginBottom: "4px" }}>
+                  <strong>{person.ecode}</strong> - {person.name}
+                </li>
+              ))}
+            </ul>
+          </details>
         </div>,
         {
-          position: "top-right",
-          autoClose: 2000,
+          position: "bottom-right",
+          autoClose: false,
           closeButton: false,
-          closeOnClick: true,
+          closeOnClick: false,
+          draggable: true,
           hideProgressBar: true,
           icon: <span style={{ fontSize: "13px" }}>ℹ️</span>,
           style: {
@@ -1600,20 +1623,44 @@ const List = () => {
   };
 
   const notifyTrainingExpiring = (people) => {
-    const count = people.filter((p) =>
+    const expiringTraining = people.filter((p) =>
       isTrainingExpiringSoon(p.attendedtrainingandseminar)
-    ).length;
-    if (count > 0) {
+    );
+
+    if (expiringTraining.length > 0) {
+      const count = expiringTraining.length;
+
       toast(
         <div style={{ fontSize: "0.8rem" }}>
-          {count} training{count > 1 ? "s are" : " is"} expiring soon.
+          <div>
+            {count} training{count > 1 ? "s are" : " is"} expiring soon.
+          </div>
+          <details style={{ marginTop: "8px", cursor: "pointer" }}>
+            <summary style={{ color: "#1976d2", fontWeight: "500" }}>
+              Read more
+            </summary>
+            <ul
+              style={{
+                marginTop: "6px",
+                paddingLeft: "20px",
+                listStyle: "none",
+              }}
+            >
+              {expiringTraining.map((person, index) => (
+                <li key={index} style={{ marginBottom: "4px" }}>
+                  <strong>{person.ecode}</strong> - {person.name}
+                </li>
+              ))}
+            </ul>
+          </details>
         </div>,
         {
-          position: "top-right",
-          autoClose: 2000,
+          position: "bottom-right",
+          autoClose: false,
           closeButton: false,
-          closeOnClick: true,
+          closeOnClick: false,
           hideProgressBar: true,
+          draggable: true,
           icon: <span style={{ fontSize: "13px" }}>ℹ️</span>,
           style: {
             fontSize: "13px",
@@ -1627,18 +1674,44 @@ const List = () => {
   };
 
   const notifyMedicalExpiring = (people) => {
-    const count = people.filter((p) => isMedicalExpiringSoon(p.medical)).length;
-    if (count > 0) {
+    const expiringMedical = people.filter((p) =>
+      isMedicalExpiringSoon(p.medical)
+    );
+
+    if (expiringMedical.length > 0) {
+      const count = expiringMedical.length;
+
       toast(
         <div style={{ fontSize: "0.8rem" }}>
-          {count} medical{count > 1 ? "s are" : " is"} expiring soon.
+          <div>
+            {count} medical{count > 1 ? "s are" : " is"} expiring soon.
+          </div>
+          <details style={{ marginTop: "8px", cursor: "pointer" }}>
+            <summary style={{ color: "#1976d2", fontWeight: "500" }}>
+              Read more
+            </summary>
+            <ul
+              style={{
+                marginTop: "6px",
+                paddingLeft: "20px",
+                listStyle: "none",
+              }}
+            >
+              {expiringMedical.map((person, index) => (
+                <li key={index} style={{ marginBottom: "4px" }}>
+                  <strong>{person.ecode}</strong> - {person.name}
+                </li>
+              ))}
+            </ul>
+          </details>
         </div>,
         {
           position: "top-right",
-          autoClose: 2000,
+          autoClose: false,
           closeButton: false,
-          closeOnClick: true,
+          closeOnClick: false,
           hideProgressBar: true,
+          draggable: true,
           icon: <span style={{ fontSize: "13px" }}>ℹ️</span>,
           style: {
             fontSize: "13px",
@@ -1714,27 +1787,6 @@ const List = () => {
               className=" text-neutralDGray"
             />
           </button>
-        </div>
-
-        <div className="flex flex-row gap-2 w-1/2 justify-end">
-          <div className="flex w-full">
-            <input
-              type="text"
-              placeholder="Search Employee"
-              onChange={handleFilter}
-              className="px-2 text-xs rounded w-full h-8 py-0.5 border"
-            />
-            <FaSearch className="-ml-6 mt-1.5 text-neutralDGray/60" />
-          </div>
-          <div
-            onClick={openFilterList}
-            className="px-2 text-xs text-neutralDGray rounded w-1/4 items-center hover:bg-neutralSilver flex justify-between h-8 py-0.5 border"
-          >
-            Filter Options{" "}
-            <span>
-              <FaFilter className="mr-2" />
-            </span>
-          </div>
         </div>
       </div>
 

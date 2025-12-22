@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import DataTable from "react-data-table-component";
 import Tooltip from "@mui/material/Tooltip";
 import { Link } from "react-router-dom";
@@ -14,6 +14,7 @@ import {
   FaRegFileExcel,
   FaRegFilePdf,
   FaFilter,
+  FaChevronDown,
 } from "react-icons/fa6";
 import { useAuth } from "../../../context/authContext";
 import { ThreeDots } from "react-loader-spinner";
@@ -31,19 +32,20 @@ const EmployeePayrollInformationsList = () => {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [bulkEditField, setBulkEditField] = useState("default");
   const [bulkEditValue, setBulkEditValue] = useState("");
-  const [bulkEditReason, setBulkEditReason] = useState(""); // Added reason field
+  const [bulkEditReason, setBulkEditReason] = useState("");
   const [bulkSearchTerm, setBulkSearchTerm] = useState("");
   const [filteredBulkEmployees, setFilteredBulkEmployees] = useState([]);
-  const [isSubmitting, setIsSubmitting] = useState(false); // Added loading state
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [perPage, setPerPage] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [selectedEmploymentRanks, setSelectedEmploymentRanks] = useState([]);
-  const [selectedEmploymentRank, setSelectedEmploymentRank] = useState(""); // Changed to single selection
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [selectedEmploymentRank, setSelectedEmploymentRank] = useState("");
   const [availableEmploymentRanks, setAvailableEmploymentRanks] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Mock current user - replace with actual user context/auth
-  const currentUser = "Admin User"; // Replace this with actual user from context/auth
+  const filterDropdownRef = useRef(null);
+
+  const currentUser = "Admin User";
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token");
@@ -63,48 +65,69 @@ const EmployeePayrollInformationsList = () => {
     if (payrollInformations.length > 0) {
       const ranks = [
         ...new Set(
-          payrollInformations.map((emp) => emp.employmentrank).filter(Boolean)
+          payrollInformations
+            .map((emp) => emp.employmentrank || emp.employment_rank)
+            .filter(Boolean)
         ),
       ];
       setAvailableEmploymentRanks(ranks);
     }
   }, [payrollInformations]);
 
-  const applyEmploymentRankFilter = () => {
-    let filtered = payrollInformations;
+  // Combined filter effect
+  useEffect(() => {
+    applyFilters();
+  }, [searchTerm, selectedEmploymentRank, payrollInformations]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        filterDropdownRef.current &&
+        !filterDropdownRef.current.contains(event.target)
+      ) {
+        setShowFilterDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const applyFilters = () => {
+    let filtered = [...payrollInformations];
+
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (emp) =>
+          emp.name?.toLowerCase().includes(search) ||
+          emp.ecode?.toLowerCase().includes(search)
+      );
+    }
 
     if (selectedEmploymentRank) {
       filtered = filtered.filter(
-        (emp) => emp.employmentrank === selectedEmploymentRank
+        (emp) =>
+          (emp.employmentrank || emp.employment_rank) === selectedEmploymentRank
       );
     }
 
     setFilteredEmployees(filtered);
-    setShowFilterModal(false);
-  };
-
-  const handleEmploymentRankChange = (rank) => {
-    setSelectedEmploymentRanks((prev) => {
-      if (prev.includes(rank)) {
-        return prev.filter((r) => r !== rank);
-      }
-      return [...prev, rank];
-    });
   };
 
   const clearFilters = () => {
     setSelectedEmploymentRank("");
+    setSearchTerm("");
     setFilteredEmployees(payrollInformations);
-    setShowFilterModal(false);
   };
 
-  // Update your filter options button click handler
-  const openFilterList = () => {
-    setShowFilterModal(true);
+  const handleFilterSelect = (rank) => {
+    setSelectedEmploymentRank(rank);
+    setShowFilterDropdown(false);
   };
 
   useEffect(() => {
-    // Filter employees for bulk edit modal
     const filtered = payrollInformations.filter(
       (emp) =>
         emp.name.toLowerCase().includes(bulkSearchTerm.toLowerCase()) ||
@@ -120,9 +143,6 @@ const EmployeePayrollInformationsList = () => {
         `${import.meta.env.VITE_API_URL}/api/employee/payroll-informations`
       );
       if (response.data.success) {
-        console.log(response.data);
-
-        // ✅ only keep employees where status is not "Inactive"
         const activeEmployees = response.data.payrollInformations.filter(
           (emp) => emp.status?.toLowerCase() !== "inactive"
         );
@@ -139,13 +159,7 @@ const EmployeePayrollInformationsList = () => {
   };
 
   const handleFilter = (e) => {
-    const searchTerm = e.target.value.toLowerCase();
-    const records = payrollInformations.filter(
-      (emp) =>
-        emp.name.toLowerCase().includes(searchTerm) ||
-        emp.ecode.toLowerCase().includes(searchTerm)
-    );
-    setFilteredEmployees(records);
+    setSearchTerm(e.target.value);
   };
 
   const handleSync = async () => {
@@ -164,7 +178,7 @@ const EmployeePayrollInformationsList = () => {
     setSelectedEmployees([]);
     setBulkEditField("default");
     setBulkEditValue("");
-    setBulkEditReason(""); // Reset reason
+    setBulkEditReason("");
     setBulkSearchTerm("");
   };
 
@@ -173,7 +187,7 @@ const EmployeePayrollInformationsList = () => {
     setSelectedEmployees([]);
     setBulkEditField("default");
     setBulkEditValue("");
-    setBulkEditReason(""); // Reset reason
+    setBulkEditReason("");
     setBulkSearchTerm("");
   };
 
@@ -183,7 +197,6 @@ const EmployeePayrollInformationsList = () => {
       return;
     }
 
-    // Define headers
     const headers = [
       "Employee Code",
       "Name",
@@ -200,13 +213,12 @@ const EmployeePayrollInformationsList = () => {
       "Loan",
     ];
 
-    // Map employees to row data
     const excelData = filteredEmployees.map((emp) => ({
       "Employee Code": emp.ecode,
       Name: emp.name,
       Position: emp.positiontitle || emp.designation,
       "Daily Rate": emp.daily_rate || 0,
-      "Salary Package": emp.salary_package || 0, // <- added since your headers include it
+      "Salary Package": emp.salary_package || 0,
       "Holiday Pay": emp.holiday_pay || 0,
       "Night Differential": emp.night_differential || 0,
       Allowance: emp.allowance || 0,
@@ -217,90 +229,10 @@ const EmployeePayrollInformationsList = () => {
       Loan: emp.loan || 0,
     }));
 
-    // Create worksheet
     const ws = XLSX.utils.json_to_sheet(excelData, { header: headers });
-
-    // Create workbook
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Payroll");
-
-    // Export to Excel file
     XLSX.writeFile(wb, "Payroll_Information.xlsx");
-  };
-
-  const handleExportPDF = () => {
-    // Simple PDF export using window.print
-    const printWindow = window.open("", "_blank");
-    const tableHTML = `
-      <html>
-        <head>
-          <title>Payroll Information</title>
-          <style>
-            body { font-family: Arial, sans-serif; font-size: 12px; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-            th { background-color: #f2f2f2; }
-          </style>
-        </head>
-        <body>
-          <h2>Payroll Information Report</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Employee Code</th>
-                <th>Name</th>
-                <th>Position</th>
-                <th>Daily Rate</th>
-                <th>Holiday Pay</th>
-                <th>Night Differential</th>
-                <th>Allowance</th>
-                <th>Tax</th>
-                <th>SSS</th>
-                <th>Pagibig</th>
-                <th>PhilHealth</th>
-                <th>Loan</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${filteredEmployees
-                .map(
-                  (emp) => `
-                <tr>
-                  <td>${emp.ecode}</td>
-                  <td>${emp.name}</td>
-                  <td>${emp.positiontitle || emp.designation}</td>
-                  <td>₱${parseFloat(emp.daily_rate || 0).toLocaleString()}</td>
-                  <td>₱${parseFloat(emp.holiday_pay || 0).toLocaleString()}</td>
-                  <td>₱${parseFloat(
-                    emp.night_differential || 0
-                  ).toLocaleString()}</td>
-                  <td>₱${parseFloat(emp.allowance || 0).toLocaleString()}</td>
-                  <td>₱${parseFloat(
-                    emp.tax_deduction || 0
-                  ).toLocaleString()}</td>
-                  <td>₱${parseFloat(
-                    emp.sss_contribution || 0
-                  ).toLocaleString()}</td>
-                  <td>₱${parseFloat(
-                    emp.pagibig_contribution || 0
-                  ).toLocaleString()}</td>
-                  <td>₱${parseFloat(
-                    emp.philhealth_contribution || 0
-                  ).toLocaleString()}</td>
-                  <td>₱${parseFloat(emp.loan || 0).toLocaleString()}</td>
-                </tr>
-              `
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </body>
-      </html>
-    `;
-
-    printWindow.document.write(tableHTML);
-    printWindow.document.close();
-    printWindow.print();
   };
 
   const handlePerRowsChange = (newPerPage, page) => {
@@ -312,7 +244,6 @@ const EmployeePayrollInformationsList = () => {
     setCurrentPage(page);
   };
 
-  // Bulk edit functions
   const handleEmployeeSelect = (employeeId, isSelected) => {
     if (isSelected) {
       setSelectedEmployees((prev) => [...prev, employeeId]);
@@ -333,7 +264,7 @@ const EmployeePayrollInformationsList = () => {
   const handleApplyBulkEdit = async () => {
     if (
       bulkEditField === "default" ||
-      bulkEditValue === "" || // <-- allow 0
+      bulkEditValue === "" ||
       selectedEmployees.length === 0
     ) {
       alert(
@@ -380,8 +311,6 @@ const EmployeePayrollInformationsList = () => {
 
         alert(message);
         handleClose();
-
-        // Optionally refresh the data
         await fetchPayrollInformations();
       } else {
         alert("Error: " + response.data.message);
@@ -404,12 +333,6 @@ const EmployeePayrollInformationsList = () => {
     }
   };
 
-  const handleRequestChanges = async () => {
-    // This function is now replaced by handleApplyBulkEdit
-    // But keeping it for backward compatibility or if you want separate functionality
-    await handleApplyBulkEdit();
-  };
-
   const customStyles = {
     table: {
       style: {
@@ -426,7 +349,7 @@ const EmployeePayrollInformationsList = () => {
         fontWeight: "bold",
         display: "flex",
         alignItems: "center",
-        justifyContent: "flex-start", // 👈 left align headers
+        justifyContent: "flex-start",
         textAlign: "left",
       },
     },
@@ -435,10 +358,19 @@ const EmployeePayrollInformationsList = () => {
         padding: "8px",
         display: "flex",
         alignItems: "center",
-        justifyContent: "flex-start", // 👈 left align row data
+        justifyContent: "flex-start",
         textAlign: "left",
       },
     },
+  };
+
+  const capitalizeEmploymentRank = (rank) => {
+    if (!rank) return "N/A";
+
+    return rank
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join("-");
   };
 
   const columns = [
@@ -463,7 +395,10 @@ const EmployeePayrollInformationsList = () => {
     },
     {
       name: "Employment Rank",
-      selector: (row) => row.employment_rank,
+      selector: (row) => {
+        const rank = row.employmentrank || row.employment_rank || "N/A";
+        return capitalizeEmploymentRank(rank);
+      },
       sortable: true,
       center: true,
       width: "200px",
@@ -497,7 +432,6 @@ const EmployeePayrollInformationsList = () => {
       center: true,
       width: "120px",
     },
-
     {
       name: "SSS Loan",
       selector: (row) => `₱${parseFloat(row.sssloan || 0).toLocaleString()}`,
@@ -516,7 +450,7 @@ const EmployeePayrollInformationsList = () => {
   ];
 
   return (
-    <div className=" right-0 bottom-0  min-h-screen w-full bg-neutralSilver p-3 pt-16">
+    <div className="right-0 bottom-0 min-h-screen w-full bg-neutralSilver p-3 pt-16">
       <div>
         <Breadcrumb
           items={[
@@ -527,25 +461,26 @@ const EmployeePayrollInformationsList = () => {
             },
           ]}
         />
+
         <div className="bg-white p-2 -mt-3 rounded-lg shadow w-[calc(100vw-310px)] flex justify-between">
           <div className="inline-flex border border-neutralDGray rounded h-8">
             <button
               onClick={bulkEdit}
-              className="px-3 w-20 h-full border-r  hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
+              className="px-3 w-20 h-full border-r hover:bg-neutralSilver transition-all duration-300 border-neutralDGray rounded-l flex items-center justify-center"
             >
               <FaRegPenToSquare
-                title="Print"
-                className="text-neutralDGray] transition-all duration-300"
+                title="Bulk Edit"
+                className="text-neutralDGray transition-all duration-300"
               />
             </button>
 
             <button
-              onClick={handleExportExcel} // Export as Excel
+              onClick={handleExportExcel}
               className="px-3 w-20 h-full hover:bg-neutralSilver border-l-0 transition-all duration-300 rounded-r flex items-center justify-center"
             >
               <FaRegFileExcel
-                title="Export to PDF"
-                className=" text-neutralDGray"
+                title="Export to Excel"
+                className="text-neutralDGray"
               />
             </button>
           </div>
@@ -555,24 +490,71 @@ const EmployeePayrollInformationsList = () => {
               <input
                 type="text"
                 placeholder="Search Employee"
+                value={searchTerm}
                 onChange={handleFilter}
                 className="px-2 text-xs rounded w-full h-8 py-0.5 border"
               />
               <FaSearch className="-ml-6 mt-1.5 text-neutralDGray/60" />
             </div>
-            <div
-              onClick={openFilterList} // Add this line
-              className="px-2 text-xs text-neutralDGray rounded w-1/4 items-center hover:bg-neutralSilver flex justify-between h-8 py-0.5 border cursor-pointer" // Add cursor-pointer
-            >
-              Filter Options{" "}
-              <span>
-                <FaFilter className="mr-2" />
-              </span>
+
+            {/* Filter Dropdown Button */}
+            <div className="relative" ref={filterDropdownRef}>
+              <button
+                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                className="px-3 text-xs text-neutralDGray rounded w-48 items-center hover:bg-neutralSilver flex justify-between h-8 py-0.5 border cursor-pointer"
+              >
+                <span className="truncate">
+                  {selectedEmploymentRank || "Filter Options"}
+                </span>
+                <FaChevronDown
+                  className={`ml-2 transition-transform ${
+                    showFilterDropdown ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {/* Dropdown Menu */}
+              {showFilterDropdown && (
+                <div className="absolute right-0 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+                  <div className="py-1">
+                    <button
+                      onClick={() => handleFilterSelect("")}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                        !selectedEmploymentRank
+                          ? "bg-blue-50 text-blue-700 font-medium"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      All Employment Ranks
+                    </button>
+
+                    {availableEmploymentRanks.length > 0 ? (
+                      availableEmploymentRanks.map((rank) => (
+                        <button
+                          key={rank}
+                          onClick={() => handleFilterSelect(rank)}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                            selectedEmploymentRank === rank
+                              ? "bg-blue-50 text-blue-700 font-medium"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          {capitalizeEmploymentRank(rank)}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-2 text-sm text-gray-500 italic">
+                        No employment ranks available
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
+
         <div className="mt-2 bg-white w-[calc(100vw-310px)] p-2 rounded-lg shadow">
-          {/* Table Container */}
           <div>
             <div className="w-full">
               <div className="h-full overflow-y-auto text-neutralDGray border rounded-md">
@@ -591,8 +573,6 @@ const EmployeePayrollInformationsList = () => {
                           color="#4fa94d"
                           radius="9"
                           ariaLabel="three-dots-loading"
-                          wrapperStyle={{}}
-                          wrapperClass=""
                         />
                       </div>
                     }
@@ -664,7 +644,6 @@ const EmployeePayrollInformationsList = () => {
                   />
                 </div>
 
-                {/* Added Reason Field */}
                 <div className="mb-3 -mt-2">
                   <label className="block text-xs font-medium text-gray-500 mb-1">
                     Reason for change (optional):
@@ -704,7 +683,6 @@ const EmployeePayrollInformationsList = () => {
                     </div>
                   </div>
 
-                  {/* Employee List */}
                   <div className="max-h-64 overflow-y-auto -mt-2">
                     {filteredBulkEmployees.map((employee) => (
                       <div
@@ -754,65 +732,6 @@ const EmployeePayrollInformationsList = () => {
               disabled={isSubmitting}
             >
               Close
-            </button>
-          </Modal.Footer>
-        </Modal>
-
-        {/* Filter Modal */}
-        <Modal
-          show={showFilterModal}
-          onHide={() => setShowFilterModal(false)}
-          centered
-          size="md"
-        >
-          <Modal.Header className="py-2 px-3 text-[12px]" closeButton>
-            <Modal.Title as="h6" className="text-lg">
-              Filter Options
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <div className="p-2">
-              <div className="">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Employment Rank
-                </label>
-                {/* Updated dropdown styling - removed the wrapper div and border */}
-                <select
-                  value={selectedEmploymentRank}
-                  onChange={(e) => setSelectedEmploymentRank(e.target.value)}
-                  className="w-full p-2 text-sm border border-gray-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-                >
-                  <option value="">All Employment Ranks</option>
-                  {availableEmploymentRanks.map((rank) => (
-                    <option key={rank} value={rank}>
-                      {rank}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Show selected filter info */}
-              {selectedEmploymentRank && (
-                <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
-                  <p className="text-xs text-blue-700 font-medium">
-                    Selected Filter: {selectedEmploymentRank}
-                  </p>
-                </div>
-              )}
-            </div>
-          </Modal.Body>
-          <Modal.Footer>
-            <button
-              className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-green-400 hover:text-white transition-all"
-              onClick={applyEmploymentRankFilter}
-            >
-              Apply Filter
-            </button>
-            <button
-              className="px-4 py-2 text-sm h-8 border flex justify-center items-center text-center text-neutralDGray rounded-lg hover:bg-red-400 hover:text-white transition-all"
-              onClick={clearFilters}
-            >
-              Clear All
             </button>
           </Modal.Footer>
         </Modal>

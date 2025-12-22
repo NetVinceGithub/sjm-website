@@ -56,3 +56,10 @@ input:-webkit-autofill {
   -webkit-text-fill-color: #000 !important;
   transition: background-color 5000s ease-in-out 0s;
 }
+
+.custom-toast .Toastify__close-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  align-self: flex-start;
+}

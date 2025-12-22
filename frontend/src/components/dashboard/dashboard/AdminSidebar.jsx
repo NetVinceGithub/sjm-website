@@ -72,7 +72,7 @@ const AdminSidebar = () => {
     const checkUserRole = async () => {
       const token = localStorage.getItem("token");
       console.log("Token from localStorage:", token); // Debug line
-      
+
       if (!token) {
         setIsAuthorized(false);
         setLoading(false);
@@ -80,20 +80,23 @@ const AdminSidebar = () => {
       }
 
       try {
-        console.log("Making request to:", `${import.meta.env.VITE_API_URL}/api/users/current`); // Debug line
-        
+        console.log(
+          "Making request to:",
+          `${import.meta.env.VITE_API_URL}/api/users/current`
+        ); // Debug line
+
         const userResponse = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/users/current`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
-              Accept: 'application/json',
+              Accept: "application/json",
             },
           }
         );
 
         console.log("Response:", userResponse.data); // Debug line
-        
+
         const currentUserRole = userResponse.data.user.role;
         setUserRole(currentUserRole);
         setIsAuthorized(["admin", "approver", "hr"].includes(currentUserRole));

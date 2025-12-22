@@ -38,9 +38,12 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
+
     try {
-      console.log("Making login request to:", `${import.meta.env.VITE_API_URL}/api/auth/login`);
+      console.log(
+        "Making login request to:",
+        `${import.meta.env.VITE_API_URL}/api/auth/login`
+      );
       console.log("Login credentials:", { email, password: "***hidden***" });
 
       const response = await axios.post(
@@ -48,9 +51,9 @@ const Login = () => {
         { email, password },
         {
           headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
         }
       );
 
@@ -68,7 +71,10 @@ const Login = () => {
         // Verify token was stored
         const storedToken = localStorage.getItem("token");
         console.log("Token stored in localStorage:", storedToken);
-        console.log("Token matches received token:", storedToken === response.data.token);
+        console.log(
+          "Token matches received token:",
+          storedToken === response.data.token
+        );
 
         // Handle remember me functionality
         if (isChecked) {
@@ -88,10 +94,10 @@ const Login = () => {
 
         // Navigate based on user role
         switch (response.data.user.role) {
-          case 'admin':
+          case "admin":
             navigate("/admin-dashboard");
             break;
-          case 'hr':
+          case "hr":
             navigate("/admin-dashboard");
             break;
           default:
@@ -102,12 +108,16 @@ const Login = () => {
         setError("Login failed");
       }
     } catch (error) {
-      console.error('Login error:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      
+      console.error("Login error:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+
       if (error.response?.data) {
-        setError(error.response.data.error || error.response.data.message || "Login failed");
+        setError(
+          error.response.data.error ||
+            error.response.data.message ||
+            "Login failed"
+        );
       } else {
         setError("Network error. Please check your connection.");
       }

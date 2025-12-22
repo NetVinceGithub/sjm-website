@@ -44,8 +44,6 @@ const Requests = () => {
     };
   };
 
-  
-
   useEffect(() => {
     const checkUserRole = async () => {
       const token = localStorage.getItem("token");
@@ -98,8 +96,8 @@ const Requests = () => {
   }, [isAuthorized, changesRequests]);
 
   useEffect(() => {
-    if (isAuthorized && Array.isArray(payrollRequests)) {
-      notifyChangeRequests(payrollRequests);
+    if (isAuthorized && Array.isArray(batches)) {
+      notifyChangeRequests(batches);
     }
   }, [isAuthorized, payrollRequests]);
 
@@ -145,7 +143,7 @@ const Requests = () => {
         );
         console.log(response.data);
         setRequests(response.data);
-        notifyPayrollRequests(response.data);
+        notifyPayrollRequests(batches);
       } catch (error) {
         console.error("Error fetching payroll requests:", error);
         setRequests([]); // Clear requests on error
@@ -609,9 +607,9 @@ const Requests = () => {
         `${import.meta.env.VITE_API_URL}/api/payslip/approve-batch`,
         { batchId: batchId },
         {
-          headers: { 
+          headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           timeout: 30000,
         }
@@ -632,20 +630,19 @@ const Requests = () => {
             minHeight: "10px",
           },
         });
-        
+
         // Refresh the batches list
         fetchAvailableBatches();
         setShowPayrollDetailModal(false);
         setShowSuccessModal(true);
-        
       } else {
         throw new Error(response.data?.message || "Failed to approve batch");
       }
     } catch (error) {
       console.error("Error approving batch:", error);
-      
+
       let errorMessage = "Failed to approve batch. Please try again.";
-      
+
       if (error.response?.status === 404) {
         errorMessage = "Batch not found or no pending payslips in batch.";
       } else if (error.response?.status === 400) {
@@ -653,7 +650,7 @@ const Requests = () => {
       } else if (error.response?.status === 500) {
         errorMessage = "Server error. Please try again later.";
       }
-      
+
       toast(errorMessage, {
         position: "top-right",
         autoClose: 2000,
@@ -677,11 +674,11 @@ const Requests = () => {
   const handleApproveAllBatches = async () => {
     try {
       setLoadingPayroll(true);
-      
-      const pendingBatches = batches.filter(batch => 
+
+      const pendingBatches = batches.filter((batch) =>
         batch.uniqueStatuses?.includes("pending")
       );
-      
+
       if (pendingBatches.length === 0) {
         toast("No pending batches to approve.", {
           position: "top-right",
@@ -701,14 +698,14 @@ const Requests = () => {
       }
 
       // Approve each batch sequentially
-      const approvalPromises = pendingBatches.map(batch => 
+      const approvalPromises = pendingBatches.map((batch) =>
         axios.post(
           `${import.meta.env.VITE_API_URL}/api/payslip/approve-batch`,
           { batchId: batch.batchId },
           {
-            headers: { 
+            headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}`
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
             },
             timeout: 30000,
           }
@@ -716,29 +713,34 @@ const Requests = () => {
       );
 
       const responses = await Promise.allSettled(approvalPromises);
-      
-      const successCount = responses.filter(result => 
-        result.status === 'fulfilled' && result.value?.data?.success
+
+      const successCount = responses.filter(
+        (result) => result.status === "fulfilled" && result.value?.data?.success
       ).length;
-      
+
       const failCount = responses.length - successCount;
 
       if (successCount > 0) {
-        toast(`${successCount} batch(es) approved successfully!${failCount > 0 ? ` ${failCount} failed.` : ''}`, {
-          position: "top-right",
-          autoClose: 3000,
-          closeButton: false,
-          closeOnClick: true,
-          hideProgressBar: true,
-          icon: <span style={{ fontSize: "13px" }}>✅</span>,
-          style: {
-            fontSize: "13px",
-            padding: "6px 12px",
-            width: "auto",
-            minHeight: "10px",
-          },
-        });
-        
+        toast(
+          `${successCount} batch(es) approved successfully!${
+            failCount > 0 ? ` ${failCount} failed.` : ""
+          }`,
+          {
+            position: "top-right",
+            autoClose: 3000,
+            closeButton: false,
+            closeOnClick: true,
+            hideProgressBar: true,
+            icon: <span style={{ fontSize: "13px" }}>✅</span>,
+            style: {
+              fontSize: "13px",
+              padding: "6px 12px",
+              width: "auto",
+              minHeight: "10px",
+            },
+          }
+        );
+
         fetchAvailableBatches();
         setShowSuccessModal(true);
       } else {
@@ -757,7 +759,6 @@ const Requests = () => {
           },
         });
       }
-
     } catch (error) {
       console.error("Error approving all batches:", error);
       toast("Error approving batches. Please try again.", {
@@ -786,7 +787,6 @@ const Requests = () => {
   };
 
   const handleDeleteAll = async () => {
-
     console.log("Ito yung ginamit na pang delete");
     try {
       // Updated to include batchId parameter for deletion
@@ -1908,7 +1908,6 @@ const Requests = () => {
                                 <span className="font-medium">
                                   {payslip.name} →
                                 </span>{" "}
-                                
                               </div>
                               <div className="text-gray-500 text-[10px] ml-4">
                                 <div>Employee ID: {payslip.ecode}</div>
@@ -1948,16 +1947,11 @@ const Requests = () => {
                                   )}
                                 </div>
                                 <div>Regular Days: {payslip.noOfDays}</div>
-
-
                               </div>
                             </li>
                           )
                         )}
                       </ol>
-
-
-                      
                     </div>
                   </div>
                   {selectedPayrollRequest.payslips.map((payslip, index) => (

@@ -4,21 +4,28 @@ import React from "react";
 let hasShownPayrollToast = false; // flag outside function, persists during session
 let payrollToastId = null; // store toast id for dismissal
 
-export const notifyPayrollRequests = (requests) => {
-  if (!Array.isArray(requests)) return; // ✅ Prevents `.length` on undefined/null
+export const notifyPayrollRequests = (batches) => {
+  if (!Array.isArray(batches)) return; // ✅ Prevents `.length` on undefined/null
 
-  const count = requests.length;
+  // Count only pending batches
+  const pendingBatches = batches.filter((batch) =>
+    batch.uniqueStatuses?.includes("pending")
+  );
+  const count = pendingBatches.length;
 
   if (count > 0) {
     if (!hasShownPayrollToast) {
       payrollToastId = toast(
-        `You have ${count} payroll request${count > 1 ? "s" : ""} to review.`,
+        <div style={{ fontSize: "0.8rem" }}>
+          You have {count} payroll batch{count > 1 ? "es" : ""} to review.
+        </div>,
         {
           position: "top-right",
-          autoClose: 2000,
+          autoClose: 5000,
           closeButton: false,
-          closeOnClick: true,
+          closeOnClick: false,
           hideProgressBar: true,
+          draggable: false,
           icon: <span style={{ fontSize: "13px" }}>🔔</span>,
           style: {
             fontSize: "13px",
