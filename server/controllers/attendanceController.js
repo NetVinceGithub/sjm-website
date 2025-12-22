@@ -419,6 +419,8 @@ export const saveAttendanceSummary = async (req, res) => {
         totalRegularHours: Number(record.totalRegularHours) || 0,
         totalOvertimeHours: Number(record.totalOvertimeHours) || 0,
         totalNightDifferentialHours: Number(record.totalNightDifferentialHours) || 0,
+        totalNightDifferentialOTHours:Number(record.totalNightDifferentialOTHours) || 0,
+
         totalHolidayHours: Number(record.totalHolidayHours) || 0,
         totalHolidayOvertimeHours: Number(record.totalHolidayOvertimeHours) || 0,
         totalRestDayHours: Number(record.totalRestDayHours) || 0,

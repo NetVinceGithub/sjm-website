@@ -96,6 +96,13 @@ const AttendanceSummary = sequelize.define(
       allowNull: false,
       defaultValue: 0,
     },
+    totalNightDifferentialOTHours: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0,
+      comment: "Night differential overtime hours",
+    },
+
     totalHolidayHours: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,

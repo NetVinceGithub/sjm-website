@@ -51,7 +51,7 @@ const Attendance = () => {
     {
       id: 3,
       value: "22-6",
-      label: "Night Shift (9PM-6AM)",
+      label: "Night Shift (10PM-6AM)",
       start: 22,
       end: 6,
       expectedHours: 8,
@@ -215,7 +215,13 @@ const Attendance = () => {
 
     /* ---------------- Break ---------------- */
     const BREAK = 60;
-    if (totalMinutes > 360) totalMinutes -= BREAK;
+    const isNightShift = detectedShift?.includes("Night");
+
+    // Deduct break ONLY if not pure night shift
+    if (!isNightShift && totalMinutes > 360) {
+      totalMinutes -= BREAK;
+    }
+
 
     totalMinutes = Math.max(0, totalMinutes);
 
