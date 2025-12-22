@@ -24,7 +24,7 @@ import puppeteer from "puppeteer"; // Make sure puppeteer is installed
 import { execSync } from "child_process";
 import { calculateSSSWithCutoff, isSecondCutoffPeriod } from "../utils/sssCalculator.js";
 import { calculatePagIBIGContribution, calculatePagIBIGSemiMonthly } from "../utils/pagibigCalculator.js";
-import { calculatePhilHealthContribution, calculatePhilHealthSemiMonthly } from "../utils/philhealthCalculator.js";
+import { calculatePHICContribution } from "../utils/philhealthCalculator.js";
 import PayslipHistory from "../models/PayslipHistory.js";
 
 
@@ -1805,10 +1805,6 @@ const calculateRegularHours = (dailyRate, totalRegularHours) => {
   return (dailyRate / 8) * totalRegularHours;
 };
 
-
-
-
-
 export const generatePayroll = async (req, res) => {
   const {
     cutoffDate,
@@ -1984,7 +1980,7 @@ export const generatePayroll = async (req, res) => {
         const specialHolidayHoursForPayslip = parseFloat(specialHolidayHours.toFixed(2));
         const regularHolidayHoursForPayslip = parseFloat(regularHolidayHours.toFixed(2));
 
-        const basicPay = totalRegularHoursForPayslip;
+        const basicPay = dailyRate * attendanceSummary.presentDays;
 
         // Calculate allowance (skip for rank-and-file)
         const salaryPackage = Number(employee.salaryPackage) || Number(employee.salary_package) || 0;
@@ -2015,7 +2011,7 @@ export const generatePayroll = async (req, res) => {
           console.log(`⏰ Approved overtime for ${employee.name}: ${totalRegularOvertime} hours`);
         }
 
-        // FIXED: Calculate OT hourly rate here
+        // Calculate OT hourly rate
         const otHourlyRate = (dailyRate / 8) * 1.25; // 125% of regular hourly rate
         const regularOvertimePay = totalRegularOvertime * otHourlyRate;
         const specialHolidayOTPay = 0; // No holiday overtime in this version
@@ -2041,7 +2037,7 @@ export const generatePayroll = async (req, res) => {
           grossPay: safeGrossPay.toFixed(2),
         });
 
-        // FIXED: Calculate tardiness rate here
+        // Calculate tardiness rate
         const tardinessRate = (dailyRate / 8) / 60; // Per minute rate
         const tardinessDeduction = finalTotalLateMinutes * tardinessRate;
 
@@ -2059,7 +2055,6 @@ export const generatePayroll = async (req, res) => {
         // Calculate government contributions based on ADJUSTED gross pay
         const projectedMonthlyBasicSalary = dailyRate * 26;
         const isFirstCutoff = new Date(cutoffDate).getDate() <= 15;
-        const isSecondCutoff = isSecondCutoffPeriod(new Date(cutoffDate));
 
         // Initialize contribution objects
         let sssContribution = { 
@@ -2079,84 +2074,81 @@ export const generatePayroll = async (req, res) => {
           totalContribution: 0 
         };
 
-        // Replace the SSS calculation section (around line 280-290) with this:
         if (!isOnCall) {
-          // MODIFIED: Only compute SSS if cutoffPeriod is 'secondCutoff' or 'secondCutOff'
+          // Calculate projected monthly basic salary (26 days standard)
+          const projectedMonthlyBasicSalary = dailyRate * 26;
+          
+          // SSS - Only compute on 2nd cutoff using combined gross pay from both cutoffs
           if (cutoffPeriod === 'secondCutoff' || cutoffPeriod === 'secondCutOff') {
             try {
-              // Find the first cutoff with the same cutoffDate and ecode
               const firstCutoffPayslip = await PayslipHistory.findOne({
                 where: {
                   ecode: employee.ecode,
-                  cutoffPeriod: ['firstCutoff', 'firstCutOff'], // Support both variations
+                  cutoffPeriod: ['firstCutoff', 'firstCutOff'],
                   cutoffDate: cutoffDate
                 },
-                order: [['cutoff_date', 'DESC']], // Get the most recent first cutoff
+                order: [['cutoff_date', 'DESC']],
                 limit: 1
               });
 
               if (firstCutoffPayslip) {
                 const firstCutoffGrossPay = parseFloat(firstCutoffPayslip.gross_pay) || 0;
                 const combinedGrossPay = firstCutoffGrossPay + safeGrossPay;
-                
+                // Use:
+                const adjustedCombinedGrossPay = (firstCutoffGrossPay - firstCutoffTardiness - firstCutoffUndertime) +  (safeGrossPay - tardinessDeduction - deductions.underTime);
+                sssContribution = calculateSSSWithCutoff(adjustedCombinedGrossPay, new Date(cutoffDate));                
                 console.log(`📊 SSS Calculation for ${employee.name} (Second Cutoff):`, {
                   firstCutoffGrossPay: firstCutoffGrossPay.toFixed(2),
                   currentGrossPay: safeGrossPay.toFixed(2),
                   combinedGrossPay: combinedGrossPay.toFixed(2),
-                  firstCutoffDate: firstCutoffPayslip.cutoffDate,
-                  currentCutoffDate: cutoffDate
-                });
-
-                // Calculate SSS based on combined gross pay
-                sssContribution = calculateSSSWithCutoff(combinedGrossPay, new Date(cutoffDate));
-                
-                console.log(`💳 SSS Contribution (based on combined pay):`, {
-                  employeeContribution: sssContribution.employeeContribution.toFixed(2),
-                  employerContribution: sssContribution.employerContribution.toFixed(2),
-                  ecContribution: sssContribution.ecContribution.toFixed(2),
-                  totalContribution: sssContribution.totalContribution.toFixed(2)
                 });
               } else {
                 console.log(`⚠️ No first cutoff found for ${employee.name}, using current gross pay only`);
-                // If no first cutoff found, calculate SSS based on current gross pay only
                 sssContribution = calculateSSSWithCutoff(safeGrossPay, new Date(cutoffDate));
               }
             } catch (sssError) {
               console.error(`❌ Error calculating SSS for ${employee.name}:`, sssError);
-              // Fallback: use current gross pay if there's an error
               sssContribution = calculateSSSWithCutoff(safeGrossPay, new Date(cutoffDate));
             }
           } else {
-            // For first cutoff or any other period, SSS remains zero (already initialized)
+            // For first cutoff, SSS remains zero (already initialized)
             console.log(`ℹ️ SSS set to 0 for ${employee.name} - cutoffPeriod is ${cutoffPeriod}`);
           }
           
+          // PHIC - Compute EVERY cutoff (semi-monthly) based on current basic pay
+          // Only the employee contribution (1.25%) is deducted from payslip
+          philhealthContribution = calculatePHICContribution(basicPay);
+          
+          console.log(`💳 PHIC Calculation for ${employee.name} (${cutoffPeriod}):`, {
+            currentBasicPay: basicPay.toFixed(2),
+            employeeContribution: philhealthContribution.employeeContribution.toFixed(2),
+            employerContribution: philhealthContribution.employerContribution.toFixed(2),
+            totalContribution: philhealthContribution.totalContribution.toFixed(2),
+          });
+          
+          // PAG-IBIG - Compute every cutoff (semi-monthly)
           pagibigContribution = calculatePagIBIGSemiMonthly(projectedMonthlyBasicSalary, isFirstCutoff);
-          philhealthContribution = calculatePhilHealthSemiMonthly(
-            projectedMonthlyBasicSalary,
-            "full_second",
-            isFirstCutoff
-          );
         }
 
         console.log(`💳 Government Contributions for ${employee.name}:`, {
           isOnCall,
           cutoffPeriod,
           isFirstCutoff,
-          isSecondCutoff,
           projectedMonthlyBasicSalary: projectedMonthlyBasicSalary.toFixed(2),
           grossPay: safeGrossPay.toFixed(2),
           tardinessDeduction: tardinessDeduction.toFixed(2),
           adjustedGrossPayForSSS: adjustedGrossPayForSSS.toFixed(2),
           sss: sssContribution.employeeContribution,
-          phic: philhealthContribution.employeeContribution,
+          phic: philhealthContribution.totalContribution,
           hdmf: pagibigContribution.employeeContribution,
         });
 
         // Calculate deductions using the pre-calculated tardiness
         const deductions = {
           sss: parseFloat(sssContribution.employeeContribution.toFixed(2)),
-          phic: parseFloat((philhealthContribution.employeeContribution / 2).toFixed(2)),
+          sssLoan: parseFloat(employeePayrollInfo.sssLoan || employeePayrollInfo.sss_loan),
+          hdmfLoan: parseFloat(employeePayrollInfo.pagibig_loan|| employeePayrollInfo.pagibigLoan),
+          phic: parseFloat(philhealthContribution.totalContribution.toFixed(2)),
           hdmf: parseFloat(pagibigContribution.employeeContribution.toFixed(2)),
           loan: Number(employeePayrollInfo.loan) || 0,
           otherDeductions: !isOnCall ? Number(employeePayrollInfo.otherDeductions) || 0 : 0,
@@ -2176,6 +2168,8 @@ export const generatePayroll = async (req, res) => {
         console.log(`💸 Deductions for ${employee.name}:`, {
           sss: deductions.sss.toFixed(2),
           phic: deductions.phic.toFixed(2),
+          sssLoan: deductions.sssLoan,
+          hmdfLoan: deductions.hdmfLoan,
           hdmf: deductions.hdmf.toFixed(2),
           loan: deductions.loan.toFixed(2),
           otherDeductions: deductions.otherDeductions.toFixed(2),
@@ -2261,7 +2255,7 @@ export const generatePayroll = async (req, res) => {
           sssEC: parseFloat(sssContribution.ecContribution.toFixed(2)),
           sssTotalContribution: parseFloat(sssContribution.totalContribution.toFixed(2)),
           
-          phic: parseFloat(deductions.phic.toFixed(2)),
+          phic: parseFloat(philhealthContribution.totalContribution.toFixed(2)),
           phicEmployerShare: parseFloat(philhealthContribution.employerContribution.toFixed(2)),
           phicTotalContribution: parseFloat(philhealthContribution.totalContribution.toFixed(2)),
           phicIsMinimum: philhealthContribution.isMinimum || false,
