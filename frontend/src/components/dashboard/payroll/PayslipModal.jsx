@@ -376,7 +376,6 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                       <td className="border border-black h-5 border-t-0 border-b-0 text-right border-r">
                         {formatNumber(payslip?.totalTardiness)}
                       </td>
-
                     </tr>
                     <tr>
                       <td className="border border-t-0 border-l border-b-0 border-r border-black h-5">
@@ -386,10 +385,10 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                         {payslip.holidayPay}
                       </td>
                       <td className="border border-black h-5 border-t-0 border-b-0">
-                        Other Deductions
+                        Undertime
                       </td>
                       <td className="border border-black h-5 border-t-0 border-b-0 text-right border-r">
-                        {formatNumber(payslip?.otherDeductions)}
+                        {formatNumber(payslip?.underTime)}
                       </td>
                     </tr>
                     <tr>
@@ -405,11 +404,12 @@ const PayslipModal = ({ isOpen, onClose, employeeId }) => {
                       <td className="border border-black h-5 border-t-0 border-b-0 text-right border-r">
                         {formatNumber(
                           parseFloat(payslip?.sss || 0) +
-                          parseFloat(payslip?.hdmf || 0) +
-                          parseFloat(payslip?.phic || 0) +
-                          parseFloat(payslip?.sssLoan || 0) +
-                          parseFloat(payslip?.pagibigLoan || 0) +
-                          parseFloat(payslip?.cashAdvance || 0)
+                            parseFloat(payslip?.hdmf || 0) +
+                            parseFloat(payslip?.phic || 0) +
+                            parseFloat(payslip?.sssLoan || 0) +
+                            parseFloat(payslip?.pagibigLoan || 0) +
+                            parseFloat(payslip?.cashAdvance || 0) +
+                            parseFloat(payslip?.underTime || 0)
                         )}
                       </td>
                     </tr>

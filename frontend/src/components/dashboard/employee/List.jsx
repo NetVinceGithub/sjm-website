@@ -1788,6 +1788,26 @@ const List = () => {
             />
           </button>
         </div>
+        <div className="flex flex-row gap-2 w-1/2 justify-end">
+          <div className="flex w-full">
+            <input
+              type="text"
+              placeholder="Search Employee"
+              onChange={handleFilter}
+              className="px-2 text-xs rounded w-full h-8 py-0.5 border"
+            />
+            <FaSearch className="-ml-6 mt-1.5 text-neutralDGray/60" />
+          </div>
+          <div
+            onClick={openFilterList}
+            className="px-2 text-xs text-neutralDGray rounded w-1/4 items-center hover:bg-neutralSilver flex justify-between h-8 py-0.5 border"
+          >
+            Filter Options{" "}
+            <span>
+              <FaFilter className="mr-2" />
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className=" bg-white w-[calc(100vw-310px)] p-2 mt-2 rounded-lg shadow">

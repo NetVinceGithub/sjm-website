@@ -1,6 +1,6 @@
 /**
  * Calculate Pag-IBIG (HDMF) contribution based on monthly basic salary
- * 
+ *
  * Contribution Rules:
  * - Employee: 1% or 2% of monthly basic salary
  * - Employer: 2% of monthly basic salary
@@ -72,12 +72,15 @@ export const calculatePagIBIGContribution = (monthlyBasicSalary) => {
 /**
  * Calculate Pag-IBIG for semi-monthly payroll (15-day cutoff)
  * This assumes the monthly contribution should be split across two payroll periods
- * 
+ *
  * @param {number} monthlyBasicSalary - The employee's projected monthly basic salary
  * @param {boolean} isFirstCutoff - Whether this is the first cutoff (1st-15th) or second (16th-end)
  * @returns {object} - Object containing semi-monthly contribution details
  */
-export const calculatePagIBIGSemiMonthly = (monthlyBasicSalary, isFirstCutoff = true) => {
+export const calculatePagIBIGSemiMonthly = (
+  monthlyBasicSalary,
+  isFirstCutoff = true
+) => {
   const monthlyContribution = calculatePagIBIGContribution(monthlyBasicSalary);
 
   // Split monthly contribution in half for each payroll period
@@ -87,8 +90,12 @@ export const calculatePagIBIGSemiMonthly = (monthlyBasicSalary, isFirstCutoff = 
   return {
     employeeContribution: Number(semiMonthlyEmployee.toFixed(2)),
     employerContribution: Number(semiMonthlyEmployer.toFixed(2)),
-    totalContribution: Number((semiMonthlyEmployee + semiMonthlyEmployer).toFixed(2)),
-    cutoffPeriod: isFirstCutoff ? "1st Cutoff (1st-15th)" : "2nd Cutoff (16th-End)",
+    totalContribution: Number(
+      (semiMonthlyEmployee + semiMonthlyEmployer).toFixed(2)
+    ),
+    cutoffPeriod: isFirstCutoff
+      ? "1st Cutoff (1st-15th)"
+      : "2nd Cutoff (16th-End)",
     monthlyEmployeeTotal: monthlyContribution.employeeContribution,
     monthlyEmployerTotal: monthlyContribution.employerContribution,
     monthlyTotal: monthlyContribution.totalContribution,
@@ -102,7 +109,7 @@ export const calculatePagIBIGSemiMonthly = (monthlyBasicSalary, isFirstCutoff = 
 /**
  * Calculate Pag-IBIG for partial month work (e.g., employee worked only X days)
  * Useful for new hires, resigned employees, or employees with absences
- * 
+ *
  * @param {number} dailyRate - The employee's daily rate
  * @param {number} daysWorked - Number of days actually worked
  * @returns {object} - Object containing contribution based on actual salary earned
@@ -116,7 +123,8 @@ export const calculatePagIBIGPartialMonth = (dailyRate, daysWorked) => {
  * Example usage for payroll integration
  */
 export const updatePayrollWithPagIBIG = (payrollData) => {
-  const { monthlyBasicSalary, dailyRate, daysWorked, isFirstCutoff } = payrollData;
+  const { monthlyBasicSalary, dailyRate, daysWorked, isFirstCutoff } =
+    payrollData;
 
   let pagibigCalculation;
 
@@ -124,7 +132,10 @@ export const updatePayrollWithPagIBIG = (payrollData) => {
   if (monthlyBasicSalary) {
     // For regular monthly or semi-monthly payroll
     if (isFirstCutoff !== undefined) {
-      pagibigCalculation = calculatePagIBIGSemiMonthly(monthlyBasicSalary, isFirstCutoff);
+      pagibigCalculation = calculatePagIBIGSemiMonthly(
+        monthlyBasicSalary,
+        isFirstCutoff
+      );
     } else {
       pagibigCalculation = calculatePagIBIGContribution(monthlyBasicSalary);
     }

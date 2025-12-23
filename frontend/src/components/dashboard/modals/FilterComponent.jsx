@@ -30,10 +30,10 @@ const FilterComponent = ({ show, onClose, onSchedulesSelected }) => {
       isDefault: true,
     },
     {
-      key: "eveningShift",
-      label: "Evening Shift: 4pm - 1am",
+      key: "dayShiftw/breaktime",
+      label: "Day Shift w/ Breaktime: 6am - 3pm",
       color: "bg-orange-500",
-      value: "16:00-01:00",
+      value: "06:00-15:00",
       isDefault: true,
     },
     {
