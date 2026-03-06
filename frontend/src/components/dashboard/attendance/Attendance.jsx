@@ -79,7 +79,7 @@ const Attendance = () => {
   const fetchHolidays = async () => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/holidays`
+        `${import.meta.env.VITE_API_URL}/api/holidays`,
       );
       if (!response) {
         console.log("No api response");
@@ -110,7 +110,7 @@ const Attendance = () => {
     }
 
     const exactMatch = scheduleList.find(
-      (schedule) => detectedShift === schedule.label
+      (schedule) => detectedShift === schedule.label,
     );
 
     if (exactMatch) {
@@ -118,7 +118,7 @@ const Attendance = () => {
     }
 
     const matchingSchedule = scheduleList.find((schedule) =>
-      detectedShift.includes(schedule.label.split(" ")[0])
+      detectedShift.includes(schedule.label.split(" ")[0]),
     );
 
     if (matchingSchedule) {
@@ -163,7 +163,7 @@ const Attendance = () => {
     offDutyTime,
     detectedShift,
     scheduleList,
-    breaktimeMinutes = 0
+    breaktimeMinutes = 0,
   ) => {
     if (!onDutyTime || !offDutyTime) return 0;
 
@@ -183,13 +183,13 @@ const Attendance = () => {
     // Remaining scheduled time
     const remainingMinutes = Math.max(
       0,
-      expectedMinutes - Math.min(actualWorkedMinutes, expectedMinutes)
+      expectedMinutes - Math.min(actualWorkedMinutes, expectedMinutes),
     );
 
     // Excess minutes worked in last block
     const excessWorkedMinutes = Math.max(
       0,
-      actualWorkedMinutes - (expectedMinutes - remainingMinutes)
+      actualWorkedMinutes - (expectedMinutes - remainingMinutes),
     );
 
     let undertimeMinutes = Math.max(0, remainingMinutes - excessWorkedMinutes);
@@ -211,7 +211,7 @@ const Attendance = () => {
 
     detectedShift = null,
     scheduleList = [],
-    breaktimeMinutes = 0
+    breaktimeMinutes = 0,
   ) => {
     if (!onDutyTime || !offDutyTime) {
       return {
@@ -363,13 +363,13 @@ const Attendance = () => {
 
     total += Math.max(
       0,
-      Math.min(offMin, nightEnd) - Math.max(onMin, nightStart)
+      Math.min(offMin, nightEnd) - Math.max(onMin, nightStart),
     );
 
     if (offMin > 1440) {
       total += Math.max(
         0,
-        Math.min(offMin, nightEnd + 1440) - Math.max(onMin, nightStart + 1440)
+        Math.min(offMin, nightEnd + 1440) - Math.max(onMin, nightStart + 1440),
       );
     }
 
@@ -379,7 +379,7 @@ const Attendance = () => {
   const calculateAttendanceStatus = (
     onDutyTime,
     offDutyTime,
-    detectedShift
+    detectedShift,
   ) => {
     if (!offDutyTime) return "absent";
     if (
@@ -395,7 +395,7 @@ const Attendance = () => {
       false,
       false,
       detectedShift,
-      selectedSchedules
+      selectedSchedules,
     );
 
     const regularMinutes = breakdown.regularMinutes;
@@ -421,7 +421,7 @@ const Attendance = () => {
       false,
       false,
       detectedShift,
-      selectedSchedules
+      selectedSchedules,
     );
     const regularMinutes = breakdown.regularMinutes;
 
@@ -524,7 +524,7 @@ const Attendance = () => {
   const calculateLateMinutesWithSelectedSchedules = (
     onDutyTime,
     detectedShift,
-    selectedScheduleList
+    selectedScheduleList,
   ) => {
     if (!onDutyTime || !detectedShift || selectedScheduleList.length === 0)
       return 0;
@@ -532,7 +532,7 @@ const Attendance = () => {
     const matchingSchedule = selectedScheduleList.find(
       (schedule) =>
         detectedShift.includes(schedule.label) ||
-        schedule.label.includes(detectedShift.split(" ")[0])
+        schedule.label.includes(detectedShift.split(" ")[0]),
     );
 
     if (!matchingSchedule) return 0;
@@ -601,8 +601,8 @@ const Attendance = () => {
             row.workHours < 4
               ? "bg-yellow-100 text-yellow-800"
               : row.workHours >= 8
-              ? "bg-green-100 text-green-800"
-              : "bg-blue-100 text-blue-800"
+                ? "bg-green-100 text-green-800"
+                : "bg-blue-100 text-blue-800"
           }`}
         >
           {row.workHours?.toFixed(1) || "0.0"}h
@@ -720,7 +720,7 @@ const Attendance = () => {
           <Tooltip title={row.holidayName || ""} arrow placement="top">
             <span
               className={`px-2 py-1 rounded text-xs ${getHolidayColor(
-                row.holidayType
+                row.holidayType,
               )}`}
             >
               {row.holidayType}
@@ -736,7 +736,7 @@ const Attendance = () => {
       cell: (row) => (
         <span
           className={`px-2 py-1 rounded text-xs ${getShiftBadgeColor(
-            row.shift || "Unknown"
+            row.shift || "Unknown",
           )}`}
         >
           {(row.shift || "Unknown").split(" (")[0]}
@@ -753,10 +753,10 @@ const Attendance = () => {
             row.status === "present"
               ? "bg-green-100 text-green-800"
               : row.status === "half-day"
-              ? "bg-yellow-100 text-yellow-800"
-              : row.status === "absent"
-              ? "bg-red-100 text-red-800"
-              : "bg-gray-100 text-gray-800"
+                ? "bg-yellow-100 text-yellow-800"
+                : row.status === "absent"
+                  ? "bg-red-100 text-red-800"
+                  : "bg-gray-100 text-gray-800"
           }`}
         >
           {row.status === "half-day"
@@ -1016,7 +1016,7 @@ const Attendance = () => {
                   width: "auto",
                   minHeight: "10px",
                 },
-              }
+              },
             );
             setSelectedFile(null);
             event.target.value = "";
@@ -1030,7 +1030,7 @@ const Attendance = () => {
 
               if (!isNaN(dateRaw) && Number(dateRaw) > 0) {
                 const excelDate = new Date(
-                  (Number(dateRaw) - 25569) * 86400 * 1000
+                  (Number(dateRaw) - 25569) * 86400 * 1000,
                 );
                 formattedDate = excelDate.toISOString().split("T")[0];
               } else if (dateRaw) {
@@ -1062,13 +1062,13 @@ const Attendance = () => {
               const holidayName = holidayInfo ? holidayInfo.name : null;
 
               const isRestDay = Boolean(
-                row.RestDay || row.restDay || row["Rest Day"] || false
+                row.RestDay || row.restDay || row["Rest Day"] || false,
               );
 
               const workHours = calculateWorkHours(onDuty, offDuty);
               const shift = determineShiftFromSchedules(
                 onDuty,
-                currentActiveSchedules
+                currentActiveSchedules,
               );
               const hoursBreakdown = calculateWorkHoursBreakdown(
                 onDuty,
@@ -1077,13 +1077,13 @@ const Attendance = () => {
                 isRestDay,
                 shift,
                 currentActiveSchedules,
-                breaktimeMinutes
+                breaktimeMinutes,
               );
 
               const attendanceValue = calculateAttendanceValue(
                 onDuty,
                 offDuty,
-                shift
+                shift,
               );
               const status = calculateAttendanceStatus(onDuty, offDuty, shift);
               const lateMinutes =
@@ -1091,7 +1091,7 @@ const Attendance = () => {
                   ? calculateLateMinutesWithSelectedSchedules(
                       onDuty,
                       shift,
-                      currentActiveSchedules
+                      currentActiveSchedules,
                     )
                   : 0;
               const late = lateMinutes > 0;
@@ -1124,7 +1124,7 @@ const Attendance = () => {
 
           console.log(
             "Processed attendance data with holiday info:",
-            processedData
+            processedData,
           );
           setAttendanceData(processedData);
           generateSummary(processedData);
@@ -1282,24 +1282,24 @@ const Attendance = () => {
       const reprocessedData = attendanceData.map((record) => {
         const shift = determineShiftFromSchedules(
           record.onDuty,
-          currentActiveSchedules
+          currentActiveSchedules,
         );
         const attendanceValue = calculateAttendanceValue(
           record.onDuty,
           record.offDuty,
-          shift
+          shift,
         );
         const status = calculateAttendanceStatus(
           record.onDuty,
           record.offDuty,
-          shift
+          shift,
         );
         const lateMinutes =
           status !== "absent" && shift !== "No Schedule Match"
             ? calculateLateMinutesWithSelectedSchedules(
                 record.onDuty,
                 shift,
-                currentActiveSchedules
+                currentActiveSchedules,
               )
             : 0;
         const late = lateMinutes > 0;
@@ -1309,7 +1309,7 @@ const Attendance = () => {
           record.isHoliday,
           record.isRestDay,
           shift,
-          currentActiveSchedules
+          currentActiveSchedules,
         );
 
         return {
@@ -1422,7 +1422,7 @@ const Attendance = () => {
             Authorization: `Bearer ${token}`,
           },
           body: formData,
-        }
+        },
       );
 
       if (!response.ok) {
@@ -1485,14 +1485,14 @@ const Attendance = () => {
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ summaryData: summaryPayload }),
-          }
+          },
         );
 
         if (!summaryResponse.ok) {
           const errorText = await summaryResponse.text();
           console.error("Summary save failed:", errorText);
           throw new Error(
-            `Summary save failed! status: ${summaryResponse.status}`
+            `Summary save failed! status: ${summaryResponse.status}`,
           );
         }
 
@@ -1514,7 +1514,7 @@ const Attendance = () => {
                 width: "auto",
                 minHeight: "10px",
               },
-            }
+            },
           );
           setShowModal(true);
 
@@ -1670,7 +1670,7 @@ const Attendance = () => {
   const fetchAttendanceData = async () => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`
+        `${import.meta.env.VITE_API_URL}/api/attendance/get-attendance`,
       );
       if (!response.ok) throw new Error("Failed to fetch attendance data");
 
@@ -1682,7 +1682,7 @@ const Attendance = () => {
 
         console.log(
           "Active schedules for fetched data processing:",
-          currentActiveSchedules
+          currentActiveSchedules,
         );
         // ... rest of the function remains the same
       }
