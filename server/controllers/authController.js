@@ -97,35 +97,35 @@ const forgotPassword = async (req, res) => {
     await user.save();
 
     // Configure email with SSL/TLS options - SOLUTION 1: Proper SSL configuration
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-      // SSL/TLS configuration options
-      secure: true, // Use SSL
-      tls: {
-        // Don't fail on invalid certs (for development only)
-        rejectUnauthorized: false,
-        // Minimum TLS version
-        minVersion: 'TLSv1.2'
-      }
-    });
-
-    // Alternative configuration if the above doesn't work - SOLUTION 2
-    // const transporter = nodemailer.createTransporter({
-    //   host: 'smtp.gmail.com',
-    //   port: 587,
-    //   secure: false, // Use STARTTLS
+    // const transporter = nodemailer.createTransport({
+    //   service: 'gmail',
     //   auth: {
     //     user: process.env.EMAIL_USER,
     //     pass: process.env.EMAIL_PASS,
     //   },
+    //   // SSL/TLS configuration options
+    //   secure: true, // Use SSL
     //   tls: {
-    //     rejectUnauthorized: false
+    //     // Don't fail on invalid certs (for development only)
+    //     rejectUnauthorized: false,
+    //     // Minimum TLS version
+    //     minVersion: 'TLSv1.2'
     //   }
     // });
+
+    // Alternative configuration if the above doesn't work - SOLUTION 2
+    const transporter = nodemailer.createTransporter({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // Use STARTTLS
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
